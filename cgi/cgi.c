@@ -359,7 +359,7 @@ main( int argc, char *argv[] )
     }
 
     /* verify no KDC spoofing */
-    if ( keytab_path == NULL ) {
+    if ( *keytab_path == '\0' ) {
 	if (( kerror = krb5_kt_default_name(
 		kcontext, ktbuf, MAX_KEYTAB_NAME_LEN )) != 0 ) {
 	    err = (char *)error_message( kerror );

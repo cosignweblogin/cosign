@@ -49,7 +49,7 @@ AC_ARG_WITH(cosignhost, AC_HELP_STRING([--with-cosignhost=NAME], [name of host t
 AC_SUBST(cosignhost)
 
 AC_ARG_WITH(keytabpath, AC_HELP_STRING([--with-keytabpath=FILE], [path
-to keytab]), keytabpath="$withval", keytabpath=NULL )
+to keytab]), keytabpath="$withval", keytabpath="" )
 AC_SUBST(keytabpath)
 
 CHECK_SSL

@@ -2740,7 +2740,7 @@ if test "${with_keytabpath+set}" = set; then
   withval="$with_keytabpath"
   keytabpath="$withval"
 else
-  keytabpath=NULL
+  keytabpath=""
 fi;
 
 
