@@ -1,7 +1,7 @@
 include(`header.html')
 
-	<p>
-	    $e
-	</p> 
+        <p>
+            $e
+        </p> 
 
 include(`footer.html')

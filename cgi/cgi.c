@@ -26,6 +26,7 @@
 static	MYSQL	friend_db;
 #endif
 
+#define LOGIN_ERROR_HTML	"../templates/login_error.html"
 #define ERROR_HTML	"../templates/error.html"
 #define LOGIN_HTML	"../templates/login.html"
 #define SERVICE_MENU	"/services/"
@@ -215,7 +216,7 @@ main( int argc, char *argv[] )
     if (( head = connlist_setup( cosign_host, port )) == NULL ) {
 	title = "Error: But not your fault";
 	err = "We were unable to contact the authentication server.  Please try again later.";
-	tmpl = ERROR_HTML;
+	tmpl = LOGIN_ERROR_HTML;
 	subfile( tmpl );
 	exit( 0 );
     }
@@ -313,7 +314,8 @@ main( int argc, char *argv[] )
     if (( cl[ CL_PASSWORD ].cl_data == NULL ) ||
 	    ( *cl[ CL_PASSWORD ].cl_data == '\0' )) {
 	err = "Unable to login because password is a required field.";
-	title = "Authentication Required ( missing password )";
+	title = "Missing Password";
+	tmpl = LOGIN_ERROR_HTML;
 
         subfile ( tmpl );
 	exit( 0 );
@@ -324,8 +326,9 @@ main( int argc, char *argv[] )
 	if ( !mysql_real_connect( &friend_db, _FRIEND_MYSQL_DB, _FRIEND_MYSQL_LOGIN, _FRIEND_MYSQL_PASSWD, "friend", 3306, NULL, 0 )) {
 	    fprintf( stderr, mysql_error( &friend_db ));
 	    err = "Unable to connect to guest account database.";
-	    title = "Authentication Required ( server problem )";
+	    title = "Database Problem";
 
+	    tmpl = ERROR_HTML;
 	    subfile ( tmpl );
 	    exit( 0 );
 	}
@@ -336,8 +339,9 @@ main( int argc, char *argv[] )
 	if( mysql_real_query( &friend_db, sql, sizeof( sql ))) {
 	    fprintf( stderr, mysql_error( &friend_db ));
 	    err = "Unable to query guest account database.";
-	    title = "Authentication Required ( server problem )";
+	    title = "Server Problem";
 
+	    tmpl = ERROR_HTML;
 	    subfile ( tmpl );
 	    exit( 0 );
 	}
@@ -401,7 +405,7 @@ main( int argc, char *argv[] )
 	err = (char *)error_message( kerror );
 	title = "Your login id may not contain an '@'";
 
-	tmpl = ERROR_HTML;
+	tmpl = LOGIN_ERROR_HTML;
 	subfile ( tmpl );
 	exit( 0 );
 #endif
@@ -411,7 +415,7 @@ main( int argc, char *argv[] )
 	    err = (char *)error_message( kerror );
 	    title = "Authentication Required ( kerberos error )";
 
-	    tmpl = ERROR_HTML;
+	    tmpl = LOGIN_ERROR_HTML;
 	    subfile ( tmpl );
 	    exit( 0 );
 	}
@@ -421,7 +425,7 @@ main( int argc, char *argv[] )
 	    err = (char *)error_message( kerror );
 	    title = "Authentication Required ( kerberos error )";
 
-	    tmpl = ERROR_HTML;
+	    tmpl = LOGIN_ERROR_HTML;
 	    subfile ( tmpl );
 	    exit( 0 );
 	}
@@ -431,7 +435,7 @@ main( int argc, char *argv[] )
 	    err = (char *)error_message( kerror );
 	    title = "Authentication Required ( kerberos realm error )";
 
-	    tmpl = ERROR_HTML;
+	    tmpl = LOGIN_ERROR_HTML;
 	    subfile ( tmpl );
 	    exit( 0 );
 	}
@@ -440,7 +444,7 @@ main( int argc, char *argv[] )
 	    err = "An unknown error occurred.";
 	    title = "Authentication Required ( kerberos error )";
 
-	    tmpl = ERROR_HTML;
+	    tmpl = LOGIN_ERROR_HTML;
 	    subfile ( tmpl );
 	    exit( 0 );
 	}
@@ -450,7 +454,7 @@ main( int argc, char *argv[] )
 	    err = (char *)error_message( kerror );
 	    title = "Authentication Required ( kerberos error )";
 
-	    tmpl = ERROR_HTML;
+	    tmpl = LOGIN_ERROR_HTML;
 	    subfile ( tmpl );
 	    exit( 0 );
 	}
@@ -468,16 +472,16 @@ main( int argc, char *argv[] )
 	    if ( kerror == KRB5KRB_AP_ERR_BAD_INTEGRITY ) {
 
 		err = "Password incorrect.  Is [caps lock] on?";
-		title = "Authentication Required ( Password Incorrect )";
+		title = "Password Incorrect";
 
-		tmpl = LOGIN_HTML;
+		tmpl = LOGIN_ERROR_HTML;
 		subfile ( tmpl );
 		exit( 0 );
 	    } else {
 		err = (char *)error_message( kerror );
-		title = "( Password Error )";
+		title = "Error";
 		
-		tmpl = ERROR_HTML;
+		tmpl = LOGIN_ERROR_HTML;
 		subfile ( tmpl );
 		exit( 0 );
 	    }
@@ -488,9 +492,9 @@ main( int argc, char *argv[] )
 	    if (( kerror = krb5_kt_default_name(
 		    kcontext, ktbuf, MAX_KEYTAB_NAME_LEN )) != 0 ) {
 		err = (char *)error_message( kerror );
-		title = "( Ticket Verify Error )";
+		title = "Ticket Verification Error";
 	    
-		tmpl = ERROR_HTML;
+		tmpl = LOGIN_ERROR_HTML;
 		subfile ( tmpl );
 		exit( 0 );
 
@@ -498,9 +502,9 @@ main( int argc, char *argv[] )
 	} else {
 	    if ( strlen( keytab_path ) > MAX_KEYTAB_NAME_LEN ) {
 		err = "server configuration error";
-		title = "( Ticket Verify Error )";
+		title = "Ticket Verification Error";
 	
-		tmpl = ERROR_HTML;
+		tmpl = LOGIN_ERROR_HTML;
 		subfile ( tmpl );
 		exit( 0 );
 	    }
@@ -509,9 +513,9 @@ main( int argc, char *argv[] )
 
 	if (( kerror = krb5_kt_resolve( kcontext, ktbuf, &keytab )) != 0 ) {
 	    err = (char *)error_message( kerror );
-	    title = "( KT Resolve Error )";
+	    title = "KT Resolve Error";
 	    
-	    tmpl = ERROR_HTML;
+	    tmpl = LOGIN_ERROR_HTML;
 	    subfile ( tmpl );
 	    exit( 0 );
 	}
@@ -519,9 +523,9 @@ main( int argc, char *argv[] )
 	if (( kerror = krb5_sname_to_principal( kcontext, NULL, "cosign",
 		KRB5_NT_SRV_HST, &sprinc )) != 0 ) {
 	    err = (char *)error_message( kerror );
-	    title = "( Server Principal Error )";
+	    title = "Server Principal Error";
 	    
-	    tmpl = ERROR_HTML;
+	    tmpl = LOGIN_ERROR_HTML;
 	    subfile ( tmpl );
 	    exit( 0 );
 	}
@@ -529,9 +533,9 @@ main( int argc, char *argv[] )
 	if (( kerror = krb5_verify_init_creds(
 		kcontext, &kcreds, sprinc, keytab, NULL, NULL )) != 0 ) {
 	    err = (char *)error_message( kerror );
-	    title = "( Ticket Verify Error )";
+	    title = "Ticket Verify Error";
 	    
-	    tmpl = ERROR_HTML;
+	    tmpl = LOGIN_ERROR_HTML;
 	    subfile ( tmpl );
 	    krb5_free_principal( kcontext, sprinc );
 	    exit( 0 );
@@ -541,18 +545,18 @@ main( int argc, char *argv[] )
 
 	if (( kerror = krb5_cc_initialize( kcontext, kccache, kprinc )) != 0 ) {
 	    err = (char *)error_message( kerror );
-	    title = "( Ticket Sticking Error )";
+	    title = "CC Initialize Error";
 	    
-	    tmpl = ERROR_HTML;
+	    tmpl = LOGIN_ERROR_HTML;
 	    subfile ( tmpl );
 	    exit( 0 );
 	}
 
 	if (( kerror = krb5_cc_store_cred( kcontext, kccache, &kcreds )) != 0 ) {
 	    err = (char *)error_message( kerror );
-	    title = "( Ticket Storing Error )";
+	    title = "CC Storing Error";
 	    
-	    tmpl = ERROR_HTML;
+	    tmpl = LOGIN_ERROR_HTML;
 	    subfile ( tmpl );
 	    exit( 0 );
 	}
@@ -620,6 +624,10 @@ loginscreen:
     if ( mkcookie( sizeof( new_cookiebuf ), new_cookiebuf ) != 0 ) {
 	fprintf( stderr, "%s: mkcookie: failed\n", script );
 	exit( SIDEWAYS );
+    }
+
+    if ( err == NULL ) {
+	err = "Please type your login and password and click the Login button to continue.";
     }
 
     snprintf( new_cookie, sizeof( new_cookie ), "cosign=%s", new_cookiebuf );

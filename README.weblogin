@@ -35,12 +35,11 @@ To build the central cosign server ( the weblogin server ):
 
 	cosignd: can't find cosign service 
 
-    add cosignd to /etc/services on port 6663 ( the default ) or
+    add cosign to /etc/services on port 6663/tcp ( the default ) or
     whatever port you are running it on.
 
-    If you are going to be using Kerberos, make sure you create a
-    /ticket and change the permissions so the webserver and the daemon
-    can write there.
+    If you are using Kerberos, create a /ticket and change the permissions
+    so the webserver and the daemon can write there.
 
 Testing your certificates:
 
@@ -57,11 +56,11 @@ Testing your certificates:
 Customizing your html:
 
     Before doing a 'make everything' and certainly before doing a 'make
-    install,' be sure to customize the contents of 'html/header.html,
+    install-all,' be sure to customize the contents of 'html/header.html,
     'html/footer.html,' and 'html/cosign.css.'  You can, of course,
-    customize the other templates as well but be careful with the
-    variable display strings ( of the form '$a' where 'a' can be any
-    letter or number ).  These are needed by the CGI.
+    customize the other templates as well but be careful with the variable
+    display strings ( of the form '$a' where 'a' can be any letter or
+    number ).  These are needed by the CGI.
 
 Things to know about the CGI:
 
@@ -69,12 +68,12 @@ Things to know about the CGI:
     instance of the hostname of the machine that the cgi will run on.
 
     The required html and templates for the cgi ( login page, logout
-    page, services page, etc. ) live in ${prefix}/html and
-    ${prefix}/templates. You will most likely want to localize these
-    pages.
+    page, etc. ) live in ${prefix}/html and ${prefix}/templates. You
+    will most likely want to localize these pages.
 
-    We use a trick so that cosign.cgi will run from DocRoot. In order to
-    make this work, you need to make 3 changes to the default httpd.conf:
+    We use a trick so that cosign.cgi will run from DocumentRoot. In
+    order to make this work, you need to make 3 changes to the default
+    httpd.conf:
 
 	DirectoryIndex      cosign.cgi index.php index.html
 	AddHandler          cgi-script      .cgi
@@ -84,10 +83,40 @@ Things to know about the CGI:
 	    Options ExecCGI
 	</Directory>
 
-    During evaluation, it may be useful to run both the cgi/daemon and
-    the filter on a single server. To test a cosign filter installation
-    on the cosign server, you'll need some special configuration
-    options, like so:
+    If you choose to install the cgi in a subdirectory (e.g. /login/)
+    be sure to have the action of your form end in a trailing '/'
+
+Creating cosign.conf file:
+
+    The last thing you need to do before starting up your cosign server
+    is create the cosign.conf file:
+
+          #
+          # keyword           subject cn               get tickets?
+          #
+          cgi                 cosignserver.umich.edu
+          service             servicea.web.umich.edu        0
+          service             serviceb.web.umich.edu        0
+          service             campusmail.umich.edu          1
+          service             alumni.web.mgoblue.com        0
+          service             *.web.umich.edu               0
+
+    The default location for this file is /etc/cosign.conf.  See the
+    cosignd man page for more information.
+
+Scripts
+
+    See the scripts/ directory in the cosign source distribution for an
+    example cosignd startup script, a cron job to clean up your cookie
+    database (if you are not using replication), and several example
+    logout scripts.
+
+Setting up an example protected service:
+
+    It may be useful to run both the cgi/daemon and the filter on a single
+    server. To test a cosign filter installation on the cosign server,
+    you'll need some special configuration options, like so:
+
     in your server root, turn Cosign protection on:
 	CosignProtected On
 
@@ -98,22 +127,19 @@ Things to know about the CGI:
 	    CosignProtected Off
 	</Directory>
 
-    Then turn a specific location, like test.html, on
+    Then turn a specific location, like /services/, on
 
-	<Location /test.html>
+	<Location /services/>
 	    CosignProtected On
 	</Location>
 
     This will make it so the cgi can run when you are not logged in,
-    but that in order to access test.html you must be logged in. More
-    complicated configurations are possible, but this is a basic one to
-    get you going.
+    but that in order to access /services/ you must be logged in. More
+    complicated configurations are possible, but this is a basic one
+    to get you going.  The distribution includes a sample /services/
+    directory for testing.
 
-
-See README.scripts for a cron job that prunes old cookies from the
-server's database and a cosignd init script.
-
-./configure options:
+Configure Options:
 
     --with-cosignhost=NAME  	default=cosign.example.edu
     --with-cosignlogouturl=URL	default=http://cosign.example.edu
@@ -128,4 +154,6 @@ server's database and a cosignd init script.
     The certificate CN of the weblogin server must match the argument
     to --with-cosignhost.
 
-Questions? cosign@umich.edu
+Questions?
+
+    cosign-discuss@umich.edu

@@ -55,7 +55,7 @@ include(`header.html')
 		    </td>
 		</tr>
 		<tr>
-		    <td class="message-area"><img src="images/icon_sysmessage.gif" width="14" height="14"> <strong>$t:</strong> $e </td>
+		    <td class="message-area"><img src="images/icon_alert.gif" width="14" height="14"> <strong>$t:</strong> $e </td>
 		</tr>
 		<tr>
 		    <td class="footercap">&nbsp;</td>

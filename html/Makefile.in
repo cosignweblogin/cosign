@@ -1,4 +1,4 @@
-ALL	= error.html login.html redirect.html service-menu.html splash.html verify-logout.html post_error.html
+ALL	= error.html login.html login_error.html redirect.html verify-logout.html post_error.html
 prefix=@prefix@
 exec_prefix=@exec_prefix@
 TMPLDIR  = @prefix@/templates

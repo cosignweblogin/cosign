@@ -1,7 +1,11 @@
+These instructions are for building the Apache authentication filter.
+If you need to set up an entire weblogin infrastructure please see
+README.weblogin (for sites using Kerberos) or README.basicauth for any
+other AuthN backend.
+
 Before you begin:
 
-    For documentation and information concerning cosign terminology,
-    see: http://weblogin.org/
+    For documentation and information see: http://weblogin.org/
 
     To build the Apache filter you need Apache 1.3.X.  Support for
     Apache 2.0 will be available in a later release.  Your web
