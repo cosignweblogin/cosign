@@ -110,7 +110,7 @@ read_cookie( char *path, struct cinfo *ci )
 	return( -1 );
     }
 
-    ci->ci_itime = st.st_mtime;
+    ci->ci_itime = st.st_atime;
 
     /* file ordering matters for version and state, after we don't care */
     if ( fgets( buf, sizeof( ci->ci_version ), cf ) == NULL ) {

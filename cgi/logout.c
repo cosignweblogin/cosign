@@ -9,6 +9,7 @@
 #include <sys/time.h>
 #include <sys/types.h>
 #include <sys/param.h>
+#include <openssl/ssl.h>
 #include <snet.h>
 #include "cgi.h"
 #include "cosigncgi.h"

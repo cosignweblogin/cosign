@@ -10,6 +10,8 @@
 #include <sys/types.h>
 #include <sys/param.h>
 #include <krb5.h>
+
+#include <openssl/ssl.h>
 #include <snet.h>
 #include "cgi.h"
 #include "cosigncgi.h"

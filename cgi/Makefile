@@ -1,6 +1,7 @@
 CGIBIN	= /usr/local/projects/cosign/cgi-ssl
 
 CC	= gcc
+DEFS	= -DTLS
 TARGETS	= cosign logout
 OBJ	= mkcookie.o fbase64.o network.o
 
@@ -13,10 +14,10 @@ EX_LIBS	= -lsocket -lnsl -lresolv
 INC	= -Ilibcgi -I/afs/umich.edu/group/itd/software/packages/k/kerberos-5/krb5-1.2.1UM/@sys/dest/usr/krb5/include -I$(KINCDIR) -I/usr/local/openssl/include -I../libsnet
 
 LIBCGI  = -Llibcgi -lcgi
-LIBS	= $(LIBCGI) -L/usr/local/krb5/lib -lkrb5 -lk5crypto -lcom_err $(EX_LIBS) -L/usr/local/openssl/lib -lcrypto -L../libsnet -lsnet
+LIBS	= $(LIBCGI) -L/usr/local/krb5/lib -lkrb5 -lk5crypto -lcom_err $(EX_LIBS) -L/usr/local/openssl/lib -lssl -lcrypto -L../libsnet -lsnet
 
 LDFLAGS	= $(KLIBS)
-CFLAGS	= -g -Wall $(INC)
+CFLAGS	= -g -Wall $(DEFS) $(INC)
 
 
 all: ${TARGETS}
@@ -28,7 +29,8 @@ logout: libs logout.o $(OBJ)
 		${CC} -o logout logout.o $(OBJ) $(LIBS)
 
 libs:
-		cd ../libsnet; ${MAKE} ${MFLAGS} CC=${CC}
+		cd ../libsnet; ${MAKE} ${MFLAGS} CC=${CC} DEFS="${DEFS}" \
+			INCPATH="${INC}"
 		cd libcgi; ${MAKE} ${MFLAGS} CC=${CC}
 
 clean:

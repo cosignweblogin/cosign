@@ -35,6 +35,7 @@ extern SSL_CTX	*ctx;
 #define IP_SZ 254
 #define USER_SZ 30
 #define REALM_SZ 254
+#define IDLE_OUT 1800
 
 extern char	*version;
 
@@ -385,6 +386,18 @@ f_register( sn, ac, av )
 	return( -1 );
     }
 
+    /* check for idle timeout, and if so, log'em out */
+    if ( tv.tv_sec - ci.ci_itime > IDLE_OUT ) {
+	syslog( LOG_INFO, "f_check: idle time out!\n" );
+	if ( do_logout( av[ 1 ] ) < 0 ) {
+	    syslog( LOG_ERR, "f_logout: %s: %m" );
+	    snet_writef( sn, "%d LOGOUT error: Sorry!\r\n", 514 );
+	    return( -1 );
+	}
+	snet_writef( sn, "%d CHECK: Idle logged out\r\n", 431 );
+	return( 1 );
+    }
+
     if ( snprintf( tmppath, MAXPATHLEN, "%x%x.%i",
 	    tv.tv_sec, tv.tv_usec, (int)getpid()) >= MAXPATHLEN ) {
 	syslog( LOG_ERR, "f_register: tmppath too long" );
@@ -451,6 +464,7 @@ f_check( sn, ac, av )
     char			*av[];
 {
     struct cinfo 	ci;
+    struct timeval	tv;
     char		login[ MAXPATHLEN ];
     int			status;
 
@@ -496,7 +510,25 @@ f_check( sn, ac, av )
 	snet_writef( sn, "%d CHECK: Already logged out\r\n", 430 );
 	return( 1 );
     }
+
+
     /* check for idle timeout, and if so, log'em out */
+    if ( gettimeofday( &tv, NULL ) != 0 ){
+	syslog( LOG_ERR, "f_check: gettimeofday: %m" );
+	snet_writef( sn, "%d CHECK Error: Sorry!\r\n", 535 );
+	return( -1 );
+    }
+
+    if ( tv.tv_sec - ci.ci_itime > IDLE_OUT ) {
+	syslog( LOG_INFO, "f_check: idle time out!\n" );
+	snet_writef( sn, "%d CHECK: Idle logged out\r\n", 431 );
+	if ( do_logout( login ) < 0 ) {
+	    syslog( LOG_ERR, "f_logout: %s: %m" );
+	    snet_writef( sn, "%d LOGOUT error: Sorry!\r\n", 514 );
+	    return( -1 );
+	}
+	return( 1 );
+    }
 
     snet_writef( sn,
 	    "%d %s %s %s\r\n", status, ci.ci_ipaddr, ci.ci_user, ci.ci_realm );
@@ -540,7 +572,6 @@ command( fd )
     while (( line = snet_getline( snet, &tv )) != NULL ) {
 	tv.tv_sec = 60 * 10;
 	tv.tv_usec = 0;
-syslog( LOG_INFO, "line: %s", line );
 	if (( ac = argcargv( line, &av )) < 0 ) {
 	    syslog( LOG_ERR, "argcargv: %m" );
 	    break;

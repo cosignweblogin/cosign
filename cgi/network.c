@@ -13,15 +13,22 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <openssl/err.h>
+#include <openssl/ssl.h>
 #include <snet.h>
 
 #include "network.h"
+
+#define CERTFILE	"/usr/local/umweb/certs/cosign-test.www.cert"
+#define CRYPTOFILE	"/usr/local/umweb/certs/cosign-test.www.key"
+#define CAFILE		"/usr/local/umweb/certs/umwebCA.pem"
 
 struct timeval          timeout = { 10 * 60, 0 };
 extern void            (*logger)( char * );
 extern int		errno;
 extern int		port;
 extern char		*host;
+SSL_CTX			*ctx;
 
     int
 cosign_login( char *cookie, char *ip, char *user, char *realm )
@@ -216,37 +223,105 @@ cosign_check( char *cookie )
 connectsn2( struct sockaddr_in *sin )
 {
     int			s;
-    char		*line;
+    char		*line, buf[ 1024 ];
+    X509		*peer;
     struct timeval      tv;
     SNET                *sn = NULL; 
+
+
+    SSL_load_error_strings();
+    SSL_library_init();
+    if (( ctx = SSL_CTX_new( SSLv23_client_method())) == NULL ) {
+        fprintf( stderr, "SSL_CTX_new: %s\n",
+                ERR_error_string( ERR_get_error(), NULL ));
+        exit( 1 );
+    }
+    if ( SSL_CTX_use_PrivateKey_file( ctx,
+            CRYPTOFILE, SSL_FILETYPE_PEM ) != 1 ) {
+        fprintf( stderr, "SSL_CTX_use_PrivateKey_file: %s: %s\n",
+                CRYPTOFILE, ERR_error_string( ERR_get_error(), NULL ));
+        exit( 1 );
+    }
+    if ( SSL_CTX_use_certificate_chain_file( ctx, CERTFILE ) != 1 ) {
+        fprintf( stderr, "SSL_CTX_use_certificate_chain_file: %s: %s\n",
+                CERTFILE, ERR_error_string( ERR_get_error(), NULL ));
+        exit( 1 );
+    }
+    if ( SSL_CTX_check_private_key( ctx ) != 1 ) {
+        fprintf( stderr, "SSL_CTX_check_private_key: %s\n",
+                ERR_error_string( ERR_get_error(), NULL ));
+        exit( 1 );
+    }
+    if ( SSL_CTX_load_verify_locations( ctx, CAFILE, NULL ) != 1 ) {
+        fprintf( stderr, "SSL_CTX_load_verify_locations: %s: %s\n",
+                CRYPTOFILE, ERR_error_string( ERR_get_error(), NULL ));
+        exit( 1 );
+    }
+    SSL_CTX_set_verify( ctx, SSL_VERIFY_PEER, NULL );
 
     if (( s = socket( PF_INET, SOCK_STREAM, NULL )) < 0 ) {
 	perror( "socket" );
 	exit( 2 );
     }
-    if ( connect( s, ( struct sockaddr *)sin,
+    if ( connect( s, (struct sockaddr *)sin,
 	    sizeof( struct sockaddr_in ) ) != 0 ) {
 	(void)close( s );
 	return( NULL );
     }
-    if ( ( sn = snet_attach( s, 1024 * 1024 ) ) == NULL ) {
+    if (( sn = snet_attach( s, 1024 * 1024 ) ) == NULL ) {
 	perror( "snet_attach" );
 	exit( 2 );
     }
     tv = timeout;
-    if ( ( line = snet_getline_multi( sn, logger, &tv) ) == NULL ) {
+    if (( line = snet_getline_multi( sn, logger, &tv )) == NULL ) {
 	fprintf( stderr, "connection to %s failed: %s\n",
 		inet_ntoa( sin->sin_addr ), strerror( errno ));
-	snet_close( sn );
-	return( NULL );
+	goto done;
     }
     if ( *line !='2' ) {
-	fprintf( stderr, "%s\n", line);
-	snet_close( sn );
-	return( NULL );
+	fprintf( stderr, "connectsn2: %s\n", line);
+	goto done;
     }
 
+    if ( snet_writef( sn, "STARTTLS\r\n" ) < 0 ) {
+        fprintf( stderr, "connec_sn2: starttls failed\n" );
+        goto done;
+    }
+
+    tv = timeout;
+    if (( line = snet_getline_multi( sn, logger, &tv )) == NULL ) {
+        fprintf( stderr, "connectsn2: snet_getline_multi failed\n" );
+        goto done;
+    }
+    if ( *line != '2' ) {
+        fprintf( stderr, "connectsn2: %s\n", line );
+        goto done;
+    }
+
+    if ( snet_starttls( sn, ctx, 0 ) != 1 ) {
+        fprintf( stderr, "snet_starttls: %s\n",
+                ERR_error_string( ERR_get_error(), NULL ));
+        goto done;
+    }
+
+    if (( peer = SSL_get_peer_certificate( sn->sn_ssl )) == NULL ) {
+        fprintf( stderr, "no certificate\n" );
+        goto done;
+    }
+
+    X509_NAME_get_text_by_NID( X509_get_subject_name( peer ), NID_commonName,
+            buf, sizeof( buf ));
+    fprintf( stderr, "CERT Subject: %s\nHost:%s\n", buf, host );
+    X509_free( peer );
+
     return( sn );
+
+done:
+     if ( snet_close( sn ) != 0 ) {
+        fprintf( stderr, "connectsn2: snet_close failed\n" );
+    }
+    return( NULL );
+
 }
 
 
