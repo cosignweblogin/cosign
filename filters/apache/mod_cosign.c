@@ -146,13 +146,16 @@ set_cookie_and_redirect( request_rec *r, cosign_host_config *cfg )
 		"%s=%s", cfg->service, cookiebuf );
     }
 
-    /* prevent the reuse of stale cookies by bad browsers */
+    /* older version of IE on MacOS 9 seem to need ";;" instead of */
+    /* simply ";" as the cookie delimiter, otherwise no cookie is */
+    /* returned upon revisit. */
+
     gettimeofday( &now, NULL );
     if ( cfg->http ) { /* living dangerously */
-	full_cookie = ap_psprintf( r->pool, "%s/%d;path=/",
+	full_cookie = ap_psprintf( r->pool, "%s/%d;;path=/",
 		my_cookie, now.tv_sec);
     } else {
-	full_cookie = ap_psprintf( r->pool, "%s/%d;path=/;secure",
+	full_cookie = ap_psprintf( r->pool, "%s/%d;;path=/;secure",
 		my_cookie, now.tv_sec );
     }
 
