@@ -68,8 +68,10 @@ netcheck_cookie( char *scookie, struct sinfo *si, SNET *sn )
 
     tv = timeout;
     if (( line = snet_getline_multi( sn, logger, &tv )) == NULL ) {
-	fprintf( stderr, "netcheck_cookie: snet_getline_multi: %s\n",
-		strerror( errno ));
+	if ( !snet_eof( sn )) {
+	    fprintf( stderr, "netcheck_cookie: snet_getline_multi: %s\n",
+		    strerror( errno ));
+	}
 	return( -1 );
     }
 
