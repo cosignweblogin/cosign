@@ -9,10 +9,10 @@ CC=gcc
 APACHECTL=apachectl
 
 #   additional user defines, includes and libraries
-#DEF=-Dmy_define=my_value
+DEFS=-DTLS
 INC=-I/usr/local/openssl/include -I/usr/local/apache/include -I./libsnet
-CFLAGS=	${DEF} ${INC} -DEAPI -Wall -Wstrict-prototypes
-LIB=-L/usr/local/openssl/lib -lcrypto -L./libsnet -lsnet
+CFLAGS=	${DEFS} ${INC} -DEAPI -Wall
+LIB=-L/usr/local/openssl/lib -lcrypto -lssl -L./libsnet -lsnet
 OBJ=	mod_cosign.o mkcookie.o fbase64.o connect.o cookiefs.o sparse.o \
 	argcargv.o version.o
 
@@ -26,7 +26,8 @@ mod_cosign.so: libsnet/libsnet.a ${OBJ}
 FRC :
 
 libsnet/libsnet.a : FRC
-	cd libsnet; ${MAKE} ${MFLAGS} CC=${CC}
+	cd libsnet; ${MAKE} ${MFLAGS} CC=${CC} DEFS="${DEFS}" \
+		INCPATH="${INC}"
 
 version.o : version.c
 	${CC} ${CFLAGS} \

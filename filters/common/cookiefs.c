@@ -13,10 +13,12 @@
 #include <unistd.h>
 #include <string.h>
 #include <stdio.h>
-#include <snet.h>
 #include <fcntl.h>
 #include <errno.h>
 
+#include <openssl/ssl.h>
+
+#include <snet.h>
 #include "sparse.h"
 #include "cosign.h"
 
@@ -24,7 +26,7 @@
 #define IDLETIME	60
 
     int
-cookie_valid( struct connlist **c_cur, char *cookie, struct sinfo *si,
+cookie_valid( cosign_host_config *cfg, char *cookie, struct sinfo *si,
 	char *ipaddr )
 {
     struct sinfo	lsi;
@@ -69,7 +71,7 @@ cookie_valid( struct connlist **c_cur, char *cookie, struct sinfo *si,
 	return( 0 );
     }
 
-    if (( rc = check_cookie( cookie, si, c_cur )) < 0 ) {
+    if (( rc = check_cookie( cookie, si, cfg )) < 0 ) {
 	fprintf( stderr, "cookie_valid: check_cookie failed\n" );
 	return( -1 );
     }

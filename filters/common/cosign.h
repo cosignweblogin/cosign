@@ -7,6 +7,7 @@ typedef struct {
     int                 protect;
     int                 configured;
     struct connlist     *cl;
+    SSL_CTX		*ctx;
 } cosign_host_config;
 
 
@@ -17,7 +18,7 @@ struct connlist {
 };
 
 
-int cookie_valid( struct connlist **, char *, struct sinfo *, char * );
-int check_cookie( char *, struct sinfo *, struct connlist ** );
+int cookie_valid( cosign_host_config *, char *, struct sinfo *, char * );
+int check_cookie( char *, struct sinfo *, cosign_host_config *);
 int teardown_conn( struct connlist * );
 int mkcookie( int, char * );

@@ -14,7 +14,7 @@ COSIGNLOG=LOG_LOCAL7
 # For gcc:
 CC=	gcc
 # These options might work on your system:
-OPTOPTS=-Wall -Wstrict-prototypes -Wmissing-prototypes -Wconversion
+OPTOPTS=-Wall -Wmissing-prototypes -Wconversion
 
 # For most platforms:
 INSTALL=	install
@@ -28,13 +28,12 @@ ADDLIBS=	-lsocket -lnsl
 SRC=    daemon.c command.c argcargv.c cparse.c
 COSIGNOBJ=	daemon.o command.o argcargv.o cparse.o
 
-INCPATH=	-Ilibsnet
-DEFS=	-DLOG_COSIGN=${COSIGNLOG}
+INCPATH=	-Ilibsnet -I/usr/local/openssl/include
+DEFS=	-DLOG_COSIGN=${COSIGNLOG} -DTLS
 CFLAGS=	${DEFS} ${OPTOPTS} ${INCPATH}
 TAGSFILE=	tags
-LIBPATH=	-Llibsnet
-#LIBS=	${ADDLIBS} -lsnet
-LIBS=	${ADDLIBS} -lsnet 
+LIBPATH=	-Llibsnet -L/usr/local/openssl/lib
+LIBS=	${ADDLIBS} -lsnet -lssl -lcrypto
 
 TARGETS=	cosignd
 
@@ -49,7 +48,8 @@ cosignd : libsnet/libsnet.a ${COSIGNOBJ} Makefile
 FRC :
 
 libsnet/libsnet.a : FRC
-	cd libsnet; ${MAKE} ${MFLAGS} CC=${CC}
+	cd libsnet; ${MAKE} ${MFLAGS} CC=${CC} DEFS="${DEFS}" \
+		INCPATH="${INCPATH}"
 
 VERSION=`date +%Y%m%d`
 DISTDIR=../cosignd-${VERSION}

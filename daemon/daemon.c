@@ -21,6 +21,8 @@
 #include <stdlib.h>
 #include <unistd.h>
 
+#include <openssl/err.h>
+#include <openssl/ssl.h>
 #include <snet.h>
 
 #define COSIGN_DIR "/var/cosign"
@@ -72,6 +74,9 @@ chld( sig )
     return;
 }
 
+SSL_CTX		*ctx = NULL;
+
+
     int
 main( ac, av )
     int		ac;
@@ -85,6 +90,9 @@ main( ac, av )
     int			dontrun = 0;
     int			reuseaddr = 1;
     char		*prog;
+    char		*cryptofile = "YOUR FILE HERE";
+    char		*certfile = "YOUR FILE HERE";
+    char		*cafile = "YOUR FILE HERE";
     unsigned short	port = 0;
     extern int		optind;
     extern char		*optarg;
@@ -133,6 +141,43 @@ main( ac, av )
      * Read config file before chdir(), in case config file is relative path.
      */
 
+    if ( cryptofile != NULL ) {
+	SSL_load_error_strings();
+	SSL_library_init();
+
+	if (( ctx = SSL_CTX_new( SSLv23_server_method())) == NULL ) {
+	    fprintf( stderr, "SSL_CTX_new: %s\n",
+		    ERR_error_string( ERR_get_error(), NULL ));
+	    exit( 1 );
+	}
+
+	if ( SSL_CTX_use_PrivateKey_file( ctx, cryptofile, SSL_FILETYPE_PEM )
+		!= 1 ) {
+	    fprintf( stderr, "SSL_CTX_use_PrivateKey_file: %s: %s\n",
+		    cryptofile, ERR_error_string( ERR_get_error(), NULL));
+	    exit( 1 );
+	}
+	if ( SSL_CTX_use_certificate_chain_file( ctx, certfile ) != 1) {
+	    fprintf( stderr, "SSL_CTX_use_certificate_chain_file: %s: %s\n",
+		    cryptofile, ERR_error_string( ERR_get_error(), NULL));
+	    exit( 1 );
+	}
+	if ( SSL_CTX_check_private_key( ctx ) != 1 ) {
+	    fprintf( stderr, "SSL_CTX_check_private_key: %s\n",
+		    ERR_error_string( ERR_get_error(), NULL ));
+	    exit( 1 );
+	}
+
+	if ( SSL_CTX_load_verify_locations( ctx, cafile, NULL ) != 1 ) {
+	    fprintf( stderr, "SSL_CTX_load_verify_locations: %s: %s\n",
+		    cryptofile, ERR_error_string( ERR_get_error(), NULL));
+	    exit( 1 );
+	}
+	SSL_CTX_set_verify( ctx,
+		SSL_VERIFY_PEER | SSL_VERIFY_FAIL_IF_NO_PEER_CERT, NULL);
+    }
+
+
     if ( dontrun ) {
 	exit( 0 );
     }
@@ -178,6 +223,7 @@ main( ac, av )
 	perror( COSIGN_DIR );
 	exit( 1 );
     }
+
 
     /*
      * Disassociate from controlling tty.

@@ -12,8 +12,10 @@
 #include <arpa/inet.h>
 #include <string.h>
 
+#include <openssl/ssl.h>
+#include <openssl/err.h>
+
 #include <snet.h>
-#include <string.h>
 
 #include "sparse.h"
 #include "cosign.h"
@@ -33,6 +35,7 @@ cosign_create_dir_config( pool *p, char *path )
     cfg->protect = 1;
     cfg->configured = 0;
     cfg->cl = NULL;
+    cfg->ctx = NULL;
     return( cfg );
 
 }
@@ -51,6 +54,7 @@ cosign_create_server_config( pool *p, server_rec *s )
     cfg->protect = 1;
     cfg->configured = 0;
     cfg->cl = NULL;
+    cfg->ctx = NULL;
     return( cfg );
 }
 
@@ -61,6 +65,7 @@ cosign_init( server_rec *s, pool *p )
 
     ap_log_error( APLOG_MARK, APLOG_INFO|APLOG_NOERRNO, s,
 	    "mod_cosign: version %s initialized.", version );
+
     return;
 }
 
@@ -109,7 +114,7 @@ set_cookie_and_redirect( request_rec *r, cosign_host_config *cfg )
     static int
 cosign_authn( request_rec *r )
 {
-    char *authn;
+    const char *authn;
 
     if ((( authn = ap_auth_type( r )) == NULL ) || 
 	    ( r->connection->user == NULL )) {
@@ -200,10 +205,14 @@ cosign_auth( request_rec *r )
      * Otherwise, retrieve the auth info from the server.
      */
     my_cookie = ap_psprintf( r->pool, "%s=%s", cookiename, pair );
-    if (( cv = cookie_valid( &cfg->cl, my_cookie, &si,
+    if (( cv = cookie_valid( cfg, my_cookie, &si,
 	    r->connection->remote_ip )) < 0 ) {	
 	return( FORBIDDEN );	/* it's all forbidden! */
     } 
+
+    if ( cfg->ctx == NULL ) {
+	fprintf( stderr, "ctx is NULL in cosign_auth\n" );
+    }
 
     /* Everything Shines, let them thru */
     if ( cv == 0 ) {
@@ -275,6 +284,7 @@ set_cosign_service( cmd_parms *params, void *mconfig, char *arg )
 	cfg->host = ap_pstrdup( params->pool, scfg->host );
 	cfg->cl = scfg->cl;
 	cfg->port = scfg->port; 
+	cfg->ctx = scfg->ctx;
     }
 
     if ( cfg->service != NULL ) {
@@ -337,6 +347,9 @@ set_cosign_host( cmd_parms *params, void *mconfig, char *arg )
     struct connlist		*new, **cur;
     char			*err;
     cosign_host_config		*cfg;
+    char	*cryptofile = "/usr/local/etc/apache/certs/beothuk.key";
+    char	*certfile = "/usr/local/etc/apache/certs/beothuk.cert";
+    char	*cafile = "/usr/local/etc/apache/certs/umwebCA.pem";
 
     if ( params->path == NULL ) {
 	cfg = (cosign_host_config *) ap_get_module_config(
@@ -344,6 +357,38 @@ set_cosign_host( cmd_parms *params, void *mconfig, char *arg )
     } else {
 	return( "CosignHostname not valid per dir!" );
     }
+
+    /* why not ? */
+
+    SSL_load_error_strings();
+    SSL_library_init();
+    if (( cfg->ctx = SSL_CTX_new( SSLv23_client_method())) == NULL ) {
+	fprintf( stderr, "SSL_CTX_new: %s\n",
+		ERR_error_string( ERR_get_error(), NULL ));
+	exit( 1 );
+    }
+    if ( SSL_CTX_use_PrivateKey_file( cfg->ctx,
+	    cryptofile, SSL_FILETYPE_PEM ) != 1 ) {
+	fprintf( stderr, "SSL_CTX_use_PrivateKey_file: %s: %s\n",
+		cryptofile, ERR_error_string( ERR_get_error(), NULL ));
+	exit( 1 );
+    }
+    if ( SSL_CTX_use_certificate_chain_file( cfg->ctx, certfile ) != 1 ) {
+	fprintf( stderr, "SSL_CTX_use_certificate_chain_file: %s: %s\n",
+		certfile, ERR_error_string( ERR_get_error(), NULL ));
+	exit( 1 );
+    }
+    if ( SSL_CTX_check_private_key( cfg->ctx ) != 1 ) {
+	fprintf( stderr, "SSL_CTX_check_private_key: %s\n",
+		ERR_error_string( ERR_get_error(), NULL ));
+	exit( 1 );
+    }
+    if ( SSL_CTX_load_verify_locations( cfg->ctx, cafile, NULL ) != 1 ) {
+	fprintf( stderr, "SSL_CTX_load_verify_locations: %s: %s\n",
+		cryptofile, ERR_error_string( ERR_get_error(), NULL ));
+	exit( 1 );
+    }
+    SSL_CTX_set_verify( cfg->ctx, SSL_VERIFY_PEER, NULL );
 
     if ( cfg->host != NULL ) {
 	return( "There can be only one host per configuration!" );

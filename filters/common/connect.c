@@ -13,7 +13,11 @@
 #include <string.h>
 #include <unistd.h>
 
+#include <openssl/ssl.h>
+#include <openssl/err.h>
+
 #include <snet.h>
+
 
 #include "sparse.h"
 #include "cosign.h"
@@ -23,7 +27,7 @@
 #define USER_SZ 30
 #define REALM_SZ 254
 
-static int connect_sn( struct connlist *);
+static int connect_sn( struct connlist *, SSL_CTX *, char *);
 static int close_sn( SNET *);
 void (*logger)( char * ) = NULL;
 
@@ -119,7 +123,7 @@ teardown_conn( struct connlist *cur )
 }
 
     int
-check_cookie( char *secant, struct sinfo *si, struct connlist **cl )
+check_cookie( char *secant, struct sinfo *si, cosign_host_config *cfg )
 {
     struct connlist	**cur, *tmp;
     int			rc;
@@ -128,7 +132,7 @@ check_cookie( char *secant, struct sinfo *si, struct connlist **cl )
      * how do we reclaim once it's bad?
      * what happens if they are all bad?
      */
-    for ( cur = cl; *cur != NULL; cur = &(*cur)->conn_next ) {
+    for ( cur = &cfg->cl; *cur != NULL; cur = &(*cur)->conn_next ) {
 	if ( (*cur)->conn_sn == NULL ) {
 	    continue;
 	}
@@ -144,11 +148,14 @@ check_cookie( char *secant, struct sinfo *si, struct connlist **cl )
     }
 
     /* all are closed or we didn't like their answer */
-    for ( cur = cl; *cur != NULL; cur = &(*cur)->conn_next ) {
+    for ( cur = &cfg->cl; *cur != NULL; cur = &(*cur)->conn_next ) {
 	if ( (*cur)->conn_sn != NULL ) {
 	    continue;
 	}
-	if ( connect_sn( *cur ) != 0 ) {
+	if ( cfg->ctx == NULL ) {
+	    fprintf( stderr, "ctx is NULL in connect\n" );
+	}
+	if ( connect_sn( *cur, cfg->ctx, cfg->host ) != 0 ) {
 	    continue;
 	}
 	if (( rc = netcheck_cookie( secant, si, (*cur)->conn_sn )) < 0 ) {
@@ -165,11 +172,11 @@ check_cookie( char *secant, struct sinfo *si, struct connlist **cl )
     return( 1 );
 
 done:
-    if ( cur != cl ) {
+    if ( cur != &cfg->cl ) {
 	tmp = *cur;
 	*cur = (*cur)->conn_next;
-	tmp->conn_next = *cl;
-	*cl = tmp;
+	tmp->conn_next = cfg->cl;
+	cfg->cl = tmp;
     }
     if ( rc == 1 ) {
 	return( 1 );
@@ -179,10 +186,11 @@ done:
 }
 
     static int
-connect_sn( struct connlist *cl  )
+connect_sn( struct connlist *cl, SSL_CTX *ctx, char *host )
 {
     int			s;
-    char		*line;
+    char		*line, buf[ 1024 ];
+    X509		*peer;
     struct timeval      tv;
 
     if (( s = socket( PF_INET, SOCK_STREAM, NULL )) < 0 ) {
@@ -201,24 +209,53 @@ connect_sn( struct connlist *cl  )
 	(void)close( s );
 	return( -1 );
     }
+
     tv = timeout;
     if (( line = snet_getline_multi( cl->conn_sn, logger, &tv )) == NULL ) {
 	fprintf( stderr, "connect_sn: snet_getline_multi failed\n" );
-	if ( snet_close( cl->conn_sn ) != 0 ) {
-	    fprintf( stderr, "connect_sn: snet_close failed\n" );
-	}
-	return( -1 );
+	goto done;
     }
-
     if ( *line != '2' ) {
 	fprintf( stderr, "connect_sn: %s\n", line );
-	if ( snet_close( cl->conn_sn ) != 0 ) {
-	    fprintf( stderr, "connect_sn: snet_close failed\n" );
-	}
-	return( -1 );
+	goto done;
+    }
+    if ( snet_writef( cl->conn_sn, "STARTTLS\r\n" ) < 0 ) {
+	fprintf( stderr, "connect_sn: starttls is kaplooey\n" );
+	goto done;
     }
 
+    tv = timeout;
+    if (( line = snet_getline_multi( cl->conn_sn, logger, &tv )) == NULL ) {
+	fprintf( stderr, "connect_sn: snet_getline_multi failed\n" );
+	goto done;
+    }
+    if ( *line != '2' ) {
+	fprintf( stderr, "connect_sn: %s\n", line );
+	goto done;
+    }
+
+    if ( snet_starttls( cl->conn_sn, ctx, 0 ) != 1 ) {
+	fprintf( stderr, "snet_starttls: %s\n",
+		ERR_error_string( ERR_get_error(), NULL ));
+	goto done;
+    }
+
+    if (( peer = SSL_get_peer_certificate( cl->conn_sn->sn_ssl )) == NULL ) {
+	fprintf( stderr, "no certificate\n" );
+	goto done;
+    }
+
+    X509_NAME_get_text_by_NID( X509_get_subject_name( peer ), NID_commonName,
+	    buf, sizeof( buf ));
+    fprintf( stderr, "CERT Subject: %s\nHost:%s\n", buf, host );
+    X509_free( peer );
+
     return( 0 );
+done:
+    if ( snet_close( cl->conn_sn ) != 0 ) {
+	fprintf( stderr, "connect_sn: snet_close failed\n" );
+    }
+    return( -1 );
 }
 
 

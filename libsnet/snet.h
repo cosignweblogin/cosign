@@ -5,9 +5,9 @@
 
 #ifdef __STDC__
 #define ___P(x)		x
-#else __STDC__
+#else /* __STDC__ */
 #define ___P(x)		()
-#endif __STDC__
+#endif /* __STDC__ */
 
 typedef struct {
     int		sn_fd;
@@ -21,9 +21,8 @@ typedef struct {
     int		sn_wbuflen;
     int		sn_flag;
 #ifdef TLS
-    void	*sn_sslctx;
     void	*sn_ssl;
-#endif TLS
+#endif /* TLS */
 } SNET;
 
 #define snet_fd( sn )	((sn)->sn_fd)
@@ -38,5 +37,6 @@ char	*snet_getline_multi ___P(( SNET *, void (*)(char *),
 		struct timeval * ));
 int	snet_read ___P(( SNET *, char *, int, struct timeval * ));
 int	snet_write ___P(( SNET *, char *, int, struct timeval * ));
-char	*snet_inittls ___P(( SNET *, int, int, char * ));
-char	*snet_starttls ___P(( SNET *, int ));
+#ifdef TLS
+int	snet_starttls ___P(( SNET *, SSL_CTX *, int ));
+#endif /* TLS */

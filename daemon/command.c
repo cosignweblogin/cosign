@@ -20,6 +20,13 @@
 #include <unistd.h>
 #include <time.h>
 
+#ifdef TLS
+#include <openssl/ssl.h>
+#include <openssl/err.h>
+
+extern SSL_CTX	*ctx;
+#endif TLS
+
 #include <snet.h>
 
 #include "command.h"
@@ -43,6 +50,9 @@ static int	f_login ___P(( SNET *, int, char *[] ));
 static int	f_logout ___P(( SNET *, int, char *[] ));
 static int	f_register ___P(( SNET *, int, char *[] ));
 static int	f_check ___P(( SNET *, int, char *[] ));
+#ifdef TLS
+static int	f_starttls ___P(( SNET *, int, char *[] ));
+#endif TLS
 
     int
 f_quit( sn, ac, av )
@@ -74,6 +84,47 @@ f_help( sn, ac, av )
     snet_writef( sn, "%d Slainte Mhath!\r\n", 203 );
     return( 0 );
 }
+
+    int
+f_starttls( sn, ac, av )
+    SNET			*sn;
+    int				ac;
+    char			*av[];
+{
+
+    int				rc;
+    X509			*peer;
+    char			buf[ 1024 ];
+
+    if ( ac != 1 ) {
+	snet_writef( sn, "%d Syntax error\r\n", 501 );
+	return( 1 );
+    }
+
+    snet_writef( sn, "%d Ready to start TLS\r\n", 220 );
+
+    /*
+     * Begin TLS
+     */
+    if (( rc = snet_starttls( sn, ctx, 1 )) != 1 ) {
+	syslog( LOG_ERR, "f_starttls: snet_starttls: %s",
+		ERR_error_string( ERR_get_error(), NULL ) );
+	snet_writef( sn, "%d SSL didn't work error! XXX\r\n", 501 );
+	return( 1 );
+    }
+    if (( peer = SSL_get_peer_certificate( sn->sn_ssl ))
+	    == NULL ) {
+	syslog( LOG_ERR, "no peer certificate" );
+	return( -1 );
+    }
+
+    syslog( LOG_INFO, "CERT Subject: %s\n", X509_NAME_oneline(
+    X509_get_subject_name( peer ), buf, sizeof( buf )));
+    X509_free( peer );
+
+    return( 0 );
+}
+
 
     int
 f_login( sn, ac, av )
@@ -456,6 +507,7 @@ struct command	commands[] = {
     { "NOOP",		f_noop },
     { "QUIT",		f_quit },
     { "HELP",		f_help },
+    { "STARTTLS",	f_starttls },
     { "LOGIN",		f_login },
     { "LOGOUT",		f_logout },
     { "REGISTER",	f_register },

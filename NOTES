@@ -17,7 +17,6 @@ TODO in MOD:
     cookie obscuring - post 1.0
 
 CGI:
-    logout
     initial info and ticket propogation (belt)
     kerberos
     conf file
@@ -44,7 +43,7 @@ cosignd:
     POLL timestamp
 
 everyone:
-    START_TLS
+    STARTTLS
     NOOP: no op.
     QUIT: quit
 
@@ -67,7 +66,6 @@ configuration files:
 	    audience (for service list)
 
 	    structure: flat text file -- csv?  pipe delimited?
-		    elephant/cheese delimited?
 
     cosign.cgi: uses same conf file as cosignd.
 
