@@ -27,7 +27,7 @@
 char	*filterdb = _FILTER_DB;
 
     int
-cookie_valid( cosign_host_config *cfg, char *cookie, struct sinfo *si,
+cosign_cookie_valid( cosign_host_config *cfg, char *cookie, struct sinfo *si,
 	char *ipaddr )
 {
     struct sinfo	lsi;
@@ -38,17 +38,17 @@ cookie_valid( cosign_host_config *cfg, char *cookie, struct sinfo *si,
     extern int		errno;
 
     if ( strchr( cookie, '/' ) != NULL ) {
-	fprintf( stderr, "cookie_valid: cookie contains '/'\n" );
+	fprintf( stderr, "cosign_cookie_valid: cookie contains '/'\n" );
 	return( -1 );
     }
 
     if ( snprintf( path, MAXPATHLEN, "%s/%s", filterdb, cookie ) >= MAXPATHLEN ) {
-	fprintf( stderr, "cookie_valid: cookie too long\n" );
+	fprintf( stderr, "cosign_cookie_valid: cookie too long\n" );
 	return( -1 );
     }
 
     if ( gettimeofday( &tv, NULL ) != 0 ){
-	perror( "cookie_valid" );
+	perror( "cosign_cookie_valid" );
         return( -1 );
     }
 
@@ -87,8 +87,8 @@ cookie_valid( cosign_host_config *cfg, char *cookie, struct sinfo *si,
     }
 #endif /* KRB */
 
-    if (( rc = check_cookie( cookie, si, cfg, tkt )) < 0 ) {
-        fprintf( stderr, "cookie_valid: check_cookie failed\n" );
+    if (( rc = cosign_check_cookie( cookie, si, cfg, tkt )) < 0 ) {
+        fprintf( stderr, "cosign_cookie_valid: check_cookie failed\n" );
         return( -1 );
     }
 

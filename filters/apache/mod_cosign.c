@@ -32,8 +32,8 @@
 #include "mkcookie.h"
 #include "cosign.h"
 
-int	set_cookie_and_redirect( request_rec *, cosign_host_config * );
-void	cosign_child_cleanup( server_rec *, pool * );
+static int	set_cookie_and_redirect( request_rec *, cosign_host_config * );
+void		cosign_child_cleanup( server_rec *, pool * );
 
 module cosign_module;
 
@@ -255,7 +255,7 @@ cosign_auth( request_rec *r )
      * Otherwise, retrieve the auth info from the server.
      */
     my_cookie = ap_psprintf( r->pool, "%s=%s", cookiename, pair );
-    if (( cv = cookie_valid( cfg, my_cookie, &si,
+    if (( cv = cosign_cookie_valid( cfg, my_cookie, &si,
 	    r->connection->remote_ip )) < 0 ) {	
 	return( HTTP_SERVICE_UNAVAILABLE );	/* it's all forbidden! */
     } 
@@ -563,7 +563,7 @@ set_cosign_host( cmd_parms *params, void *mconfig, char *arg )
     return( NULL );
 }
 
-    void
+    static void
 cosign_child_cleanup( server_rec *s, pool *p )
 {
     cosign_host_config	*cfg;
@@ -578,7 +578,7 @@ cosign_child_cleanup( server_rec *s, pool *p )
     return;
 }
 
-command_rec cosign_cmds[ ] =
+static command_rec cosign_cmds[ ] =
 {
         { "CosignPostErrorRedirect", set_cosign_post_error,
         NULL, RSRC_CONF, TAKE1,

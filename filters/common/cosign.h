@@ -28,6 +28,6 @@ struct connlist {
 };
 
 
-int cookie_valid( cosign_host_config *, char *, struct sinfo *, char * );
-int check_cookie( char *, struct sinfo *, cosign_host_config *, int );
+int cosign_cookie_valid( cosign_host_config *, char *, struct sinfo *, char * );
+int cosign_check_cookie( char *, struct sinfo *, cosign_host_config *, int );
 int teardown_conn( struct connlist * );
