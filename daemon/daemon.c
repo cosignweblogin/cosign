@@ -347,6 +347,8 @@ main( ac, av )
     openlog( prog, LOG_NOWAIT|LOG_PID, LOG_DAEMON );
 #endif /* ultrix */
 
+    syslog( LOG_INFO, "restart %s", cosign_version );
+
 	if ( replhost != NULL ) {
     if ( pipe( fds ) < 0 ) {
 	syslog( LOG_ERR, "pusher pipe: %m" );
@@ -355,11 +357,11 @@ main( ac, av )
 
     switch ( pusherpid = fork()) {
     case 0 :
-	if ( close( fds[ 0 ] ) != 0 ) {
+	if ( close( fds[ 1 ] ) != 0 ) {
 	    syslog( LOG_ERR, "pusher parent pipe: %m" );
 	    exit( 1 );
 	}
-	pusherparent( fds[ 1 ] );
+	pusherparent( fds[ 0 ] );
 	exit( 0 );
 
     case -1 :
@@ -367,11 +369,11 @@ main( ac, av )
 	exit( 1 );
 
     default :
-	if ( close( fds[ 1 ] ) != 0 ) {
+	if ( close( fds[ 0 ] ) != 0 ) {
 	    syslog( LOG_ERR, "pusher main pipe: %m" );
 	    exit( 1 );
 	}
-	if (( pushersn = snet_attach( fds[ 0 ], 1024 * 1024 ) ) == NULL ) {
+	if (( pushersn = snet_attach( fds[ 1 ], 1024 * 1024 ) ) == NULL ) {
 	    syslog( LOG_ERR, "pusherfork: snet_attach failed\n" );
 	    exit( 1 );
 	}
@@ -396,7 +398,6 @@ main( ac, av )
 	exit( 1 );
     }
 
-    syslog( LOG_INFO, "restart %s", cosign_version );
 
 
 

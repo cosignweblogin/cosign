@@ -3,6 +3,7 @@
 #include <sys/time.h>
 #include <sys/stat.h>
 #include <sys/socket.h>
+#include <sys/param.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <unistd.h>
@@ -192,7 +193,7 @@ syslog( LOG_DEBUG, "FOUND IT! %d", pid );
     int
 pusherparent( int ppipe )
 {
-    struct sigaction	sa, osahup, osachld;
+    struct sigaction	sa;
     sigset_t 		signalset;
     SNET		*sn;
     char		*line;
@@ -205,7 +206,7 @@ pusherparent( int ppipe )
     /* catch SIGHUP */
     memset( &sa, 0, sizeof( struct sigaction ));
     sa.sa_handler = pusherhup;
-    if ( sigaction( SIGHUP, &sa, &osahup ) < 0 ) {
+    if ( sigaction( SIGHUP, &sa, NULL ) < 0 ) {
 	syslog( LOG_ERR, "sigaction: %m" );
 	exit( 1 );
     }
@@ -213,14 +214,14 @@ pusherparent( int ppipe )
     memset( &sa, 0, sizeof( struct sigaction ));
     sa.sa_handler = pusherchld;
     sa.sa_flags = SA_RESTART;
-    if ( sigaction( SIGCHLD, &sa, &osachld ) < 0 ) {
+    if ( sigaction( SIGCHLD, &sa, NULL ) < 0 ) {
 	syslog( LOG_ERR, "sigaction: %m" );
 	exit( 1 );
     }
     /* ignore SIGPIPE */
     memset( &sa, 0, sizeof( struct sigaction ));
     sa.sa_handler = SIG_IGN;
-    if ( sigaction( SIGPIPE, &sa, &osachld ) < 0 ) {
+    if ( sigaction( SIGPIPE, &sa, NULL ) < 0 ) {
 	syslog( LOG_ERR, "sigaction: %m" );
 	exit( 1 );
     }
@@ -253,7 +254,7 @@ syslog( LOG_INFO, "pusher line: %s", line );
 	    switch ( cur->cl_pid = fork() ) {
 	    case 0 :
 syslog ( LOG_DEBUG, "pusher pid XXX for IP: %s", inet_ntoa(cur->cl_sin.sin_addr));
-		if ( close( fds[ 0 ] ) != 0 ) {
+		if ( close( fds[ 1 ] ) != 0 ) {
 		    syslog( LOG_ERR, "pusher parent pipe: %m" );
 		    exit( 1 );
 		}
@@ -269,7 +270,7 @@ syslog ( LOG_DEBUG, "pusher pid XXX for IP: %s", inet_ntoa(cur->cl_sin.sin_addr)
 		    }
 		}
 syslog( LOG_DEBUG, "XXX calling pusher()" );
-		pusher( fds[ 1 ], cur );
+		pusher( fds[ 0 ], cur );
 		exit( 0 );
 
 	    case -1 :
@@ -279,12 +280,12 @@ syslog( LOG_DEBUG, "XXX calling pusher()" );
 
 syslog( LOG_DEBUG, "started pusher %d", cur->cl_pid );
 
-	    if ( close( fds[ 1 ] ) != 0 ) {
+	    if ( close( fds[ 0 ] ) != 0 ) {
 		syslog( LOG_ERR, "pusher main pipe: %m" );
 		exit( 1 );
 	    }
 
-	    if (( cur->cl_psn = snet_attach( fds[ 0 ], 1024 * 1024 ))
+	    if (( cur->cl_psn = snet_attach( fds[ 1 ], 1024 * 1024 ))
 		    == NULL ) {
 		syslog( LOG_ERR, "pusherparent fork: snet_attach: %m" );
 		exit( 1 );
