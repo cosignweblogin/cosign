@@ -18,6 +18,7 @@
 #define LOGIN_HTML	"../templates/login.html"
 #define ERROR_HTML	"../templates/error.html"
 #define SERVICE_MENU	"../templates/service-menu.html"
+#define FORWARDING_HTML	"../templates/forwarding.html"
 #define SIDEWAYS        1               /* we neglected to tell the
 					   user what was happening.  we
 					   should fix all of these.
@@ -27,6 +28,7 @@ char			*err = NULL;
 char			*url = "http://www.umich.edu/";
 char			*title = NULL;
 char			*host = "cosign-test.www.umich.edu";
+int			nocache = 0;
 int			port = 6663;
 
 struct cgi_list cl[] = {
@@ -44,6 +46,12 @@ subfile( char *filename )
 {
     FILE	*fs;
     int 	c;
+
+    if ( nocache ) {
+	fputs( "Cache-Control: private, must-revalidate, no-cache\n"
+	       "Expires: Mon, 16 Apr 1973 02:10:00 GMT\n"
+	       "Pragma: no cache\n", stdout );
+    }
 
     fputs( "Content-type: text/html\n\n", stdout );
 
@@ -79,6 +87,12 @@ subfile( char *filename )
 		printf( "%s", getenv( "SCRIPT_NAME" ));
 		break;
 
+            case 'l':
+                if ( url != NULL ) {
+                    printf( "%s", url );
+                }
+                break;
+
 	    case EOF:
 		putchar( '$' );
 		break;
@@ -112,7 +126,6 @@ main()
     krb5_principal		kprinc;
     krb5_get_init_creds_opt	kopts;
     krb5_creds			kcreds;
-    krb5_data			kd_rcs, kd_rs;
     int				rc;
     char                	new_cookiebuf[ 128 ];
     char        		new_cookie[ 255 ];
@@ -142,7 +155,7 @@ main()
 	service = strtok( qs, ";" );
 	ref = strtok( NULL, "&" );
 
-	printf( "Set-Cookie: cosign-referer=%s; path=/; secure\n", ref );
+	printf( "Set-Cookie: cosign-referrer=%s; path=/; secure\n", ref );
 
 	if ( cookie == NULL || strlen( cookie ) == 7 ) {
 	    tmpl = ERROR_HTML;
@@ -162,7 +175,8 @@ main()
 	if ( strlen( service ) > MAXPATHLEN ) {
 	    fprintf( stderr, "Query String too big\n" );
 	    tmpl = ERROR_HTML;
-	    err = "You mock me with your TOO LONG query string.";
+	    title = "Max Length Exceeded";
+	    err = "An error occurred processing your request:  max length exceeded.";
 	    subfile( tmpl );
 	    exit( 0 );
 	}
@@ -170,28 +184,29 @@ main()
 	if (( rc = cosign_register( cookie, ip_addr, service )) < 0 ) {
 	    fprintf( stderr, "%s: cosign_register failed\n", script );
 	    tmpl = ERROR_HTML;
-	    err = "Register Failed. Oh Well.";
+	    title = "Register Failed";
+	    err = "We were unable to contact the authentication server.  Please try again later.";
 	    subfile( tmpl );
 	    exit( 0 );
 	}
 
 	if ( rc > 0 ) {
-	    err = "You are not logged in. Please log in now.";
+	    err = "You are not logged in.  Please log in now.";
 	    goto loginscreen;
 	}
 
+	/* when would we ever get here?  -- clunis */
 	printf( "Location: %s\n\n", ref );
 	exit( 0 );
 
-	/* if no referer, redirect to top of site from conf file */
+	/* if no referrer, redirect to top of site from conf file */
     }
 
     if ( cookie == NULL ) {
 	if ( strcmp( method, "POST" ) == 0 ) {
 	    /* turn on cookies */
-	    fprintf( stderr, "we're posting cookie\n" );
 	    tmpl = ERROR_HTML;
-	    err = "Turn on cookies. Someday we'll have a link";
+	    err = "This service requires that cookies be enabled.";
 	    subfile( tmpl );
 	    exit( 0 );
 	}
@@ -203,12 +218,14 @@ main()
 
     if ( strcmp( method, "POST" ) != 0 ) {
 	if ( cosign_check( cookie ) < 0 ) {
-	    fprintf( stderr, "no longer logged in\n" );
+	    /* fprintf( stderr, "no longer logged in\n" ); */
 	    err = "You are not logged in. Please log in now.";
 	    goto loginscreen;
 	}
 
+	title = "Authentication Successful";
 	tmpl = SERVICE_MENU;
+	nocache = 1;
 
 	subfile( tmpl );
 	exit( 0 );
@@ -280,15 +297,11 @@ main()
 	}
     }
 
-    /*
-    krb5_free_data_contents( kcontext, &kd_rs );
-    krb5_free_data_contents( kcontext, &kd_rcs );
-    */
-
     /* password has been accepted, tell cosignd */
     err = "Your password has been accepted.";
-    title = "Authentication Succeeded";
+    title = "Choose a Service";
     tmpl = SERVICE_MENU;
+    nocache = 1;
 
     /* what happens when we get an already logged in back? tri-val? */
     if ( cosign_login( cookie, ip_addr, 
@@ -301,26 +314,27 @@ main()
 	exit( 2 );
     }
 
-fprintf( stderr, "DEBUG: login succeeded and everything\n" );
-
     if (( data = getenv( "HTTP_COOKIE" )) != NULL ) {
 	ref = strtok( data, ";" );
 
-	/* nibble away the cookie string until we see the referer cookie */
-	if ( strncmp( ref, "cosign-referer=", 15 ) != 0 ) {
+	/* nibble away the cookie string until we see the referrer cookie */
+	if ( strncmp( ref, "cosign-referrer=", 15 ) != 0 ) {
 	    while (( ref = strtok( NULL, ";" )) != NULL ) {
 		if ( *ref == ' ' ) ++ref;
-		if ( strncmp( ref, "cosign-referer=", 15 ) == 0 ) {
-		    fprintf( stderr, "discarding: %s\n", strtok( ref, "=" ));
-
-		    if (( ref = strstr( ref, "http" )) != NULL ) {
-fprintf( stderr, "DEBUG: redirecting to %s\n", ref );
-			printf( "Location: %s\n\n", ref );
-			exit( 0 );
-		    }
+		if ( strncmp( ref, "cosign-referrer=", 15 ) == 0 ) {
+		    break;
 		}
 	    }
 	}
+    }
+
+    if (( ref != NULL ) && ( ref = strstr( ref, "http" )) != NULL ) {
+	url = strdup( ref );
+	tmpl = FORWARDING_HTML;
+	nocache = 1;
+
+	/* clobber the referrer cookie */
+	fputs( "Set-Cookie: cosign-referrer=; path=/; secure\n", stderr );
     }
 
     subfile( tmpl );
@@ -334,11 +348,8 @@ loginscreen:
     }
 
     sprintf( new_cookie, "cosign=%s", new_cookiebuf );
-fprintf( stderr, "new_cookie is %s\n", new_cookie );
-    printf( "Set-Cookie: %s; path=/; secure\n"
-	    "Cache-Control: private, must-revalidate, no-cache\n"
-	    "Expires: Mon, 16 Apr 1973 02:10:00 GMT\n"
-	    "Pragma: no cache\n", new_cookie );
+    printf( "Set-Cookie: %s; path=/; secure\n", new_cookie );
+    nocache = 1;
     subfile( tmpl );
     exit( 0 );
 }
