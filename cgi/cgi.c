@@ -197,7 +197,7 @@ main( int argc, char *argv[] )
 
     if ((( qs = getenv( "QUERY_STRING" )) != NULL ) && ( *qs != '\0' )) {
 	service = strtok( qs, ";" );
-	ref = strtok( NULL, "&" );
+	ref = strtok( NULL, "" );
 
 	if ( cookie == NULL || strlen( cookie ) == 7 ) {
 	    title = "Authentication Required";
