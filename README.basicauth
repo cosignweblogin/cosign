@@ -2,8 +2,8 @@ Before you begin:
 
     These instructions are for people who wish to bring up cosign but
     have no Kerberos infrastructure. You should not run the BasicAuth
-    version of the cosigncgi ( basicosign.cgi ) if you have Kerberos at
-    your institution.
+    version of the cosign.cgi if you have Kerberos at your
+    institution.
 
     For documentation and information see: http://weblogin.org/
 
@@ -25,7 +25,7 @@ To build the central cosign server ( the weblogin server ):
     SSO community for which you will be providing the central login
     server.
 
-	./configure --enable-basicauth
+	./configure
 	make everything
 	make install-all
 	mkdir -p /var/cosign/daemon
@@ -37,7 +37,7 @@ To build the central cosign server ( the weblogin server ):
 Testing your certificates:
 
     You want to make sure that the certs you have are able to be used as
-    both a server ( weblogin server ) and a client ( basicosign.cgi ). Debugging
+    both a server ( weblogin server ) and a client ( cosign.cgi ). Debugging
     certificate problems is the hardest thing to do, and checking now saves
     a lot of anguish later.
 
@@ -49,7 +49,7 @@ Configuring your server:
     You'll want something like the following
 
 	#this is so the login will run from / of DocRoot
-	DirectoryIndex      basiccosign.cgi index.html 
+	DirectoryIndex      cosign.cgi index.html 
 	AddHandler          cgi-script      .cgi
 	<Directory /path/to/docroot>
 	    Options ExecCGI
@@ -61,8 +61,9 @@ Configuring your server:
     Otherwise configure your server in the regular way you would to
     make the type of BasicAuth you want to use work in your environment.
 
-    The basiccosign.cgi checks that REMOTE_USER has already been set by
-    BasicAuth and take the appropriate login/register actions.
+    The BasicAuth flavor of cosign.cgi checks that REMOTE_USER has
+    already been set by BasicAuth and take the appropriate
+    login/register actions.
 
 Customizing your html:
 

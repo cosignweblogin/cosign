@@ -21,6 +21,7 @@
 #include "network.h"
 #include "config.h"
 #include "login.h"
+#include "subfile.h"
 
 #define LOGIN_ERROR_HTML	"../templates/login_error.html"
 #define ERROR_HTML	"../templates/error.html"
@@ -34,7 +35,6 @@
 extern char	*cosign_version;
 char		*cosign_host = _COSIGN_HOST;
 char 		*cosign_conf = _COSIGN_CONF;
-char		*err = NULL, *ref = NULL, *service = NULL, *login = NULL;
 char		*title = "Authentication Required";
 char		*cryptofile = _COSIGN_TLS_KEY;
 char		*certfile = _COSIGN_TLS_CERT;
@@ -54,109 +54,19 @@ struct cgi_list cl[] = {
         { NULL, NULL },
 };
 
-    static void
-subfile( char *filename )
-{
-    FILE	*fs;
-    int 	c, i;
-    char	nasties[] = "<>(){}[];'`\" \\";
-
-    fputs( "Cache-Control: no-cache, private\n"
-	    "Pragma: no-cache\n"
-	    "Expires: Mon, 16 Apr 1973 13:10:00 GMT\n"
-	    "Content-type: text/html\n\n", stdout );
-
-    if (( fs = fopen( filename, "r" )) == NULL ) {
-	perror( filename );
-	exit( 1 );
-    }
-
-    while (( c = getc( fs )) != EOF ) {
-	if ( c == '$' ) {
-
-	    switch ( c = getc( fs )) {
-            case 'c':
-                if ( service != NULL ) {
-                    for ( i = 0; i < strlen( service ); i++ ) {
-                        /* block XSS attacks while printing */
-                        if ( strchr( nasties, service[ i ] ) != NULL ||
-                                service[ i ] <= 0x1F || service[ i ] >= 0x7F ) {
-
-			    printf( "%%%x", service[ i ] );
-                        } else {
-                            putc( service[ i ], stdout );
-                        }
-                    }
-                }
-                break;
-
-	    case 't':
-		if ( title != NULL ) {
-		    printf( "%s", title );
-		}
-		break;
-
-	    case 'e':
-		if ( err != NULL ) {
-		    printf( "%s", err );
-		}
-		break;
-
-	    case 'l':
-                if ( login != NULL ) {
-                    printf( "%s", login );
-                }
-		break;
-
-	    case 's':
-		printf( "%s", getenv( "SCRIPT_NAME" ));
-		break;
-
-	    case 'h':
-		printf( "%s", cosign_host );
-		break;
-
-            case 'k':
-		break;
-
-            case 'r':
-                if ( ref != NULL ) {
-                    for ( i = 0; i < strlen( ref ); i++ ) {
-                        /* block XSS attacks while printing */
-                        if ( strchr( nasties, ref[ i ] ) != NULL ||
-                                ref[ i ] <= 0x1F || ref[ i ] >= 0x7F ) {
-
-			    printf( "%%%x", ref[ i ] );
-                        } else {
-                            putc( ref[ i ], stdout );
-                        }
-                    }
-                }
-                break;
-
-	    case EOF:
-		putchar( '$' );
-		break;
-
-	    case '$':
-		putchar( c );
-		break;
-
-	    default:
-		putchar( '$' );
-		putchar( c );
-	    }
-	} else {
-	    putchar( c );
-	}
-    }
-
-    if ( fclose( fs ) != 0 ) {
-	perror( filename );
-    }
-
-    return;
-}
+static struct subfile_list sl[] = {
+#define SL_LOGIN	0
+        { 'l', SUBF_STR, NULL },
+#define SL_TITLE	1
+        { 't', SUBF_STR, NULL },
+#define SL_REF		2
+        { 'r', SUBF_STR_ESC, NULL },
+#define SL_SERVICE	3
+        { 'c', SUBF_STR_ESC, NULL },
+#define SL_ERROR	4
+        { 'e', SUBF_STR, NULL },
+        { '\0', 0, NULL },
+};
 
     static void
 loop_checker( int time, int count, char *cookie )
@@ -166,9 +76,9 @@ loop_checker( int time, int count, char *cookie )
     char		*tmpl = ERROR_HTML;
 
     if ( gettimeofday( &tv, NULL ) != 0 ) {
-	title = "Error: Loop Breaker";
-	err = "Please try again later.";
-	subfile( tmpl );
+	sl[ SL_TITLE ].sl_data = "Error: Loop Breaker";
+	sl[ SL_ERROR ].sl_data = "Please try again later.";
+	subfile( tmpl, sl, 0 );
 	exit( 0 );
     }
 
@@ -178,9 +88,9 @@ loop_checker( int time, int count, char *cookie )
 	count = 1;
 	if ( snprintf( new_cookie, sizeof( new_cookie ),
 		"%s/%d/%d", cookie, time, count) >= sizeof( new_cookie )) {
-	    title = "Error: Loop Breaker";
-	    err = "Please try again later.";
-	    subfile( tmpl );
+	    sl[ SL_TITLE ].sl_data = "Error: Loop Breaker";
+	    sl[ SL_ERROR ].sl_data = "Please try again later.";
+	    subfile( tmpl, sl, 0 );
 	    exit( 0 );
 	}
 	printf( "Set-Cookie: %s; path=/; secure\n", new_cookie );
@@ -192,21 +102,21 @@ loop_checker( int time, int count, char *cookie )
 	    count = 1;
 	    if ( snprintf( new_cookie, sizeof( new_cookie ),
 		    "%s/%d/%d", cookie, time, count) >= sizeof( new_cookie )) {
-		title = "Error: Loop Breaker";
-		err = "Please try again later.";
-		subfile( tmpl );
+		sl[ SL_TITLE ].sl_data = "Error: Loop Breaker";
+		sl[ SL_ERROR ].sl_data = "Please try again later.";
+		subfile( tmpl, sl, 0 );
 		exit( 0 );
 	    }
-	    printf( "Location:%s\n\n", LOOP_PAGE );
+	    printf( "Location: %s\n\n", LOOP_PAGE );
 	    exit( 0 );
 	} else {
 	    /* we're still in the limit, increment and keep going */
 	    count++;
 	    if ( snprintf( new_cookie, sizeof( new_cookie ),
 		    "%s/%d/%d", cookie, time, count) >= sizeof( new_cookie )) {
-		title = "Error: Loop Breaker";
-		err = "Please try again later.";
-		subfile( tmpl );
+		sl[ SL_TITLE ].sl_data = "Error: Loop Breaker";
+		sl[ SL_ERROR ].sl_data = "Please try again later.";
+		subfile( tmpl, sl, 0 );
 		exit( 0 );
 	    }
 	    printf( "Set-Cookie: %s; path=/; secure\n", new_cookie );
@@ -241,11 +151,14 @@ kcgi_configure()
 main( int argc, char *argv[] )
 {
     int				rc, cookietime = 0, cookiecount = 0;
+    int				rebasic = 0, len;
     char                	new_cookiebuf[ 128 ];
     char        		new_cookie[ 255 ];
     char			*data, *ip_addr;
     char			*cookie = NULL, *method, *script, *qs;
-    char			*misc = NULL;
+    char			*misc = NULL, *p;
+    char			*ref = NULL, *service = NULL, *login = NULL;
+    char			*remote_user = NULL;
     char			*tmpl = LOGIN_HTML;
     struct timeval		tv;
     struct connlist		*head;
@@ -259,17 +172,70 @@ main( int argc, char *argv[] )
     }
 
     if ( cosign_config( cosign_conf ) < 0 ) {
-	title = "Error: But not your fault";
-	err = "We were unable to parse the configuration file";
+	sl[ SL_TITLE ].sl_data = "Error: Server Configuration";
+	sl[ SL_ERROR ].sl_data = "We were unable to parse the "
+		"configuration file";
 	tmpl = ERROR_HTML;
-	subfile( tmpl );
+	subfile( tmpl, sl, 0 );
 	exit( 0 );
     }
     kcgi_configure();
 
+
+    if (( script = getenv( "SCRIPT_NAME" )) == NULL ) {
+	sl[ SL_TITLE ].sl_data = "Error: Server Configuration";
+	sl[ SL_ERROR ].sl_data = "Unable to retrieve the script name";
+	tmpl = ERROR_HTML;
+	subfile( tmpl, sl, 0 );
+	exit( 0 );
+    }
+
     method = getenv( "REQUEST_METHOD" );
-    script = getenv( "SCRIPT_NAME" );
     ip_addr = getenv( "REMOTE_ADDR" );
+    remote_user = getenv( "REMOTE_USER" );
+
+    if ((( qs = getenv( "QUERY_STRING" )) != NULL ) && ( *qs != '\0' )) {
+	if (( p = strtok( qs, "&" )) == NULL ) {
+	    sl[ SL_TITLE ].sl_data = "Error: Unrecognized Service";
+	    sl[ SL_ERROR ].sl_data = "Unable to determine referring "
+		    "service from query string.";
+	    tmpl = ERROR_HTML;
+	    subfile( tmpl, sl, 0 );
+	    exit( 0 );
+	}
+
+	if ( remote_user && strcmp( p, "basic" ) == 0 ) {
+	    rebasic = 1;
+	    p = strtok( NULL, "&" );
+	}
+	
+	if ( p != NULL ) {
+	    service = p;
+	    len = strlen( service );
+	    if ( service[ len - 1 ] == ';' ) {
+		service[ len - 1 ] = '\0';
+	    }
+	    if ( strncmp( service, "cosign-", 7 ) != 0 ) {
+		sl[ SL_TITLE ].sl_data = "Error: Unrecognized Service";
+		sl[ SL_ERROR ].sl_data = "Unable to determine referring "
+			"service from query string.";
+		tmpl = ERROR_HTML;
+		subfile( tmpl, sl, 0 );
+		exit( 0 );
+	    }
+	    sl[ SL_SERVICE ].sl_data = service;
+
+	    if (( ref = strtok( NULL, "" )) == NULL ) {
+		sl[ SL_TITLE ].sl_data = "Error: malformatted referrer";
+		sl[ SL_ERROR ].sl_data = "Unable to determine referring "
+			"service from query string.";
+		tmpl = ERROR_HTML;
+		subfile( tmpl, sl, 0 );
+		exit( 0 );
+	    }
+	    sl[ SL_REF ].sl_data = ref++;
+	}
+    }
 
     if (( data = getenv( "HTTP_COOKIE" )) != NULL ) {
 	for ( cookie = strtok( data, ";" ); cookie != NULL;
@@ -282,11 +248,12 @@ main( int argc, char *argv[] )
     }
 
     if ( cookie == NULL ) {
-	if ( strcmp( method, "POST" ) == 0 ) {
-	    title = "Error: Cookies Required";
-	    err = "This service requires that cookies be enabled.";
+	if (( strcmp( method, "POST" ) == 0 ) || rebasic ) {
+	    sl[ SL_TITLE ].sl_data = "Error: Cookies Required";
+	    sl[ SL_ERROR ].sl_data = "This service requires that "
+		    "cookies be enabled.";
 	    tmpl = ERROR_HTML;
-	    subfile( tmpl );
+	    subfile( tmpl, sl, 0 );
 	    exit( 0 );
 	}
 	goto loginscreen;
@@ -301,9 +268,10 @@ main( int argc, char *argv[] )
 	cookietime = atoi( misc );
 
 	if ( gettimeofday( &tv, NULL ) != 0 ) {
-	    title = "Error: Login Screen";
-	    err = "Please try again later.";
-	    subfile( ERROR_HTML );
+	    sl[ SL_TITLE ].sl_data = "Error: Login Screen";
+	    sl[ SL_ERROR ].sl_data = "Please try again later.";
+	    tmpl = ERROR_HTML;
+	    subfile( tmpl, sl, 0 );
 	    exit( 0 );
 	}
 
@@ -320,10 +288,11 @@ main( int argc, char *argv[] )
 
     /* setup conn and ssl and hostlist */
     if (( head = connlist_setup( cosign_host, cosign_port )) == NULL ) {
-	title = "Error: But not your fault";
-	err = "We were unable to contact the authentication server.  Please try again later.";
+	sl[ SL_TITLE ].sl_data = "Error: Server Configuration";
+	sl[ SL_ERROR ].sl_data = "We were unable to contact the "
+		"authentication server.  Please try again later.";
 	tmpl = ERROR_HTML;
-	subfile( tmpl );
+	subfile( tmpl, sl, 0 );
 	exit( 0 );
     }
 
@@ -331,62 +300,73 @@ main( int argc, char *argv[] )
     SSL_library_init();
 
     if ( cosign_ssl( cryptofile, certfile, cadir, &ctx ) != 0 ) {
-	title = "Error: But not your fault";
-	err = "Failed to initialise connections to the authentication server. Please try again later";
+	sl[ SL_TITLE ].sl_data = "Error: Server Configuration";
+	sl[ SL_ERROR ].sl_data = "Failed to initialise connections "
+		"to the authentication server. Please try again later";
 	tmpl = ERROR_HTML;
-	subfile( tmpl );
+	subfile( tmpl, sl, 0 );
 	exit( 0 );
     }
 
-    if ((( qs = getenv( "QUERY_STRING" )) != NULL ) && ( *qs != '\0' )) {
-	if ((( service = strtok( qs, ";" )) == NULL ) ||
-		( strncmp( service, "cosign-", 7 ) != 0 )) {
-	    title = "Error: Unrecognized Service";
-	    tmpl = ERROR_HTML;
-	    err = "Unable to determine referring service from query string.";
-	    subfile( tmpl );
-	    exit( 0 );
-	}
+    if ( service != NULL && ref != NULL ) {
 
-	if ((( ref = strtok( NULL, "" )) == NULL ) || ( *ref != '&' )) {
-	    title = "Error: malformatted referrer";
+	/* basic's implicit register */
+	if ( rebasic && cosign_login( head, cookie, ip_addr, remote_user,
+		    "basic", NULL ) < 0 ) {
+	    fprintf( stderr, "cosign_login: basic login failed\n" ) ;
+	    sl[ SL_ERROR ].sl_data = "We were unable to contact the "
+		    "authentication server. Please try again later.";
+	    sl[ SL_TITLE ].sl_data = "Error: Please try later";
 	    tmpl = ERROR_HTML;
-	    err = "Unable to determine referring service from query string.";
-	    subfile( tmpl );
+	    subfile( tmpl, sl, 0 );
 	    exit( 0 );
 	}
-	ref++;
 
 	if (( rc = cosign_register( head, cookie, ip_addr, service )) < 0 ) {
 	    if ( cosign_check( head, cookie ) < 0 ) {
-		err = "You are not logged in. Please log in now.";
+		sl[ SL_ERROR ].sl_data = "You are not logged in. "
+			"Please log in now.";
 		goto loginscreen;
 	    }
 
 	    fprintf( stderr, "%s: cosign_register failed\n", script );
-	    title = "Error: Register Failed";
+	    sl[ SL_TITLE ].sl_data = "Error: Register Failed";
+	    sl[ SL_ERROR ].sl_data = "We were unable to contact "
+		    "the authentication server.  Please try again later.";
 	    tmpl = ERROR_HTML;
-	    err = "We were unable to contact the authentication server.  Please try again later.";
-	    subfile( tmpl );
+	    subfile( tmpl, sl, 0 );
 	    exit( 0 );
 	}
 
+	/* not possible right now */
 	if ( rc > 0 ) {
-	    err = "You are not logged in.  Please log in now.";
+	    sl[ SL_ERROR ].sl_data = "You are not logged in. "
+		    "Please log in now.";
 	    goto loginscreen;
 	}
 
 	loop_checker( cookietime, cookiecount, cookie );
 
-	/* if no referrer, redirect to top of site from conf file */
 	printf( "Location: %s\n\n", ref );
 	exit( 0 );
     }
 
     if ( strcmp( method, "POST" ) != 0 ) {
 	if ( cosign_check( head, cookie ) < 0 ) {
-	    err = "You are not logged in. Please log in now.";
-	    goto loginscreen;
+	    if ( rebasic && cosign_login( head, cookie, ip_addr, remote_user,
+			"basic", NULL ) < 0 ) {
+		fprintf( stderr, "cosign_login: basic login failed\n" ) ;
+		sl[ SL_ERROR ].sl_data = "We were unable to contact the "
+			"authentication server. Please try again later.";
+		sl[ SL_TITLE ].sl_data = "Error: Please try later";
+		tmpl = ERROR_HTML;
+		subfile( tmpl, sl, 0 );
+		exit( 0 );
+	    } else {
+		sl[ SL_ERROR ].sl_data = "You are not logged in. "
+			"Please log in now.";
+		goto loginscreen;
+	    }
 	}
 
 	/* authentication successful, show service menu */
@@ -405,19 +385,20 @@ main( int argc, char *argv[] )
 
     if (( cl[ CL_LOGIN ].cl_data == NULL ) ||
 	    ( *cl[ CL_LOGIN ].cl_data == '\0' )) {
-	title = "Authentication Required";
-	err = "Please enter your login and password.";
-        subfile ( tmpl );
+	sl[ SL_TITLE ].sl_data = "Authentication Required";
+	sl[ SL_ERROR ].sl_data = "Please enter your login and password.";
+	subfile( tmpl, sl, 1 );
 	exit( 0 );
     }
-    login = cl[ CL_LOGIN ].cl_data;
+    login = sl[ SL_LOGIN ].sl_data = cl[ CL_LOGIN ].cl_data;
 
     if (( cl[ CL_PASSWORD ].cl_data == NULL ) ||
 	    ( *cl[ CL_PASSWORD ].cl_data == '\0' )) {
-	err = "Unable to login because password is a required field.";
-	title = "Missing Password";
+	sl[ SL_TITLE ].sl_data = "Missing Password";
+	sl[ SL_ERROR ].sl_data = "Unable to login because password is "
+		"a required field.";
 	tmpl = LOGIN_ERROR_HTML;
-        subfile ( tmpl );
+	subfile( tmpl, sl, 1 );
 	exit( 0 );
     }
 
@@ -427,15 +408,24 @@ main( int argc, char *argv[] )
 		ip_addr, cookie );
 #else
 	/* no @ unless we're friendly. */
-	err = title = "Your login id may not contain an '@'";
+	sl[ SL_ERROR ].sl_data = sl[ SL_TITLE ].sl_data = "Your login id may not contain an '@'";
 	tmpl = LOGIN_ERROR_HTML;
-	subfile ( tmpl );
+	subfile( tmpl, sl, 1 );
 	exit( 0 );
+
 # endif
     } else {
+# ifdef KRB
 	/* not a friend, must be kerberos */
 	cosign_login_krb5( head, login, cl[ CL_PASSWORD ].cl_data,
 		ip_addr, cookie );
+# else /* KRB */
+	sl[ SL_TITLE ].sl_data = "Error: Server Configuration";
+	sl[ SL_ERROR ].sl_data = "No Login Method Configured";
+	tmpl = ERROR_HTML;
+	subfile( tmpl, sl, 0 );
+	exit( 0 );
+# endif /* KRB */
     }
 
     if (( cl[ CL_SERVICE ].cl_data != NULL ) &&
@@ -448,15 +438,16 @@ main( int argc, char *argv[] )
 
 	    /* this should not be possible... do it anyway? */
             if ( cosign_check( head, cookie ) < 0 ) {
-                title = "Authentication Required";
+                sl[ SL_TITLE ].sl_data = "Authentication Required";
                 goto loginscreen;
             }
 
             fprintf( stderr, "%s: implicit cosign_register failed\n", script );
-            title = "Error: Implicit Register Failed";
+            sl[ SL_TITLE ].sl_data = "Error: Implicit Register Failed";
+            sl[ SL_ERROR ].sl_data = "We were unable to contact the "
+		    "authentication server.  Please try again later.";
             tmpl = ERROR_HTML;
-            err = "We were unable to contact the authentication server.  Please try again later.";
-            subfile( tmpl );
+	    subfile( tmpl, sl, 0 );
             exit( 0 );
         }
     }
@@ -477,20 +468,27 @@ loginscreen:
 	exit( 1 );
     }
 
-    if ( err == NULL ) {
-	err = "Please type your login and password and click the Login button to continue.";
-    }
-
     if ( gettimeofday( &tv, NULL ) != 0 ) {
-	title = "Error: Login Screen";
-	err = "Please try again later.";
-	subfile( ERROR_HTML );
+	sl[ SL_TITLE ].sl_data = "Error: Login Screen";
+	sl[ SL_ERROR ].sl_data = "Please try again later.";
+	tmpl = ERROR_HTML;
+	subfile( tmpl, sl, 0 );
 	exit( 0 );
     }
 
     snprintf( new_cookie, sizeof( new_cookie ), "cosign=%s/%d",
 	    new_cookiebuf, tv.tv_sec );
     printf( "Set-Cookie: %s; path=/; secure\n", new_cookie );
-    subfile( tmpl );
+
+    if ( remote_user ) {
+	printf( "Location: https://%s%s?basic&%s&%s\n\n", cosign_host, script,
+		service, ref);
+    } else {
+	if ( sl[ SL_ERROR ].sl_data == NULL ) {
+	    sl[ SL_ERROR ].sl_data = "Please type your login and password "
+		    "and click the Login button to continue.";
+	}
+	subfile( tmpl, sl, 1 );
+    }
     exit( 0 );
 }

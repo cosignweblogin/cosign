@@ -24,9 +24,6 @@ AC_ARG_ENABLE(apache2, AC_HELP_STRING([--enable-apache2=path_to_apache2-apxs], [
 
 AC_ARG_ENABLE(krb, AC_HELP_STRING([--enable-krb=path_to_krb], [enable kerberos for the cgi and apache filter]), CHECK_LIBKRB, AC_MSG_RESULT( kerberos not enabled))
 
-AC_ARG_ENABLE(basicauth, AC_HELP_STRING([--enable-basicauth], [build
-the basicauth version of the cgi]), CGI_BASICAUTH, AC_MSG_RESULT( BasicAuth cgi will not be built ))
-
 AC_ARG_ENABLE(filter-addr-check, AC_HELP_STRING([--enable-filter-addr-check], [does not work with firewalls, is "extra security" ]), filteraddrcheck="-DCHECK_SOURCE_ADDR")
 AC_SUBST(filteraddrcheck)
 

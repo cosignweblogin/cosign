@@ -12,10 +12,12 @@
 #include <netinet/in.h>
 #include <openssl/ssl.h>
 #include <snet.h>
+
 #include "cgi.h"
+#include "config.h"
 #include "cosigncgi.h"
 #include "network.h"
-#include "config.h"
+#include "subfile.h"
 
 #define ERROR_HTML	"../templates/error.html"
 #define REDIRECT_HTML	"../templates/redirect.html"
@@ -23,12 +25,7 @@
 #define VERIFY_LOGOUT   "../templates/verify-logout.html"
 
 extern char	*cosign_version;
-char		*err = NULL;
-char		*title = "Logout";
-char		*title = "Logout";
-char		*script = "/cgi-bin/logout";
 char		*cosign_host =_COSIGN_HOST;
-char		*url = _COSIGN_LOGOUT_URL;
 char    	*certfile = _COSIGN_TLS_CERT;
 char		*cryptofile = _COSIGN_TLS_KEY;
 char		*cadir =_COSIGN_TLS_CADIR;
@@ -47,88 +44,15 @@ struct cgi_list cl[] = {
         { NULL, NULL },
 };
 
-
-    void
-subfile( char *filename )
-{
-    FILE	*fs;
-    int 	c, i;
-    char	nasties[] = "<>(){}[]~?&=;'`\" \\";
-
-    if ( nocache ) {
-	fputs( "Expires: Mon, 16 Apr 1973 13:10:00 GMT\n"
-		"Last-Modified: Mon, 16 Apr 1973 13:10:00 GMT\n"
-		"Cache-Control: no-store, no-cache, must-revalidate\n"
-		"Cache-Control: pre-check=0, post-check=0, max-age=0\n"
-		"Pragma: no-cache\n", stdout );
-    }
-
-    fputs( "Content-type: text/html\n\n", stdout );
-
-    if (( fs = fopen( filename, "r" )) == NULL ) {
-	perror( filename );
-	exit( 1 );
-    }
-
-    while (( c = getc( fs )) != EOF ) {
-	if ( c == '$' ) {
-
-	    switch ( c = getc( fs )) {
-	    case 't':
-		if ( title != NULL ) {
-		    printf( "%s", title );
-		}
-		break;
-
-	    case 'e':
-		if ( err != NULL ) {
-		    printf( "%s", err );
-		}
-		break;
-
-	    case 's':
-		printf( "%s", script );
-		break;
-
-            case 'u':
-                if ( url != NULL ) {
-		    for ( i = 0; i < strlen( url ); i++ ) {
-			/* block XSS attacks while printing */
-			if ( strchr( nasties, url[ i ] ) != NULL ||
-				url[ i ] <= 0x1F || url[ i ] >= 0x7F ) {
-			    printf( "%%%x", url[ i ] );
-			} else {
-			    putc( url[ i ], stdout );
-			}
-		    }
-                }
-                break;
-
-	    case EOF:
-		putchar( '$' );
-		break;
-
-	    case '$':
-		putchar( c );
-		break;
-
-	    default:
-		putchar( '$' );
-		putchar( c );
-	    }
-	} else {
-	    putchar( c );
-	}
-    }
-
-    if ( fclose( fs ) != 0 ) {
-	perror( filename );
-    }
-
-    return;
-}
-
-
+static struct subfile_list sl[] = {
+#define SL_URL	0
+        { 'l', SUBF_STR, _COSIGN_LOGOUT_URL },
+#define SL_TITLE	1
+        { 't', SUBF_STR, NULL },
+#define SL_ERROR		2
+        { 'r', SUBF_STR_ESC, NULL },
+        { '\0', 0, NULL },
+};
     static void
 logout_configure()
 {
@@ -138,7 +62,7 @@ logout_configure()
         cosign_host = val;
     }
     if (( val = cosign_config_get( COSIGNLOGOUTURLKEY )) != NULL ) {
-	url = val;
+	sl[ SL_URL ].sl_data = val;
     }
     if (( val = cosign_config_get( COSIGNKEYKEY )) != NULL ) {
         cryptofile = val;
@@ -160,6 +84,7 @@ main( int argc, char *argv[] )
     char		*tmpl = VERIFY_LOGOUT;
     char		*cookie = NULL, *data, *ip_addr, *qs;
     struct connlist	*head;
+    char		*script = "/cgi-bin/logout";
 
     if ( argc == 2 && ( strncmp( argv[ 1 ], "-V", 2 ) == 0 )) {
 	printf( "%s\n", cosign_version );
@@ -167,26 +92,27 @@ main( int argc, char *argv[] )
     }
 
     if (( ip_addr = getenv( "REMOTE_ADDR" )) == NULL ) {
-        title = "Error: Server Error";
-        err = "REMOTE_ADDR not set";
+        sl[ SL_TITLE ].sl_data = "Error: Server Error";
+        sl[ SL_ERROR ].sl_data = "REMOTE_ADDR not set";
         tmpl = ERROR_HTML;
-        subfile( tmpl );
+        subfile( tmpl, sl, 0 );
 	exit( 0 );
     }
 
     if (( script = getenv( "SCRIPT_NAME" )) == NULL ) {
-        title = "Error: Server Error";
-        err = "SCRIPT_NAME not set";
+        sl[ SL_TITLE ].sl_data = "Error: Server Error";
+        sl[ SL_ERROR ].sl_data = "SCRIPT_NAME not set";
         tmpl = ERROR_HTML;
-        subfile( tmpl );
+        subfile( tmpl, sl, 0 );
 	exit( 0 );
     }
 
     if ( cosign_config( cosign_conf ) < 0 ) {
-        title = "Error: System Error";
-        err = "We were unable to parse the configuration file";
+        sl[ SL_TITLE ].sl_data = "Error: System Error";
+        sl[ SL_ERROR ].sl_data = "We were unable to parse the "
+		"configuration file";
         tmpl = ERROR_HTML;
-        subfile( tmpl );
+        subfile( tmpl, sl, 0 );
         exit( 0 );
     }
     logout_configure();
@@ -198,12 +124,11 @@ main( int argc, char *argv[] )
 		( strncmp( qs, "http", 4 ) == 0 )) {
 
 	    /* query string looks like a url preserve it */
-	    url = strdup( qs );
+	    sl[ SL_URL ].sl_data = strdup( qs );
 	}
 
-	title = "Logout Requested";
-
-	subfile ( tmpl );
+	sl[ SL_TITLE ].sl_data = "Logout Requested";
+	subfile ( tmpl, sl, 0 );
 	exit( 0 );
     }
 
@@ -224,7 +149,7 @@ main( int argc, char *argv[] )
 	    ( *cl[ CL_URL ].cl_data != '\0' )) {
 	/* oh the places you'll go */
         if ( strncmp( cl[ CL_URL ].cl_data, "http", 4 ) == 0 ) {
-	    url = cl[ CL_URL ].cl_data;
+	    sl[ SL_URL ].sl_data = cl[ CL_URL ].cl_data;
 	}
     }
 
@@ -254,10 +179,12 @@ main( int argc, char *argv[] )
 
     /* setup conn and ssl and hostlist to tell cosignd we're logged out */
     if (( head = connlist_setup( cosign_host, cosign_port )) == NULL ) {
-        title = "Error: But not your fault";
-        err = "We were unable to contact the authentication server.  Please quit your web browser to complete logout.";
+        sl[ SL_TITLE ].sl_data = "Server Configuration Error";
+        sl[ SL_ERROR ].sl_data = "We were unable to contact the "
+		"authentication server.  Please quit your web browser "
+		"to complete logout.";
         tmpl = ERROR_HTML;
-        subfile( tmpl );
+        subfile( tmpl, sl, 0 );
         exit( 0 );
     }
 
@@ -265,10 +192,12 @@ main( int argc, char *argv[] )
     SSL_library_init();
 
     if ( cosign_ssl( cryptofile, certfile, cadir, &ctx )) {
-        title = "Error: But not your fault";
-        err = "Failed to initialise connections to the authentication server. Please quit your browser to complete logout.";
+        sl[ SL_TITLE ].sl_data = "Server Configuration Error";
+        sl[ SL_ERROR ].sl_data = "Failed to initialise connections to "
+		"the authentication server. Please quit your browser to "
+		"complete logout.";
         tmpl = ERROR_HTML;
-        subfile( tmpl );
+        subfile( tmpl, sl, 0 );
         exit( 0 );
     }
 
@@ -285,6 +214,6 @@ main( int argc, char *argv[] )
 	}
     }
 
-    printf( "Location: %s\n\n", url );
+    printf( "Location: %s\n\n", sl[ SL_URL ].sl_data );
     exit( 0 );
 }

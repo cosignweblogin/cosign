@@ -314,7 +314,7 @@ ac_includes_default="\
 #endif"
 
 ac_subdirs_all="$ac_subdirs_all libsnet"
-ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS AWK CC CFLAGS LDFLAGS CPPFLAGS ac_ct_CC EXEEXT OBJEXT INSTALL_PROGRAM INSTALL_SCRIPT INSTALL_DATA LEX LEXLIB LEX_OUTPUT_ROOT YACC build build_cpu build_vendor build_os host host_cpu host_vendor host_os APXS APXS_INCLUDE APXS_CFLAGS APXS_CFLAGS_SHLIB APACHECTL APXS2DEFS APXS2 APXS2_INCLUDE APXS2_CFLAGS APXS2_CFLAGS_SHLIB APACHECTL2 HAVE_APACHE2 KRBCGI KRBDEFS KINC KLIBS KLDFLAGS HAVE_KRB BASICCGI filteraddrcheck MYSQLINC MYSQLLIBS MYSQLLDFLAGS SQLDEFS HAVE_MYSQL K4DEFS K4INC K4LIBS K4LDFLAGS HAVE_KRB4 GSSDEFS GSSINC GSSLIBS GSSLDFLAGS HAVE_GSS cosigndb cosignconf cosigncadir cosigncert cosignkey frienddbhost frienddblogin frienddbpasswd ticketcache filterdb proxydb cosignhost cosignlogouturl keytabpath ADDLIBS ADDLDFLAGS TLSDEFS HAVE_SSL CPP EGREP FILTERS OPTOPTS subdirs LIBOBJS LTLIBOBJS'
+ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS AWK CC CFLAGS LDFLAGS CPPFLAGS ac_ct_CC EXEEXT OBJEXT INSTALL_PROGRAM INSTALL_SCRIPT INSTALL_DATA LEX LEXLIB LEX_OUTPUT_ROOT YACC build build_cpu build_vendor build_os host host_cpu host_vendor host_os APXS APXS_INCLUDE APXS_CFLAGS APXS_CFLAGS_SHLIB APACHECTL APXS2DEFS APXS2 APXS2_INCLUDE APXS2_CFLAGS APXS2_CFLAGS_SHLIB APACHECTL2 HAVE_APACHE2 KRBCGI KRBDEFS KINC KLIBS KLDFLAGS HAVE_KRB filteraddrcheck MYSQLINC MYSQLLIBS MYSQLLDFLAGS SQLDEFS HAVE_MYSQL K4DEFS K4INC K4LIBS K4LDFLAGS HAVE_KRB4 GSSDEFS GSSINC GSSLIBS GSSLDFLAGS HAVE_GSS cosigndb cosignconf cosigncadir cosigncert cosignkey frienddbhost frienddblogin frienddbpasswd ticketcache filterdb proxydb cosignhost cosignlogouturl keytabpath ADDLIBS ADDLDFLAGS TLSDEFS HAVE_SSL CPP EGREP FILTERS OPTOPTS subdirs LIBOBJS LTLIBOBJS'
 ac_subst_files=''
 
 # Initialize some variables set by options.
@@ -857,7 +857,6 @@ Optional Features:
                           enable apache 2 filter
   --enable-krb=path_to_krb
                           enable kerberos for the cgi and apache filter
-  --enable-basicauth      build the basicauth version of the cgi
   --enable-filter-addr-check
                           does not work with firewalls, is "extra security"
   --enable-mysql=path_to_mysql
@@ -3090,20 +3089,6 @@ else
 echo "${ECHO_T}kerberos not enabled" >&6
 fi;
 
-# Check whether --enable-basicauth or --disable-basicauth was given.
-if test "${enable_basicauth+set}" = set; then
-  enableval="$enable_basicauth"
-
-    BASICCGI="basicosign.cgi"
-
-    echo "$as_me:$LINENO: result: BasicAuth cgi will be built" >&5
-echo "${ECHO_T}BasicAuth cgi will be built" >&6
-
-else
-  echo "$as_me:$LINENO: result: BasicAuth cgi will not be built " >&5
-echo "${ECHO_T}BasicAuth cgi will not be built " >&6
-fi;
-
 # Check whether --enable-filter-addr-check or --disable-filter-addr-check was given.
 if test "${enable_filter_addr_check+set}" = set; then
   enableval="$enable_filter_addr_check"
@@ -4773,7 +4758,6 @@ s,@KINC@,$KINC,;t t
 s,@KLIBS@,$KLIBS,;t t
 s,@KLDFLAGS@,$KLDFLAGS,;t t
 s,@HAVE_KRB@,$HAVE_KRB,;t t
-s,@BASICCGI@,$BASICCGI,;t t
 s,@filteraddrcheck@,$filteraddrcheck,;t t
 s,@MYSQLINC@,$MYSQLINC,;t t
 s,@MYSQLLIBS@,$MYSQLLIBS,;t t

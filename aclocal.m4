@@ -187,14 +187,6 @@ AC_DEFUN([CHECK_APACHE_1],
 
 ])
 
-
-AC_DEFUN([CGI_BASICAUTH],
-[
-    BASICCGI="basicosign.cgi"
-    AC_SUBST(BASICCGI)
-    AC_MSG_RESULT([BasicAuth cgi will be built])
-])
-
 AC_DEFUN([CHECK_LIBMYSQL],
 [
     AC_MSG_CHECKING(for mysql)

@@ -18,7 +18,7 @@ FRIEND_MYSQL_PASSWD = @frienddbpasswd@
 INCPATH=     @CPPFLAGS@ @KINC@ @MYSQLINC@ -I../libsnet -I../libcgi -I../common
 OPTOPTS=     @OPTOPTS@
 CC=          @CC@
-DEFS=        @TLSDEFS@ @SQLDEFS@
+DEFS=        @TLSDEFS@ @SQLDEFS@ @KRBDEFS@
 LIBS=        -lsnet -lcgi @LIBS@ @KLIBS@ @MYSQLLIBS@
 LDFLAGS=     -L../libsnet/.libs -L../libcgi @LDFLAGS@ @KLDFLAGS@ @MYSQLLDFLAGS@ ${LIBS}
 INSTALL=     @INSTALL@
@@ -26,11 +26,10 @@ INSTALL=     @INSTALL@
 CFLAGS=      ${DEFS} ${OPTOPTS} @CFLAGS@ ${INCPATH}
 
 
-OBJ     = network.o ../common/mkcookie.o ../common/fbase64.o \
+OBJ     = network.o subfile.o ../common/mkcookie.o ../common/fbase64.o \
 	../common/config.o ../common/wildcard.o ../common/argcargv.o \
 	../version.o 
-CGITARGETS = @BASICCGI@ @KRBCGI@
-TARGETS = logout ${CGITARGETS}
+TARGETS = logout cosign.cgi
 
 all: ${TARGETS}
 
@@ -56,20 +55,8 @@ cgi.o:	cgi.c
 	-D_COSIGN_CONF=\"${COSIGNCONF}\" \
 	-c cgi.c
 
-basic.o:	basic.c
-	${CC} ${CFLAGS} \
-	-D_COSIGN_HOST=\"${COSIGNHOST}\" \
-	-D_COSIGN_TLS_CADIR=\"${COSIGNCADIR}\" \
-	-D_COSIGN_TLS_CERT=\"${COSIGNCERT}\" \
-	-D_COSIGN_TLS_KEY=\"${COSIGNKEY}\" \
-	-D_COSIGN_CONF=\"${COSIGNCONF}\" \
-	-c basic.c
-
 cosign.cgi: cgi.o login.o $(OBJ)
 	${CC} -o cosign.cgi cgi.o login.o $(OBJ) $(LDFLAGS)
-
-basicosign.cgi: basic.o $(OBJ)
-	${CC} -o basicosign.cgi basic.o $(OBJ) $(LDFLAGS)
 
 logout.o:	logout.c
 	${CC} ${CFLAGS} \
@@ -90,11 +77,6 @@ clean:
 install : all
 	-mkdir -p ${exec_prefix}
 	-mkdir -p ${DOCROOTDIR}
-	if [ x != x@BASICCGI@ ]; then \
-	    ${INSTALL} -m 0755 -c @BASICCGI@ ${DOCROOTDIR}/; \
-	fi
-	if [ x != x@KRBCGI@ ]; then \
-	    ${INSTALL} -m 0755 -c @KRBCGI@ ${DOCROOTDIR}/; \
+	    ${INSTALL} -m 0755 -c cosign.cgi ${DOCROOTDIR}/; \
 	    mkdir -p ${CGIDIR}; \
 	    ${INSTALL} -m 0755 -c logout ${CGIDIR}/; \
-	fi
