@@ -4,7 +4,6 @@ unhappy with cookieparsing in cosign_auth().
 unhappy with cookie_valid/read_secant division. 
 
 upon cookie_ok, module sets up cgi env ( remote user etc )
-    snprintf( tfname, MAXPATHLEN - 1 , "%s%s", TICKET_PREFIX, user );
     /* aka "/ticket/kerb.canna" in current system */
     krb_set_tkt_string( tfname );
     ap_table_set( r->subprocess_env, "KRBTKFILE", tfname );
@@ -21,10 +20,11 @@ CGI:
     conf file
 
 COSIGND:
-    idle timeout
     kerberos
     replication (suspenders)
     conf file
+    where does it live?
+
 
 1) you would have needed to login, but you don't now!
 2) use of qs for redirect back URL ( consistency ).
@@ -67,15 +67,22 @@ configuration files:
 	    possible additions:
 	    audience (for service list)
 
-	    structure: flat text file -- csv?  pipe delimited?
 
     cosign.cgi: uses same conf file as cosignd.
 
 FILE FORMAT:
 
+cosign=
 v1.0
 s<0/1>
 i141.211.164.2
 pcanna
 rUMICH.EDU
 t<secondssince1970>
+[k<path_to_k5_tfile>]
+
+cosign-service=
+l<path_to_login_cookie>
+
+conf file:
+keyword[ cgi, daemon, service ], hostname[ subject dn ], get_tickets[ 0/1 ]
