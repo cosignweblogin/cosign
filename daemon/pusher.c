@@ -1,20 +1,24 @@
 #include <sys/wait.h>
 #include <sys/types.h>
 #include <sys/time.h>
+#include <sys/stat.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
 #include <unistd.h>
 #include <syslog.h>
 #include <string.h>
 #include <signal.h>
 #include <netdb.h>
+#include <fcntl.h>
 #include <errno.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
+
 #include <openssl/err.h>
 #include <openssl/ssl.h>
 #include <snet.h>
 
 #include "argcargv.h"
 #include "monster.h"
+#include "cparse.h"
 
 extern char		*cosign_version;
 extern char		*replhost;
@@ -29,7 +33,34 @@ static void	pusherchld ( int );
 int		pusherparent( int );
 int		pusher( int, struct cl * );
 int		pusherhosts( char *, int );
+void		pusherdaemon( struct cl * );
 
+    void
+pusherdaemon( struct cl *cur )
+{
+    struct timeval	tv;
+    char		*line;
+
+    snet_writef( cur->cl_sn, "DAEMON" );
+
+    tv = timeout;
+    if (( line = snet_getline_multi( cur->cl_sn, logger, &tv )) == NULL ) {
+	syslog( LOG_ERR, "pusherdaemon: %m" );
+	if (( close_sn( cur )) != 0 ) {
+	    syslog( LOG_ERR, "pusherchld: close_sn: %m" );
+	}
+	exit( 1 );
+    }
+
+    if ( *line != '2' ) {
+	syslog( LOG_ERR, "pusherdaemon: %s", line );
+	if (( close_sn( cur )) != 0 ) {
+	    syslog( LOG_ERR, "pusherdaemon: close_sn: %m" );
+	}
+	exit( 1 );
+    }
+    return;
+}
     int
 pusherhosts( char *name, int port)
 {
@@ -174,13 +205,13 @@ pusherparent( int ppipe )
     sigaddset( &signalset, SIGCHLD );
 
     if (( sn = snet_attach( ppipe, 1024 * 1024 ) ) == NULL ) {
-        syslog( LOG_ERR, "pusherparent: snet_attach failed\n" );
+        syslog( LOG_ERR, "pusherparent: snet_attach: %m" );
         return( -1 );
     }
 
     for ( ;; ) {
 	if (( line = snet_getline( sn, NULL )) == NULL ) {
-	    syslog( LOG_ERR, "pusherparent: snet_getline failed: %m\n" );
+	    syslog( LOG_ERR, "pusherparent: snet_getline: %m" );
 	    exit( 1 );
 	}
 syslog( LOG_INFO, "pusher line: %s", line );
@@ -222,7 +253,7 @@ syslog( LOG_DEBUG, "XXX calling pusher()" );
 		exit( 1 );
 	    }
 
-	    syslog( LOG_INFO, "started pusher %d", cur->cl_pid );
+syslog( LOG_DEBUG, "started pusher %d", cur->cl_pid );
 
 	    if ( close( fds[ 1 ] ) != 0 ) {
 		syslog( LOG_ERR, "pusher main pipe: %m" );
@@ -231,7 +262,7 @@ syslog( LOG_DEBUG, "XXX calling pusher()" );
 
 	    if (( cur->cl_psn = snet_attach( fds[ 0 ], 1024 * 1024 ))
 		    == NULL ) {
-		syslog( LOG_ERR, "pusherparent fork: snet_attach fail\n" );
+		syslog( LOG_ERR, "pusherparent fork: snet_attach: %m" );
 		exit( 1 );
 	    }
 	}
@@ -273,12 +304,16 @@ syslog( LOG_DEBUG, "writing to %d", cur->cl_pid );
 pusher( int cpipe, struct cl *cur )
 {
     SNET		*csn;
+    unsigned char	buf[ 8192 ];
     char		*line, **av;
-    int			rc, ac;
+    int			rc, ac, krb = 0, fd = 0;
+    ssize_t             rr, size = 0;
     struct timeval	tv;
+    struct stat         st;
+    struct cinfo	ci;
 
     if (( csn = snet_attach( cpipe, 1024 * 1024 )) == NULL ) {
-        syslog( LOG_ERR, "pusherchild: snet_attach failed" );
+        syslog( LOG_ERR, "pusherchild: snet_attach: %m" );
         return( -1 );
     }
 
@@ -289,61 +324,143 @@ pusher( int cpipe, struct cl *cur )
 	syslog( LOG_ERR, "pusher: connect_sn transient failure" );
 	exit( 1 );
     }
+    
+    pusherdaemon( cur );
 
-    for ( ;; ) {
-	if (( line = snet_getline( csn, NULL )) == NULL ) {
-	    syslog( LOG_ERR, "pusherchild: snet_getline failed" );
-	    exit( 1 );
-	}
+	for ( ;; ) {
+    if (( line = snet_getline( csn, NULL )) == NULL ) {
+	syslog( LOG_ERR, "pusherchild: snet_getline: %m" );
+	exit( 1 );
+    }
 
 syslog( LOG_INFO, "pusherchild: %s", line );
 
-	if (( ac = argcargv( line, &av )) < 0 ) {
-	    syslog( LOG_ERR, "argcargv: %m" );
-	    break;
-	}
-
-	if ( ac <= 2 ) {
-	    syslog( LOG_ERR, "pusherchild: not enuff args" );
-	    break;
-	}
-
-	if (( strcasecmp( av[ 0 ], "login" )) == 0 ) {
-	    if ( ac == 6 ) {
-		/* kerberos stuff to boot */
-	    } else {
-		snet_writef( cur->cl_sn, "LOGIN %s %s %s %s\r\n",
-			av[ 1 ], av [ 2 ], av [ 3 ], av [ 4 ] );
-	    }
-	} else if (( strcasecmp( av[ 0 ], "register" )) == 0 ) {
-	    snet_writef( cur->cl_sn, "REGISTER %s %s %s\r\n",
-			av[ 1 ], av[ 2 ], av [ 3 ] );
-
-	} else if (( strcasecmp( av[ 0 ], "logout" )) == 0 ) {
-	    snet_writef( cur->cl_sn, "LOGOUT %s %s %s\r\n",
-			av[ 1 ], av[ 2 ], av [ 3 ] );
-	} else {
-	    syslog( LOG_ERR, "pusherchild: what's %s?", av[ 0 ]);
-	}
-
-	tv = timeout;
-	if (( line = snet_getline_multi( cur->cl_sn, logger, &tv )) == NULL ) {
-	    syslog( LOG_ERR, "pusherchild: %s\n", strerror( errno ));
-	    if (( close_sn( cur )) != 0 ) {
-		syslog( LOG_ERR, "pusherchld: close_sn failed\n" );
-	    }
-	    exit( 1 );
-	}
-
-	if ( *line != '2' ) {
-	    syslog( LOG_ERR, "pusherchild: %s\n", line );
-	    if (( close_sn( cur )) != 0 ) {
-		syslog( LOG_ERR, "pusherchld: close_sn failed\n" );
-	    }
-	    exit( 1 );
-	}
-
+    if (( ac = argcargv( line, &av )) < 0 ) {
+	syslog( LOG_ERR, "argcargv: %m" );
+	break;
     }
+
+    if ( ac <= 2 ) {
+	syslog( LOG_ERR, "pusherchild: not enuff args" );
+	break;
+    }
+
+    if (( strcasecmp( av[ 0 ], "login" )) == 0 ) {
+	if ( ac == 6 ) {
+	    snet_writef( cur->cl_sn, "LOGIN %s %s %s %s kerberos\r\n",
+		    av[ 1 ], av [ 2 ], av [ 3 ], av [ 4 ] );
+	    krb = 1;
+	} else {
+	    snet_writef( cur->cl_sn, "LOGIN %s %s %s %s\r\n",
+		    av[ 1 ], av [ 2 ], av [ 3 ], av [ 4 ] );
+	}
+    } else if (( strcasecmp( av[ 0 ], "register" )) == 0 ) {
+	snet_writef( cur->cl_sn, "REGISTER %s %s %s\r\n",
+		    av[ 1 ], av[ 2 ], av [ 3 ] );
+
+    } else if (( strcasecmp( av[ 0 ], "logout" )) == 0 ) {
+	snet_writef( cur->cl_sn, "LOGOUT %s %s %s\r\n",
+		    av[ 1 ], av[ 2 ], av [ 3 ] );
+    } else {
+	syslog( LOG_ERR, "pusherchild: what's %s?", av[ 0 ]);
+    }
+
+    tv = timeout;
+    if (( line = snet_getline_multi( cur->cl_sn, logger, &tv )) == NULL ) {
+	syslog( LOG_ERR, "pusherchild: %m" );
+	if (( close_sn( cur )) != 0 ) {
+	    syslog( LOG_ERR, "pusherchld: close_sn: %m" );
+	}
+	exit( 1 );
+    }
+
+    if ( !krb ) {
+	goto finish;
+    }
+
+    if ( *line != '3' ) {
+        syslog( LOG_ERR, "pusherchld: not 3, got: %s", line );
+        goto done;
+    }
+
+    if (( rc = read_cookie( av[ 1 ], &ci )) < 0 ) {
+	syslog( LOG_ERR, "read_cookie error: %s", av[ 1 ] );
+	continue;
+    }
+
+    if (( fd = open( ci.ci_krbtkt, O_RDONLY, 0 )) < 0 ) {
+        syslog( LOG_ERR, "pusherchld: %m" );
+        goto done;
+    }
+
+    if ( fstat( fd, &st) < 0 ) {
+        syslog( LOG_ERR, "pusherchld: %m" );
+        goto done2;
+    }
+
+    size = st.st_size;
+    if ( snet_writef( cur->cl_sn, "%d\r\n", (int)st.st_size ) < 0 ) {
+        syslog( LOG_ERR, "login %s failed: %m", av[ 2 ] );
+        goto done2;
+    }
+
+    while (( rr = read( fd, buf, sizeof( buf ))) > 0 ) {
+        tv = timeout;
+        if ( snet_write( cur->cl_sn, buf, (int)rr, &tv ) != rr ) {
+	    syslog( LOG_ERR, "login %s failed: %m", av[ 2 ] );
+            goto done2;
+        }
+        size -= rr;
+    }
+    if ( rr < 0 ) {
+        syslog( LOG_ERR, "pusherchld: %m" );
+        goto done2;
+    }
+
+    /* Check number of bytes sent to server */
+    if ( size != 0 ) {
+        syslog( LOG_ERR,
+            "login %s failed: Wrong number of bytes sent", av[ 2 ] );
+        goto done2;
+    }
+
+    /* End transaction with server */
+    if ( snet_writef( cur->cl_sn, ".\r\n" ) < 0 ) {
+	syslog( LOG_ERR, "login %s failed: %m", av[ 2 ] );
+        goto done2;
+    }
+
+    tv = timeout;
+    if (( line = snet_getline_multi( cur->cl_sn, logger, &tv )) == NULL ) {
+        if ( snet_eof( cur->cl_sn )) {
+            syslog( LOG_ERR, "pusherchld: connection closed" );
+        } else {
+            syslog( LOG_ERR, "pushechld: login %s failed: %m\n", av[ 1 ] );
+        }
+    }
+
+finish:
+    if ( *line != '2' ) {
+	syslog( LOG_ERR, "pusherchld: %s", line );
+	if (( close_sn( cur )) != 0 ) {
+	    syslog( LOG_ERR, "pusherchld: close_sn: %m" );
+	}
+	exit( 1 );
+    }
+
+    if ( !krb ) {
+	continue;
+    }
+
+done2:
+    close( fd );
+
+done:
+    if (( close_sn( cur )) != 0 ) {
+	syslog( LOG_ERR, "pusherchld: close_sn: %m" );
+    }
+    exit( 1 );
+	}
 
     return( 0 );
 }

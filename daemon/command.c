@@ -35,7 +35,8 @@
 
 #define TKT_PREFIX	"/ticket"
 
-#define IDLE_OUT	 7200
+#define IDLE_OUT	7200
+#define GREY		1800
 
 static int	f_noop ___P(( SNET *, int, char *[], SNET * ));
 static int	f_quit ___P(( SNET *, int, char *[], SNET * ));
@@ -47,6 +48,7 @@ static int	f_register ___P(( SNET *, int, char *[], SNET * ));
 static int	f_check ___P(( SNET *, int, char *[], SNET * ));
 static int	f_retr ___P(( SNET *, int, char *[], SNET * ));
 static int	f_time ___P(( SNET *, int, char *[], SNET * ));
+static int	f_daemon ___P(( SNET *, int, char *[], SNET * ));
 static int	f_starttls ___P(( SNET *, int, char *[], SNET * ));
 
 struct command {
@@ -65,6 +67,7 @@ struct command	unauth_commands[] = {
     { "CHECK",		f_notauth },
     { "RETR",		f_notauth },
     { "TIME",		f_notauth },
+    { "DAEMON",		f_notauth },
 };
 
 struct command	auth_commands[] = {
@@ -78,12 +81,14 @@ struct command	auth_commands[] = {
     { "CHECK",		f_check },
     { "RETR",		f_retr },
     { "TIME",		f_time },
+    { "DAEMON",		f_daemon },
 };
 
 extern char	*cosign_version;
 extern SSL_CTX	*ctx;
 struct command 	*commands = unauth_commands;
 struct chosts	*ch = NULL;
+int		isdaemon = 0;
 int	ncommands = sizeof( unauth_commands ) / sizeof(unauth_commands[ 0 ] );
 
     int
@@ -344,10 +349,11 @@ f_login( sn, ac, av, pushersn )
 
     if ( !krb ) {
 	snet_writef( sn, "%d LOGIN successful: Cookie Stored.\r\n", 200 );
-	if ( pushersn != NULL ) {
+	if (( pushersn != NULL ) && ( isdaemon )) {
 	    snet_writef( pushersn, "LOGIN %s %s %s %s\r\n",
 		    av[ 1 ], av[ 2 ], av[ 3 ], av[ 4 ]);
 	}
+syslog( LOG_INFO, "daemon command at work!" );
 	return( 0 );
     }
 
@@ -422,7 +428,7 @@ f_login( sn, ac, av, pushersn )
     }
 
     snet_writef( sn, "%d LOGIN successful: Cookie & Ticket Stored.\r\n", 201 );
-    if ( pushersn != NULL ) {
+    if (( pushersn != NULL ) && ( isdaemon )) {
 	snet_writef( pushersn, "LOGIN %s %s %s %s %s\r\n",
 		av[ 1 ], av[ 2 ], av[ 3 ], av[ 4 ], av[ 5 ]);
     }
@@ -436,6 +442,31 @@ file_err:
     syslog( LOG_ERR, "f_login: bad file format" );
     snet_writef( sn, "%d LOGIN Syntax Error: Bad File Format\r\n", 504 );
     return( 1 );
+}
+
+    int
+f_daemon( sn, ac, av, pushersn )
+    SNET	*sn;
+    int		ac;
+    char	*av[];
+    SNET	*pushersn;
+{
+    if ( ch->ch_key != CGI ) {
+	syslog( LOG_ERR, "%s is not a daemon", ch->ch_hostname );
+	snet_writef( sn, "%d DAEMON: %s not a daemon.\r\n",
+		460, ch->ch_hostname );
+	return( 1 );
+    }
+
+    if ( ac != 1 ) {
+	snet_writef( sn, "%d Syntax error\r\n", 571 );
+	return( 1 );
+    }
+
+    isdaemon = 1;
+
+    snet_writef( sn, "%d Daemon flag set\r\n", 271 );
+    return( 0 );
 }
 
     int
@@ -456,14 +487,12 @@ f_time( sn, ac, av, pushersn )
     /* login_cookie timestamp state */
     /* . */
 
-#ifdef notdef
-    if ( ch->ch_key != DAEMON ) {
+    if ( ch->ch_key != CGI ) {
 	syslog( LOG_ERR, "%s not allowed to tell time", ch->ch_hostname );
 	snet_writef( sn, "%d TIME: %s not allowed to propogate time.\r\n",
 		460, ch->ch_hostname );
 	return( 1 );
     }
-#endif /* notdef */
 
     if ( ac != 1 ) {
 	snet_writef( sn, "%d TIME: Wrong number of args.\r\n", 560 );
@@ -590,7 +619,7 @@ f_logout( sn, ac, av, pushersn )
     }
 
     snet_writef( sn, "%d LOGOUT successful: cookie no longer valid\r\n", 210 );
-    if ( pushersn != NULL ) {
+    if (( pushersn != NULL ) && ( isdaemon )) {
 	snet_writef( pushersn, "LOGOUT %s %s\r\n", av[ 1 ], av [ 2 ] );
     }
     return( 0 );
@@ -664,7 +693,11 @@ f_register( sn, ac, av, pushersn )
     }
 
     /* check for idle timeout, and if so, log'em out */
-    if ( tv.tv_sec - ci.ci_itime > IDLE_OUT ) {
+    if ( tv.tv_sec - ci.ci_itime > IDLE_OUT &&
+	    tv.tv_sec - ci.ci_itime < (IDLE_OUT + GREY )) {
+	snet_writef( sn, "%d REGISTER: Idle Grey Window\r\n", 521 );
+	return( 1 );
+     } else if ( tv.tv_sec - ci.ci_itime >  ( IDLE_OUT + GREY )) {
 	syslog( LOG_INFO, "f_register: idle time out!\n" );
 	if ( do_logout( av[ 1 ] ) < 0 ) {
 	    syslog( LOG_ERR, "f_register: %s: %m", av[ 1 ] );
@@ -734,7 +767,7 @@ f_register( sn, ac, av, pushersn )
     utime( av[ 1 ], NULL );
 
     snet_writef( sn, "%d REGISTER successful: Cookie Stored \r\n", 220 );
-    if ( pushersn != NULL ) {
+    if (( pushersn != NULL ) && ( isdaemon )) {
 	snet_writef( pushersn, "REGISTER %s %s %s\r\n",
 		av[ 1 ], av[ 2 ], av [ 3 ] );
     }
@@ -811,7 +844,11 @@ f_check( sn, ac, av, pushersn )
 	return( -1 );
     }
 
-    if ( tv.tv_sec - ci.ci_itime > IDLE_OUT ) {
+    if ( tv.tv_sec - ci.ci_itime > IDLE_OUT &&
+	    tv.tv_sec - ci.ci_itime < (IDLE_OUT + GREY )) {
+	snet_writef( sn, "%d CHECK: Idle Grey Window\r\n", 531 );
+	return( 1 );
+    } else if ( tv.tv_sec - ci.ci_itime > IDLE_OUT ) {
 	syslog( LOG_INFO, "f_check: idle time out!\n" );
 	snet_writef( sn, "%d CHECK: Idle logged out\r\n", 431 );
 	if ( do_logout( login ) < 0 ) {
@@ -824,9 +861,6 @@ f_check( sn, ac, av, pushersn )
 
     /* prevent idle out if we are actually using it */
     utime( login, NULL );
-    if ( status == 231 ) {
-	utime( av[ 1 ], NULL );
-    }
 
     snet_writef( sn,
 	    "%d %s %s %s\r\n", status, ci.ci_ipaddr, ci.ci_user, ci.ci_realm );
@@ -903,7 +937,11 @@ f_retr( sn, ac, av, pushersn )
 	return( -1 );
     }
 
-    if ( tv.tv_sec - ci.ci_itime > IDLE_OUT ) {
+    if ( tv.tv_sec - ci.ci_itime > IDLE_OUT &&
+	    tv.tv_sec - ci.ci_itime < (IDLE_OUT + GREY )) {
+	snet_writef( sn, "%d RETR: Idle Grey Window\r\n", 541 );
+	return( 1 );
+    } else if ( tv.tv_sec - ci.ci_itime > IDLE_OUT ) {
 	syslog( LOG_INFO, "f_retr: idle time out!\n" );
 	snet_writef( sn, "%d RETR: Idle logged out\r\n", 441 );
 	if ( do_logout( login ) < 0 ) {
