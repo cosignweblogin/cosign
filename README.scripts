@@ -5,6 +5,13 @@ cron:
     database, the path this script uses will need to be updated
     appropriately.
 
+    also, located in daemon/, is a program called "monster". This is a
+    more agressive cookie and ticket removal program. The default idle
+    time is 90 minutes, meaning it removes all cookies that are
+    a) logged out at the time it runs or b) have not been used in the
+    last 90 minutes. You can set the idle time out to be an arbitrary
+    number of seconds e.g. "monster -i 6000" .
+
 logout:
     The scripts directory contains scripts that might be useful when
     running a cosign weblogin server or authentication filter.
