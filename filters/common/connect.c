@@ -15,10 +15,17 @@
 #include <netdb.h>
 #include <fcntl.h>
 
+#define OPENSSL_DISABLE_OLD_DES_SUPPORT
 #include <openssl/ssl.h>
 #include <openssl/err.h>
 
 #include <snet.h>
+
+#ifdef KRB4
+#include <kerberosIV/krb.h>
+#include <krb5.h>
+#include "krb524.h"
+#endif /* KRB4 */
 
 
 #include "sparse.h"
@@ -28,7 +35,7 @@
 
 #define IP_SZ		254
 #define USER_SZ 	30
-#define REALM_SZ 	254
+#define RREALM_SZ 	254
 #define TKT_PREFIX	"/ticket"
 #define MIN(a,b)        ((a)<(b)?(a):(b))
 
@@ -101,7 +108,7 @@ netcheck_cookie( char *secant, struct sinfo *si, SNET *sn )
 	return( -1 );
     }
     strcpy( si->si_user, av[ 2 ] );
-    if ( strlen( av[ 3 ] ) >= REALM_SZ ) {
+    if ( strlen( av[ 3 ] ) >= RREALM_SZ ) {
 	fprintf( stderr, "netcheck_cookie: realm too long\n" );
 	return( -1 );
     }
@@ -122,6 +129,16 @@ netretr_ticket( char *secant, struct sinfo *si, SNET *sn )
     ssize_t             rr;
     struct timeval      tv;
     extern int		errno;
+#ifdef KRB4
+    char                krb4path [ 24 ];
+    krb5_principal	kclient, kserver;
+    krb5_ccache		kccache;
+    krb5_creds		increds, *v5creds;
+    krb5_error_code 	kerror;
+    krb5_context 	kcontext;
+    CREDENTIALS		v4creds;
+
+#endif /* KRB4 */
 
     /* RETR service-cookie TicketType */
     if ( snet_writef( sn, "RETR %s tgt\r\n", secant ) < 0 ) {
@@ -208,8 +225,87 @@ netretr_ticket( char *secant, struct sinfo *si, SNET *sn )
     }
 
     /* copy the path to the ticket file */
-    /* 524 and copy the 4 path to krb4tkt :) */
     strcpy( si->si_krb5tkt, krbpath );
+
+#ifdef KRB4
+    if ( mkcookie( sizeof( tmpkrb ), tmpkrb ) != 0 ) {
+	fprintf( stderr, "mkcookie failed in netretr_ticket().\n" );
+        returnval = -1;
+	goto error1;
+    }
+    sprintf( krb4path, "%s/%s", TKT_PREFIX, tmpkrb );
+    krb_set_tkt_string( krb4path );
+
+    if (( kerror = krb5_init_context( &kcontext ))) {
+	fprintf( stderr, "krb5_init_context: %s\n", 
+		(char *)error_message( kerror ));
+        returnval = -1;
+	goto error1;
+    }
+
+    krb524_init_ets( kcontext );
+    if (( krb5_cc_resolve( kcontext, krbpath, &kccache )) != 0 ) {
+	fprintf( stderr, "krb5_cc_resolve: %s\n", 
+		(char *)error_message( kerror ));
+        returnval = -1;
+	goto error1;
+    }
+
+    if (( krb5_cc_get_principal( kcontext, kccache, &kclient )) != 0 ) {
+	fprintf( stderr, "krb5_cc_get_princ: %s\n", 
+		(char *)error_message( kerror ));
+        returnval = -1;
+	goto error1;
+    }
+    if (( krb5_build_principal( kcontext, &kserver,
+	    krb5_princ_realm( kcontext, kclient)->length,
+	    krb5_princ_realm( kcontext, kclient)->data, "krbtgt",
+	    krb5_princ_realm( kcontext, kclient)->data, NULL)) != 0 ) {
+	fprintf( stderr, "krb5_build_princ: %s\n", 
+		(char *)error_message( kerror ));
+        returnval = -1;
+	goto error1;
+    }
+
+    memset((char *) &increds, 0, sizeof(increds));
+    increds.client = kclient;
+    increds.server = kserver;
+    increds.times.endtime = 0;
+    increds.keyblock.enctype = ENCTYPE_DES_CBC_CRC;
+    if (( krb5_get_credentials( kcontext, 0, kccache,
+	    &increds, &v5creds )) != 0 ) {
+	fprintf( stderr, "krb5_get_credentials: %s\n", 
+		(char *)error_message( kerror ));
+        returnval = -1;
+	goto error1;
+    }
+
+    if (( krb524_convert_creds_kdc( kcontext, v5creds, &v4creds )) != 0 ) {
+	fprintf( stderr, "krb524: %s\n", 
+		(char *)error_message( kerror ));
+        returnval = -1;
+	goto error1;
+    }
+
+    /* initialize ticket cache */
+    if (( in_tkt( v4creds.pname, v4creds.pinst )) != KSUCCESS ) {
+	fprintf( stderr, "in_tkt: %s\n", 
+		(char *)error_message( kerror ));
+        returnval = -1;
+	goto error1;
+    }
+
+    if (( krb_save_credentials( v4creds.service, v4creds.instance,
+	    v4creds.realm, v4creds.session, v4creds.lifetime, v4creds.kvno,
+	    &(v4creds.ticket_st), v4creds.issue_date ))) {
+	fprintf( stderr, "krb_save_cred: %s\n", 
+		(char *)error_message( kerror ));
+        returnval = -1;
+	goto error1;
+    }
+
+    strcpy( si->si_krb4tkt, krb4path );
+#endif /* KRB4 */
 
     return( 2 );
 
@@ -217,6 +313,9 @@ error2:
     close( fd );
 error1:
     unlink( krbpath );
+#ifdef KRB4
+    unlink( krb4path );
+#endif /* KRB4 */
     return( returnval );
 }
 #endif /* KRB */
