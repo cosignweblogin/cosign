@@ -1,4 +1,5 @@
 ./CVS
+./CAcerts/CVS
 ./cgi/CVS
 ./daemon/CVS
 ./html/CVS
