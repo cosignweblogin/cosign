@@ -6,10 +6,11 @@ include(`header.html')
     <p>
 	$e
 
-	<p class="important">
-	    <a href="$l">$l</a>
-	</p>
     </p> 
+
+    <p class="important">
+	<a class="success" href="$l">$l</a>
+    </p>
 </td>
 
 include(`footer.html')

@@ -17,6 +17,8 @@
 
 #define ERROR_HTML	"../templates/error.html"
 #define REDIRECT_HTML	"../templates/redirect.html"
+#define SERVICE_MENU    "../templates/service-menu.html"
+#define VERIFY_LOGOUT   "../templates/verify-logout.html"
 #define SIDEWAYS	1
 #define htputs( x ) fputs((x),stdout);
 
@@ -29,10 +31,10 @@ int	port = 6663;
 int	nocache = 0;
 
 struct cgi_list cl[] = {
-#define CL_UNIQNAME	0
-        { "uniqname", NULL },
-#define CL_PASSWORD	1
-        { "password", NULL },
+#define CL_VERIFY	0
+        { "verify", NULL },
+#define CL_URL 		1
+        { "url", NULL },
         { NULL, NULL },
 };
 
@@ -44,7 +46,8 @@ void	subfile( char * );
 subfile( char *filename )
 {
     FILE	*fs;
-    int 	c;
+    int 	c, i;
+    char        nasties[] = "<>(){}[]~?&=;'`\" \\";
 
     if ( nocache ) {
 	fputs( "Cache-Control: private, must-revalidate, no-cache\n"
@@ -75,20 +78,21 @@ subfile( char *filename )
 		}
 		break;
 
-	    case 'u':
-                if (( cl[ CL_UNIQNAME ].cl_data != NULL ) &&
-                        ( *cl[ CL_UNIQNAME ].cl_data != '\0' )) {
-                    printf( "%s", cl[ CL_UNIQNAME ].cl_data );
-                }
-		break;
-
 	    case 's':
 		printf( "%s", getenv( "SCRIPT_NAME" ));
 		break;
 
             case 'l':
                 if ( url != NULL ) {
-                    printf( "%s", url );
+		    for ( i = 0; i < strlen( url ); i++ ) {
+			/* block XSS attacks while printing */
+			if ( strchr( nasties, url[ i ] ) != NULL ||
+				url[ i ] <= 0x1F || url[ i ] >= 0x7F ) {
+			    printf( "%%%x", url[ i ] );
+			} else {
+			    putc( url[ i ], stdout );
+			}
+		    }
                 }
                 break;
 
@@ -128,9 +132,45 @@ main( int argc, char *argv[] )
 	exit( 0 );
     }
 
-    if ( cgi_info( CGI_GET, cl ) != 0 ) {
-	fprintf( stderr, "%s: cgi_info broken\n", getenv( "SCRIPT_NAME" ) );
-	exit( 1 );
+    if ( cgi_info( CGI_GET, cl ) == 0 ) {
+	if ((( qs = getenv( "QUERY_STRING" )) != NULL ) &&
+		( *qs != '\0' ) &&
+		( strncmp( qs, "http", 4 ) == 0 )) {
+
+	    /* query string looks like a url preserve it */
+	    url = strdup( qs );
+	}
+
+	title = "Logout Requested";
+	tmpl = VERIFY_LOGOUT;
+
+	subfile ( tmpl );
+	exit( 0 );
+    }
+
+    ip_addr = getenv( "REMOTE_ADDR" );
+    script = getenv( "SCRIPT_NAME" );
+
+    if ( cgi_info( CGI_STDIN, cl ) != 0 ) {
+	/* an actual logout must be the result of a POST, see? */
+        fprintf( stderr, "%s: cgi_info failed\n", script );
+        exit( SIDEWAYS );
+    }
+
+    if (( cl[ CL_VERIFY ].cl_data == NULL ) ||
+	    ( *cl[ CL_VERIFY ].cl_data == '\0' )) {
+	/* user posted, but did not verify */
+	printf( "Location: https://%s/\n\n", host );
+
+	exit( 0 );
+    }
+
+    if (( cl[ CL_URL ].cl_data != NULL ) ||
+	    ( *cl[ CL_URL ].cl_data != '\0' )) {
+	/* oh the places you'll go */
+        if ( strncmp( cl[ CL_URL ].cl_data, "http", 4 ) == 0 ) {
+	    url = cl[ CL_URL ].cl_data;
+	}
     }
 
     /* read user's cosign cookie and LOGOUT */
@@ -145,9 +185,6 @@ main( int argc, char *argv[] )
             }
         }
     }
-
-    ip_addr = getenv( "REMOTE_ADDR" );
-    script = getenv( "SCRIPT_NAME" );
 
     if ( cookie != NULL ) {
 	fprintf( stderr, "LOGOUT %s %s\n", cookie, ip_addr );
@@ -165,14 +202,6 @@ main( int argc, char *argv[] )
 
     /* clobber the cosign cookie and display logout screen */
     fputs( "Set-Cookie: cosign=; path=/; expires=Wednesday, 16-Apr-73 02:10:00 GMT; secure\n", stdout );
-
-    if ((( qs = getenv( "QUERY_STRING" )) != NULL ) &&
-	    ( *qs != '\0' ) &&
-	    ( strncmp( qs, "http", 4 ) == 0 )) {
-
-	/* query string looks like a url, redirect to it */
-	url = strdup( qs );
-    }
 
     htputs( "Cache-Control: private, must-revalidate, no-cache\n"
             "Expires: Mon, 16 Apr 1973 02:10:00 GMT\n"

@@ -11,18 +11,34 @@
 
 	<script language="javascript" type="text/javascript">
 	    <!--
-	    function setfocus() {
-		document.login.uniqname.focus();
+	    function focusLogin() {
+		document.f.uniqname.focus();
 	    }
+
+	    function focusLogout() {
+		document.f.verify.focus();
+	    }
+
 	   //  -->
 	</script>
 
 	<style type="text/css"> <!--
-	    a { text-decoration: none }
-	    a:link { color: #cc0000 }
-	    a:visited { color: #cc0000 }
-	    a:active { color: #cccc33; text-decoration: underline }
-	    a:hover { color: #333399; text-decoration: underline }
+	    a:link {
+		text-decoration: none;
+		color: #003399
+	    }
+	    a:visited {
+		text-decoration: none;
+		color: #cc9900
+	    }
+	    a:hover {
+		color: #6699FF;
+		text-decoration: none
+	    }
+	    a:active {
+		text-decoration: none;
+		color: #0099FF
+	    }
 
 	    body {
 		margin-top: 5%
@@ -40,6 +56,10 @@
 
 	    p.error {
 		color: red
+	    }
+
+	    p.small {
+		font-size: 75%
 	    }
 
 	    .important {
@@ -61,7 +81,9 @@
 
     <body bgcolor="#cccccc" vlink="#cc0000" link="#cc0000" text="#000000"
 	    alink="#cccc33"
-	    ifdef(`ONLOAD', `onLoad="setFocus()"' )>
+	    ifdef(`LOGIN_ONLOAD', `onLoad="focusLogin()"' )
+	    ifdef(`LOGOUT_ONLOAD', `onLoad="focusLogout()"' )
+	    >
 
     <table class="main" summary="format login box" bgcolor="#FFFFFF"
 	    border="0" cellpadding="5" cellspacing="0" width="55%"

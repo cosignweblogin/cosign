@@ -1,8 +1,8 @@
-define( `ONLOAD', `1' )
+define( `LOGIN_ONLOAD', `1' )
 include(`header.html')
 
 	<td valign="top">
-	    <form name="login" action="/"
+	    <form name="f" action="/"
 		    enctype="application/x-www-form-urlencoded"
 		    method="post" autocomplete="off">
 
