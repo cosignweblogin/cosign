@@ -13,6 +13,10 @@
 #include <string.h>
 
 #ifdef KRB
+#ifdef GSS
+#include <gssapi/gssapi.h>
+#include <gssapi/gssapi_krb5.h>
+#endif /* GSS */
 #ifdef KRB4
 #include <kerberosIV/krb.h>
 #endif /* KRB4 */
@@ -52,6 +56,9 @@ cosign_create_dir_config( pool *p, char *path )
     cfg->cadir = NULL;
 #ifdef KRB
     cfg->krbtkt = 0;
+#ifdef GSS
+    cfg->gss = 0;
+#endif /* GSS */
 #ifdef KRB4
     cfg->krb524 = 0;
 #endif /* KRB4 */
@@ -80,6 +87,9 @@ cosign_create_server_config( pool *p, server_rec *s )
     cfg->cadir = NULL;
 #ifdef KRB
     cfg->krbtkt = 0;
+#ifdef GSS
+    cfg->gss = 0;
+#endif /* GSS */
 #ifdef KRB4
     cfg->krb524 = 0;
 #endif /* KRB4 */
@@ -165,6 +175,9 @@ cosign_auth( request_rec *r )
     int			cv;
     struct sinfo	si;
     cosign_host_config	*cfg;
+#ifdef GSS
+    int			minor_status;
+#endif /* GSS */
 
     /*
      * Select the correct cfg
@@ -246,6 +259,16 @@ cosign_auth( request_rec *r )
 #ifdef KRB
 	if ( cfg->krbtkt ) {
 	    ap_table_set( r->subprocess_env, "KRB5CCNAME", si.si_krb5tkt );
+#ifdef GSS
+	if ( cfg->gss ) {
+	    if ( gss_krb5_ccache_name( &minor_status, si.si_krb5tkt, NULL )
+		    != GSS_S_COMPLETE ) {
+		ap_log_error( APLOG_MARK, APLOG_ERR|APLOG_NOERRNO,
+			 r->server, "mod_cosign: problem with
+			 gss_krb5_ccache_name" );
+	    }
+	}
+#endif /* GSS */
 #ifdef KRB4
 	if ( cfg->krb524 ) {
 	    ap_table_set( r->subprocess_env, "KRBTKFILE", si.si_krb4tkt );
@@ -391,6 +414,26 @@ krb524_cosign_tickets( cmd_parms *params, void *mconfig, int flag )
     return( NULL );
 }
 #endif /* KRB4 */
+
+#ifdef GSS
+    static const char *
+set_cosign_gss( cmd_parms *params, void *mconfig, int flag )
+{
+    cosign_host_config		*cfg;
+
+    if ( params->path == NULL ) {
+	cfg = (cosign_host_config *) ap_get_module_config(
+		params->server->module_config, &cosign_module );
+    } else {
+	return( "GSS setup policy needs to be set on a per host basis." );
+    }
+
+    cfg->gss = flag; 
+    cfg->configured = 1; 
+    return( NULL );
+}
+#endif /* GSS */
+
     static const char *
 set_cosign_tickets( cmd_parms *params, void *mconfig, int flag )
 {
@@ -559,6 +602,11 @@ command_rec cosign_cmds[ ] =
         { "CosignGetKerberosTickets", set_cosign_tickets,
         NULL, RSRC_CONF, FLAG,
         "whether or not to get kerberos tickets" },
+#ifdef GSS
+        { "CosignKerberosSetupGSS", set_cosign_gss,
+        NULL, RSRC_CONF, FLAG,
+        "whether or not to setup GSSAPI for k5" },
+#endif /* GSS */
 #ifdef KRB4
         { "CosignKerberos524", krb524_cosign_tickets,
         NULL, RSRC_CONF, FLAG,

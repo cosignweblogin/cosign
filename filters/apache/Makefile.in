@@ -11,11 +11,11 @@ INSTALL=        @INSTALL@
 
 #   additional user defines, includes and libraries
 
-INCPATH=        @CPPFLAGS@ @APXS_INCLUDE@ -I../../libsnet @K4INC@
+INCPATH=        @CPPFLAGS@ @APXS_INCLUDE@ -I../../libsnet @K4INC@ @GSSINC@
 OPTOPTS=        @OPTOPTS@
-DEFS=           @TLSDEFS@ @KRBDEFS@ @K4DEFS@
-LIBS=           -lsnet @K4LIBS@
-LDFLAGS=        -L../../libsnet/.libs @K4LDFLAGS@ ${LIBS}
+DEFS=           @TLSDEFS@ @KRBDEFS@ @K4DEFS@ @GSSDEFS@
+LIBS=           -lsnet @K4LIBS@ @GSSLIBS@
+LDFLAGS=        -L../../libsnet/.libs @K4LDFLAGS@ @GSSLDFLAGS@ ${LIBS}
 
 CFLAGS=         ${DEFS} ${OPTOPTS} @CFLAGS@ @APXS_CFLAGS_SHLIB@ ${INCPATH} -DEAPI
 

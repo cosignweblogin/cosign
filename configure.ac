@@ -20,6 +20,9 @@ AC_ARG_ENABLE(krb, AC_HELP_STRING([--enable-krb=path_to_krb], [enable kerberos f
 AC_ARG_WITH(krb4, AC_HELP_STRING([--with-krb4=arg], [enable apache filter
 to get Kerberos IV tickets]), CHECK_KRB4, AC_MSG_RESULT( kerberos IV not enabled))
 
+AC_ARG_WITH(gss, AC_HELP_STRING([--with-gss=arg], [enable apache filter
+to set up GSSAPI ]), CHECK_GSS, AC_MSG_RESULT( GSSAPI not enabled))
+
 AC_ARG_WITH(cosigndir, AC_HELP_STRING([--with-cosign-db=DIR], [default cosign database storage]), cosigndir="$withval", cosigndir="/var/cosign/daemon" )
 AC_SUBST(cosigndir)
 

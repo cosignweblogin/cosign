@@ -80,6 +80,26 @@ AC_DEFUN([CHECK_KRB4],
     AC_SUBST(HAVE_KRB4)
     AC_MSG_RESULT($ac_cv_path_krb)
 ])
+
+AC_DEFUN([CHECK_GSS],
+[
+    AC_MSG_CHECKING(for gss)
+    if test ! -e "$ac_cv_path_krb" ; then
+        AC_MSG_ERROR(gss require krb5 libraries)
+    fi
+    GSSDEFS=-DGSS;
+    AC_SUBST(GSSDEFS)
+    GSSINC="-I$ac_cv_path_krb/include";
+    AC_SUBST(GSSINC)
+    GSSLIBS="-lgssapi_krb5 -lkrb5 -lk5crypto -lcom_err";
+    AC_SUBST(GSSLIBS)
+    GSSLDFLAGS="-L$ac_cv_path_krb/lib";
+    AC_SUBST(GSSLDFLAGS)
+    HAVE_GSS=yes
+    AC_SUBST(HAVE_GSS)
+    AC_MSG_RESULT($ac_cv_path_krb)
+])
+
 AC_DEFUN([CHECK_APACHE_APXS],
 [
     AC_MSG_CHECKING([for Apache DSO support / apxs])

@@ -795,6 +795,7 @@ Optional Packages:
   --with-PACKAGE[=ARG]    use PACKAGE [ARG=yes]
   --without-PACKAGE       do not use PACKAGE (same as --with-PACKAGE=no)
   --with-krb4=arg         enable apache filter to get Kerberos IV tickets
+  --with-gss=arg          enable apache filter to set up GSSAPI
   --with-cosign-db=DIR    default cosign database storage
   --with-cosign-conf=FILE default cosign conf file location
   --with-ssl=DIR          path to ssl
@@ -2569,6 +2570,36 @@ echo "${ECHO_T}kerberos IV not enabled" >&6
 fi;
 
 
+# Check whether --with-gss or --without-gss was given.
+if test "${with_gss+set}" = set; then
+  withval="$with_gss"
+
+    echo "$as_me:$LINENO: checking for gss" >&5
+echo $ECHO_N "checking for gss... $ECHO_C" >&6
+    if test ! -e "$ac_cv_path_krb" ; then
+        { { echo "$as_me:$LINENO: error: gss require krb5 libraries" >&5
+echo "$as_me: error: gss require krb5 libraries" >&2;}
+   { (exit 1); exit 1; }; }
+    fi
+    GSSDEFS=-DGSS;
+
+    GSSINC="-I$ac_cv_path_krb/include";
+
+    GSSLIBS="-lgssapi_krb5 -lkrb5 -lk5crypto -lcom_err";
+
+    GSSLDFLAGS="-L$ac_cv_path_krb/lib";
+
+    HAVE_GSS=yes
+
+    echo "$as_me:$LINENO: result: $ac_cv_path_krb" >&5
+echo "${ECHO_T}$ac_cv_path_krb" >&6
+
+else
+  echo "$as_me:$LINENO: result: GSSAPI not enabled" >&5
+echo "${ECHO_T}GSSAPI not enabled" >&6
+fi;
+
+
 # Check whether --with-cosigndir or --without-cosigndir was given.
 if test "${with_cosigndir+set}" = set; then
   withval="$with_cosigndir"
@@ -3339,6 +3370,11 @@ s,@K4INC@,$K4INC,;t t
 s,@K4LIBS@,$K4LIBS,;t t
 s,@K4LDFLAGS@,$K4LDFLAGS,;t t
 s,@HAVE_KRB4@,$HAVE_KRB4,;t t
+s,@GSSDEFS@,$GSSDEFS,;t t
+s,@GSSINC@,$GSSINC,;t t
+s,@GSSLIBS@,$GSSLIBS,;t t
+s,@GSSLDFLAGS@,$GSSLDFLAGS,;t t
+s,@HAVE_GSS@,$HAVE_GSS,;t t
 s,@cosigndir@,$cosigndir,;t t
 s,@cosignconf@,$cosignconf,;t t
 s,@TLSDEFS@,$TLSDEFS,;t t

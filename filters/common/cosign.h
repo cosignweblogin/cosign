@@ -12,6 +12,9 @@ typedef struct {
     char		*key;
     char		*cadir;
 #ifdef KRB
+#ifdef GSS
+    int			gss;
+#endif /* GSS */
     int			krbtkt;
     int			krb524;
 #endif /* KRB */
