@@ -77,6 +77,9 @@ AC_SUBST(keytabpath)
 
 CHECK_SSL
 
+AC_CHECK_HEADER([openssl/ssl.h], [], [AC_MSG_ERROR([header file <openssl/ssl.h> is required for this software. 
+You may be running RedHat 9.
+If so, see the FAQ or the README for further instructions.])])
 # Checks for filters:
 CHECK_APACHE_APXS
 
