@@ -10,7 +10,6 @@ upon cookie_ok, module sets up cgi env ( remote user etc )
     ap_table_set( r->subprocess_env, "KRBTKFILE", tfname );
     ap_table_set( r->subprocess_env, "REMOTE_REALM", realm );
     r->connection->user is REMOTE_USER, i believe
-otherwise, do we redirect? must discuss.
 
 TODO in MOD:
     kerberos
@@ -26,6 +25,9 @@ COSIGND:
     kerberos
     replication (suspenders)
     conf file
+
+1) you would have needed to login, but you don't now!
+2) use of qs for redirect back URL ( consistency ).
 
 Protocol:
 

@@ -39,6 +39,6 @@ It'll get rid of any files that have not been modified in the last day.
 The daemon (cosignd) requires  /var/cosign/daemon to exist and be
 writeable by the user the daemon runs as.
 
-An init script will be inluded next time :)
+An init script will be included next time :)
 
 Questions? cosign@umich.edu
