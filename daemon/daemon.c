@@ -251,7 +251,7 @@ main( ac, av )
     memset( &sin, 0, sizeof( struct sockaddr_in ));
     sin.sin_family = AF_INET;
     sin.sin_addr.s_addr = INADDR_ANY;
-    sin.sin_port = htons( port );
+    sin.sin_port = port;
     if ( bind( s, (struct sockaddr *)&sin, sizeof( struct sockaddr_in )) < 0 ) {
 	perror( "bind" );
 	exit( 1 );
