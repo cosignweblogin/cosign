@@ -316,7 +316,7 @@ main( int ac, char *av[] )
 		perror( "setsid" );
 		exit( 1 );
 	    }
-	    if (( fd = open( "/", O_RDONLY, 0 )) > 0 ) {
+	    if (( fd = open( "/", O_RDONLY, 0 )) < 0 ) {
 		perror( "open" );
 		exit( 1 );
 	    }
