@@ -23,15 +23,24 @@ to get Kerberos IV tickets]), CHECK_KRB4, AC_MSG_RESULT( kerberos IV not enabled
 AC_ARG_WITH(gss, AC_HELP_STRING([--with-gss=arg], [enable apache filter
 to set up GSSAPI ]), CHECK_GSS, AC_MSG_RESULT( GSSAPI not enabled))
 
-AC_ARG_WITH(cosigndir, AC_HELP_STRING([--with-cosign-db=DIR], [default cosign database storage]), cosigndir="$withval", cosigndir="/var/cosign/daemon" )
-AC_SUBST(cosigndir)
+AC_ARG_WITH(cosigndb, AC_HELP_STRING([--with-cosigndb=DIR], [default cosign database storage]), cosigndb="$withval", cosigndb="/var/cosign/daemon" )
+AC_SUBST(cosigndb)
 
-
-AC_ARG_WITH(cosignconf, AC_HELP_STRING([--with-cosign-conf=FILE], [default cosign conf file location]), cosignconf="$withval", cosignconf="/usr/local/etc/cosign.conf" )
+AC_ARG_WITH(cosignconf, AC_HELP_STRING([--with-cosignconf=FILE], [default cosign conf file location]), cosignconf="$withval", cosignconf="/usr/local/etc/cosign.conf" )
 AC_SUBST(cosignconf)
 
+AC_ARG_WITH(cosigncadir, AC_HELP_STRING([--with-cosigncadir=DIR], [default cosign CA dir location]), cosigncadir="$withval", cosigncadir="/var/cosign/certs/CA" )
+AC_SUBST(cosigncadir)
+
+AC_ARG_WITH(cosigncert, AC_HELP_STRING([--with-cosigncert=DIR], [default cosign
+cert file location]), cosigncert="$withval", cosigncert="/var/cosign/certs/cert.pem" )
+AC_SUBST(cosigncert)
+
+AC_ARG_WITH(cosignkey, AC_HELP_STRING([--with-cosignkey=DIR], [default cosign
+key file location]), cosignkey="$withval", cosignkey="/var/cosign/certs/key.pem" )
+AC_SUBST(cosignkey)
+
 CHECK_SSL
-#CHECK_LIBKRB
 
 # Checks for filters:
 CHECK_APACHE_APXS

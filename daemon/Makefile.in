@@ -5,7 +5,10 @@ exec_prefix=@exec_prefix@
 SBINDIR=@sbindir@
 
 COSIGNCONF=@cosignconf@
-COSIGNDIR=@cosigndir@
+COSIGNDB=@cosigndb@
+COSIGNCADIR=@cosigncadir@
+COSIGNCERT=@cosigncert@
+COSIGNKEY=@cosignkey@
 COSIGNSYSLOG=LOG_LOCAL7
 
 INCPATH=        @CPPFLAGS@ -I../libsnet
@@ -30,8 +33,11 @@ all : ${TARGETS}
 daemon.o : daemon.c
 	${CC} ${CFLAGS} \
 	-D_COSIGN_CONF=\"${COSIGNCONF}\" \
-	-D_COSIGN_DIR=\"${COSIGNDIR}\" \
+	-D_COSIGN_DIR=\"${COSIGNDB}\" \
 	-D_COSIGN_LOG=${COSIGNSYSLOG} \
+	-D_COSIGN_TLS_CADIR=\"${COSIGNCADIR}\" \
+	-D_COSIGN_TLS_CERT=\"${COSIGNCERT}\" \
+	-D_COSIGN_TLS_KEY=\"${COSIGNKEY}\" \
 	-c daemon.c
 
 cosignd : ../libsnet/libsnet.la ${COSIGNOBJ} Makefile

@@ -796,8 +796,11 @@ Optional Packages:
   --without-PACKAGE       do not use PACKAGE (same as --with-PACKAGE=no)
   --with-krb4=arg         enable apache filter to get Kerberos IV tickets
   --with-gss=arg          enable apache filter to set up GSSAPI
-  --with-cosign-db=DIR    default cosign database storage
-  --with-cosign-conf=FILE default cosign conf file location
+  --with-cosigndb=DIR     default cosign database storage
+  --with-cosignconf=FILE  default cosign conf file location
+  --with-cosigncadir=DIR  default cosign CA dir location
+  --with-cosigncert=DIR   default cosign cert file location
+  --with-cosignkey=DIR    default cosign key file location
   --with-ssl=DIR          path to ssl
   --with-apache-apxs=FILE path to Apache apxs program
 
@@ -2600,14 +2603,13 @@ echo "${ECHO_T}GSSAPI not enabled" >&6
 fi;
 
 
-# Check whether --with-cosigndir or --without-cosigndir was given.
-if test "${with_cosigndir+set}" = set; then
-  withval="$with_cosigndir"
-  cosigndir="$withval"
+# Check whether --with-cosigndb or --without-cosigndb was given.
+if test "${with_cosigndb+set}" = set; then
+  withval="$with_cosigndb"
+  cosigndb="$withval"
 else
-  cosigndir="/var/cosign/daemon"
+  cosigndb="/var/cosign/daemon"
 fi;
-
 
 
 
@@ -2617,6 +2619,36 @@ if test "${with_cosignconf+set}" = set; then
   cosignconf="$withval"
 else
   cosignconf="/usr/local/etc/cosign.conf"
+fi;
+
+
+
+# Check whether --with-cosigncadir or --without-cosigncadir was given.
+if test "${with_cosigncadir+set}" = set; then
+  withval="$with_cosigncadir"
+  cosigncadir="$withval"
+else
+  cosigncadir="/var/cosign/certs/CA"
+fi;
+
+
+
+# Check whether --with-cosigncert or --without-cosigncert was given.
+if test "${with_cosigncert+set}" = set; then
+  withval="$with_cosigncert"
+  cosigncert="$withval"
+else
+  cosigncert="/var/cosign/certs/cert.pem"
+fi;
+
+
+
+# Check whether --with-cosignkey or --without-cosignkey was given.
+if test "${with_cosignkey+set}" = set; then
+  withval="$with_cosignkey"
+  cosignkey="$withval"
+else
+  cosignkey="/var/cosign/certs/key.pem"
 fi;
 
 
@@ -2664,7 +2696,6 @@ echo "$as_me: error: cannot find ssl libraries" >&2;}
     echo "$as_me:$LINENO: result: $ac_cv_path_ssl" >&5
 echo "${ECHO_T}$ac_cv_path_ssl" >&6
 
-#CHECK_LIBKRB
 
 # Checks for filters:
 
@@ -3375,8 +3406,11 @@ s,@GSSINC@,$GSSINC,;t t
 s,@GSSLIBS@,$GSSLIBS,;t t
 s,@GSSLDFLAGS@,$GSSLDFLAGS,;t t
 s,@HAVE_GSS@,$HAVE_GSS,;t t
-s,@cosigndir@,$cosigndir,;t t
+s,@cosigndb@,$cosigndb,;t t
 s,@cosignconf@,$cosignconf,;t t
+s,@cosigncadir@,$cosigncadir,;t t
+s,@cosigncert@,$cosigncert,;t t
+s,@cosignkey@,$cosignkey,;t t
 s,@TLSDEFS@,$TLSDEFS,;t t
 s,@HAVE_SSL@,$HAVE_SSL,;t t
 s,@APXS@,$APXS,;t t

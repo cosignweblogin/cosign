@@ -91,9 +91,9 @@ main( ac, av )
     int			dontrun = 0;
     int			reuseaddr = 1;
     char		*prog;
-    char		*cryptofile = "/usr/local/umweb/certs/weblogin.key";
-    char		*certfile = "/usr/local/umweb/certs/weblogin.cert";
-    char		*cadir = "/usr/local/umweb/certs/CA";
+    char		*cryptofile = _COSIGN_TLS_KEY;
+    char		*certfile = _COSIGN_TLS_CERT;
+    char		*cadir = _COSIGN_TLS_CADIR;
     int                 facility = _COSIGN_LOG;
     unsigned short	port = 0;
     extern int		optind;
