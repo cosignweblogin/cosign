@@ -29,7 +29,9 @@ in :443 ( or otherwise https ) vhost
 
 CosignProtected		On
 CosignHostname		weblogin.umich.edu
-CosignRedirect		https://weblogin.umich.edu
+CosignRedirect		https://weblogin.umich.edu/
+( NOTE: trailing slash is required! The redirects won't work correctly
+without it! )
 CosignPostErrorRedirect	<will have a central one, for now any will do>
 CosignService		<send e-mail to cosign@umich.edu>
 CosignCrypto		<path to key> <path to cert> <path to CA directory>
