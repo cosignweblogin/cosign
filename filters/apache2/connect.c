@@ -298,7 +298,7 @@ netretr_ticket( char *scookie, struct sinfo *si, SNET *sn, int convert )
     }
 
     if ( snprintf( krbpath, sizeof( krbpath ), "%s/%s",
-	    TKT_PREFIX, tmpkrb ) > sizeof( krbpath )) {
+	    TKT_PREFIX, tmpkrb ) >= sizeof( krbpath )) {
 	fprintf( stderr, "krbpath too long in netretr_ticket().\n" );
 	return( -1 );
     }
@@ -363,7 +363,7 @@ netretr_ticket( char *scookie, struct sinfo *si, SNET *sn, int convert )
     }
  
     if ( snprintf( krb4path, sizeof( krb4path ), "%s/%s",
-	    TKT_PREFIX, tmpkrb ) > sizeof( krb4path )) {
+	    TKT_PREFIX, tmpkrb ) >= sizeof( krb4path )) {
 	fprintf( stderr, "krb4path too long in netretr_ticket().\n" );
 	return( -1 );
     }
