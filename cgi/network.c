@@ -210,8 +210,8 @@ cosign_login( struct connlist *conn, char *cookie, char *ip, char *user,
     }
 
     return( 0 );
-
 }
+
     int
 net_login( SNET *sn, void *vlp )
 {
@@ -230,26 +230,25 @@ net_login( SNET *sn, void *vlp )
      * 2 means everything's peachy
      */
 
-
     /* if we're doing BasicAuth or PAM we might not have a ticket */
     if ( lp->lp_krb == NULL ) {
 	if ( snet_writef( sn, "LOGIN %s %s %s %s\r\n", lp->lp_cookie, lp->lp_ip,
 		lp->lp_user, lp->lp_realm ) < 0 ) {
-	    fprintf( stderr, "cosign_login: LOGIN failed\n" );
-	    goto done;
+	    fprintf( stderr, "net_login: LOGIN failed\n" );
+	    return( -1 );
 	}
     } else {
 	if ( snet_writef( sn, "LOGIN %s %s %s %s kerberos\r\n", lp->lp_cookie,
 		lp->lp_ip, lp->lp_user, lp->lp_realm ) < 0 ) {
-	    fprintf( stderr, "cosign_login: LOGIN failed\n" );
-	    goto done;
+	    fprintf( stderr, "net_login: LOGIN failed\n" );
+	    return( -1 );
 	}
     }
 
     tv = timeout;
     if (( line = snet_getline_multi( sn, logger, &tv )) == NULL ) {
-	fprintf( stderr, "cosign_login: %s\n", strerror( errno ));
-	goto done;
+	fprintf( stderr, "net_login: %s\n", strerror( errno ));
+	return( -1 );
     }
 
     if ( lp->lp_krb == NULL ) {
@@ -257,26 +256,44 @@ net_login( SNET *sn, void *vlp )
 	goto finish;
     }
 
-    if ( *line != '3' ) {
-	fprintf( stderr, "cosign_login: %s\n", line );
-	goto done;
+
+    switch( *line ) {
+    case '2':
+	/* You'd only get this the user double clicks on the "login" button. */
+	return( 2 );
+
+    case '3':
+    	break;
+
+    case '4':
+        fprintf( stderr, "net_login: %s\n", line);
+        return( 1 );
+
+    case '5':
+        /* choose another connection */
+        fprintf( stderr, "net_login: %s\n", line );
+        return( 0 );
+
+    default:
+        fprintf( stderr, "net_login: %s\n", line );
+        return( -1 );
     }
 
     if (( fd = open( lp->lp_krb, O_RDONLY, 0 )) < 0 ) {
 	perror( lp->lp_krb );
-	goto done;
+	return( -1 );
     }
 
     if ( fstat( fd, &st) < 0 ) {
 	perror( lp->lp_krb );
-	goto done2;
+	goto error;
     }
 
     size = st.st_size;
     if ( snet_writef( sn, "%d\r\n", (int)st.st_size ) < 0 ) {
         fprintf( stderr, "login %s failed: %s\n", lp->lp_user,
 	    strerror( errno ));
-        goto done2;
+        goto error;
     }
 
     while (( rr = read( fd, buf, sizeof( buf ))) > 0 ) {
@@ -284,13 +301,14 @@ net_login( SNET *sn, void *vlp )
         if ( snet_write( sn, buf, (int)rr, &tv ) != rr ) {
             fprintf( stderr, "login %s failed: %s\n", lp->lp_user,
                 strerror( errno ));
-            goto done2;
+            goto error;
         }
         size -= rr;
     }
+    close( fd );
     if ( rr < 0 ) {
         perror( lp->lp_krb );
-        goto done2;
+        return( -1 );
     }
 
     /* Check number of bytes sent to server */
@@ -298,14 +316,14 @@ net_login( SNET *sn, void *vlp )
         fprintf( stderr,
             "login %s failed: Sent wrong number of bytes to server\n",
             lp->lp_user );
-        goto done2;
+        return( -1 );
     }
 
     /* End transaction with server */
     if ( snet_writef( sn, ".\r\n" ) < 0 ) {
         fprintf( stderr, "login %s failed: %s\n", lp->lp_user,
             strerror( errno ));
-        goto done2;
+        return( -1 );
     }
     tv = timeout;
     if (( line = snet_getline_multi( sn, logger, &tv )) == NULL ) {
@@ -319,25 +337,27 @@ net_login( SNET *sn, void *vlp )
     }
 
 finish:
-    if ( *line != '2' ) {
-        /* Error from server - transaction aborted */
-        fprintf( stderr, "cosign_login:%s\n", line );
-	goto done2;
-    }
+    switch( *line ) {
+    case '2':
+	return( 2 );
 
-    /* Done with server */
-    if ( close( fd ) < 0 ) {
-        perror( lp->lp_krb );
+    case '4':
+        fprintf( stderr, "net_login: %s\n", line);
+        return( 1 );
+
+    case '5':
+        /* choose another connection */
+        fprintf( stderr, "net_login: %s\n", line );
+        return( 0 );
+
+    default:
+        fprintf( stderr, "net_login: %s\n", line );
         return( -1 );
     }
 
-    return( 2 );
-
-done2:
+error:
     close( fd );
-
-done:
-    return ( -1 );
+    return( -1 );
 }
 
     int
@@ -363,22 +383,33 @@ net_logout( SNET *sn, void *vlp )
     struct logout_param	*lp = vlp;
 
     if ( snet_writef( sn, "LOGOUT %s %s\r\n", lp->lp_cookie, lp->lp_ip ) < 0 ) {
-	fprintf( stderr, "cosign_logout: LOGOUT failed\n" );
+	fprintf( stderr, "net_logout: LOGOUT failed\n" );
 	return( -1 );
     }
 
     tv = timeout;
     if (( line = snet_getline_multi( sn, logger, &tv )) == NULL ) {
-	fprintf( stderr, "cosign_logout: %s\n", strerror( errno ));
+	fprintf( stderr, "net_logout: %s\n", strerror( errno ));
 	return( -1 );
     }
 
-    if ( *line != '2' ) {
-	fprintf( stderr, "cosign_logout: %s\n", line );
-	return( -1 );
-    }
+    switch( *line ) {
+    case '2':
+	return( 2 );
 
-    return( 2 );
+    case '4':
+        fprintf( stderr, "net_logout: %s\n", line);
+        return( 1 );
+
+    case '5':
+        /* choose another connection */
+        fprintf( stderr, "net_logout: %s\n", line );
+        return( 0 );
+
+    default:
+        fprintf( stderr, "net_logout: %s\n", line );
+        return( -1 );
+    }
 }
 
 
@@ -420,23 +451,21 @@ net_register( SNET *sn, void *vrp )
 
     switch( *line ) {
     case '2':
-        break;
+	return( 2 );
 
     case '4':
-        fprintf( stderr, "net_reg: %s\n", line);
+        fprintf( stderr, "net_register: %s\n", line);
         return( 1 );
 
     case '5':
         /* choose another connection */
-        fprintf( stderr, "net_reg failover: %s\n", line );
+        fprintf( stderr, "net_register: %d: %s\n", snet_fd( sn ), line );
         return( 0 );
 
     default:
-        fprintf( stderr, "cosignd told me sumthin' wacky: %s\n", line );
+        fprintf( stderr, "net_register: %s\n", line );
         return( -1 );
     }
-
-    return( 2 );
 }
 
     int
@@ -473,7 +502,7 @@ net_check( SNET *sn, void *vcp )
 
     switch( *line ) {
     case '2':
-        break;
+	return( 2 );
 
     case '4':
         fprintf( stderr, "net_check: %s\n", line);
@@ -481,15 +510,13 @@ net_check( SNET *sn, void *vcp )
 
     case '5':
         /* choose another connection */
-        fprintf( stderr, "net_check failover: %s\n", line );
+        fprintf( stderr, "net_check: %d: %s\n", snet_fd( sn ), line );
         return( 0 );
 
     default:
-        fprintf( stderr, "cosignd told me sumthin' wacky: %s\n", line );
+        fprintf( stderr, "net_check: %s\n", line );
         return( -1 );
     }
-
-    return( 2 );
 }
 
     int
