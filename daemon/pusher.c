@@ -1,5 +1,6 @@
 #include <sys/wait.h>
 #include <sys/types.h>
+#include <unistd.h>
 #include <signal.h>
 #include <syslog.h>
 #include <netdb.h>
@@ -17,6 +18,7 @@ static struct cl	*replhead;
 static void	pusherhup ( int );
 static void	pusherchld ( int );
 int		pusherparent( int );
+int		pusher( int );
 int		pusherhosts( char *, int );
 
     int
@@ -91,12 +93,14 @@ pusherchld( sig )
 
 
     int
-pusherparent( int pipe )
+pusherparent( int ppipe )
 {
     SNET	*sn;
     char	*line;
+    int		fds[ 2 ];
+    struct cl	**cur;
 
-    if (( sn = snet_attach( pipe, 1024 * 1024 ) ) == NULL ) {
+    if (( sn = snet_attach( ppipe, 1024 * 1024 ) ) == NULL ) {
         syslog( LOG_ERR, "pusherparent: snet_attach failed\n" );
         return( -1 );
     }
@@ -106,9 +110,42 @@ pusherparent( int pipe )
 	    syslog( LOG_ERR, "pusherparent: snet_getline failed\n" );
 	    exit( 1 );
 	}
-	/* loop thru hosts */
-	    /* check for pid? */
-	    /* if no pid, fork and crap i don't get */
+#ifdef notdef
+	for ( cur = &replhead; cur != NULL; cur = &(*cur)->cl_next ) {
+	    if ( (*cur)->cl_pid == 0 ) {
+		if ( pipe( fds ) < 0 ) {
+		    syslog( LOG_ERR, "pusherparent: %m" );
+		    exit( 1 );
+		}
+
+		switch ( (*cur)->cl_pid = fork() ) {
+		case 0 :
+		    if ( close( fds[ 0 ] ) != 0 ) {
+			syslog( LOG_ERR, "pusher parent pipe: %m" );
+			exit( 1 );
+		    }
+		    //pusher( fds[ 1 ] );
+		    exit( 0 );
+
+		case -1 :
+		    syslog( LOG_ERR, "pusherparent fork: %m" );
+		    exit( 1 );
+		}
+
+		if ( close( fds[ 1 ] ) != 0 ) {
+		    syslog( LOG_ERR, "pusher main pipe: %m" );
+		    exit( 1 );
+		}
+
+		if (( (*cur)->cl_psn = snet_attach( fds[ 0 ], 1024 * 1024 ))
+			== NULL ) {
+		    syslog( LOG_ERR, "pusherparent fork: snet_attach fail\n" );
+		    exit( 1 );
+		}
+	    }
+	}
+#endif
+
 	/* select */
 	/* zeroed out tv for not wait */
 	/* for any fds that are set we write the line */
@@ -119,4 +156,26 @@ pusherparent( int pipe )
 
     return( 0 );
 
+}
+
+    int
+pusher( int cpipe )
+{
+    SNET	*csn;
+    char	*line;
+
+    if (( csn = snet_attach( cpipe, 1024 * 1024 )) == NULL ) {
+        syslog( LOG_ERR, "pusherchild: snet_attach failed" );
+        return( -1 );
+    }
+
+    for ( ;; ) {
+	if (( line = snet_getline( csn, NULL )) == NULL ) {
+	    syslog( LOG_ERR, "pusherchild: snet_getline failed" );
+	    exit( 1 );
+	}
+	syslog( LOG_INFO, "pusher child line: %s", line );
+    }
+
+    return( 0 );
 }
