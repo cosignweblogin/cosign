@@ -20,7 +20,7 @@
 #include "cgi.h"
 #include "cosigncgi.h"
 #include "network.h"
-#include "../daemon/config.h"
+#include "config.h"
 
 #ifdef SQL_FRIEND
 #include <crypt.h>
@@ -39,14 +39,15 @@ static	MYSQL	friend_db;
 #define EXPIRE_TIME	86400	 /* 24 hours */
 
 extern char	*cosign_version;
-char	*cosign_host = _COSIGN_HOST;
-char	*err = NULL, *ref = NULL, *service = NULL;
-char	*title = "Authentication Required";
-char	*keytab_path = _KEYTAB_PATH;
-char	*ticket_path = _COSIGN_TICKET_CACHE;
-char	*certfile = _COSIGN_TLS_CERT;
-char	*cryptofile = _COSIGN_TLS_KEY;
-char	*cadir = _COSIGN_TLS_CADIR;
+char		*cosign_host = _COSIGN_HOST;
+char		*err = NULL, *ref = NULL, *service = NULL;
+char		*title = "Authentication Required";
+char		*keytab_path = _KEYTAB_PATH;
+char		*ticket_path = _COSIGN_TICKET_CACHE;
+char		*cryptofile = _COSIGN_TLS_KEY;
+char		*certfile = _COSIGN_TLS_CERT;
+char		*cadir = _COSIGN_TLS_CADIR;
+SSL_CTX 	*ctx = NULL;
 
 #ifdef SQL_FRIEND
 char	*friend_db_name = _FRIEND_MYSQL_DB;
@@ -352,7 +353,10 @@ main( int argc, char *argv[] )
 	exit( 0 );
     }
 
-    if ( ssl_setup( certfile, cryptofile, cadir ) != 0 ) {
+    SSL_load_error_strings();
+    SSL_library_init();
+
+    if ( cosign_ssl( cryptofile, certfile, cadir, &ctx ) != 0 ) {
 	title = "Error: But not your fault";
 	err = "Failed to initialise connections to the authentication server. Please try again later";
 	tmpl = ERROR_HTML;

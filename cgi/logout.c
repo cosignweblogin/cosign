@@ -15,7 +15,7 @@
 #include "cgi.h"
 #include "cosigncgi.h"
 #include "network.h"
-#include "../daemon/config.h"
+#include "config.h"
 
 #define ERROR_HTML	"../templates/error.html"
 #define REDIRECT_HTML	"../templates/redirect.html"
@@ -32,7 +32,9 @@ char    	*certfile = _COSIGN_TLS_CERT;
 char		*cryptofile = _COSIGN_TLS_KEY;
 char		*cadir =_COSIGN_TLS_CADIR;
 char		*cosign_conf = _COSIGN_CONF;
+SSL_CTX         *ctx = NULL;
 int		nocache = 0;
+
 
 struct cgi_list cl[] = {
 #define CL_VERIFY	0
@@ -235,16 +237,16 @@ main( int argc, char *argv[] )
         exit( 0 );
     }
 
-    if(ssl_setup(certfile,cryptofile,cadir))
-    {
+    SSL_load_error_strings();
+    SSL_library_init();
+
+    if ( cosign_ssl( cryptofile, certfile, cadir, &ctx )) {
         title = "Error: But not your fault";
         err = "Failed to initialise connections to the authentication server. Please try again later";
         tmpl = ERROR_HTML;
         subfile( tmpl );
         exit( 0 );
     }
-
-
 
     if ( cookie != NULL ) {
 	if ( cosign_logout( head, cookie, ip_addr ) < 0 ) {

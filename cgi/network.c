@@ -29,7 +29,6 @@
 static void (*logger)( char * ) = NULL;
 static struct timeval		timeout = { 10 * 60, 0 };
 extern int	errno;
-SSL_CTX		*ctx;
 extern char	*cosign_host;
 
 static int connect_sn( struct connlist * );
@@ -75,66 +74,6 @@ connlist_setup( char *host, unsigned short port )
 
     return( head );
 
-}
-
-    int
-ssl_setup( char *certfile, char *cryptofile, char *cadir )
-{
-    if ( access( cryptofile, R_OK ) != 0 ) {
-	fprintf( stderr, "Failed to load SSL key file '%s':%s\n",
-		cryptofile, strerror( errno ));
-	return( 1 );
-    }
-
-    if ( access( certfile, R_OK ) != 0 ) {
-	fprintf( stderr, "Failed to load the SSL cert file '%s':%s\n",
-		certfile, strerror( errno ));
-	return( 2 );
-    }
-
-    if ( access( cadir, R_OK ) != 0 ) {
-	fprintf( stderr, "Failed to load the SSL CA Path '%s':%s\n",
-		cadir, strerror( errno ));
-	return( 3 );
-    }
-
-    SSL_load_error_strings();
-    SSL_library_init();
-
-    if (( ctx = SSL_CTX_new( SSLv23_client_method())) == NULL ) {
-	fprintf( stderr, "SSL_CTX_new: %s\n",
-		ERR_error_string( ERR_get_error(), NULL ));
-	return( 4 );
-    }
-
-    if ( SSL_CTX_use_PrivateKey_file( ctx, cryptofile, SSL_FILETYPE_PEM )
-	    != 1 ) {
-	fprintf( stderr, "SSL_CTX_use_PrivateKey_file: %s: %s\n",
-		cryptofile, ERR_error_string( ERR_get_error(), NULL));
-	return( 5 );
-    }
-
-    if ( SSL_CTX_use_certificate_chain_file( ctx, certfile ) != 1) {
-	fprintf( stderr, "SSL_CTX_use_certificate_chain_file: %s: %s\n",
-		cryptofile, ERR_error_string( ERR_get_error(), NULL));
-	return( 6 );
-    }
-
-    if ( SSL_CTX_check_private_key( ctx ) != 1 ) {
-	fprintf( stderr, "SSL_CTX_check_private_key: %s\n",
-		ERR_error_string( ERR_get_error(), NULL ));
-	return( 7 );
-    }
-
-    if ( SSL_CTX_load_verify_locations( ctx, NULL, cadir ) != 1 ) {
-	fprintf( stderr, "SSL_CTX_load_verify_locations: %s: %s\n",
-		cryptofile, ERR_error_string( ERR_get_error(), NULL));
-	return( 8 );
-    }
-
-    SSL_CTX_set_verify( ctx,
-                SSL_VERIFY_PEER | SSL_VERIFY_FAIL_IF_NO_PEER_CERT, NULL);
-    return( 0 );
 }
 
     int

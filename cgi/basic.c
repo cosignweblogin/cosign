@@ -12,7 +12,7 @@
 #include <snet.h>
 #include "cosigncgi.h"
 #include "network.h"
-#include "../daemon/config.h"
+#include "config.h"
 
 #define ERROR_HTML	"../templates/error.html"
 #define SERVICE_MENU	"../templates/service-menu.html"
@@ -24,10 +24,11 @@ char		*title = "Authentication Required";
 char		*cosign_host = _COSIGN_HOST;
 unsigned short	port;
 
-char	*certfile = _COSIGN_TLS_CERT;
-char	*cryptofile = _COSIGN_TLS_KEY;
-char	*cadir = _COSIGN_TLS_CADIR;
-char	*cosign_conf = _COSIGN_CONF;
+char		*certfile = _COSIGN_TLS_CERT;
+char		*cryptofile = _COSIGN_TLS_KEY;
+char		*cadir = _COSIGN_TLS_CADIR;
+char		*cosign_conf = _COSIGN_CONF;
+SSL_CTX         *ctx = NULL;
 
 void	subfile( char * );
 
@@ -132,7 +133,7 @@ subfile( char *filename )
     return;
 }
 
-    void
+    static void
 bcgi_configure()
 {
     char	 *val;
@@ -146,6 +147,8 @@ bcgi_configure()
     if (( val = cosign_config_get( COSIGNCADIRKEY )) != NULL ) {
         cadir = val;
     }
+
+    return;
 }
 
     int
@@ -219,10 +222,13 @@ main( int argc, char *argv[] )
 	exit( 0 );
     }
 
-    if ( ssl_setup( certfile, cryptofile, cadir ) != 0 ) {
+    SSL_load_error_strings();
+    SSL_library_init();
+
+    if ( cosign_ssl( cryptofile, certfile, cadir, &ctx ) != 0 ) {
         title = "Error: But not your fault";
         err = "Failed to initialise connections to the authentication server. Please try again later";
-        tmpl = LOGIN_ERROR_HTML;
+        tmpl = ERROR_HTML;
         subfile( tmpl );
         exit( 0 );
     }

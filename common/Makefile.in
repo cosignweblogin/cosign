@@ -1,14 +1,14 @@
 ################## Some of this may need to be edited ##################
 
-INCPATH=        @CPPFLAGS@
+INCPATH=        @CPPFLAGS@ -I../libsnet
 CC=             @CC@
 
 CFLAGS=         ${DEFS} ${OPTOPTS} @CFLAGS@ ${INCPATH}
 
 ################ Nothing below should need editing ###################
 
-SRC= argcargv.c fbase64.c mkcookie.c rate.c
-COMMONOBJ= argcargv.o fbase64.o mkcookie.o rate.o
+SRC= argcargv.c config.c fbase64.c mkcookie.c rate.c wildcard.c
+COMMONOBJ= argcargv.o config.o fbase64.o mkcookie.o rate.o wildcard.o
 
 all : ${COMMONOBJ}
 
