@@ -360,7 +360,6 @@ next:
 	    for ( cur = &head; *cur != NULL; cur = &(*cur)->cl_next ) {
 		if (( itime > (*cur)->cl_last_time ) &&
 			((*cur)->cl_sn != NULL )) {
-syslog( LOG_DEBUG, "%s: itime: %d last: %d", de->d_name, itime, (*cur)->cl_last_time );
 		    if ( snet_writef( (*cur)->cl_sn, "%s %d %d\r\n",
 			    de->d_name, itime, state ) < 0 ) {
 			if ( snet_close( (*cur)->cl_sn ) != 0 ) {
