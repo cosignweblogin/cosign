@@ -162,7 +162,7 @@ check_cookie( char *secant, struct sinfo *si, struct connlist **cl )
 	}
     }
 
-    return( -1 );
+    return( 1 );
 
 done:
     if ( cur != cl ) {

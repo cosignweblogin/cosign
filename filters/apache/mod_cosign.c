@@ -72,7 +72,8 @@ set_cookie_and_redirect( request_rec *r, cosign_host_config *cfg )
     unsigned int	port;
 
     if ( mkcookie( sizeof( cookiebuf ), cookiebuf ) != 0 ) {
-	fprintf( stderr, "Raisins! Something wrong with your cookie!\n" );
+	ap_log_error( APLOG_MARK, APLOG_ERR|APLOG_NOERRNO, r->server,
+		"mod_cosign: Raisins! Something wrong with mkcookie()" );
 	return( -1 );
     }
 
@@ -111,6 +112,7 @@ cosign_auth( request_rec *r )
     const char		*cookiename = NULL;
     const char		*data = NULL, *pair = NULL;
     char		*my_cookie;
+    int			cv;
     struct sinfo	si;
     cosign_host_config	*cfg;
 
@@ -133,18 +135,23 @@ cosign_auth( request_rec *r )
      */
     if (( cfg->host == NULL ) || ( cfg->redirect == NULL ) ||
 		( cfg->service == NULL || cfg->posterror == NULL )) {
-	fprintf( stderr, "Cosign is not configured correctly:\n" );
+	ap_log_error( APLOG_MARK, APLOG_ERR|APLOG_NOERRNO, r->server,
+		"mod_cosign: Cosign is not configured correctly:" );
 	if ( cfg->host == NULL ) {
-	    fprintf( stderr, "CosignHostname is not set\n" );
+	    ap_log_error( APLOG_MARK, APLOG_ERR|APLOG_NOERRNO, r->server,
+		    "mod_cosign: CosignHostname not set." );
 	}
 	if ( cfg->redirect == NULL ) {
-	    fprintf( stderr, "CosignRedirect is not set\n" );
+	    ap_log_error( APLOG_MARK, APLOG_ERR|APLOG_NOERRNO, r->server,
+		    "mod_cosign: CosignRedirect not set." );
 	}
 	if ( cfg->service == NULL ) {
-	    fprintf( stderr, "CosignService is not set\n" );
+	    ap_log_error( APLOG_MARK, APLOG_ERR|APLOG_NOERRNO, r->server,
+		    "mod_cosign: CosignService not set." );
 	}
 	if ( cfg->posterror == NULL ) {
-	    fprintf( stderr, "CosignPostErrorRedirect is not set\n" );
+	    ap_log_error( APLOG_MARK, APLOG_ERR|APLOG_NOERRNO, r->server,
+		    "mod_cosign: CosignPostErrorRedirect not set." );
 	}
 	return( FORBIDDEN );
     }
@@ -175,16 +182,20 @@ cosign_auth( request_rec *r )
      * Otherwise, retrieve the auth info from the server.
      */
     my_cookie = ap_psprintf( r->pool, "%s=%s", cookiename, pair );
-    if ( cookie_valid( &cfg->cl, my_cookie, &si,
-	    r->connection->remote_ip ) != 0 ) {	/* < 0 == 0 > 0 */
-	goto set_cookie;
+    if (( cv = cookie_valid( &cfg->cl, my_cookie, &si,
+	    r->connection->remote_ip )) < 0 ) {	
+	return( FORBIDDEN );	/* it's all forbidden! */
+    } 
+
+    /* Everything Shines, let them thru */
+    if ( cv == 0 ) {
+	ap_table_set( r->subprocess_env, "REMOTE_REALM", si.si_realm );
+	r->connection->user = ap_pstrcat( r->pool, si.si_user, NULL);
+
+	/* XXX add in Kerberos info here */
+
+	return( DECLINED );
     }
-    ap_table_set( r->subprocess_env, "REMOTE_REALM", si.si_realm );
-    r->connection->user = ap_pstrcat( r->pool, si.si_user, NULL);
-
-    /* XXX add in Kerberos info here */
-
-    return( DECLINED );
 
 set_cookie:
     if ( set_cookie_and_redirect( r, cfg ) != 0 ) {
@@ -354,7 +365,8 @@ cosign_child_cleanup( server_rec *s, pool *p )
     cfg = (cosign_host_config *) ap_get_module_config( s->module_config,
 	    &cosign_module );
     if ( teardown_conn( cfg->cl ) != 0 ) {
-	fprintf( stderr, "teardown_conn: something bad happened\n" );
+	ap_log_error( APLOG_MARK, APLOG_ERR|APLOG_NOERRNO, s,
+		"mod_cosign: teardown conn err" );
     }
     return;
 }

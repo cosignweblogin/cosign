@@ -26,7 +26,7 @@ cookie_valid( struct connlist **c_cur, char *cookie, struct sinfo *si,
 	char *ipaddr )
 {
     struct sinfo	lsi;
-    int			rs, fd;
+    int			rc, rs, fd;
     struct timeval	tv;
     char		path[ MAXPATHLEN ], tmppath[ MAXPATHLEN ];
     FILE		*tmpfile;
@@ -67,10 +67,16 @@ cookie_valid( struct connlist **c_cur, char *cookie, struct sinfo *si,
 	return( 0 );
     }
 
-    if ( check_cookie( cookie, si, c_cur ) < 0 ) {
-	fprintf( stderr, "cookie_valid: choose_conn failed\n" );
+    if (( rc = check_cookie( cookie, si, c_cur )) < 0 ) {
+	fprintf( stderr, "cookie_valid: check_cookie failed\n" );
 	return( -1 );
     }
+
+    if ( rc == 1 ) {
+	fprintf( stderr, "we don't like %s: redirect!\n", cookie ); 
+	return( 1 );
+    }
+
     if ( strcmp( ipaddr, si->si_ipaddr ) != 0 ) {
 	return( -1 );
     }
@@ -124,10 +130,6 @@ cookie_valid( struct connlist **c_cur, char *cookie, struct sinfo *si,
     if ( link( tmppath, path ) != 0 ) {
 	if ( unlink( tmppath ) != 0 ) {
 	    perror( tmppath );
-	}
-	if( errno == EEXIST ) {
-	    perror( path );
-	    return( -1 );
 	}
 	perror( tmppath );
 	return( -1 );
