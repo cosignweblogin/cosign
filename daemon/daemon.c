@@ -23,6 +23,8 @@
 
 #include <snet.h>
 
+#define COSIGN_DIR "/var/cosign"
+
 
 int		debug = 0;
 int		backlog = 5;
@@ -169,6 +171,11 @@ main( ac, av )
     }
     if ( listen( s, backlog ) < 0 ) {
 	perror( "listen" );
+	exit( 1 );
+    }
+
+    if ( chdir( COSIGN_DIR ) < 0 ) {
+	perror( COSIGN_DIR );
 	exit( 1 );
     }
 

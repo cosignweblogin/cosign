@@ -25,7 +25,6 @@
 #include "command.h"
 #include "cparse.h"
 
-#define CPATH "/var/cosign"
 #define IP_SZ 254
 #define USER_SZ 30
 #define REALM_SZ 254
@@ -42,27 +41,26 @@ static int	f_quit ___P(( SNET *, int, char *[] ));
 static int	f_help ___P(( SNET *, int, char *[] ));
 static int	f_login ___P(( SNET *, int, char *[] ));
 static int	f_logout ___P(( SNET *, int, char *[] ));
-
-
+static int	f_register ___P(( SNET *, int, char *[] ));
 
     int
-f_quit( snet, ac, av )
-    SNET			*snet;
+f_quit( sn, ac, av )
+    SNET			*sn;
     int				ac;
     char			*av[];
 {
-    snet_writef( snet, "%d Service closing transmission channel\r\n", 221 );
+    snet_writef( sn, "%d Service closing transmission channel\r\n", 221 );
     exit( 0 );
 }
 
 
     int
-f_noop( snet, ac, av )
-    SNET			*snet;
+f_noop( sn, ac, av )
+    SNET			*sn;
     int				ac;
     char			*av[];
 {
-    snet_writef( snet, "%d cosign v%s\r\n", 250, version );
+    snet_writef( sn, "%d cosign v%s\r\n", 250, version );
     return( 0 );
 }
 
@@ -75,46 +73,54 @@ f_help( sn, ac, av )
     snet_writef( sn, "%d Vaild commands are HELP, NOOP, and QUIT\r\n", 203 );
     return( 0 );
 }
+
     int
 f_login( sn, ac, av )
     SNET        *sn;
     int         ac;
     char        *av[];
 {
-    char		path[ MAXPATHLEN ], tmppath[ MAXPATHLEN ];
+    char		tmppath[ MAXPATHLEN ];
     FILE		*tmpfile;
     struct timeval	tv;
     int			fd;
     extern int		errno;
 
-    /* login login_cookie ip principal realm [tgt] */
+    /* LOGIN login_cookie ip principal realm [tgt] */
 
     if ( ac != 5 ) {
-	snet_writef( sn, "%d LOGIN Syntax error\r\n", 500 );
+	snet_writef( sn, "%d LOGIN: Wrong number of args.\r\n", 500 );
 	return( 1 );
     }
 
-    if ( snprintf( path, MAXPATHLEN, "%s/%s", CPATH, av[ 1 ] ) >= MAXPATHLEN ) {
-	snet_writef( sn, "%d LOGIN Syntax error: Cookie too long\r\n", 501 );
+    if ( strchr( av[ 1 ], '/' ) != NULL ) {
+	syslog( LOG_ERR, "f_login: cookie name contains '/'" );
+	snet_writef( sn, "%d LOGIN: Invalid cookie name.\r\n", 501 );
+	return( 1 );
+    }
+
+    if ( strlen( av[ 1 ] ) >= MAXPATHLEN ) {
+	syslog( LOG_ERR, "f_login: cookie too long" );
+	snet_writef( sn, "%d LOGIN: Cookie too long.\r\n", 502 );
 	return( 1 );
     }
 
     if ( gettimeofday( &tv, NULL ) != 0 ){
 	syslog( LOG_ERR, "f_login: gettimeofday: %m" );
-	snet_writef( sn, "%d LOGIN Fatal Error: Sorry!\r\n", 502 );
+	snet_writef( sn, "%d LOGIN Error: Sorry!\r\n", 503 );
 	return( -1 );
     }
 
-    if ( snprintf( tmppath, MAXPATHLEN, "%s/%x%x.%i", CPATH,
+    if ( snprintf( tmppath, MAXPATHLEN, "%x%x.%i",
 	    tv.tv_sec, tv.tv_usec, (int)getpid()) >= MAXPATHLEN ) {
 	syslog( LOG_ERR, "f_login: tmppath too long" );
-	snet_writef( sn, "%d LOGIN Fatal Error: Sorry!\r\n", 502 );
+	snet_writef( sn, "%d LOGIN Error: Sorry!\r\n", 503 );
 	return( -1 );
     }
 
     if (( fd = open( tmppath, O_CREAT|O_EXCL|O_WRONLY, 0644 )) < 0 ) {
 	syslog( LOG_ERR, "f_login: open: %m" );
-	snet_writef( sn, "%d LOGIN Fatal Error: Sorry!\r\n", 502 );
+	snet_writef( sn, "%d LOGIN Error: Sorry!\r\n", 503 );
 	return( -1 );
     }
 
@@ -124,11 +130,9 @@ f_login( sn, ac, av )
 	    syslog( LOG_ERR, "f_login: unlink: %m" );
 	}
 	syslog( LOG_ERR, "f_login: fdopen: %m" );
-	snet_writef( sn, "%d LOGIN Fatal Error: Sorry!\r\n", 502 );
+	snet_writef( sn, "%d LOGIN Error: Sorry!\r\n", 503 );
 	return( -1 );
     }
-
-    syslog( LOG_INFO, "f_login: tmpfile: %s", tmppath );
 
     fprintf( tmpfile, "v0\n" );
     fprintf( tmpfile, "s1\n" );	 /* 1 is logged in, 0 is logged out */
@@ -151,22 +155,22 @@ f_login( sn, ac, av )
 	    syslog( LOG_ERR, "f_login: unlink: %m" );
 	}
 	syslog( LOG_ERR, "f_login: fclose: %m" );
-	snet_writef( sn, "%d LOGIN Fatal Error: Sorry!\r\n", 502 );
+	snet_writef( sn, "%d LOGIN Error: Sorry!\r\n", 503 );
 	return( -1 );
     }
 
-    if ( link( tmppath, path ) != 0 ) {
+    if ( link( tmppath, av[ 1 ] ) != 0 ) {
 	if ( unlink( tmppath ) != 0 ) {
 	    syslog( LOG_ERR, "f_login: unlink: %m" );
 	}
 	if( errno == EEXIST ) {
-	    syslog( LOG_ERR, "f_login: file already exists: %s", path );
+	    syslog( LOG_ERR, "f_login: file already exists: %s", av[ 1 ]);
 	    snet_writef( sn,
 		    "%d LOGIN error: Cookie already exists\r\n", 400 );
 	    return( 1 );
 	}
 	syslog( LOG_ERR, "f_login: link: %m" );
-	snet_writef( sn, "%d LOGIN Fatal Error: Sorry!\r\n", 502 );
+	snet_writef( sn, "%d LOGIN Error: Sorry!\r\n", 503 );
 	return( -1 );
     }
 
@@ -178,11 +182,12 @@ f_login( sn, ac, av )
     return( 0 );
 
 file_err:
+    (void)fclose( tmpfile );
     if ( unlink( tmppath ) != 0 ) {
 	syslog( LOG_ERR, "f_login: unlink: %m" );
     }
     syslog( LOG_ERR, "f_login: bad file format" );
-    snet_writef( sn, "%d LOGIN Syntax Error: Bad File Format\r\n", 503 );
+    snet_writef( sn, "%d LOGIN Syntax Error: Bad File Format\r\n", 504 );
     return( 1 );
 }
 
@@ -194,67 +199,184 @@ f_logout( sn, ac, av )
 {
     struct cinfo	ci;
     int			fd;
-    char		path[ MAXPATHLEN ];
 
     /*LOGOUT login_cookie ip */
 
     if ( ac != 3 ) {
-	snet_writef( sn, "%d LOGOUT Syntax error\r\n", 510 );
+	snet_writef( sn, "%d LOGOUT: Wrong number of args.\r\n", 510 );
 	return( 1 );
     }
 
-    /* do we care if there are /s ? */
-    /* strchr for / */
-    if ( snprintf( path, MAXPATHLEN, "%s/%s", CPATH, av[ 1 ] ) >= MAXPATHLEN ) {
-	snet_writef( sn, "%d LOGOUT Syntax error: Cookie too long\r\n", 511 );
+    if ( strchr( av[ 1 ], '/' ) != NULL ) {
+	syslog( LOG_ERR, "f_logout: cookie name contains '/'" );
+	snet_writef( sn, "%d LOGOUT: Invalid cookie name.r\n", 511 );
 	return( 1 );
     }
 
-    if ( read_a_cookie( path, &ci ) != 0 ) {
+    if ( strlen( av[ 1 ] ) >= MAXPATHLEN ) {
+	snet_writef( sn, "%d LOGOUT: Cookie too long\r\n", 512 );
+	return( 1 );
+    }
+
+    if ( read_a_cookie( av[ 1 ], &ci ) != 0 ) {
 	syslog( LOG_ERR, "f_logout: read_a_cookie: XXX" );
-	snet_writef( sn, "%d LOGOUT error: Sorry\r\n", 512 );
+	snet_writef( sn, "%d LOGOUT error: Sorry\r\n", 513 );
 	return( 1 );
     }
 
     if( strcmp( av[ 2 ], ci.ci_ipaddr ) != 0 ) {
 	syslog( LOG_INFO, "%s in cookie %s does not match %s",
-		ci.ci_ipaddr, path, av[ 2 ] );
+		ci.ci_ipaddr, av[ 1 ], av[ 2 ] );
 	snet_writef( sn,
 		"%d IP address given does not match cookie\r\n", 410 );
 	return( 1 );
     }
 
     if ( ci.ci_state == 0 ) {
-	syslog( LOG_ERR, "f_logout: %s already logged out", path );
-	snet_writef( sn, "%d LOGOUT error: Already logged out\r\n", 410 );
+	syslog( LOG_ERR, "f_logout: %s already logged out", av[ 1 ] );
+	snet_writef( sn, "%d LOGOUT: Already logged out\r\n", 411 );
 	return( 1 );
     }
 
-    if (( fd = open( path, O_WRONLY, 0644 )) < 0 ) {
+    if (( fd = open( av[ 1 ], O_WRONLY, 0644 )) < 0 ) {
 	syslog( LOG_ERR, "f_logout: %s: %m" );
-	snet_writef( sn, "%d LOGOUT error: Sorry!\r\n", 522 );
+	snet_writef( sn, "%d LOGOUT error: Sorry!\r\n", 514 );
 	return( -1 );
     }
 
     if ( lseek( fd, 4, SEEK_SET ) == -1 ) {
 	(void)close( fd );
-	syslog( LOG_ERR, "f_logout: %s: %m", path );
-	snet_writef( sn, "%d LOGOUT error: Sorry!\r\n", 522 );
+	syslog( LOG_ERR, "f_logout: %s: %m", av[ 1 ] );
+	snet_writef( sn, "%d LOGOUT error: Sorry!\r\n", 514 );
 	return( -1 );
     }
 
     if ( write( fd, "0", 1 ) == -1 ) {
 	(void)close( fd );
-	syslog( LOG_ERR, "f_logout: %s: %m", path );
-	snet_writef( sn, "%d LOGOUT error: Sorry!\r\n", 522);
+	syslog( LOG_ERR, "f_logout: %s: %m", av[ 1 ] );
+	snet_writef( sn, "%d LOGOUT error: Sorry!\r\n", 514 );
 	return( -1 );
     }
 
-    (void)close( fd );
+    if ( close( fd ) != 0 ) {
+	syslog( LOG_ERR, "f_logout: %s: %m", av[ 1 ] );
+	snet_writef( sn, "%d LOGOUT error: Sorry!\r\n", 514 );
+	return( -1 );
+    }
 
     snet_writef( sn, "%d LOGOUT successful: cookie no longer valid\r\n", 210 );
     return( 0 );
 
+}
+
+    int
+f_register( sn, ac, av )
+    SNET			*sn;
+    int				ac;
+    char			*av[];
+{
+    struct cinfo	ci;
+    struct timeval	tv;
+    int			fd;
+    char		tmppath[ MAXPATHLEN ];
+    FILE		*tmpfile;
+
+
+    /* REGISTER login_cookie ip service_cookie */
+
+    if ( ac != 4 ) {
+	snet_writef( sn, "%d REGISTER: Wrong number of args.\r\n", 520 );
+	return( 1 );
+    }
+
+    if ( strchr( av[ 1 ], '/' ) != NULL ) {
+	syslog( LOG_ERR, "f_register: cookie name contains '/'" );
+	snet_writef( sn, "%d REGISTER: Invalid cookie name.\r\n", 521 );
+	return( 1 );
+    }
+
+    if ( strlen( av[ 1 ] ) >= MAXPATHLEN ||
+	    strlen( av[ 3 ] ) >= MAXPATHLEN ) {
+	snet_writef( sn, "%d REGISTER: Cookie too long\r\n", 522 );
+	return( 1 );
+    }
+
+    if ( read_a_cookie( av[ 1 ], &ci ) != 0 ) {
+	syslog( LOG_ERR, "f_register: read_a_cookie: XXX" );
+	snet_writef( sn, "%d REGISTER error: Sorry\r\n", 523 );
+	return( 1 );
+    }
+
+    if ( ci.ci_state == 0 ) {
+	syslog( LOG_INFO,
+		"f_register: %s already logged out, can't register", av[ 1 ] );
+	snet_writef( sn, "%d REGISTER: Already logged out\r\n", 420 );
+	return( 1 );
+    }
+
+    if( strcmp( av[ 2 ], ci.ci_ipaddr ) != 0 ) {
+	syslog( LOG_ERR, "%s in cookie %s does not match %s",
+		ci.ci_ipaddr, av[ 1 ], av[ 2 ] );
+	snet_writef( sn,
+		"%d IP address given does not match cookie\r\n", 421 );
+	return( 1 );
+    }
+
+    if ( gettimeofday( &tv, NULL ) != 0 ){
+	syslog( LOG_ERR, "f_register: gettimeofday: %m" );
+	snet_writef( sn, "%d REGISTER Error: Sorry!\r\n", 524 );
+	return( -1 );
+    }
+
+    if ( snprintf( tmppath, MAXPATHLEN, "%x%x.%i",
+	    tv.tv_sec, tv.tv_usec, (int)getpid()) >= MAXPATHLEN ) {
+	syslog( LOG_ERR, "f_register: tmppath too long" );
+	snet_writef( sn, "%d REGISTER Error: Sorry!\r\n", 524 );
+	return( -1 );
+    }
+
+    if (( fd = open( tmppath, O_CREAT|O_EXCL|O_WRONLY, 0644 )) < 0 ) {
+	syslog( LOG_ERR, "f_register: open: %m" );
+	snet_writef( sn, "%d REGISTER Error: Sorry!\r\n", 524 );
+	return( -1 );
+    }
+
+    if (( tmpfile = fdopen( fd, "w" )) == NULL ) {
+	if ( unlink( tmppath ) != 0 ) {
+	    syslog( LOG_ERR, "f_register: unlink: %m" );
+	}
+	syslog( LOG_ERR, "f_register: fdopen: %m" );
+	snet_writef( sn, "%d REGISTER Error: Sorry!\r\n", 524 );
+	return( -1 );
+    }
+
+    /* the service cookie file contains the login cookie only */
+    fprintf( tmpfile, "l%s\n", av[ 1 ] );
+
+    if ( link( tmppath, av[ 3 ] ) != 0 ) {
+	if ( unlink( tmppath ) != 0 ) {
+	    syslog( LOG_ERR, "f_register: unlink: %m" );
+	}
+	if( errno == EEXIST ) {
+	    syslog( LOG_ERR,
+		    "f_register: service cookie already exists: %s", av[ 3 ]);
+	    snet_writef( sn,
+		    "%d REGISTER error: Cookie already exists\r\n", 420 );
+	    return( 1 );
+	}
+	syslog( LOG_ERR, "f_register: link: %m" );
+	snet_writef( sn, "%d REGISTER Error: Sorry!\r\n", 524 );
+	return( -1 );
+    }
+
+    if ( unlink( tmppath ) != 0 ) {
+	syslog( LOG_ERR, "f_register: unlink: %m" );
+	snet_writef( sn, "%d REGISTER Error: Sorry!\r\n", 524 );
+	return( -1 );
+    }
+
+    snet_writef( sn, "%d REGISTER successful: Cookie Stored \r\n", 220 );
+    return( 0 );
 }
 
 
@@ -264,6 +386,7 @@ struct command	commands[] = {
     { "HELP",		f_help },
     { "LOGIN",		f_login },
     { "LOGOUT",		f_logout },
+    { "REGISTER",	f_register },
 };
 int		ncommands = sizeof( commands ) / sizeof( commands[ 0 ] );
 

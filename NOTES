@@ -52,22 +52,23 @@ else
 
 struct cookieinfo {
     char        *cookie
-    char        *name;
+    char        *user;
     char        *realm;
     char        *ip;
-    time_t      checktime;
 }
 
 logged_out?
 
 declare cookieinfo on the stack in cookiefs?
--check for file with name cookie infs ( stat )
+-check for file with cookie in fs
+stat to determine last mtime
 -if there, read into local cookieinfo
--if atime is in the cache window, compare cookieinfo local with
+-if mtime is in the cache window
+	what do we compare?
 cookieinfo from
 module?
 
-fill in cookie, name, realm, ip
+fill in cookie, user, realm, ip
 
 cookie_valid returns 0, which is "move along", -1, which is "set a
 cookie and redirect" if we want to know what the cookie problem is, we
