@@ -203,6 +203,7 @@ pusherparent( int ppipe )
     char		*line;
     int			fds[ 2 ];
     int			max;
+    int			rv;
     fd_set		fdset;
     struct timeval	tv = { 0, 0 };
     struct cl		*cur, *yacur;
@@ -327,11 +328,12 @@ syslog( LOG_DEBUG, "PUSHERPARENT: pid %d fd %d", cur->cl_pid, snet_fd( cur->cl_p
 tv.tv_sec = 1;
 tv.tv_usec = 0;
 
-	if ( select( max + 1, NULL, &fdset, NULL, &tv ) < 0 ) {
+	if (( rv = select( max + 1, NULL, &fdset, NULL, &tv )) < 0 ) {
+syslog( LOG_DEBUG, "PUSHERPARENT: continue: %m" );
 	    continue;
 	}
 
-syslog( LOG_DEBUG, "PUSHERPARENT: tv %d:%d", tv.tv_sec, tv.tv_usec );
+syslog( LOG_DEBUG, "PUSHERPARENT: tv %d:%d rv: %d", tv.tv_sec, tv.tv_usec, rv );
 
 
 	sigprocmask( SIG_BLOCK, &signalset, NULL );
