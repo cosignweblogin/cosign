@@ -505,50 +505,50 @@ connect_sn( struct connlist *conn )
     }
     if ( connect( s, ( struct sockaddr *)&conn->conn_sin,
 	    sizeof( struct sockaddr_in )) != 0 ) {
-	syslog( LOG_ERR, "connect: %m" );
+	fprintf( stderr, "connect: %m" );
 	(void)close( s );
 	return( -1 );
     }
 
     if (( conn->conn_sn = snet_attach( s, 1024 * 1024 ) ) == NULL ) {
-	syslog( LOG_ERR, "connect_sn: snet_attach failed" );
+	fprintf( stderr, "connect_sn: snet_attach failed" );
 	(void)close( s );
 	return( -1 );
     }
 
     tv = timeout;
     if (( line = snet_getline_multi( conn->conn_sn, logger, &tv )) == NULL ) {
-	syslog( LOG_ERR, "connect_sn: snet_getline_multi failed" );
+	fprintf( stderr, "connect_sn: snet_getline_multi failed" );
 	goto done;
     }
     if ( *line != '2' ) {
-	syslog( LOG_ERR, "connect_sn: %s", line );
+	fprintf( stderr, "connect_sn: %s", line );
 	goto done;
     }
     if ( snet_writef( conn->conn_sn, "STARTTLS\r\n" ) < 0 ) {
-	syslog( LOG_ERR, "connect_sn: starttls is kaplooey" );
+	fprintf( stderr, "connect_sn: starttls is kaplooey" );
 	goto done;
     }
 
     tv = timeout;
     if (( line = snet_getline_multi( conn->conn_sn, logger, &tv )) == NULL ) {
-	syslog( LOG_ERR, "connect_sn: snet_getline_multi failed" );
+	fprintf( stderr, "connect_sn: snet_getline_multi failed" );
 	goto done;
     }
     if ( *line != '2' ) {
-	syslog( LOG_ERR, "connect_sn: %s", line );
+	fprintf( stderr, "connect_sn: %s", line );
 	goto done;
     }
 
     if ( snet_starttls( conn->conn_sn, ctx, 0 ) != 1 ) {
-	syslog( LOG_ERR, "snet_starttls: %s",
+	fprintf( stderr, "snet_starttls: %s",
 		ERR_error_string( ERR_get_error(), NULL ));
 	err = -2;
 	goto done;
     }
 
     if (( peer = SSL_get_peer_certificate( conn->conn_sn->sn_ssl )) == NULL ) {
-	syslog( LOG_ERR, "no certificate" );
+	fprintf( stderr, "no certificate" );
 	err = -2;
 	goto done;
     }
@@ -557,7 +557,7 @@ connect_sn( struct connlist *conn )
 	    buf, sizeof( buf ));
     /* cn and host must match */
     if ( strcmp( buf, cosign_host ) != 0 ) {
-	syslog( LOG_ERR, "cn=%s & host=%s don't match!", buf, cosign_host );
+	fprintf( stderr, "cn=%s & host=%s don't match!", buf, cosign_host );
 	X509_free( peer );
 	err = -2;
 	goto done;
@@ -566,7 +566,7 @@ connect_sn( struct connlist *conn )
     return( 0 );
 done:
     if ( snet_close( conn->conn_sn ) != 0 ) {
-	syslog( LOG_ERR, "connect_sn: snet_close failed" );
+	fprintf( stderr, "connect_sn: snet_close failed" );
     }
     conn->conn_sn = NULL;
 
@@ -582,19 +582,19 @@ close_sn( struct connlist *conn )
 
     /* Close network connection */
     if (( snet_writef( conn->conn_sn, "QUIT\r\n" )) <  0 ) {
-	syslog( LOG_ERR, "close_sn: snet_writef failed" );
+	fprintf( stderr, "close_sn: snet_writef failed" );
 	return( -1 );
     }
     tv = timeout;
     if ( ( line = snet_getline_multi( conn->conn_sn, logger, &tv ) ) == NULL ) {
-	syslog( LOG_ERR, "close_sn: snet_getline_multi failed" );
+	fprintf( stderr, "close_sn: snet_getline_multi failed" );
 	return( -1 );
     }
     if ( *line != '2' ) {
-	syslog( LOG_ERR, "close_sn: %s", line  );
+	fprintf( stderr, "close_sn: %s", line  );
     }
     if ( snet_close( conn->conn_sn ) != 0 ) {
-	syslog( LOG_ERR, "close_sn: snet_close failed" );
+	fprintf( stderr, "close_sn: snet_close failed" );
     }
     conn->conn_sn = NULL;
 
