@@ -3,6 +3,13 @@ include(`header.html')
 <h5>AUTHENTICATED RESOURCES</h5>
 <ul>
     <li>
+        <a href="https://directory.umich.edu/">UMOD: directory.umich.edu</a> <br />
+	A web-based interface to the University's LDAP directory.
+	Manage groups, contact colleagues, modify your own entry, and
+	more.
+    </li>
+
+    <li>
         <a href="https://cow.itd.umich.edu/">COW: Conferencing On the Web</a> <br />
         "Conferencing on the Web" provides a simple, non-threaded web
         discussion forum.
