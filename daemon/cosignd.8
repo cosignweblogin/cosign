@@ -195,7 +195,8 @@ displays the version of
 and exits.
 .TP 19
 .B \-X
-puts cosignd in tls optional mode. Clients connecting without TLS will default to a faux cert subject name of "DEBUG". This name must also be permitted in _COSIGN_CONF. If not, all connections will fail immediately.
+puts cosignd in tls optional mode. Clients connecting without TLS will
+default to a faux cert subject name of "NOTLS". This name must also be permitted in _COSIGN_CONF. If not, all connections will fail immediately.
 .TP 19
 .BI \-x\  ca-dir
 Certificate authority's public certificate directory, by default _COSIGN_TLS_CADIR.

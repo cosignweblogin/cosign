@@ -33,8 +33,6 @@ int		lc_gone;
 extern char	*cosign_version;
 
 static void (*logger)( char * ) = NULL;
-static struct timeval           timeout = { 10 * 60, 0 };
-
 
 int decision( char *, struct timeval *, time_t *, int * );
 
@@ -42,6 +40,7 @@ char    *cosign_dir = _COSIGN_DIR;
 char	*cryptofile = _COSIGN_TLS_KEY;
 char	*certfile = _COSIGN_TLS_CERT;
 char	*cadir = _COSIGN_TLS_CADIR;
+int	cosign_net_timeout = 60 * 4;
 
     static void
 monster_configure()
@@ -70,6 +69,12 @@ monster_configure()
 	syslog( LOG_INFO, "config: overriding default ssl key location(%s)"
 		" to config value of '%s'", cryptofile, val );
 	cryptofile = val;
+    }
+
+    if (( val = cosign_config_get( COSIGNTIMEOUTKEY )) != NULL ) {
+	syslog( LOG_INFO, "config: overriding default net tmeout of (%d)"
+		" to config value of '%s'", cosign_net_timeout, val );
+	cosign_net_timeout = atoi( val );
     }
 }
 
@@ -328,7 +333,7 @@ main( int ac, char **av )
 
 	    snet_writef( (*cur)->cl_sn, "DAEMON %s\r\n", hostname );
 
-	    tv = timeout;
+	    tv.tv_sec = cosign_net_timeout;
 	    if (( line = snet_getline_multi( (*cur)->cl_sn, logger, &tv ))
 		    == NULL ) {
 		syslog( LOG_ERR, "snet_getline_multi: 1: %m" );
@@ -368,7 +373,7 @@ main( int ac, char **av )
 	    goto next;
 	}
 
-	tv = timeout;
+	tv.tv_sec = cosign_net_timeout;
 	if (( line = snet_getline_multi( (*cur)->cl_sn, logger, &tv ))
 		== NULL ) {
 	    if ( !snet_eof( (*cur)->cl_sn )) {

@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2004 Regents of The University of Michigan.
+ * All Rights Reserved.  See LICENSE.
+ */
+
 struct cinfo {
     int		ci_version;
     int		ci_state;

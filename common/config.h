@@ -41,6 +41,7 @@ struct cosigncfg {
 #define COSIGNHOSTKEY		"cosignhost"
 #define COSIGNKEYTABKEY		"cosignkeytab"
 #define	COSIGNLOGOUTURLKEY	"cosignlogouturl"
+#define COSIGNTIMEOUTKEY	"cosignnettimeout"
 
 #ifdef SQL_FRIEND
 #define MYSQLDBKEY	"mysqldb"
