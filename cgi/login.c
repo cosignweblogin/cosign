@@ -13,6 +13,9 @@
 
 #ifdef KRB
 #include <krb5.h>
+#ifndef MAX_KEYTAB_NAME_LEN
+#define MAX_KEYTAB_NAME_LEN 1100
+#endif /* ndef MAX */
 #endif /* KRB */
 
 #include <string.h>
