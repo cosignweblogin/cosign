@@ -381,10 +381,6 @@ main( int argc, char *argv[] )
 	    exit( 0 );
 	}
 
-	err = "Your password has been accepted.";
-	title = "Choose a Service";
-	tmpl = SERVICE_MENU;
-
 	mysql_free_result( res );
 	mysql_close( &friend_db );
 
@@ -392,12 +388,12 @@ main( int argc, char *argv[] )
 		cl[ CL_LOGIN ].cl_data, "friend", NULL ) < 0 ) {
 	    fprintf( stderr, "%s: login failed\n", script ) ;
 
-	    /* redirecting to service menu because user is logged in */
-	    if (( ref == NULL ) ||
-		    ( ref = strstr( ref, "http" )) == NULL ) {
-		printf( "Location: http://%s%s\n\n", cosign_host, SERVICE_MENU );
-		exit( 0 );
-	    }
+	    err = "We were unable to contact the authentication server."
+		    "  Please try again later.";
+	    title = "Error: Please try later";
+	    tmpl = LOGIN_ERROR_HTML;
+	    subfile ( tmpl );
+	    exit( 0 );
 	}
 #else
 	/* no @ unless we're friendly. */
@@ -567,19 +563,16 @@ main( int argc, char *argv[] )
 	krb5_free_context( kcontext );
 
 	/* password has been accepted, tell cosignd */
-	err = "Your password has been accepted.";
-	title = "Choose a Service";
-	tmpl = SERVICE_MENU;
-
 	if ( cosign_login( head, cookie, ip_addr, 
 		cl[ CL_LOGIN ].cl_data, realm, krbpath ) < 0 ) {
 	    fprintf( stderr, "%s: login failed\n", script ) ;
 
-	    /* redirecting to service menu because user is logged in */
-	    if (( ref == NULL ) || ( ref = strstr( ref, "http" )) == NULL ) {
-		printf( "Location: http://%s%s/\n\n", cosign_host, SERVICE_MENU );
-		exit( 0 );
-	    }
+	    err = "We were unable to contact the authentication server."
+		    "  Please try again later.";
+	    title = "Error: Please try later";
+	    tmpl = LOGIN_ERROR_HTML;
+	    subfile ( tmpl );
+	    exit( 0 );
 	}
     }
 
@@ -611,13 +604,7 @@ main( int argc, char *argv[] )
 	exit( 0 );
     }
 
-    if (( strncmp( tmpl, SERVICE_MENU, sizeof( SERVICE_MENU )) == 0 )) {
-	/* authentication successful, show service menu */
-	printf( "Location: http://%s%s\n\n", cosign_host, SERVICE_MENU );
-	exit( 0 );
-    }
-
-    subfile( tmpl );
+    printf( "Location: http://%s%s\n\n", cosign_host, SERVICE_MENU );
     exit( 0 );
 
 loginscreen:
