@@ -59,6 +59,7 @@ cosign_create_dir_config( apr_pool_t *p, char *path )
     cfg->key = NULL;
     cfg->cert = NULL;
     cfg->cadir = NULL;
+    cfg->http = 0;
 #ifdef KRB
     cfg->krbtkt = 0;
 #ifdef GSS
@@ -90,6 +91,7 @@ cosign_create_server_config( apr_pool_t *p, server_rec *s )
     cfg->key = NULL;
     cfg->cert = NULL;
     cfg->cadir = NULL;
+    cfg->http = 0;
 #ifdef KRB
     cfg->krbtkt = 0;
 #ifdef GSS
@@ -134,7 +136,12 @@ set_cookie_and_redirect( request_rec *r, cosign_host_config *cfg )
 	my_cookie = apr_psprintf( r->pool,
 		"%s=%s;", cfg->service, cookiebuf );
     }
-    full_cookie = apr_psprintf( r->pool, "%s;path=/;secure", my_cookie );
+
+    if ( cfg->http ) { /* living dangerously */
+	full_cookie = apr_psprintf( r->pool, "%s;path=/", my_cookie);
+    } else {
+	full_cookie = apr_psprintf( r->pool, "%s;path=/;secure", my_cookie );
+    }
 
     /* cookie needs to be set and sent in error headers as 
      * standard headers don't get returned when we redirect,
@@ -142,14 +149,27 @@ set_cookie_and_redirect( request_rec *r, cosign_host_config *cfg )
      */
 
     apr_table_set( r->err_headers_out, "Set-Cookie", full_cookie );
-    /* insert live dangerously insecure side code here */
-    if (( port = ap_get_server_port( r )) == 443 ) {
-	ref = apr_psprintf( r->pool, "https://%s%s", 
-		ap_get_server_name( r ), r->unparsed_uri );
+
+    /* live dangerously, we're redirecting to http */
+    if ( cfg->http ) {
+        if (( port = ap_get_server_port( r )) == 80 ) {
+            ref = apr_psprintf( r->pool, "http://%s%s",
+                    ap_get_server_name( r ), r->unparsed_uri );
+        } else {
+            ref = apr_psprintf( r->pool, "http://%s:%d%s",
+                    ap_get_server_name( r ), port, r->unparsed_uri );
+        }
+    /* live securely, redirecting to https */
     } else {
-	ref = apr_psprintf( r->pool, "https://%s:%d%s", 
-		ap_get_server_name( r ), port, r->unparsed_uri );
+        if (( port = ap_get_server_port( r )) == 443 ) {
+            ref = apr_psprintf( r->pool, "https://%s%s",
+                    ap_get_server_name( r ), r->unparsed_uri );
+        } else {
+            ref = apr_psprintf( r->pool, "https://%s:%d%s",
+                    ap_get_server_name( r ), port, r->unparsed_uri );
+        }
     }
+
     dest = apr_psprintf( r->pool, "%s?%s&%s", cfg->redirect, my_cookie, ref );
     apr_table_set( r->headers_out, "Location", dest );
     return( 0 );
@@ -609,6 +629,24 @@ set_cosign_host( cmd_parms *params, void *mconfig, char *arg )
     return( NULL );
 }
 
+    static const char *
+set_cosign_http( cmd_parms *params, void *mconfig, int flag )
+{
+    cosign_host_config          *cfg;
+
+    if ( params->path == NULL ) {
+        cfg = (cosign_host_config *) ap_get_module_config(
+                params->server->module_config, &cosign_module );
+    } else {
+        return( "If you want to run Cosign using http, you must do it this way f
+or the whole server.");
+    }
+
+    cfg->http = flag;
+    cfg->configured = 1;
+    return( NULL );
+}
+
 static command_rec cosign_cmds[ ] =
 {
         AP_INIT_TAKE1( "CosignPostErrorRedirect", set_cosign_post_error,
@@ -634,6 +672,10 @@ static command_rec cosign_cmds[ ] =
         AP_INIT_TAKE1( "CosignHostname", set_cosign_host,
         NULL, RSRC_CONF, 
         "the name of the cosign hosts(s)" ),
+
+        AP_INIT_FLAG( "CosignHttpOnly", set_cosign_http,
+        NULL, RSRC_CONF, 
+        "redirect to http instead of https on the local server" ),
 
         AP_INIT_TAKE3( "CosignCrypto", set_cosign_certs,
         NULL, RSRC_CONF, 

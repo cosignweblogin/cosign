@@ -11,6 +11,7 @@ typedef struct {
     char		*cert;
     char		*key;
     char		*cadir;
+    int                 http;
 #ifdef KRB
 #ifdef GSS
     int			gss;
