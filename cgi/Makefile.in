@@ -26,7 +26,7 @@ INSTALL=     @INSTALL@
 CFLAGS=      ${DEFS} ${OPTOPTS} @CFLAGS@ ${INCPATH}
 
 
-OBJ     = login.o network.o ../common/mkcookie.o ../common/fbase64.o \
+OBJ     = network.o ../common/mkcookie.o ../common/fbase64.o \
 	../common/config.o ../common/wildcard.o ../common/argcargv.o \
 	../version.o 
 CGITARGETS = @BASICCGI@ @KRBCGI@
@@ -65,8 +65,8 @@ basic.o:	basic.c
 	-D_COSIGN_CONF=\"${COSIGNCONF}\" \
 	-c basic.c
 
-cosign.cgi: cgi.o $(OBJ)
-	${CC} -o cosign.cgi cgi.o $(OBJ) $(LDFLAGS)
+cosign.cgi: cgi.o login.o $(OBJ)
+	${CC} -o cosign.cgi cgi.o login.o $(OBJ) $(LDFLAGS)
 
 basicosign.cgi: basic.o $(OBJ)
 	${CC} -o basicosign.cgi basic.o $(OBJ) $(LDFLAGS)

@@ -20,13 +20,13 @@
 #include "cosigncgi.h"
 #include "network.h"
 #include "config.h"
+#include "login.h"
 
 #define LOGIN_ERROR_HTML	"../templates/login_error.html"
 #define ERROR_HTML	"../templates/error.html"
 #define LOGIN_HTML	"../templates/login.html"
 #define SERVICE_MENU	"/services/"
 #define LOOP_PAGE	"https://weblogin.umich.edu/looping.html"
-#define SIDEWAYS        1
 #define LOOPWINDOW      30 
 #define MAXLOOPCOUNT	10	
 #define MAXCOOKIETIME	86400	 /* Valid life of session cookie: 24 hours */
@@ -34,7 +34,7 @@
 extern char	*cosign_version;
 char		*cosign_host = _COSIGN_HOST;
 char 		*cosign_conf = _COSIGN_CONF;
-char		*err = NULL, *ref = NULL, *service = NULL;
+char		*err = NULL, *ref = NULL, *service = NULL, *login = NULL;
 char		*title = "Authentication Required";
 char		*cryptofile = _COSIGN_TLS_KEY;
 char		*certfile = _COSIGN_TLS_CERT;
@@ -52,6 +52,110 @@ struct cgi_list cl[] = {
         { "service", NULL },
         { NULL, NULL },
 };
+
+    static void
+subfile( char *filename )
+{
+    FILE	*fs;
+    int 	c, i;
+    char	nasties[] = "<>(){}[];'`\" \\";
+
+    fputs( "Cache-Control: no-cache, private\n"
+	    "Pragma: no-cache\n"
+	    "Expires: Mon, 16 Apr 1973 13:10:00 GMT\n"
+	    "Content-type: text/html\n\n", stdout );
+
+    if (( fs = fopen( filename, "r" )) == NULL ) {
+	perror( filename );
+	exit( 1 );
+    }
+
+    while (( c = getc( fs )) != EOF ) {
+	if ( c == '$' ) {
+
+	    switch ( c = getc( fs )) {
+            case 'c':
+                if ( service != NULL ) {
+                    for ( i = 0; i < strlen( service ); i++ ) {
+                        /* block XSS attacks while printing */
+                        if ( strchr( nasties, service[ i ] ) != NULL ||
+                                service[ i ] <= 0x1F || service[ i ] >= 0x7F ) {
+
+			    printf( "%%%x", service[ i ] );
+                        } else {
+                            putc( service[ i ], stdout );
+                        }
+                    }
+                }
+                break;
+
+	    case 't':
+		if ( title != NULL ) {
+		    printf( "%s", title );
+		}
+		break;
+
+	    case 'e':
+		if ( err != NULL ) {
+		    printf( "%s", err );
+		}
+		break;
+
+	    case 'l':
+                if ( login != NULL ) {
+                    printf( "%s", login );
+                }
+		break;
+
+	    case 's':
+		printf( "%s", getenv( "SCRIPT_NAME" ));
+		break;
+
+	    case 'h':
+		printf( "%s", cosign_host );
+		break;
+
+            case 'k':
+		break;
+
+            case 'r':
+                if ( ref != NULL ) {
+                    for ( i = 0; i < strlen( ref ); i++ ) {
+                        /* block XSS attacks while printing */
+                        if ( strchr( nasties, ref[ i ] ) != NULL ||
+                                ref[ i ] <= 0x1F || ref[ i ] >= 0x7F ) {
+
+			    printf( "%%%x", ref[ i ] );
+                        } else {
+                            putc( ref[ i ], stdout );
+                        }
+                    }
+                }
+                break;
+
+	    case EOF:
+		putchar( '$' );
+		break;
+
+	    case '$':
+		putchar( c );
+		break;
+
+	    default:
+		putchar( '$' );
+		putchar( c );
+	    }
+	} else {
+	    putchar( c );
+	}
+    }
+
+    if ( fclose( fs ) != 0 ) {
+	perror( filename );
+    }
+
+    return;
+}
 
     static void
 loop_checker( int time, int count, char *cookie )
@@ -109,112 +213,6 @@ loop_checker( int time, int count, char *cookie )
 	}
     }
 }
-
-    static void
-subfile( char *filename )
-{
-    FILE	*fs;
-    int 	c, i;
-    char	nasties[] = "<>(){}[];'`\" \\";
-
-    fputs( "Cache-Control: no-cache, private\n"
-	    "Pragma: no-cache\n"
-	    "Expires: Mon, 16 Apr 1973 13:10:00 GMT\n"
-	    "Content-type: text/html\n\n", stdout );
-
-    if (( fs = fopen( filename, "r" )) == NULL ) {
-	perror( filename );
-	exit( SIDEWAYS );
-    }
-
-    while (( c = getc( fs )) != EOF ) {
-	if ( c == '$' ) {
-
-	    switch ( c = getc( fs )) {
-            case 'c':
-                if ( service != NULL ) {
-                    for ( i = 0; i < strlen( service ); i++ ) {
-                        /* block XSS attacks while printing */
-                        if ( strchr( nasties, service[ i ] ) != NULL ||
-                                service[ i ] <= 0x1F || service[ i ] >= 0x7F ) {
-
-			    printf( "%%%x", service[ i ] );
-                        } else {
-                            putc( service[ i ], stdout );
-                        }
-                    }
-                }
-                break;
-
-	    case 't':
-		if ( title != NULL ) {
-		    printf( "%s", title );
-		}
-		break;
-
-	    case 'e':
-		if ( err != NULL ) {
-		    printf( "%s", err );
-		}
-		break;
-
-	    case 'l':
-                if (( cl[ CL_LOGIN ].cl_data != NULL ) &&
-                        ( *cl[ CL_LOGIN ].cl_data != '\0' )) {
-                    printf( "%s", cl[ CL_LOGIN ].cl_data );
-                }
-		break;
-
-	    case 's':
-		printf( "%s", getenv( "SCRIPT_NAME" ));
-		break;
-
-	    case 'h':
-		printf( "%s", cosign_host );
-		break;
-
-            case 'k':
-		break;
-
-            case 'r':
-                if ( ref != NULL ) {
-                    for ( i = 0; i < strlen( ref ); i++ ) {
-                        /* block XSS attacks while printing */
-                        if ( strchr( nasties, ref[ i ] ) != NULL ||
-                                ref[ i ] <= 0x1F || ref[ i ] >= 0x7F ) {
-
-			    printf( "%%%x", ref[ i ] );
-                        } else {
-                            putc( ref[ i ], stdout );
-                        }
-                    }
-                }
-                break;
-
-	    case EOF:
-		putchar( '$' );
-		break;
-
-	    case '$':
-		putchar( c );
-		break;
-
-	    default:
-		putchar( '$' );
-		putchar( c );
-	    }
-	} else {
-	    putchar( c );
-	}
-    }
-
-    if ( fclose( fs ) != 0 ) {
-	perror( filename );
-    }
-
-    return;
-}
-
 
     static void
 kcgi_configure()
@@ -395,7 +393,7 @@ main( int argc, char *argv[] )
     }
 
     if ( cgi_info( CGI_STDIN, cl ) != 0 ) {
-	exit( SIDEWAYS );
+	exit( 1 );
     }
 
     if (( cl[ CL_REF ].cl_data != NULL ) ||
@@ -410,32 +408,32 @@ main( int argc, char *argv[] )
         subfile ( tmpl );
 	exit( 0 );
     }
+    login = cl[ CL_LOGIN ].cl_data;
 
     if (( cl[ CL_PASSWORD ].cl_data == NULL ) ||
 	    ( *cl[ CL_PASSWORD ].cl_data == '\0' )) {
 	err = "Unable to login because password is a required field.";
 	title = "Missing Password";
 	tmpl = LOGIN_ERROR_HTML;
-
         subfile ( tmpl );
 	exit( 0 );
     }
 
-    if ( strchr( cl[ CL_LOGIN ].cl_data, '@' ) != NULL ) {
+    if ( strchr( login, '@' ) != NULL ) {
 # ifdef SQL_FRIEND
-	cosign_login_mysql();
+	cosign_login_mysql( head, login, cl[ CL_PASSWORD ].cl_data,
+		ip_addr, cookie );
 #else
 	/* no @ unless we're friendly. */
-	err = (char *)error_message( kerror );
-	title = "Your login id may not contain an '@'";
-
+	err = title = "Your login id may not contain an '@'";
 	tmpl = LOGIN_ERROR_HTML;
 	subfile ( tmpl );
 	exit( 0 );
 # endif
     } else {
 	/* not a friend, must be kerberos */
-	cosign_login_krb5();
+	cosign_login_krb5( head, login, cl[ CL_PASSWORD ].cl_data,
+		ip_addr, cookie );
     }
 
     if (( cl[ CL_SERVICE ].cl_data != NULL ) &&
@@ -474,7 +472,7 @@ main( int argc, char *argv[] )
 loginscreen:
     if ( mkcookie( sizeof( new_cookiebuf ), new_cookiebuf ) != 0 ) {
 	fprintf( stderr, "%s: mkcookie: failed\n", script );
-	exit( SIDEWAYS );
+	exit( 1 );
     }
 
     if ( err == NULL ) {

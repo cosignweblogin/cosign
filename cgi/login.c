@@ -23,7 +23,8 @@ char	*ticket_path = _COSIGN_TICKET_CACHE;
 #define LOGIN_ERROR_HTML        "../templates/login_error.html"
 #define ERROR_HTML	        "../templates/error.html"
 
-extern char	*cosign_host, *cosign_conf, *err, *ref, *service, *title;
+extern char	*cosign_host, *cosign_conf;
+extern char	*err, *ref, *service, *title, *login;
 
 # ifdef SQL_FRIEND
 #include <crypt.h>
@@ -74,7 +75,7 @@ subfile( char *filename )
 
     if (( fs = fopen( filename, "r" )) == NULL ) {
 	perror( filename );
-	exit( SIDEWAYS );
+	exit( 1 );
     }
 
     while (( c = getc( fs )) != EOF ) {
@@ -163,8 +164,9 @@ subfile( char *filename )
 }
 
 # ifdef SQL_FRIEND
-    int
-cosign_login_mysql()
+    void
+cosign_login_mysql( struct connlist *head, char *id, char *passwd,
+	char *ip_addr, char *cookie )
 {
     MYSQL_RES		*res;
     MYSQL_ROW		row;
@@ -185,7 +187,7 @@ cosign_login_mysql()
     }
 
     /* Check for sql injection prior to username query */
-    for ( p = login; *p != '\0'; p++ ) {
+    for ( p = id; *p != '\0'; p++ ) {
 	if (( isalpha( *p ) != 0 ) || (isdigit( *p ) != 0 )) {
 	    continue;
 	}
@@ -197,7 +199,7 @@ cosign_login_mysql()
 	    case '.':
 	    continue;
 	    default:
-	    fprintf( stderr, "invalid username: %s %s\n", login, ip_addr );
+	    fprintf( stderr, "invalid username: %s %s\n", id, ip_addr );
 
 	    err = "Provided login name appears to be invalid";
 	    title = "Invalid Input";
@@ -206,7 +208,7 @@ cosign_login_mysql()
 	    exit( 0 );
 	}
     }
-    snprintf( sql, sizeof( sql ), "SELECT account_name, passwd FROM friends WHERE account_name = '%s'", login );
+    snprintf( sql, sizeof( sql ), "SELECT account_name, passwd FROM friends WHERE account_name = '%s'", id );
 
     if( mysql_real_query( &friend_db, sql, sizeof( sql ))) {
 	fprintf( stderr, mysql_error( &friend_db ));
@@ -256,7 +258,7 @@ cosign_login_mysql()
     mysql_free_result( res );
     mysql_close( &friend_db );
 
-    if ( cosign_login( head, cookie, ip_addr, login, "friend", NULL ) < 0 ) {
+    if ( cosign_login( head, cookie, ip_addr, id, "friend", NULL ) < 0 ) {
 	fprintf( stderr, "cosign_login_mysql: login failed\n" ) ;
 
 	err = "We were unable to contact the authentication server."
@@ -266,12 +268,12 @@ cosign_login_mysql()
 	subfile ( tmpl );
 	exit( 0 );
     }
-    return( 0 );
+    return;
 }
 # endif /* SQL_FRIEND */
 
-    int
-cosign_login_krb5( struct connlist *head, char *login, char *passwd,
+    void
+cosign_login_krb5( struct connlist *head, char *id, char *passwd,
 	char *ip_addr, char *cookie )
 {
     krb5_error_code             kerror = 0;
@@ -298,7 +300,7 @@ cosign_login_krb5( struct connlist *head, char *login, char *passwd,
 	exit( 0 );
     }
 
-    if (( kerror = krb5_parse_name( kcontext, login, &kprinc ))) {
+    if (( kerror = krb5_parse_name( kcontext, id, &kprinc ))) {
 	err = (char *)error_message( kerror );
 	title = "Authentication Required ( kerberos error )";
 
@@ -452,7 +454,7 @@ cosign_login_krb5( struct connlist *head, char *login, char *passwd,
     krb5_free_context( kcontext );
 
     /* password has been accepted, tell cosignd */
-    if ( cosign_login( head, cookie, ip_addr, login, realm, krbpath ) < 0 ) {
+    if ( cosign_login( head, cookie, ip_addr, id, realm, krbpath ) < 0 ) {
 	fprintf( stderr, "cosign_login_krb5: login failed\n") ;
 	err = "We were unable to contact the authentication server."
 		"  Please try again later.";
@@ -462,6 +464,6 @@ cosign_login_krb5( struct connlist *head, char *login, char *passwd,
 	exit( 0 );
     }
 
-    return( 0 );
+    return;
 }
 
