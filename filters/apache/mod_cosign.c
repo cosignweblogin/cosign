@@ -236,7 +236,8 @@ cosign_auth( request_rec *r )
 	cookiename = NULL;
 	while ( *data == ' ' ) { data++; }
     }
-    if ( cookiename == NULL ) {
+
+    if (( cookiename == NULL ) || ( strcmp( pair, "null" ) == 0 )) {
 	goto set_cookie;
     }
 
