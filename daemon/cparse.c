@@ -38,8 +38,12 @@ service_to_login( char *service, char *login )
     char	buf[ MAXCOOKIELEN + 2 ];
     char	*p;
     int		len;
+    extern int	errno;
 
     if (( scf = fopen( service, "r" )) == NULL ) {
+	if ( errno == ENOENT ) {
+	     return( 1 );
+	 }
 	syslog( LOG_ERR, "service_to_login: %s: %m", service  );
 	return( -1 );
     }
