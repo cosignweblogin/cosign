@@ -91,7 +91,8 @@ If so, see the FAQ or the README for further instructions.])])
 # Checks for filters:
 
 if test "x_$FILTERS" = "x_" ; then
-  AC_MSG_ERROR([No web server found])
+  AC_MSG_ERROR([No web server found - you must explicitly "enable-apache1"
+  or "enable-apache2" or both ])
 fi
 AC_SUBST(FILTERS)
 
