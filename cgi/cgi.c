@@ -144,6 +144,7 @@ main( int argc, char *argv[] )
     krb5_error_code		kerror;
     krb5_context		kcontext;
     krb5_principal		kprinc;
+    krb5_principal		sprinc;
     krb5_get_init_creds_opt	kopts;
     krb5_creds			kcreds;
     krb5_ccache			kccache;
@@ -321,7 +322,7 @@ main( int argc, char *argv[] )
 	subfile ( tmpl );
 	exit( 0 );
     }
-    sprintf( krbpath, "%s/%s", TKT_PREFIX, tmpkrb );
+    snprintf( krbpath, sizeof( krbpath ), "%s/%s", TKT_PREFIX, tmpkrb );
 
     if (( krb5_cc_resolve( kcontext, krbpath, &kccache )) != 0 ) {
 	err = (char *)error_message( kerror );
@@ -370,16 +371,29 @@ main( int argc, char *argv[] )
 	subfile ( tmpl );
 	exit( 0 );
     }
-    if (( krb5_verify_init_creds(
-	    kcontext, &kcreds, NULL, keytab, NULL, NULL )) != 0 ) {
+
+    if (( krb5_sname_to_principal( kcontext, NULL, "cosign",
+	    KRB5_NT_SRV_HST, &sprinc )) != 0 ) {
 	err = (char *)error_message( kerror );
-	title = "( Ticket Verify Error )";
+	title = "( Server Principal Error )";
 	
 	tmpl = ERROR_HTML;
 	subfile ( tmpl );
 	exit( 0 );
     }
+
+    if (( krb5_verify_init_creds(
+	    kcontext, &kcreds, sprinc, keytab, NULL, NULL )) != 0 ) {
+	err = (char *)error_message( kerror );
+	title = "( Ticket Verify Error )";
+	
+	tmpl = ERROR_HTML;
+	subfile ( tmpl );
+	krb5_free_principal( kcontext, sprinc );
+	exit( 0 );
+    }
     (void)krb5_kt_close( kcontext, keytab );
+    krb5_free_principal( kcontext, sprinc );
 
     if (( krb5_cc_initialize( kcontext, kccache, kprinc )) != 0 ) {
 	err = (char *)error_message( kerror );
@@ -411,21 +425,12 @@ main( int argc, char *argv[] )
     tmpl = SERVICE_MENU;
     nocache = 1;
 
-    /* what happens when we get an already logged in back? tri-val? */
     if ( cosign_login( cookie, ip_addr, 
 	    cl[ CL_UNIQNAME ].cl_data, "UMICH.EDU", krbpath ) < 0 ) {
 	fprintf( stderr, "%s: login failed\n", script ) ;
 
-	/* redirecting to / instead of complaining that login failed. */
+	/* redirecting to / ( probably netscape resubmitted post ) */
 	printf( "Location: %s\n\n", host );
-
-	/*
-	err = "Login failed: Sorry!";
-	title = "Error: Authentication Failed";
-	tmpl = ERROR_HTML;
-	subfile( tmpl );
-	exit( 2 );
-	*/
     }
 
     if (( ref != NULL ) && ( ref = strstr( ref, "http" )) != NULL ) {
@@ -441,7 +446,7 @@ loginscreen:
 	exit( SIDEWAYS );
     }
 
-    sprintf( new_cookie, "cosign=%s", new_cookiebuf );
+    snprintf( new_cookie, sizeof( new_cookie ), "cosign=%s", new_cookiebuf );
     printf( "Set-Cookie: %s; path=/; secure\n", new_cookie );
     nocache = 1;
     subfile( tmpl );
