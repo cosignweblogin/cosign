@@ -36,7 +36,6 @@ int		debug = 0;
 int		backlog = 5;
 int		pusherpid;
 int		reconfig = 0;
-int		hupsig;
 int		child_signal = 0;
 
 extern char	*cosign_version;
@@ -99,7 +98,6 @@ daemon_configure()
 hup( int sig )
 {
     reconfig++; 
-    hupsig = sig;
     return;
 }
 
@@ -416,7 +414,7 @@ main( int ac, char *av[] )
 			" old ssl config", cosign_conf );
 	    }
 
-	    if ( kill( pusherpid, hupsig ) < 0 ) {
+	    if ( kill( pusherpid, SIGHUP ) < 0 ) {
 		syslog( LOG_CRIT, "kill pusherpid: %m" );
 		exit( 1 );
 	    }

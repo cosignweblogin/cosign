@@ -19,8 +19,8 @@
 #include "config.h"
 #include "argcargv.h"
 
-struct authlist		*authlist = NULL, *new_authlist = NULL;
-struct cosigncfg 	*cfg = NULL, *new_cfg = NULL;
+struct authlist		*authlist = NULL, *new_authlist;
+struct cosigncfg 	*cfg = NULL, *new_cfg;
 
     static void
 config_free( struct cosigncfg **p )
@@ -338,6 +338,9 @@ cosign_config( char *path )
 {
     struct authlist	*old_authlist;
     struct cosigncfg	*old_cfg;
+
+    new_authlist = NULL;
+    new_cfg = NULL;
     
     if ( read_config( path ) != 0 ) {
 	if ( new_authlist != NULL ) {
@@ -382,7 +385,7 @@ cosign_ssl( char *cryptofile, char *certfile, char *cadir, SSL_CTX **ctx )
         return( 1 );
     }
 
-    if ( access( cadir, R_OK ) != 0 ) {
+    if ( access( cadir, X_OK ) != 0 ) {
         perror( cadir );
         return( 1 );
     }
