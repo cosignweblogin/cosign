@@ -1,4 +1,44 @@
-/var/cosign/daemon
-/var/cosign/filter
+Some things to know:
+
+make will build the apache filter only
+make install will install the filter using apxs
+
+make all will build the filter, the daemon and the cgi
+make install-all installs all :)
+
+In order for the filter to work, you'll need a directory called 
+	/var/cosign/filter
+
+It must be permitted so the user that runs the webserver has write
+permission to it.
+
+you'll want to run something like this out of cron daily:
+
 find /var/cosign -type f -mtime +1 -exec rm {} \;
 
+In the U of M environment, you'll want your directives to look like
+this:
+
+on your insecure side, and any dirs or locations you want exempt:
+
+CosignProtected		Off
+
+in :443 ( or otherwise https ) vhost
+
+CosignProtetced		On
+CosignHostname		weblogin.umich.edu
+CosignRedirect		https://weblogin.umich.edu
+CosignPostErrorRedirect	<will have a central one, for now any will do>
+CosignService		<send e-mail to cosign@umich.edu>
+CosignCrypto		<path to key> <path to CA> <path to cert>
+
+Contact webmaster@umich.edu for umich CA certs, which are free!
+
+It'll get rid of any files that have not been modified in the last day.
+
+The daemon (cosignd) requires  /var/cosign/daemon to exist and be
+writeable by the user the daemon runs as.
+
+An init script will be inluded next time :)
+
+Questions? cosign@umich.edu
