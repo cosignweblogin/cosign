@@ -62,6 +62,9 @@ AC_SUBST(frienddblogin)
 AC_ARG_WITH(frienddbpasswd, AC_HELP_STRING([--with-frienddbpasswd=PASSWD], [password of friend mysql db account]), frienddbpasswd="$withval", frienddbpasswd="" )
 AC_SUBST(frienddbpasswd)
 
+AC_ARG_WITH(ticketcache, AC_HELP_STRING([--with-ticketcache=DIR], [default cosign kerberos ticket cache]), ticketcache="$withval", ticketcache="/ticket" )
+AC_SUBST(ticketcache)
+
 AC_ARG_WITH(filterdb, AC_HELP_STRING([--with-filterdb=DIR], [default cosign filter database storage]), filterdb="$withval", filterdb="/var/cosign/filter" )
 AC_SUBST(filterdb)
 
