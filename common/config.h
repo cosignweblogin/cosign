@@ -36,7 +36,6 @@ struct cosigncfg {
 #define COSIGNCADIRKEY		"cosigncadir"
 #define COSIGNCERTKEY		"cosigncert"
 #define	COSIGNKEYKEY		"cosignkey"
-#define COSIGNHOSTKEY		"cosignhost"
 #define COSIGNTICKKEY		"cosignticketcache"
 #define COSIGNHOSTKEY		"cosignhost"
 #define COSIGNKEYTABKEY		"cosignkeytab"
