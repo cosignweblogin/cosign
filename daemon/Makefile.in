@@ -81,6 +81,7 @@ install : all man
 	-mkdir -p ${exec_prefix}
 	-mkdir -p ${SBINDIR}
 	${INSTALL} -m 0755 -c cosignd ${SBINDIR}/
+	${INSTALL} -m 0755 -c monster ${SBINDIR}/
 	-mkdir -p ${prefix}
 	-mkdir -p ${MANDIR}
 	-mkdir ${MANDIR}/man8
