@@ -10,4 +10,4 @@ struct cinfo {
 
 int do_logout( char * );
 int service_to_login( char *, char * );
-int read_a_cookie( char *, struct cinfo * );
+int read_cookie( char *, struct cinfo * );

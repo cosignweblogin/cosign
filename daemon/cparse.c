@@ -91,7 +91,7 @@ service_to_login( char *service, char *login )
 }
 
     int
-read_a_cookie( char *path, struct cinfo *ci )
+read_cookie( char *path, struct cinfo *ci )
 {
     FILE	*cf;
     struct stat	st;
@@ -100,13 +100,13 @@ read_a_cookie( char *path, struct cinfo *ci )
     int		len;
 
     if (( cf = fopen( path, "r" )) == NULL ) {
-	syslog( LOG_ERR, "read_a_cookie: %s: %m", path  );
+	syslog( LOG_ERR, "read_cookie: %s: %m", path  );
 	return( -1 );
     }
 
     if ( fstat( fileno( cf ), &st ) != 0 ) {
 	(void)fclose( cf );
-	syslog( LOG_ERR, "read_a_cookie: %s: %m", path );
+	syslog( LOG_ERR, "read_cookie: %s: %m", path );
 	return( -1 );
     }
 
@@ -115,21 +115,21 @@ read_a_cookie( char *path, struct cinfo *ci )
     /* file ordering matters for version and state, after we don't care */
     if ( fgets( buf, sizeof( ci->ci_version ), cf ) == NULL ) {
 	(void)fclose( cf );
-	syslog( LOG_ERR, "read_a_cookie: ci_version: %m"  );
+	syslog( LOG_ERR, "read_cookie: ci_version: %m"  );
 	return( -1 );
     }
 
     len = strlen( buf );
     if ( buf[ len - 1 ] != '\n' ) {
 	(void)fclose( cf );
-	syslog( LOG_ERR, "read_a_cookie: line too long" );
+	syslog( LOG_ERR, "read_cookie: line too long" );
 	return( -1 );
     }
     buf[ len -1 ] = '\0';
 
     if ( *buf != 'v' ) {
 	(void)fclose( cf );
-	syslog( LOG_ERR, "read_a_cookie: file format error" );
+	syslog( LOG_ERR, "read_cookie: file format error" );
 	return( -1 );
     }
     p = buf + 1;
@@ -138,25 +138,25 @@ read_a_cookie( char *path, struct cinfo *ci )
 
     if ( ci->ci_version != 0 ) {
 	(void)fclose( cf );
-	syslog( LOG_ERR, "read_a_cookie: file version mismatch" );
+	syslog( LOG_ERR, "read_cookie: file version mismatch" );
 	return( -1 );
     }
 
     if ( fgets( buf, sizeof( ci->ci_state ), cf ) == NULL ) {
 	(void)fclose( cf );
-	syslog( LOG_ERR, "read_a_cookie: ci_state %m"  );
+	syslog( LOG_ERR, "read_cookie: ci_state %m"  );
 	return( -1 );
     }
 
     len = strlen( buf );
     if ( buf[ len - 1 ] != '\n' ) {
 	(void)fclose( cf );
-	syslog( LOG_ERR, "read_a_cookie: line too long" );
+	syslog( LOG_ERR, "read_cookie: line too long" );
     }
     buf[ len -1 ] = '\0';
 
     if ( *buf != 's' ) {
-	syslog( LOG_ERR, "read_a_cookie: file format error" );
+	syslog( LOG_ERR, "read_cookie: file format error" );
 	(void)fclose( cf );
 	return( -1 );
     }
@@ -168,7 +168,7 @@ read_a_cookie( char *path, struct cinfo *ci )
 	len = strlen( buf );
 	if ( buf[ len - 1 ] != '\n' ) {
 	    (void)fclose( cf );
-	    syslog( LOG_ERR, "read_a_cookie: line too long");
+	    syslog( LOG_ERR, "read_cookie: line too long");
 	}
 	buf[ len -1 ] = '\0';
 	p = buf + 1;
@@ -192,14 +192,14 @@ read_a_cookie( char *path, struct cinfo *ci )
 	    break;
 
 	default:
-	    syslog( LOG_ERR, "read_a_cooke: unknown keyword %c", *buf );
+	    syslog( LOG_ERR, "read_cooke: unknown keyword %c", *buf );
 	    (void)fclose( cf );
 	    return( -1 );
 	}
     }
 
     if ( fclose( cf ) != 0 ) {
-	syslog( LOG_ERR, "read_a_cookie: %s: %m", path );
+	syslog( LOG_ERR, "read_cookie: %s: %m", path );
 	return( -1 );
     }
     return( 0 );

@@ -19,32 +19,15 @@ connection management:
 cookiefs.c knows how to look in fs for cookies - does it also know how
 to issue the verify command and copy stuff to fs?
 
-if sinlist hasn't been copied into conn_list, do it.
-
-choose_conn() - conn_head is the one to use
-    -open if it needs to be, otherwise use
-    -if there is a problem, mark it as so and then go on to open another one
-        -once the new one is open, move it to the head
-
-cur = conn_head->next;
-conn_head->next = cur->next;
-cur->next = conn_head;
-conn_head = cur;
-
-( inserts cur at the head of the list )
-
-most recently used?
 
 ?? if you run thru the whole list and mark everything down, that's a
 forbidden?
 
-how do we reclaim *down* connections?
-
 
 MODULE:
 
-if in set_cookie_and_redirect we are POSTing, redirect to
-CosignPostErrorRedirect instead.
+unhappy with cookieparsing in cosign_auth().
+unhappy with cookie_valid/read_secant division. 
 
 upon cookie_ok, module sets up cgi env ( remote user etc )
     snprintf( tfname, MAXPATHLEN - 1 , "%s%s", TICKET_PREFIX, user );
@@ -55,15 +38,28 @@ upon cookie_ok, module sets up cgi env ( remote user etc )
     r->connection->user is REMOTE_USER, i believe
 otherwise, do we redirect? must discuss.
 
+TODO in MOD:
+    kerberos
+    cookie obscuring
+    forbidden vs redirect
+
+CGI:
+    logout
+
+COSIGND:
+    idle timeout
+
+
 Protocol:
 
 cosign.cgi:
     LOGIN login_cookie ip princ realm [ tgt ]
     LOGOUT login_cookie ip
     REGISTER login_cookie ip service_cookie
+    CHECK login_cookie
 
 mod_cosign:
-    CHECK service_cookie ip princ
+    CHECK service_cookie
     RETRIEVE service_cookie ip [ tkt ]
 
 cosignd:

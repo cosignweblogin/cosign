@@ -167,8 +167,8 @@ f_login( sn, ac, av )
 	}
 	if ( errno == EEXIST ) {
 	    syslog( LOG_ERR, "f_login: file already exists: %s", av[ 1 ]);
-	    if ( read_a_cookie( av[ 1 ], &ci ) != 0 ) {
-		syslog( LOG_ERR, "f_login: read_a_cookie: XXX" );
+	    if ( read_cookie( av[ 1 ], &ci ) != 0 ) {
+		syslog( LOG_ERR, "f_login: read_cookie: XXX" );
 		snet_writef( sn, "%d LOGIN error: Sorry\r\n", 503 );
 		return( 1 );
 	    }
@@ -244,8 +244,8 @@ f_logout( sn, ac, av )
 	return( 1 );
     }
 
-    if ( read_a_cookie( av[ 1 ], &ci ) != 0 ) {
-	syslog( LOG_ERR, "f_logout: read_a_cookie: XXX" );
+    if ( read_cookie( av[ 1 ], &ci ) != 0 ) {
+	syslog( LOG_ERR, "f_logout: read_cookie: XXX" );
 	snet_writef( sn, "%d LOGOUT error: Sorry\r\n", 513 );
 	return( 1 );
     }
@@ -307,8 +307,8 @@ f_register( sn, ac, av )
 	return( 1 );
     }
 
-    if ( read_a_cookie( av[ 1 ], &ci ) != 0 ) {
-	syslog( LOG_ERR, "f_register: read_a_cookie: XXX" );
+    if ( read_cookie( av[ 1 ], &ci ) != 0 ) {
+	syslog( LOG_ERR, "f_register: read_cookie: XXX" );
 	snet_writef( sn, "%d REGISTER error: Sorry\r\n", 523 );
 	return( 1 );
     }
@@ -433,8 +433,8 @@ f_check( sn, ac, av )
 	strcpy( login, av[ 1 ] );
     }
 
-    if ( read_a_cookie( login, &ci ) != 0 ) {
-	syslog( LOG_ERR, "f_check: read_a_cookie: XXX" );
+    if ( read_cookie( login, &ci ) != 0 ) {
+	syslog( LOG_ERR, "f_check: read_cookie: XXX" );
 	snet_writef( sn, "%d CHECK: Who me? Dunno.\r\n", 534 );
 	return( 1 );
     }

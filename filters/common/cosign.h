@@ -17,6 +17,7 @@ struct connlist {
 };
 
 
-int cookie_valid( struct connlist **, char *, struct sinfo * );
-int choose_conn( char *, struct sinfo *, struct connlist ** );
-int teardown_conn( );
+int cookie_valid( struct connlist **, char *, struct sinfo *, char * );
+int check_cookie( char *, struct sinfo *, struct connlist ** );
+int teardown_conn( struct connlist * );
+int mkcookie( int, char * );

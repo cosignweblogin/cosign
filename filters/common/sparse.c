@@ -15,7 +15,7 @@
 #define MAXLEN 256
 
     int
-read_a_secant( char *path, struct sinfo *si )
+read_secant( char *path, struct sinfo *si )
 {
     FILE	*sf;
     struct stat	st;
@@ -40,7 +40,7 @@ read_a_secant( char *path, struct sinfo *si )
 	len = strlen( buf );
 	if ( buf[ len - 1 ] != '\n' ) {
 	    (void)fclose( sf );
-	    fprintf( stderr, "read_a_secant: line too long");
+	    fprintf( stderr, "read_secant: line too long");
 	    return( -1 );
 	}
 	buf[ len -1 ] = '\0';
@@ -61,14 +61,14 @@ read_a_secant( char *path, struct sinfo *si )
 	    break;
 
 	default:
-	    fprintf( stderr, "read_a_secant: unknown keyword %c", *buf );
+	    fprintf( stderr, "read_secant: unknown keyword %c", *buf );
 	    (void)fclose( sf );
 	    return( -1 );
 	}
     }
 
     if ( fclose( sf ) != 0 ) {
-	fprintf( stderr, "read_a_secant: %s: %m", path );
+	fprintf( stderr, "read_secant: %s:\n", path );
 	return( -1 );
     }
     return( 0 );

@@ -10,6 +10,7 @@
 #include <arpa/inet.h>
 #include <netdb.h>
 #include <stdio.h>
+#include <string.h>
 #include <unistd.h>
 
 #include <snet.h>
@@ -28,13 +29,20 @@ void (*logger)( char * ) = NULL;
 
 struct timeval		timeout = { 10 * 60, 0 };
 
-    int
+/*
+ * -1 means big error, dump this connection
+ * 0 means that this host is having a replication problem
+ * 1 means the user is not logged in
+ * 2 means everything's peachy
+ */
+    static int
 netcheck_cookie( char *secant, struct sinfo *si, SNET *sn )
 {
     int			ac;
     char		*line;
     char		**av;
     struct timeval      tv;
+    extern int		errno;
 
     /* CHECK service-cookie */
     if ( snet_writef( sn, "CHECK %s\r\n", secant ) < 0 ) {
@@ -43,31 +51,28 @@ netcheck_cookie( char *secant, struct sinfo *si, SNET *sn )
     }
 
     tv = timeout;
-    if (( line = snet_getline_multi( sn, logger, &tv ))
-	    == NULL ) {
-	fprintf( stderr, "netcheck_cookie: snet_getline_multi failed\n");
+    if (( line = snet_getline_multi( sn, logger, &tv )) == NULL ) {
+	fprintf( stderr, "netcheck_cookie: snet_getline_multi: %s\n",
+		strerror( errno ));
 	return( -1 );
     }
 
     switch( *line ) {
-
     case '2':
 	fprintf( stderr, "We like 200!\n" );
 	break;
 
-    case '3':
-	fprintf( stderr, "Kerberos Stuff not implemented yet!\n" );
-	break;
-
     case '4':
 	fprintf( stderr, "netcheck_cookie: %s\n", line);
-	return( -1 );
+	return( 1 );
 
     case '5':
 	/* choose another connection */
 	fprintf( stderr, "choose another connection: %s\n", line );
-	return( -1 );
+	return( 0 );
 
+    case '3':
+	fprintf( stderr, "Kerberos Stuff not implemented yet!\n" );
     default:
 	fprintf( stderr, "cosignd told me sumthin' wacky: %s\n", line );
 	return( -1 );
@@ -75,27 +80,27 @@ netcheck_cookie( char *secant, struct sinfo *si, SNET *sn )
 
     if (( ac = argcargv( line, &av )) != 4 ) {
 	fprintf( stderr, "netcheck_cookie: wrong number of args: %s\n", line);
-	return( 1 );
+	return( -1 );
     }
 
     /* I guess we check some sizing here :) */
     if ( strlen( av[ 1 ] ) >= IP_SZ ) {
 	fprintf( stderr, "netcheck_cookie: IP address too long\n" );
-	return( 1 );
+	return( -1 );
     }
     strcpy( si->si_ipaddr, av[ 1 ] );
     if ( strlen( av[ 2 ] ) >= USER_SZ ) {
 	fprintf( stderr, "netcheck_cookie: username too long\n" );
-	return( 1 );
+	return( -1 );
     }
     strcpy( si->si_user, av[ 2 ] );
     if ( strlen( av[ 3 ] ) >= REALM_SZ ) {
 	fprintf( stderr, "netcheck_cookie: realm too long\n" );
-	return( 1 );
+	return( -1 );
     }
     strcpy( si->si_realm, av[ 3 ] );
 
-    return( 0 );
+    return( 2 );
 }
 
     int
@@ -114,10 +119,9 @@ teardown_conn( struct connlist *cur )
 }
 
     int
-choose_conn( char *secant, struct sinfo *si, struct connlist **cl )
+check_cookie( char *secant, struct sinfo *si, struct connlist **cl )
 {
-
-    struct connlist	**cur;
+    struct connlist	**cur, *tmp;
     int			rc;
 
     /* use connection, then shuffle if there is a problem
@@ -132,11 +136,10 @@ choose_conn( char *secant, struct sinfo *si, struct connlist **cl )
 	    if ( snet_close( (*cur)->conn_sn ) != 0 ) {
 		fprintf( stderr, "choose_conn: snet_close failed\n" );
 	    }
+	    (*cur)->conn_sn = NULL;
 	}
-	if ( rc == 0 ) {
+	if ( rc > 0 ) {
 	    goto done;
-	    /* return( 0 );  */
-	    /* do we still reorder? */
 	}
     }
 
@@ -152,32 +155,33 @@ choose_conn( char *secant, struct sinfo *si, struct connlist **cl )
 	    if ( snet_close( (*cur)->conn_sn ) != 0 ) {
 		fprintf( stderr, "choose_conn: snet_close failed\n" );
 	    }
+	    (*cur)->conn_sn = NULL;
 	}
-	if ( rc == 0 ) {
+	if ( rc > 0 ) {
 	    goto done;
-	    /* return( 0 );  */
-	    /* do we still reorder? */
 	}
     }
 
-    /* nothing was opened */
-    if ( *cur == NULL ) {
-	return( -1 );
-    }
-
-    /* we've gotten here cos there's either no conns, one 
-     * still works or we have a new one. in the last case 
-     * we need to re-order the list.
-     */
+    return( -1 );
 
 done:
-    return( 0 );
+    if ( cur != cl ) {
+	tmp = *cur;
+	*cur = (*cur)->conn_next;
+	tmp->conn_next = *cl;
+	*cl = tmp;
+    }
+    if ( rc == 1 ) {
+	return( 1 );
+    } else {
+	return( 0 );
+    }
 }
 
     static int
 connect_sn( struct connlist *cl  )
 {
-    int			i, s;
+    int			s;
     char		*line;
     struct timeval      tv;
 

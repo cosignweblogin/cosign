@@ -7,6 +7,8 @@
 #include <sys/time.h>
 #include <sys/stat.h>
 #include <sys/socket.h>
+#include <utime.h>
+#include <unistd.h>
 #include <string.h>
 #include <stdio.h>
 #include <snet.h>
@@ -20,9 +22,10 @@
 #define IDLETIME	60
 
     int
-cookie_valid( struct connlist **c_cur, char *cookie, struct sinfo *si )
+cookie_valid( struct connlist **c_cur, char *cookie, struct sinfo *si,
+	char *ipaddr )
 {
-    struct sinfo	lsi, nsi;
+    struct sinfo	lsi;
     int			rs, fd;
     struct timeval	tv;
     char		path[ MAXPATHLEN ], tmppath[ MAXPATHLEN ];
@@ -44,104 +47,95 @@ cookie_valid( struct connlist **c_cur, char *cookie, struct sinfo *si )
         return( -1 );
     }
 
-    switch ( rs = read_a_secant( path, &lsi )) {
-
-    case SECANT_OK:
-	/* if we're in the window */
-	if (( tv.tv_sec - lsi.si_itime ) <= IDLETIME ) {
-fprintf( stderr, "We're in the window\n" );
-	    if ( strcmp( si->si_ipaddr, lsi.si_ipaddr ) != 0 ) {
-		return( -1 );
-	    }
-	    strcpy( si->si_user, lsi.si_user );
-	    strcpy( si->si_realm, lsi.si_realm );
-	    return( 0 );
-	}
-fprintf( stderr, "Not in the window\n" );
-	break;
-
-    case SECANT_NOT_IN_FS:
-fprintf( stderr, "Not in the fs\n" );
-	/* I'm sure we can do something more clever here XXX */
-	break;
-
-    default:
-	fprintf( stderr, "Something's wrong: read_a_secant\n" ); 
+    /*
+     * -1 bummer
+     * 0 ok
+     * 1 not in fs
+     */
+    if (( rs = read_secant( path, &lsi )) < 0 ) {
+	fprintf( stderr, "Something's wrong: read_secant\n" ); 
 	return( -1 );
     }
 
-    if ( choose_conn( cookie, &nsi, c_cur ) < 0 ) {
+    if (( rs == 0 ) && (( tv.tv_sec - lsi.si_itime ) <= IDLETIME )) {
+	if ( strcmp( ipaddr, lsi.si_ipaddr ) != 0 ) {
+	    return( -1 );
+	}
+	strcpy( si->si_ipaddr, lsi.si_ipaddr );
+	strcpy( si->si_user, lsi.si_user );
+	strcpy( si->si_realm, lsi.si_realm );
+	return( 0 );
+    }
+
+    if ( check_cookie( cookie, si, c_cur ) < 0 ) {
 	fprintf( stderr, "cookie_valid: choose_conn failed\n" );
 	return( -1 );
     }
-    if ( rs == SECANT_NOT_IN_FS ) {
+    if ( strcmp( ipaddr, si->si_ipaddr ) != 0 ) {
+	return( -1 );
+    }
 
-	/* store local copy of secant */
-	if ( snprintf( tmppath, MAXPATHLEN, "%s/%x%x.%i", CPATH,
-		tv.tv_sec, tv.tv_usec, (int)getpid()) >= MAXPATHLEN ) {
-	    fprintf( stderr, "cookiefs: tmppath too long\n" );
-	    return( -1 );
-	}
-
-	if (( fd = open( tmppath, O_CREAT|O_EXCL|O_WRONLY, 0644 )) < 0 ) {
-	    perror( tmppath );
-	    return( -1 );
-	}
-
-	if (( tmpfile = fdopen( fd, "w" )) == NULL ) {
-	    if ( unlink( tmppath ) != 0 ) {
-		perror( tmppath );
-	    }
-	    perror( tmppath );
-	    return( -1 );
-	}
-
-	fprintf( tmpfile, "i%s\n", nsi.si_ipaddr );
-	fprintf( tmpfile, "p%s\n", nsi.si_user );
-	fprintf( tmpfile, "r%s\n", nsi.si_realm );
-
-	if ( fclose ( tmpfile ) != 0 ) {
-	    if ( unlink( tmppath ) != 0 ) {
-		perror( tmppath );
-	    }
-	    perror( tmppath );
-	    return( -1 );
-	}
-
-	if ( link( tmppath, path ) != 0 ) {
-	    if ( unlink( tmppath ) != 0 ) {
-		perror( tmppath );
-	    }
-	    if( errno == EEXIST ) {
-		perror( path );
-		return( -1 );
-	    }
-	    perror( tmppath );
-	    return( -1 );
-	}
-
-	if ( unlink( tmppath ) != 0 ) {
-	    perror( tmppath );
-	}
-
-    } else {
+    if ( rs == 0 ) {
 	/* check net info against local info */
-	if (( strcmp( nsi.si_ipaddr, lsi.si_ipaddr ) != 0 ) ||
-		( strcmp( nsi.si_user, lsi.si_user ) != 0 ) ||
-		( strcmp( nsi.si_realm, lsi.si_realm ) != 0 )) {
+	if (( strcmp( si->si_ipaddr, lsi.si_ipaddr ) != 0 ) ||
+		( strcmp( si->si_user, lsi.si_user ) != 0 ) ||
+		( strcmp( si->si_realm, lsi.si_realm ) != 0 )) {
 	    fprintf( stderr, "network info does not match local info for %s\n",
 		    cookie );
 	    return( -1 );
 	}
+	/* update to current time, pushing window forward */
+	utime( path, NULL );
+	return( 0 );
     }
 
-    /* copy the info for the module to propogate */
-    strcpy( si->si_ipaddr, nsi.si_ipaddr );
-    strcpy( si->si_user, nsi.si_user );
-    strcpy( si->si_realm, nsi.si_realm );
+    /* store local copy of secant */
+    if ( snprintf( tmppath, MAXPATHLEN, "%s/%x%x.%i", CPATH,
+	    tv.tv_sec, tv.tv_usec, (int)getpid()) >= MAXPATHLEN ) {
+	fprintf( stderr, "cookiefs: tmppath too long\n" );
+	return( -1 );
+    }
 
-    /* update to current time, pushing window forward */
-    utime( path, NULL );
+    if (( fd = open( tmppath, O_CREAT|O_EXCL|O_WRONLY, 0644 )) < 0 ) {
+	perror( tmppath );
+	return( -1 );
+    }
+
+    if (( tmpfile = fdopen( fd, "w" )) == NULL ) {
+	if ( unlink( tmppath ) != 0 ) {
+	    perror( tmppath );
+	}
+	perror( tmppath );
+	return( -1 );
+    }
+
+    fprintf( tmpfile, "i%s\n", si->si_ipaddr );
+    fprintf( tmpfile, "p%s\n", si->si_user );
+    fprintf( tmpfile, "r%s\n", si->si_realm );
+
+    if ( fclose ( tmpfile ) != 0 ) {
+	if ( unlink( tmppath ) != 0 ) {
+	    perror( tmppath );
+	}
+	perror( tmppath );
+	return( -1 );
+    }
+
+    if ( link( tmppath, path ) != 0 ) {
+	if ( unlink( tmppath ) != 0 ) {
+	    perror( tmppath );
+	}
+	if( errno == EEXIST ) {
+	    perror( path );
+	    return( -1 );
+	}
+	perror( tmppath );
+	return( -1 );
+    }
+
+    if ( unlink( tmppath ) != 0 ) {
+	perror( tmppath );
+    }
 
     return( 0 );
 }

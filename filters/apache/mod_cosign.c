@@ -4,6 +4,7 @@
 
 #include <httpd.h>
 #include <http_config.h>
+#include <http_core.h>
 #include <http_log.h>
 #include <http_protocol.h>
 #include <ap_config.h>
@@ -123,17 +124,28 @@ cosign_auth( request_rec *r )
 		r->server->module_config, &cosign_module);
     }
 
-    /*
-     * Verify cfg has been setup correctly by admin
-     */
-
     if ( !cfg->configured || !cfg->protect ) {
 	return( DECLINED );
     }
-    if (( cfg->host == NULL ) || ( cfg->redirect == NULL )
-	    || ( cfg->service == NULL || cfg->posterror == NULL )) {
-	fprintf( stderr, "Cosign is not configured correctly
-		- check your setup\n" );
+
+    /*
+     * Verify cfg has been setup correctly by admin
+     */
+    if (( cfg->host == NULL ) || ( cfg->redirect == NULL ) ||
+		( cfg->service == NULL || cfg->posterror == NULL )) {
+	fprintf( stderr, "Cosign is not configured correctly:\n" );
+	if ( cfg->host == NULL ) {
+	    fprintf( stderr, "CosignHostname is not set\n" );
+	}
+	if ( cfg->redirect == NULL ) {
+	    fprintf( stderr, "CosignRedirect is not set\n" );
+	}
+	if ( cfg->service == NULL ) {
+	    fprintf( stderr, "CosignService is not set\n" );
+	}
+	if ( cfg->posterror == NULL ) {
+	    fprintf( stderr, "CosignPostErrorRedirect is not set\n" );
+	}
 	return( FORBIDDEN );
     }
 
@@ -141,22 +153,20 @@ cosign_auth( request_rec *r )
      * Look for cfg->service cookie. if there isn't one,
      * set it and redirect.
      */
-
-    data = ap_table_get( r->headers_in, "Cookie" );
-
-    while ( data && *data && ( pair = ap_getword( r->pool, &data, ';' ))) {
-	if ( *data == ' ' ) ++data;
-	cookiename = ap_getword( r->pool, &pair, '=' );
-	if ( strcasecmp( cookiename, cfg->service ) == 0 ) {
-	    /* we found a matching cookie */
-	    goto validate_cookie;
-	}
+    if (( data = ap_table_get( r->headers_in, "Cookie" )) == NULL ) {
+	goto set_cookie;
     }
 
-    if ( set_cookie_and_redirect( r, cfg ) == 0 ) {
-	return( HTTP_MOVED_TEMPORARILY );
-    } else {
-	return( FORBIDDEN );
+    while ( *data && ( pair = ap_getword( r->pool, &data, ';' ))) {
+	cookiename = ap_getword( r->pool, &pair, '=' );
+	if ( strcasecmp( cookiename, cfg->service ) == 0 ) {
+	    break;
+	}
+	cookiename = NULL;
+	while ( *data == ' ' ) { data++; }
+    }
+    if ( cookiename == NULL ) {
+	goto set_cookie;
     }
 
     /*
@@ -164,24 +174,24 @@ cosign_auth( request_rec *r )
      * version of the data, just verify the cookie's still valid.
      * Otherwise, retrieve the auth info from the server.
      */
-
-validate_cookie:
     my_cookie = ap_psprintf( r->pool, "%s=%s", cookiename, pair );
-    strcpy( si.si_ipaddr, r->connection->remote_ip );
-    if ( cookie_valid( &cfg->cl, my_cookie, &si ) < 0 ) {
-	if ( set_cookie_and_redirect( r, cfg ) == 0 ) {
-	    return( HTTP_MOVED_TEMPORARILY );
-	} else {
-	    return( FORBIDDEN );
-	}
+    if ( cookie_valid( &cfg->cl, my_cookie, &si,
+	    r->connection->remote_ip ) != 0 ) {	/* < 0 == 0 > 0 */
+	goto set_cookie;
     }
     ap_table_set( r->subprocess_env, "REMOTE_REALM", si.si_realm );
     r->connection->user = ap_pstrcat( r->pool, si.si_user, NULL);
-    /* add in Kerberos info here */
+
+    /* XXX add in Kerberos info here */
 
     return( DECLINED );
-}
 
+set_cookie:
+    if ( set_cookie_and_redirect( r, cfg ) != 0 ) {
+	return( FORBIDDEN );
+    }
+    return( HTTP_MOVED_TEMPORARILY );
+}
 
     static const char *
 set_cosign_protect( cmd_parms *params, void *mconfig, int flag )
@@ -338,8 +348,12 @@ set_cosign_host( cmd_parms *params, void *mconfig, char *arg )
     void
 cosign_child_cleanup( server_rec *s, pool *p )
 {
+    cosign_host_config	*cfg;
+
     /* upon child exit, close all open SNETs */
-    if ( teardown_conn() != 0 ) {
+    cfg = (cosign_host_config *) ap_get_module_config( s->module_config,
+	    &cosign_module );
+    if ( teardown_conn( cfg->cl ) != 0 ) {
 	fprintf( stderr, "teardown_conn: something bad happened\n" );
     }
     return;
@@ -401,4 +415,3 @@ module MODULE_VAR_EXPORT cosign_module = {
     NULL                   /* EAPI: new_connection                */
 #endif
 };
-

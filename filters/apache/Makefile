@@ -11,7 +11,7 @@ APACHECTL=apachectl
 #   additional user defines, includes and libraries
 #DEF=-Dmy_define=my_value
 INC=-I/usr/local/openssl/include -I/usr/local/apache/include -I./libsnet
-CFLAGS=	${DEF} ${INC} -DEAPI
+CFLAGS=	${DEF} ${INC} -DEAPI -Wall -Wstrict-prototypes
 LIB=-L/usr/local/openssl/lib -lcrypto -L./libsnet -lsnet
 OBJ=	mod_cosign.o mkcookie.o fbase64.o connect.o cookiefs.o sparse.o \
 	argcargv.o version.o
