@@ -179,7 +179,8 @@ main( int argc, char *argv[] )
     char			*tmpl = LOGIN_HTML;
     MYSQL_RES			*res;
     MYSQL_ROW			row;
-    char			*sql, *crypted;
+    char			sql[ 384 ];
+    char			*crypted;
 
     if ( argc == 2 && ( strncmp( argv[ 1 ], "-V", 2 ) == 0 )) {
 	printf( "%s\n", cosign_version );
@@ -312,7 +313,7 @@ main( int argc, char *argv[] )
 
     if ( strchr( cl[ CL_LOGIN ].cl_data, '@' ) != NULL ) {
 	/* look up guest account in db */
-	if ( !mysql_connect( &friend_db, "localhost", "friend", "(End0!)" )) {
+	if ( !mysql_connect( &friend_db, "babbler.web.itd.umich.edu", "friend", "(End0!)" )) {
 	    fprintf( stderr, mysql_error( &friend_db ));
 	    err = "Unable to connect to guest account database.";
 	    title = "Authentication Required ( server problem )";
@@ -330,10 +331,8 @@ main( int argc, char *argv[] )
 	    exit( 0 );
 	}
 
-	sql = malloc( 255 );
-
 	/* XXX should check for sql injection in username query */
-	sprintf( sql, "SELECT account_name, passwd, timestamp FROM friends WHERE account_name = '%s'", cl[ CL_LOGIN ].cl_data );
+	snprintf( sql, sizeof( sql ), "SELECT account_name, passwd, timestamp FROM friends WHERE account_name = '%s'", cl[ CL_LOGIN ].cl_data );
 
 	if( mysql_real_query( &friend_db, sql, 255 )) {
 	    fprintf( stderr, mysql_error( &friend_db ));
@@ -344,18 +343,25 @@ main( int argc, char *argv[] )
 	    exit( 0 );
 	}
 
-	res = mysql_store_result( &friend_db );
+	if (( res = mysql_store_result( &friend_db )) == NULL ) {
+	    /* was there an error?  NULL can be okay. */
+	    if ( mysql_errno( &friend_db )) {
+		fprintf( stderr, mysql_error( &friend_db ));
+		err = "There was a problem connecting to the database.";
+		title = "Database Connection Problem";
 
-	if (( row = mysql_fetch_row( res ) ) == NULL ) {
+		subfile ( tmpl );
+		exit( 0 );
+	    }
+	}
+
+	if (( row = mysql_fetch_row( res )) == NULL ) {
 	    err = "Password or Account Name incorrect.  Is [caps lock] on?";
 	    title = "Authentication Required ( guest account error )";
 
 	    subfile ( tmpl );
 	    exit( 0 );
 	}
-
-	mysql_free_result( res );
-	mysql_close( &friend_db );
 
 	/* crypt the user's password */
 	crypted = crypt( cl[ CL_PASSWORD ].cl_data, row[ 1 ] );
@@ -376,8 +382,14 @@ main( int argc, char *argv[] )
 		    exit( 0 );
 		}
 	    }
+	    mysql_free_result( res );
+	    mysql_close( &friend_db );
+
 	    goto accepted;
 	}
+
+	mysql_free_result( res );
+	mysql_close( &friend_db );
 
 	/* this is a valid friend account but password failed */
 	err = "Unable to login because guest password is incorrect.";
