@@ -31,17 +31,16 @@ extern struct timeval	cosign_net_timeout;
 
 static struct connlist	*replhead;
 static int		reconfig = 0;
-static int		hupsig;
 static int		childsig = 0;
 
 static void     (*logger)( char * ) = NULL;
 static void	pusherhup( int );
 static void	pusherchld( int );
 static void	mkpushers( int );
+static void	pusherdaemon( struct connlist * );
 int		pusherparent( int );
 int		pusher( int, struct connlist * );
 int		pusherhosts( void );
-void		pusherdaemon( struct connlist * );
 
     void
 pusherdaemon( struct connlist *cur )
@@ -113,99 +112,18 @@ pusherhosts( void )
     return( 0 );
 }
 
-    void
+    static void
 pusherhup( int sig )
 {
-
     reconfig++;
-    hupsig = sig;
     return;
-
-#ifdef notdef
-    struct connlist	*cur;
-
-    /* hup all the children */
-    for ( cur = replhead; cur != NULL; cur = cur->cl_next ) {
-	if ( cur->cl_pid <= 0 ) {
-	    continue;
-	}
-
-	if ( kill( cur->cl_pid, sig ) < 0 ) {
-	    syslog( LOG_ERR, "pusherhup: %m" );
-	}
-    }
-
-    if ( pusherhosts( ) != 0 ) {
-	syslog( LOG_ERR, "unhappy with lookup of %s", replhost );
-	exit( 1 );
-    }
-
-    syslog( LOG_INFO, "reload pusher %s", cosign_version );
-#endif 
-
 }
 
-    void
+    static void
 pusherchld( int sig )
 {
      childsig++;
      return;
-
-#ifdef notdef
-    int			pid, status;
-    struct connlist	**cur, *temp;
-    extern int		errno;
-
-    while (( pid = waitpid( 0, &status, WNOHANG )) > 0 ) {
-	/* mark in the list that child has exited */
-	for ( cur = &replhead; *cur != NULL; cur = &(*cur)->cl_next ) {
-	    if ( pid == (*cur)->cl_pid ) {
-		(*cur)->cl_pid = 0;
-		if ( (*cur)->cl_psn != NULL ) {
-		    snet_close( (*cur)->cl_psn );
-		    (*cur)->cl_psn = NULL;
-		}
-		break;
-	    }
-	}
-	if ( WIFEXITED( status )) {
-	    switch( WEXITSTATUS( status )) {
-	    case 0:
-		syslog( LOG_ERR, "CHILD %d exited", pid );
-		break;
-
-	    case 2:
-		syslog( LOG_CRIT, "CHILD %d configuration error", pid );
-		exit( 1 );
-
-	    case 3:
-		syslog( LOG_ERR, "CHILD %d talking to itself", pid );
-		/* remove from list */
-		if ( *cur != NULL ) {
-		    temp = *cur;
-		    *cur = (*cur)->cl_next;
-		    free( temp );
-		}
-		break;
-
-	    default:
-		syslog( LOG_ERR, "CHILD %d exited with %d", pid,
-			WEXITSTATUS( status ));
-		break;
-	    }
-	} else if ( WIFSIGNALED( status )) {
-	    syslog( LOG_ERR, "CHILD %d died on signal %d", pid,
-		    WTERMSIG( status ));
-	} else {
-	    syslog( LOG_ERR, "CHILD %d died", pid );
-	}
-    }
-
-    if ( pid < 0 && errno != ECHILD ) {
-	syslog( LOG_ERR, "wait3: %m" );
-	exit( 1 );
-    }
-#endif
 }
 
     void
@@ -284,14 +202,15 @@ mkpushers( int ppipe )
 pusherparent( int ppipe )
 {
     struct sigaction	sa;
-    sigset_t 		signalset;
     SNET		*sn;
     char		*line;
-    int			max;
+    int			max, status;
+    pid_t		pid;
     fd_set		fdset;
-    struct timeval	tv = { 0, 0 };
-    struct connlist	*cur;
+    struct timeval	tvzero = { 0, 0 };
+    struct connlist	*cur, **curp, *temp;
     double		rate;
+    extern int		errno;
 
     /* catch SIGHUP */
     memset( &sa, 0, sizeof( struct sigaction ));
@@ -317,29 +236,98 @@ pusherparent( int ppipe )
 	exit( 1 );
     }
 
-    sigemptyset( &signalset );
-    sigaddset( &signalset, SIGCHLD );
-
     if (( sn = snet_attach( ppipe, 1024 * 1024 ) ) == NULL ) {
         syslog( LOG_ERR, "pusherparent: snet_attach: %m" );
         return( -1 );
     }
 
-    sigprocmask( SIG_BLOCK, &signalset, NULL );
     mkpushers( ppipe );
-    sigprocmask( SIG_UNBLOCK, &signalset, NULL );
 
     for ( ;; ) {
+	/* hup all the children */
+	if ( reconfig ) {
+	    reconfig = 0;
+	    for ( cur = replhead; cur != NULL; cur = cur->cl_next ) {
+		if ( cur->cl_pid <= 0 ) {
+		    continue;
+		}
+
+		if ( kill( cur->cl_pid, SIGHUP ) < 0 ) {
+		    syslog( LOG_ERR, "pusherhup: %m" );
+		}
+	    }
+
+	    if ( pusherhosts() != 0 ) {
+		syslog( LOG_ERR, "unhappy with lookup of %s", replhost );
+		exit( 1 );
+	    }
+
+	    syslog( LOG_INFO, "reload pusher %s", cosign_version );
+	}
+
+	if ( childsig ) {
+	    childsig = 0;
+	    while (( pid = waitpid( 0, &status, WNOHANG )) > 0 ) {
+		/* mark in the list that child has exited */
+		for ( curp = &replhead; *curp != NULL;
+			curp = &(*curp)->cl_next ) {
+		    if ( pid == (*curp)->cl_pid ) {
+			(*curp)->cl_pid = 0;
+			if ( (*curp)->cl_psn != NULL ) {
+			    snet_close( (*curp)->cl_psn );
+			    (*curp)->cl_psn = NULL;
+			}
+			break;
+		    }
+		}
+		if ( WIFEXITED( status )) {
+		    switch( WEXITSTATUS( status )) {
+		    case 0:
+			syslog( LOG_ERR, "CHILD %d exited", pid );
+			break;
+
+		    case 2:
+			syslog( LOG_CRIT, "CHILD %d configuration error", pid );
+			exit( 1 );
+
+		    case 3:
+			syslog( LOG_ERR, "CHILD %d talking to itself", pid );
+			/* remove from list */
+			if ( *curp != NULL ) {
+			    temp = *curp;
+			    *curp = (*curp)->cl_next;
+			    free( temp );
+			}
+			break;
+
+		    default:
+			syslog( LOG_ERR, "CHILD %d exited with %d", pid,
+				WEXITSTATUS( status ));
+			exit( 1 );
+		    }
+		} else if ( WIFSIGNALED( status )) {
+		    syslog( LOG_ERR, "CHILD %d died on signal %d", pid,
+			    WTERMSIG( status ));
+		    exit( 1 );
+		} else {
+		    syslog( LOG_ERR, "CHILD %d died", pid );
+		    exit( 1 );
+		}
+	    }
+
+	    if ( pid < 0 && errno != ECHILD ) {
+		syslog( LOG_ERR, "wait3: %m" );
+		exit( 1 );
+	    }
+	}
+
 	if (( line = snet_getline( sn, NULL )) == NULL ) {
 	    syslog( LOG_ERR, "pusherparent: snet_getline: %m" );
 	    exit( 1 );
 	}
 
-	sigprocmask( SIG_BLOCK, &signalset, NULL );
 	mkpushers( ppipe );
-	sigprocmask( SIG_UNBLOCK, &signalset, NULL );
 
-	sigprocmask( SIG_BLOCK, &signalset, NULL );
 	max = 0;
 	FD_ZERO( &fdset );
 	for ( cur = replhead; cur != NULL; cur = cur->cl_next ) {
@@ -350,13 +338,11 @@ pusherparent( int ppipe )
 		}
 	    }
 	}
-	sigprocmask( SIG_UNBLOCK, &signalset, NULL );
 
-	if ( select( max + 1, NULL, &fdset, NULL, &tv ) < 0 ) {
+	if ( select( max + 1, NULL, &fdset, NULL, &tvzero ) < 0 ) {
 	    continue;
 	}
 
-	sigprocmask( SIG_BLOCK, &signalset, NULL );
 	for ( cur = replhead; cur != NULL; cur = cur->cl_next ) {
 	    if ( cur->cl_pid > 0 ) {
 		if ( FD_ISSET( snet_fd( cur->cl_psn ), &fdset )) {
@@ -373,7 +359,6 @@ pusherparent( int ppipe )
 		}
 	    }
 	}
-	sigprocmask( SIG_UNBLOCK, &signalset, NULL );
     }
 }
 
@@ -416,28 +401,45 @@ pusher( int cpipe, struct connlist *cur )
 	break;
     }
 
-    if ( ac <= 2 ) {
-	syslog( LOG_ERR, "pusherchild: not enuff args" );
-	break;
-    }
-
-    if (( strcasecmp( av[ 0 ], "login" )) == 0 ) {
-	if ( ac == 6 ) {
-	    snet_writef( cur->cl_sn, "LOGIN %s %s %s %s kerberos\r\n",
-		    av[ 1 ], av [ 2 ], av [ 3 ], av [ 4 ] );
-	    krb = 1;
-	} else {
-	    snet_writef( cur->cl_sn, "LOGIN %s %s %s %s\r\n",
-		    av[ 1 ], av [ 2 ], av [ 3 ], av [ 4 ] );
+    switch ( ac ) {
+    case 6 :
+	if (( strcasecmp( av[ 0 ], "login" )) != 0 ) {
+	    syslog( LOG_ERR, "pusherchild: %s: bad command" );
+	    exit( 1 );
 	}
-    } else if (( strcasecmp( av[ 0 ], "register" )) == 0 ) {
-	snet_writef( cur->cl_sn, "REGISTER %s %s %s\r\n",
-		    av[ 1 ], av[ 2 ], av [ 3 ] );
+	snet_writef( cur->cl_sn, "LOGIN %s %s %s %s kerberos\r\n",
+	    av[ 1 ], av [ 2 ], av [ 3 ], av [ 4 ] );
+	krb = 1;
+	break;
 
-    } else if (( strcasecmp( av[ 0 ], "logout" )) == 0 ) {
+    case 5 :
+	if (( strcasecmp( av[ 0 ], "login" )) != 0 ) {
+	    syslog( LOG_ERR, "pusherchild: %s: bad command" );
+	    exit( 1 );
+	}
+	snet_writef( cur->cl_sn, "LOGIN %s %s %s %s\r\n",
+		av[ 1 ], av [ 2 ], av [ 3 ], av [ 4 ] );
+	break;
+
+    case 4 :
+	if (( strcasecmp( av[ 0 ], "register" )) != 0 ) {
+	    syslog( LOG_ERR, "pusherchild: %s: bad command" );
+	    exit( 1 );
+	}
+	snet_writef( cur->cl_sn, "REGISTER %s %s %s\r\n",
+		av[ 1 ], av[ 2 ], av [ 3 ] );
+	break;
+
+    case 3 :
+	if (( strcasecmp( av[ 0 ], "logout" )) != 0 ) {
+	    syslog( LOG_ERR, "pusherchild: %s: bad command" );
+	    exit( 1 );
+	}
 	snet_writef( cur->cl_sn, "LOGOUT %s %s\r\n", av[ 1 ], av[ 2 ] );
-    } else {
-	syslog( LOG_ERR, "pusherchild: what's %s?", av[ 0 ]);
+	break;
+
+    default :
+	syslog( LOG_ERR, "pusherchild: wrong number of args" );
 	exit( 1 );
     }
 
@@ -448,12 +450,12 @@ pusher( int cpipe, struct connlist *cur )
     }
 
     if ( !krb ) {
-	goto finish;
+	goto done;
     }
 
     if ( *line != '3' ) {
         syslog( LOG_ERR, "pusherchld: not 3, got: %s", line );
-        goto done;
+        goto error;
     }
 
     if (( rc = read_cookie( av[ 1 ], &ci )) < 0 ) {
@@ -463,18 +465,18 @@ pusher( int cpipe, struct connlist *cur )
 
     if (( fd = open( ci.ci_krbtkt, O_RDONLY, 0 )) < 0 ) {
         syslog( LOG_ERR, "pusherchld-open: %m" );
-        goto done;
+        goto error;
     }
 
     if ( fstat( fd, &st) < 0 ) {
         syslog( LOG_ERR, "pusherchld-fstat: %m" );
-        goto done;
+        goto error;
     }
 
     size = st.st_size;
     if ( snet_writef( cur->cl_sn, "%d\r\n", (int)st.st_size ) < 0 ) {
         syslog( LOG_ERR, "login %s failed: %m", av[ 2 ] );
-        goto done;
+        goto error;
     }
 
     while (( rr = read( fd, buf, sizeof( buf ))) > 0 ) {
@@ -482,7 +484,7 @@ pusher( int cpipe, struct connlist *cur )
         if ( snet_write( cur->cl_sn, buf, (int)rr, &tv ) != rr ) {
 	    syslog( LOG_ERR, "login %s failed: %m", av[ 2 ] );
 	    close( fd );
-            goto done;
+            goto error;
         }
         size -= rr;
     }
@@ -491,20 +493,20 @@ pusher( int cpipe, struct connlist *cur )
 
     if ( rr < 0 ) {
         syslog( LOG_ERR, "pusherchld-rr: %m" );
-        goto done;
+        goto error;
     }
 
     /* Check number of bytes sent to server */
     if ( size != 0 ) {
         syslog( LOG_ERR,
             "login %s failed: Wrong number of bytes sent", av[ 2 ] );
-        goto done;
+        goto error;
     }
 
     /* End transaction with server */
     if ( snet_writef( cur->cl_sn, ".\r\n" ) < 0 ) {
 	syslog( LOG_ERR, "login %s failed: %m", av[ 2 ] );
-        goto done;
+        goto error;
     }
 
     tv = cosign_net_timeout;
@@ -516,7 +518,7 @@ pusher( int cpipe, struct connlist *cur )
         }
     }
 
-finish:
+done:
     if (( *line != '2' ) && ( *line != '5' )) {
 	syslog( LOG_ERR, "pusherchld: %s", line );
 	if (( close_sn( cur )) != 0 ) {
@@ -528,7 +530,7 @@ finish:
 
     return( 0 );
 
-done:
+error:
     if (( close_sn( cur )) != 0 ) {
 	syslog( LOG_ERR, "pusherchld: close_sn: %m" );
     }
