@@ -6,6 +6,7 @@ include(`header.html')
 	enctype="application/x-www-form-urlencoded"
 	method="post" autocomplete="off">
 <input type="hidden" name="ref" value="$r">
+<input type="hidden" name="service" value="$c">
 
 <p>
     By using this service you agree to adhere to <a

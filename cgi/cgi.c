@@ -9,6 +9,7 @@
 #include <sys/time.h>
 #include <sys/types.h>
 #include <sys/param.h>
+#include <time.h>
 #include <krb5.h>
 
 #include <openssl/ssl.h>
@@ -20,16 +21,14 @@
 #define ERROR_HTML	"../templates/error.html"
 #define LOGIN_HTML	"../templates/login.html"
 #define SERVICE_MENU	"../templates/service-menu.html"
-#define SPLASH_HTML	"../templates/splash.html"
 #define TKT_PREFIX	"/ticket/"
 #define SIDEWAYS        1
 
 extern char	*version;
-char	*err = NULL, *ref = NULL;
+char	*err = NULL, *ref = NULL, *service = NULL;
 char	*title = "Authentication Required";
 char	*host = _COSIGN_HOST;
 char	*keytab_path = _KEYTAB_PATH;
-int	nocache = 0;
 int	port = 6663;
 
 struct cgi_list cl[] = {
@@ -39,6 +38,8 @@ struct cgi_list cl[] = {
         { "password", NULL },
 #define CL_REF		2
         { "ref", NULL },
+#define CL_SERVICE	3
+        { "service", NULL },
         { NULL, NULL },
 };
 
@@ -50,17 +51,12 @@ subfile( char *filename )
 {
     FILE	*fs;
     int 	c, i;
-    char	nasties[] = "<>(){}[]~?&=;'`\" \\";
+    char	nasties[] = "<>(){}[];'`\" \\";
 
-    if ( nocache ) {
-        fputs( "Expires: Mon, 16 Apr 1973 02:10:00 GMT\n"
-                "Last-Modified: Mon, 16 Apr 1973 02:10:00 GMT\n"
-                "Cache-Control: no-store, no-cache, must-revalidate\n"
-                "Cache-Control: pre-check=0, post-check=0, max-age=0\n"
-                "Pragma: no-cache\n", stdout );
-    }
-
-    fputs( "Content-type: text/html\n\n", stdout );
+    fputs( "Cache-Control: no-cache, private\n"
+	    "Pragma: no-cache\n"
+	    "Expires: -1\n"
+	    "Content-type: text/html\n\n", stdout );
 
     if (( fs = fopen( filename, "r" )) == NULL ) {
 	perror( filename );
@@ -71,6 +67,21 @@ subfile( char *filename )
 	if ( c == '$' ) {
 
 	    switch ( c = getc( fs )) {
+            case 'c':
+                if ( service != NULL ) {
+                    for ( i = 0; i < strlen( service ); i++ ) {
+                        /* block XSS attacks while printing */
+                        if ( strchr( nasties, service[ i ] ) != NULL ||
+                                service[ i ] <= 0x1F || service[ i ] >= 0x7F ) {
+
+			    printf( "%%%x", service[ i ] );
+                        } else {
+                            putc( service[ i ], stdout );
+                        }
+                    }
+                }
+                break;
+
 	    case 't':
 		if ( title != NULL ) {
 		    printf( "%s", title );
@@ -108,12 +119,7 @@ subfile( char *filename )
                         if ( strchr( nasties, ref[ i ] ) != NULL ||
                                 ref[ i ] <= 0x1F || ref[ i ] >= 0x7F ) {
 
-			    if ( ref[ i ] == '?' || ref[ i ] == '=' ) {
-				putc( ref[ i ], stdout );
-			    } else {
-				printf( "%%%x", ref[ i ] );
-			    }
-
+			    printf( "%%%x", ref[ i ] );
                         } else {
                             putc( ref[ i ], stdout );
                         }
@@ -162,7 +168,7 @@ main( int argc, char *argv[] )
     char                	new_cookiebuf[ 128 ];
     char        		new_cookie[ 255 ];
     char               		tmpkrb[ 16 ], krbpath [ 24 ];
-    char			*data, *ip_addr, *service;
+    char			*data, *ip_addr;
     char			*cookie = NULL, *method, *script, *qs;
     char			*tmpl = LOGIN_HTML;
 
@@ -195,8 +201,7 @@ main( int argc, char *argv[] )
 
 	if ( cookie == NULL || strlen( cookie ) == 7 ) {
 	    title = "Authentication Required";
-
-	    tmpl = SPLASH_HTML;
+	    err = "Something about coming in from the top.";
 	    goto loginscreen;
 	}
 
@@ -219,7 +224,6 @@ main( int argc, char *argv[] )
 	if (( rc = cosign_register( cookie, ip_addr, service )) < 0 ) {
 	    if ( cosign_check( cookie ) < 0 ) {
 		title = "Authentication Required";
-		tmpl = SPLASH_HTML;
 		goto loginscreen;
 	    }
 
@@ -260,7 +264,6 @@ main( int argc, char *argv[] )
 
 	title = "Authentication Successful";
 	tmpl = SERVICE_MENU;
-	nocache = 1;
 
 	subfile( tmpl );
 	exit( 0 );
@@ -386,7 +389,7 @@ main( int argc, char *argv[] )
 
     if (( kerror = krb5_kt_resolve( kcontext, ktbuf, &keytab )) != 0 ) {
 	err = (char *)error_message( kerror );
-	title = "( Ticket Verify Error )";
+	title = "( KT Resolve Error )";
 	
 	tmpl = ERROR_HTML;
 	subfile ( tmpl );
@@ -444,7 +447,6 @@ main( int argc, char *argv[] )
     err = "Your password has been accepted.";
     title = "Choose a Service";
     tmpl = SERVICE_MENU;
-    nocache = 1;
 
     if ( cosign_login( cookie, ip_addr, 
 	    cl[ CL_UNIQNAME ].cl_data, "UMICH.EDU", krbpath ) < 0 ) {
@@ -455,6 +457,29 @@ main( int argc, char *argv[] )
 	    printf( "Location: %s\n\n", host );
 	    exit( 0 );
 	}
+    }
+
+    if (( cl[ CL_SERVICE ].cl_data != NULL ) &&
+	    ( *cl[ CL_SERVICE ].cl_data != '\0' )) {
+
+	/* url decode here the service cookie? */
+
+        if (( rc = cosign_register( cookie, ip_addr,
+		cl[ CL_SERVICE ].cl_data )) < 0 ) {
+
+	    /* this should not be possible... do it anyway? */
+            if ( cosign_check( cookie ) < 0 ) {
+                title = "Authentication Required";
+                goto loginscreen;
+            }
+
+            fprintf( stderr, "%s: implicit cosign_register failed\n", script );
+            title = "Error: Implicit Register Failed";
+            tmpl = ERROR_HTML;
+            err = "We were unable to contact the authentication server.  Please try again later.";
+            subfile( tmpl );
+            exit( 0 );
+        }
     }
 
     if (( ref != NULL ) && ( ref = strstr( ref, "http" )) != NULL ) {
@@ -473,7 +498,6 @@ loginscreen:
 
     snprintf( new_cookie, sizeof( new_cookie ), "cosign=%s", new_cookiebuf );
     printf( "Set-Cookie: %s; path=/; secure\n", new_cookie );
-    nocache = 1;
     subfile( tmpl );
     exit( 0 );
 }
