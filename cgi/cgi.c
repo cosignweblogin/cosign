@@ -96,7 +96,7 @@ loop_checker( int time, int count, char *cookie )
 		exit( 0 );
 	    }
 	    title = "Error: Loop detected";
-	    err = "We have detected you are looping. That sucks. ";
+	    err = "We have detected you are looping. Please try again later.";
 	    subfile( tmpl );
 	    exit( 0 );
 	} else {
