@@ -3,6 +3,7 @@
 prefix=@prefix@
 exec_prefix=@exec_prefix@
 SBINDIR=@sbindir@
+MANDIR=@mandir@
 
 COSIGNCONF=@cosignconf@
 COSIGNDB=@cosigndb@
@@ -27,8 +28,11 @@ SRC= daemon.c command.c argcargv.c cparse.c config.c fbase64.c mkcookie.c wildca
 COSIGNOBJ= daemon.o command.o argcargv.o cparse.o config.o fbase64.o mkcookie.o wildcard.o logname.o ../version.o
 
 TARGETS=	cosignd
+MANTARGETS=	cosignd.8
 
 all : ${TARGETS}
+
+FRC :
 
 daemon.o : daemon.c
 	${CC} ${CFLAGS} \
@@ -43,11 +47,33 @@ daemon.o : daemon.c
 cosignd : ../libsnet/libsnet.la ${COSIGNOBJ} Makefile
 	${CC} ${CFLAGS} ${LDFLAGS} -o cosignd ${COSIGNOBJ} ${LIBPATH} ${LIBS}
 
-install : all
+man : FRC
+	-mkdir tmp
+	-mkdir tmp/man
+	pwd
+	for i in ${MANTARGETS}; do \
+	sed -e 's@_COSIGN_CONF@${COSIGNCONF}@g'  \
+	-e 's@_COSIGN_DIR@${COSIGNDB}@g' \
+	-e 's@_COSIGN_TLS_CADIR@${COSIGNCADIR}@g' \
+	-e 's@_COSIGN_TLS_CERT@${COSIGNCERT}@g' \
+	-e 's@_COSIGN_TLS_KEY@${COSIGNKEY}@g' \
+	$$i > tmp/man/$$i; \
+	done
+
+install : all man
 	-mkdir -p ${exec_prefix}
 	-mkdir -p ${SBINDIR}
 	${INSTALL} -m 0755 -c cosignd ${SBINDIR}/
+	-mkdir -p ${prefix}
+	-mkdir -p ${MANDIR}
+	-mkdir ${MANDIR}/man8
+	${INSTALL} -m 0644 -c tmp/man/cosignd.8 ${MANDIR}/man8/
 
 clean :
 	rm -f a.out core* *.o *.bak *[Ee]rrs tags
 	rm -f ${TARGETS}
+	rm -rf tmp
+
+
+
+

@@ -1,0 +1,175 @@
+.TH cosignd "8" "February 2003" "umweb" "System Manager's Manual"
+.SH NAME
+.B cosignd
+\- Cookie Sign-On Daemon
+.SH SYNOPSIS
+.B cosignd
+[
+.B \-dV
+] [
+.BI \-b\  backlog
+] [
+.BI \-c\  config-file
+] [
+.BI \-D\  db-directory
+] [
+.BI \-L\  syslog-facility
+] [
+.BI \-p\  port
+] [
+.BI \-x\  ca-dir
+] [
+.BI \-y\  cert-pem-file
+] [ 
+.BI \-z\  private-key-file
+]
+.sp
+.SH DESCRIPTION
+Cosign clients use an smtp style protocol to communicate with cosignd.
+On startup, cosignd changes directory to _COSIGN_DIR
+and begins listening on the cosignd port ( by default 6663 ) for
+incoming connections.
+With the
+-D option, cosignd will use
+.I db-directory
+as its working directory.
+Cosignd forks a child for each connection.
+.sp
+The file _COSIGN_CONF contains a list of known clients that
+can connect to cosignd, one per line.
+With the
+-c option, cosignd will use
+.I config-file
+as its configuration file instead.
+
+Each line contains a keyword, which is the role of the client in the cosign system - 
+.B cgi,
+.B daemon,
+or
+.B service.
+Next is the subject CN ( common name ). The 
+.B service
+keyword takes a third argument, which is a flag [0/1] to signify if the host with the listed subject CN can ask for Kerberos tickets. 
+
+Lines that are blank or begin with '#' are ignored.  '*' is a wildcard and
+will match any string.
+.sp
+A client's CN  must match a line in the configuration file, otherwise it is not permitted to talk to cosignd. All clients must call STARTTLS before any other commands can be issued. Clients can only issue commands associated with their keyword. This means that the keyword
+.B service
+allows clients to use the
+.B CHECK
+and
+.B RETRIEVE
+commands. The keyword
+.B cgi
+allows clients to use the
+.B LOGIN,
+.B CHECK,
+.B REGISTER,
+and
+.B LOGOUT
+commands. The keyword daemon has yet to be implemented.
+.sp
+.SH TERMINOLOGY
+.TP 19
+.B login-cookie
+in the form of "cosign=kl32kj42b...42b4kj2k", contains the user name, ip address, realm, login time and optionally, the path to the user's Kerberos V ticket. In addition, the login cookie keeps state as to whether the user is logged in or logged out.
+.TP 19
+.B service-cookie
+in the form of "cosign-campusmail=98ad9898fdg...798dfg9as", contains a line that links to the user's login cookie.
+.sp
+.SH COSIGN PROTOCOL
+Cosignd currently supports the following protocol requests:
+.sp
+.TP 10
+QUIT
+terminate session
+.TP 10
+NOOP
+do nothing
+.TP 10
+HELP
+Display helpful message
+.TP 10
+LOGIN
+Associates a login cookie with a user, realm, IP address and timestamp. Used by the cgi once the user has authenticated.
+.TP 10
+REGISTER
+Associates a service cookie ( cosign-[servicename]= ) with a login cookie ( cosign= ). 
+.TP 10
+CHECK
+Allows clients to retrieve information about a user based on the cookie presented to cosignd.
+.TP 10
+LOGOUT
+Invalidates a user's login cookie, causing any future 
+.B CHECK
+commands to return the logged out status. This is a centralized logout.
+.TP 10
+RETRIEVE
+Retrieve a Kerberos credential. The client must be authorized to do this.
+.TP 10
+STARTTLS
+Start TLS. This command must be given before a client can send a LOGIN, REGISTER, CHECK, LOGOUT, or RETRIEVE.
+.sp
+.SH OPTIONS
+.TP 19
+.BI \-b\  backlog
+Defines the maximum queue of pending connections to
+.BR listen (2),
+by default five.
+.TP 19
+.BI \-c\  config-file
+specifies the path to cosignd's configuration file, by default _COSIGN_CONF
+.TP 19
+.BI \-D\  db-directory
+specifies the  directory to store the cookie database, by default _COSIGN_DIR
+.TP 19
+.B \-d
+debug mode. Does not disassociate from controlling tty.
+.TP 19
+.BI \-L\  syslog-facility
+specifies which syslog-facilty to log messages to.
+.TP 19
+.BI \-p\  port 
+specifies the port of the cosisgn server, by default
+.BR 6663 .
+.TP 19
+.B \-V
+displays the version of 
+.B  cosignd
+and exits.
+.TP 19
+.BI \-x\  ca-dir
+Certificate authority's public certificate directory, by default _COSIGN_TLS_CADIR.
+.TP 19
+.BI \-y\  cert-pem-file
+Server's public certificate, by default _COSIGN_TLS_CERT.
+.TP 19
+.BI \-z\  private-key-file
+Server's private key, by default _COSIGN_TLS_KEY.
+.sp
+.SH EXAMPLES
+The following example of _COSIGN_CONF defines 2 cgis and several services.
+.sp
+.RS
+.nf
+#
+# keyword 		subject cn			get tickets?
+#
+cgi				cosignserver.umich.edu
+cgi				cosignserver.test.umich.edu
+service			servicea.web.umich.edu		0
+service			serviceb.web.umich.edu		0
+service			campusmail.umich.edu		1
+service			alumni.web.mgoblue.com		0
+service			*.web.umich.edu			0
+.fi
+.RE
+.LP
+.sp
+.SH FILES
+_COSIGN_CONF
+.sp
+.SH SEE ALSO
+.sp
+http://weblogin.org
