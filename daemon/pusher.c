@@ -432,7 +432,7 @@ pusher( int cpipe, struct cl *cur )
 
     tv = timeout;
     if (( line = snet_getline_multi( cur->cl_sn, logger, &tv )) == NULL ) {
-	syslog( LOG_ERR, "pusherchld: %m" );
+	syslog( LOG_ERR, "pusherchld-getline: %m" );
 	exit( 1 );
     }
 
@@ -451,12 +451,12 @@ pusher( int cpipe, struct cl *cur )
     }
 
     if (( fd = open( ci.ci_krbtkt, O_RDONLY, 0 )) < 0 ) {
-        syslog( LOG_ERR, "pusherchld: %m" );
+        syslog( LOG_ERR, "pusherchld-open: %m" );
         goto done;
     }
 
     if ( fstat( fd, &st) < 0 ) {
-        syslog( LOG_ERR, "pusherchld: %m" );
+        syslog( LOG_ERR, "pusherchld-fstat: %m" );
         goto done;
     }
 
@@ -479,7 +479,7 @@ pusher( int cpipe, struct cl *cur )
     close( fd );
 
     if ( rr < 0 ) {
-        syslog( LOG_ERR, "pusherchld: %m" );
+        syslog( LOG_ERR, "pusherchld-rr: %m" );
         goto done;
     }
 
