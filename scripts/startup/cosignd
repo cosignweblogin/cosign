@@ -1,0 +1,27 @@
+#!/sbin/sh
+
+PATH=/usr/sbin:/usr/bin:/usr/local/bin
+COSIGND=/usr/local/projects/cosign/sbin/cosignd
+export PATH 
+
+case $1 in
+    'start')
+	if [ -x "$COSIGND" ]; then
+	    su - cosign -c "$COSIGND"
+	    echo 'Cosign daemon starting...'
+	fi
+    ;;
+
+    'stop')
+	# this will kill when we have a pid file
+    ;;
+
+    'restart')
+	# this will HUP when we have a pid file
+    ;;
+
+    *)
+	echo 'Usage: /etc/init.d/cosignd start'
+    ;;
+esac
+exit 0
