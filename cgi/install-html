@@ -15,12 +15,10 @@ for i in `/bin/ls *.html`; do
     echo copying $i to $2/$i
 
     if [ $i != "login.html" ]; then
-	# strip the onload event where it doesn't make sense.
-
-	/usr/bin/cat header.html $i footer.html \
-		| /usr/bin/sed 's/onLoad="setfocus()"//' >$2/$i
+	gcc -E -x c -P -C $i  >$2/$i
     else
-	/usr/bin/cat header.html login.html footer.html >$2/login.html
+	gcc -E -x c -P -C login.html \
+		| /usr/bin/sed 's/<body/<body onLoad="setfocus()"/' >$2/$i
     fi
 done
 
