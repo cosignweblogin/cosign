@@ -1,0 +1,89 @@
+Next step:
+	0. Dynamically generate a host key, solely for encrypting
+	the stream.  This is useless, unless you save the generated
+	host key on the server, and "finger print" the key on each
+	client, a la ssh.  This is pretty close to distributing a
+	CA.
+
+(done)	1. Give server a host key.  Connection is then encrypted,
+	but nothing is authenticated.
+
+(done)	2. Give client a CA cert.  Client can then verify server.
+	Server still doesn't know who client is.
+
+(done)	3. Give client a cert, make server ask for and verify client
+	cert.
+
+	Still need to parse the X509_NAME stuff.
+
+Both:
+SSL_CTX_set_verify
+	On the server, set this to require a client cert.  On the
+	client, merely verify the server.  We may need to write
+	our own verify_callback()
+
+SSL_CTX_use_certificate.3 SSL_CTX_use_certificate_chain_file
+	Load file of certs.
+SSL_CTX_use_PrivateKey_file
+	Load private key.  Note that private key, root CA, and host
+	cert should all be able to be stored in one file.
+
+Client:
+SSL_CTX_load_verify_locations
+	Both?  Do I need this?  I think both.  I think maybe we
+	don't need SSL_CTX_use_certificate_chain_file at all, but
+	this function, instead.
+
+Server:
+SSL_load_client_CA_file
+SSL_CTX_set_client_CA_list
+	These are used to tell the client which CA's can verify
+	this server, e.g. Verisign and CREN.  We get this from the
+	cert file.  E.g.:
+
+        SSL_CTX *ctx;
+        STACK_OF(X509_NAME) *cert_names;
+
+        ...
+        cert_names = SSL_load_client_CA_file("/path/to/CAfile.pem");
+        if (cert_names != NULL)
+          SSL_CTX_set_client_CA_list(ctx, cert_names);
+        else
+          error_handling();
+        ...
+
+To keep configure from unnecessarily checking for CPP, egrep, STD C headers,
+and 9 additional headers, the following change has been made to libtool.m4:
+
+--- libtool.m4.orig     2002-11-08 09:54:02.000002000 -0500
++++ libtool.m4  2002-11-08 09:54:30.000009000 -0500
+@@ -175,7 +175,7 @@
+ # _LT_AC_CHECK_DLFCN
+ # --------------------
+ AC_DEFUN([_LT_AC_CHECK_DLFCN],
+-[AC_CHECK_HEADERS(dlfcn.h)
++[AC_CHECK_HEADERS(dlfcn.h,[AC_DEFINE(HAVE_DLFCN_H)],[],[ ])
+ ])# _LT_AC_CHECK_DLFCN
+ 
+ # AC_LIBTOOL_SYS_GLOBAL_SYMBOL_PIPE
+
+
+Change to ltmain.sh to prevent spewing of unwanted messages:
+
+--- ltmain.sh.orig      2002-11-08 13:16:12.000002000 -0500
++++ ltmain.sh   2002-11-08 13:17:30.000004000 -0500
+@@ -4481,7 +4481,11 @@
+     if test -n "$current_libdirs"; then
+       # Maybe just do a dry run.
+       test -n "$run" && current_libdirs=" -n$current_libdirs"
+-      exec_cmd='$SHELL $0 --finish$current_libdirs'
++      if test $show = ':'; then
++        exec_cmd='$SHELL $0 --silent --finish$current_libdirs'
++      else
++        exec_cmd='$SHELL $0 --finish$current_libdirs'
++      fi
+     else
+       exit 0
+     fi
+
+

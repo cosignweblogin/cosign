@@ -102,12 +102,15 @@ snet_open( path, flags, mode, max )
 snet_close( sn )
     SNET		*sn;
 {
+    int			fd;
+
+    fd = sn->sn_fd;
     free( sn->sn_wbuf );
     free( sn->sn_rbuf );
-    if ( close( sn->sn_fd ) < 0 ) {
+    free( sn );
+    if ( close( fd ) < 0 ) {
 	return( -1 );
     }
-    free( sn );
     return( 0 );
 }
 
@@ -170,7 +173,7 @@ snet_writef( sn, format, va_alist )
     va_start( vl );
 #endif /* __STDC__ */
 
-#define SNET_WRITEFGROW(x)						\
+#define SNET_WBUFGROW(x)						\
 	    while ( cur + (x) > end ) {					\
 		if (( sn->sn_wbuf = (char *)realloc( sn->sn_wbuf,	\
 			sn->sn_wbuflen + SNET_BUFLEN )) == NULL ) {	\
@@ -188,20 +191,20 @@ snet_writef( sn, format, va_alist )
 	dbufoff = dbuf + sizeof( dbuf );
 
 	if ( *format != '%' ) {
-	    SNET_WRITEFGROW( 1 );
+	    SNET_WBUFGROW( 1 );
 	    *cur++ = *format;
 	} else {
 	    switch ( *++format ) {
 	    case 's' :
 		p = va_arg( vl, char * );
 		len = strlen( p );
-		SNET_WRITEFGROW( len );
+		SNET_WBUFGROW( len );
 		strcpy( cur, p );
 		cur += strlen( p );
 		break;
 
 	    case 'c' :
-		SNET_WRITEFGROW( 1 );
+		SNET_WBUFGROW( 1 );
 		*cur++ = va_arg( vl, int );
 		break;
 
@@ -216,7 +219,7 @@ snet_writef( sn, format, va_alist )
 		    d /= 10;
 		} while ( d );
 		len = p - dbufoff;
-		SNET_WRITEFGROW( len );
+		SNET_WBUFGROW( len );
 		strncpy( cur, dbufoff, len );
 		cur += len;
 		break;
@@ -232,7 +235,7 @@ snet_writef( sn, format, va_alist )
 		    d = d >> 3;
 		} while ( d );
 		len = p - dbufoff;
-		SNET_WRITEFGROW( len );
+		SNET_WBUFGROW( len );
 		strncpy( cur, dbufoff, len );
 		cur += len;
 		break;
@@ -249,13 +252,13 @@ snet_writef( sn, format, va_alist )
 		    *dbufoff = hexalpha[ d & 0x0f ];
 		    d = d >> 4;
 		} while ( d );
-		SNET_WRITEFGROW( len );
+		SNET_WBUFGROW( len );
 		strncpy( cur, dbufoff, len );
 		cur += len;
 		break;
 
 	    default :
-		SNET_WRITEFGROW( 2 );
+		SNET_WBUFGROW( 2 );
 		*cur++ = '%';
 		*cur++ = *format;
 		break;
