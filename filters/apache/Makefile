@@ -10,9 +10,9 @@ APACHECTL=apachectl
 
 #   additional user defines, includes and libraries
 DEFS=-DTLS
-INC=-I/usr/local/openssl/include -I/usr/local/apache/include -I./libsnet
+INC=-I/usr/local/openssl/include -I/usr/local/apache/include -I../../libsnet
 CFLAGS=	${DEFS} ${INC} -DEAPI -Wall
-LIB=-L/usr/local/openssl/lib -lcrypto -lssl -L./libsnet -lsnet
+LIB=-L/usr/local/openssl/lib -lcrypto -lssl -L../../libsnet -lsnet
 OBJ=	mod_cosign.o mkcookie.o fbase64.o connect.o cookiefs.o sparse.o \
 	argcargv.o version.o
 
@@ -20,14 +20,8 @@ OBJ=	mod_cosign.o mkcookie.o fbase64.o connect.o cookiefs.o sparse.o \
 all: mod_cosign.so
 
 #   compile the DSO file
-mod_cosign.so: libsnet/libsnet.a ${OBJ}
+mod_cosign.so: ../../libsnet/libsnet.a ${OBJ}
 	$(APXS) -c $(LIB) ${OBJ}
-
-FRC :
-
-libsnet/libsnet.a : FRC
-	cd libsnet; ${MAKE} ${MFLAGS} CC=${CC} DEFS="${DEFS}" \
-		INCPATH="${INC}"
 
 version.o : version.c
 	${CC} ${CFLAGS} \
@@ -41,7 +35,6 @@ install: all
 
 #   cleanup
 clean:
-	cd libsnet; ${MAKE} ${MFLAGS} clean
 	rm -f ${OBJ} mod_cosign.so
 
 #   reload the module by installing and restarting Apache
