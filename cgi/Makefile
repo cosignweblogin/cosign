@@ -3,7 +3,7 @@ CGIBIN	= /usr/local/projects/cosign/cgi-ssl
 CC	= gcc
 DEFS	= -DTLS
 TARGETS	= cosign logout
-OBJ	= mkcookie.o fbase64.o network.o
+OBJ	= mkcookie.o fbase64.o network.o ../version.o
 
 KDIR	= /usr/local/krb5
 KLIBDIR	= $(KDIR)/lib

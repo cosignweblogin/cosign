@@ -31,7 +31,7 @@
 int		debug = 0;
 int		backlog = 5;
 
-char		*version = VERSION;
+extern char	*version;
 
 void		hup ___P(( int ));
 void		chld ___P(( int ));

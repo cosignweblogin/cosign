@@ -23,7 +23,7 @@ ADDLIBS=	-lsocket -lnsl
 ################ Nothing below should need editing ###################
 
 SRC=    daemon.c command.c argcargv.c cparse.c
-COSIGNOBJ=	daemon.o command.o argcargv.o cparse.o
+COSIGNOBJ=	daemon.o command.o argcargv.o cparse.o ../version.o
 
 INCPATH=	-I../libsnet -I/usr/local/openssl/include
 DEFS=	-DLOG_COSIGN=${COSIGNLOG} -DTLS
@@ -35,9 +35,6 @@ LIBS=	${ADDLIBS} -lsnet -lssl -lcrypto
 TARGETS=	cosignd
 
 all : ${TARGETS}
-
-daemon.o : daemon.c
-	${CC} ${CFLAGS} -DVERSION=\"`cat ../VERSION`\" -c daemon.c
 
 cosignd : ../libsnet/libsnet.a ${COSIGNOBJ} Makefile
 	${CC} ${CFLAGS} ${LDFLAGS} -o cosignd ${COSIGNOBJ} ${LIBPATH} ${LIBS}
