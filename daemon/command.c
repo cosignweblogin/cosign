@@ -71,7 +71,7 @@ f_help( sn, ac, av )
     int         ac;
     char        *av[];
 {
-    snet_writef( sn, "%d Vaild commands are HELP, NOOP, and QUIT\r\n", 203 );
+    snet_writef( sn, "%d Slainte Mhath!\r\n", 203 );
     return( 0 );
 }
 
