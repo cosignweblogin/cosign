@@ -416,8 +416,7 @@ pusher( int cpipe, struct cl *cur )
 		    av[ 1 ], av[ 2 ], av [ 3 ] );
 
     } else if (( strcasecmp( av[ 0 ], "logout" )) == 0 ) {
-	snet_writef( cur->cl_sn, "LOGOUT %s %s %s\r\n",
-		    av[ 1 ], av[ 2 ], av [ 3 ] );
+	snet_writef( cur->cl_sn, "LOGOUT %s %s\r\n", av[ 1 ], av[ 2 ] );
     } else {
 	syslog( LOG_ERR, "pusherchild: what's %s?", av[ 0 ]);
 	exit( 1 );
