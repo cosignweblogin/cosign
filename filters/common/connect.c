@@ -126,6 +126,11 @@ netretr_proxy( char *scookie, struct sinfo *si, SNET *sn )
     struct timeval      tv;
     FILE                *tmpfile;
 
+    /* RETR service-cookie cookies */
+    if ( snet_writef( sn, "RETR %s cookies\r\n", scookie ) < 0 ) {
+	fprintf( stderr, "netretr_proxy: snet_writef failed\n");
+	return( -1 );
+    }
 
     /* name our file and open tmp file */
     if ( snprintf( path, sizeof( path ), "%s/%s", proxydb, scookie ) >=
@@ -156,12 +161,6 @@ netretr_proxy( char *scookie, struct sinfo *si, SNET *sn )
         }
         perror( tmppath );
         return( -1 );
-    }
-
-    /* RETR service-cookie cookies */
-    if ( snet_writef( sn, "RETR %s cookies\r\n", scookie ) < 0 ) {
-	fprintf( stderr, "netretr_proxy: snet_writef failed\n");
-	return( -1 );
     }
 
     tv = timeout;
