@@ -21,28 +21,9 @@
     int
 do_logout( char *path )
 {
-    int		fd;
-
-    if (( fd = open( path, O_WRONLY, 0644 )) < 0 ) {
-        syslog( LOG_ERR, "do_logout: %s: %m", path );
-        return( -1 );
-    }
-
-    if ( lseek( fd, 4, SEEK_SET ) == -1 ) {
-        (void)close( fd );
-        syslog( LOG_ERR, "do_logout: %s: %m", path );
-        return( -1 );
-    }
-
-    if ( write( fd, "0", 1 ) == -1 ) {
-        (void)close( fd );
-        syslog( LOG_ERR, "do_logout: %s: %m", path );
-        return( -1 );
-    }
-
-    if ( close( fd ) != 0 ) {
-        syslog( LOG_ERR, "do_logout: %s: %m", path );
-        return( -1 );
+    if ( chmod( path, S_ISVTX ) < 0 ) {
+	syslog( LOG_ERR, "do_logout: %s: %m", path  );
+	return( -1 ) ;
     }
 
     return( 0 );
@@ -149,12 +130,14 @@ read_cookie( char *path, struct cinfo *ci )
 	return( -1 );
     }
 
+    /* legacy logout code, skip the s0/1 line */
     if ( fgets( buf, sizeof( ci->ci_state ), cf ) == NULL ) {
 	(void)fclose( cf );
-	syslog( LOG_ERR, "read_cookie: ci_state %m"  );
+	syslog( LOG_ERR, "read_cookie: ci_state: %m"  );
 	return( -1 );
     }
 
+#ifdef notdef
     len = strlen( buf );
     if ( buf[ len - 1 ] != '\n' ) {
 	(void)fclose( cf );
@@ -168,8 +151,15 @@ read_cookie( char *path, struct cinfo *ci )
 	return( -1 );
     }
     p = buf + 1;
-
     ci->ci_state = atoi( p );
+#endif
+
+    /* new logout code */
+    if ( st.st_mode & S_ISVTX ) {
+	ci->ci_state = 0;
+    } else {
+	ci->ci_state = 1;
+    }
 
     while( fgets( buf, MAXLEN, cf ) != NULL ) {
 	len = strlen( buf );

@@ -433,12 +433,12 @@ f_time( sn, ac, av )
     struct utimbuf	new_time;
     struct stat		st;
     struct timeval	tv;
-    int			timestamp;
+    int			timestamp, state;
     char		*line;
 
     /* TIME */
     /* 3xx */
-    /* login_cookie timestamp */
+    /* login_cookie timestamp state */
     /* . */
 
 #ifdef notdef
@@ -471,7 +471,7 @@ f_time( sn, ac, av )
 	    break;
 	}
 
-	if ( ac != 2 ) {
+	if ( ac != 3 ) {
 	    syslog( LOG_ERR, "f_time: wrong number of args" );
 	    continue;
 	}
@@ -502,6 +502,12 @@ f_time( sn, ac, av )
 	    utime( av[ 0 ], &new_time );
 	}
 
+	state = atoi( av[ 2 ] );
+	if ( state == 0 ) {
+	    if ( do_logout( av[ 0 ] ) < 0 ) {
+		syslog( LOG_ERR, "f_time: %s should be logged out!", av[ 0 ] );
+	    }
+	}
     }
 
     snet_writef( sn, "%d TIME successful: we are now up-to-date\r\n", 260 );

@@ -31,7 +31,7 @@ static void (*logger)( char * ) = NULL;
 static struct timeval           timeout = { 10 * 60, 0 };
 
 
-int decision( char *, struct timeval *, time_t * );
+int decision( char *, struct timeval *, time_t *, int * );
 
     int
 main( int ac, char **av )
@@ -42,9 +42,9 @@ main( int ac, char **av )
     struct hostent	*he;
     struct cl		*head = NULL, **tail = NULL, **cur, *new = NULL;
     char                login[ MAXPATHLEN ];
-    time_t		cookie_itime = 0;
+    time_t		itime = 0;
     char		*prog, *line;
-    int			c, i, port = htons( 6663 ), err = 0;
+    int			c, i, port = htons( 6663 ), err = 0, state = 0;
     int			rc;
     char           	*cosign_dir = _COSIGN_DIR;
     char           	*cosign_host = _COSIGN_HOST;
@@ -306,14 +306,14 @@ main( int ac, char **av )
     while (( de = readdir( dirp )) != NULL ) {
 	/* is a login cookie */
 	if ( strncmp( de->d_name, "cosign=", 7 ) == 0 ) {
-	    if (( rc = decision( de->d_name, &now, &cookie_itime )) < 0 ) {
+	    if (( rc = decision( de->d_name, &now, &itime, &state )) < 0 ) {
 		syslog( LOG_ERR, "decision failure: %s\n", de->d_name );
 		continue;
 	    }
 	    for ( cur = &head; *cur != NULL; cur = &(*cur)->cl_next ) {
-		if ( cookie_itime > (*cur)->cl_last_time ) {
-		    if ( snet_writef( (*cur)->cl_sn, "%s %d\r\n",
-			    de->d_name, cookie_itime ) < 0 ) {
+		if ( itime > (*cur)->cl_last_time ) {
+		    if ( snet_writef( (*cur)->cl_sn, "%s %d %d\r\n",
+			    de->d_name, itime, state ) < 0 ) {
 			if ( snet_close( (*cur)->cl_sn ) != 0 ) {
 			    syslog( LOG_ERR, "snet_close: %m\n" );
 			}
@@ -328,7 +328,7 @@ main( int ac, char **av )
 		syslog( LOG_ERR, "service to login: %s\n", de->d_name );
 		continue;
 	    }
-	    if (( rc = decision( login, &now, &cookie_itime )) < 0 ) {
+	    if (( rc = decision( login, &now, &itime, &state )) < 0 ) {
 		syslog( LOG_ERR, "decision failure: %s\n", login );
 		continue;
 	    }
@@ -375,7 +375,7 @@ main( int ac, char **av )
 }
 
     int
-decision( char *name, struct timeval *now, time_t *itime )
+decision( char *name, struct timeval *now, time_t *itime, int *state )
 {
     struct cinfo	ci = { 0, 0, "\0","\0","\0", "\0","\0", 0, };
     int			rc, create = 0;
@@ -410,6 +410,7 @@ decision( char *name, struct timeval *now, time_t *itime )
     }
 
     *itime = ci.ci_itime; 
+    *state = ci.ci_state;
     return( 1 );
 
 delete_stuff:
