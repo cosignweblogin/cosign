@@ -186,8 +186,6 @@ f_login( SNET *sn, int ac, char *av[], SNET *pushersn )
 
     /* LOGIN login_cookie ip principal realm [tgt] */
 
-    syslog( LOG_ERR, "%d s idle and %d is grey", idle_out, grey );
-
     if ( ch->ch_key != CGI ) {
 	syslog( LOG_ERR, "%s not allowed to login", ch->ch_hostname );
 	snet_writef( sn, "%d LOGIN: %s not allowed to login.\r\n",
