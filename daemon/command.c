@@ -46,6 +46,7 @@ static int	f_logout ___P(( SNET *, int, char *[] ));
 static int	f_register ___P(( SNET *, int, char *[] ));
 static int	f_check ___P(( SNET *, int, char *[] ));
 static int	f_retr ___P(( SNET *, int, char *[] ));
+static int	f_time ___P(( SNET *, int, char *[] ));
 static int	f_starttls ___P(( SNET *, int, char *[] ));
 
 struct command {
@@ -63,6 +64,7 @@ struct command	unauth_commands[] = {
     { "REGISTER",	f_notauth },
     { "CHECK",		f_notauth },
     { "RETR",		f_notauth },
+    { "TIME",		f_notauth },
 };
 
 struct command	auth_commands[] = {
@@ -75,6 +77,7 @@ struct command	auth_commands[] = {
     { "REGISTER",	f_register },
     { "CHECK",		f_check },
     { "RETR",		f_retr },
+    { "TIME",		f_time },
 };
 
 extern char	*cosign_version;
@@ -421,6 +424,90 @@ file_err:
     return( 1 );
 }
 
+    int
+f_time( sn, ac, av )
+    SNET        *sn;
+    int         ac;
+    char        *av[];
+{
+    struct utimbuf	new_time;
+    struct stat		st;
+    struct timeval	tv;
+    int			timestamp;
+    char		*line;
+
+    /* TIME */
+    /* 3xx */
+    /* login_cookie timestamp */
+    /* . */
+
+#ifdef notdef
+    if ( ch->ch_key != DAEMON ) {
+	syslog( LOG_ERR, "%s not allowed to tell time", ch->ch_hostname );
+	snet_writef( sn, "%d TIME: %s not allowed to propogate time.\r\n",
+		460, ch->ch_hostname );
+	return( 1 );
+    }
+#endif /* notdef */
+
+    if ( ac != 1 ) {
+	snet_writef( sn, "%d TIME: Wrong number of args.\r\n", 560 );
+	return( 1 );
+    }
+
+    snet_writef( sn, "%d TIME: Send timestamps.\r\n", 360 );
+
+    tv.tv_sec = 60 * 10;
+    tv.tv_usec = 0;
+    while (( line = snet_getline( sn, &tv )) != NULL ) {
+	tv.tv_sec = 60 * 10;
+	tv.tv_usec = 0;
+	if (( ac = argcargv( line, &av )) < 0 ) {
+	    syslog( LOG_ERR, "argcargv: %m" );
+	    break;
+	}
+
+	if ( strcmp( line, "." ) == 0 ) {
+	    break;
+	}
+
+	if ( ac != 2 ) {
+	    syslog( LOG_ERR, "f_time: wrong number of args" );
+	    continue;
+	}
+
+	if ( strchr( av[ 0 ], '/' ) != NULL ) {
+	    syslog( LOG_DEBUG, "f_time: cookie name contains '/'" );
+	    continue;
+	}
+
+	if ( strncmp( av[ 0 ], "cosign=", 7 ) != 0 ) {
+	    syslog( LOG_DEBUG, "f_time: cookie name malformat" );
+	    continue;
+	}
+
+	if ( strlen( av[ 0 ] ) >= MAXPATHLEN ) {
+	    syslog( LOG_DEBUG, "f_time: cookie name too long" );
+	    continue;
+	}
+
+	if ( stat( av[ 0 ], &st ) != 0 ) {
+	    syslog( LOG_DEBUG, "f_time: %s: %m" );
+	    continue;
+	}
+
+	timestamp = atoi( av[ 1 ] ); 
+	if ( timestamp > st.st_mtime ) {
+	    new_time.modtime = timestamp;
+	    utime( av[ 0 ], &new_time );
+	}
+
+    }
+
+    snet_writef( sn, "%d TIME successful: we are now up-to-date\r\n", 260 );
+    return( 0 );
+
+}
     int
 f_logout( sn, ac, av )
     SNET        *sn;
