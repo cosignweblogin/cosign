@@ -101,6 +101,26 @@ Creating cosign.conf file:
   service    alumni.web.mgoblue.com        0
   service    *.web.umich.edu               0
 
+    You may also override any of the following compile time options with
+    the keyword "set" and the key/value pair:
+
+  set   cosigncert      	/etc/apache/certs/cosign-test.cert
+  set   cosignkey       	/etc/apache/certs/cosign-test.key
+  set   cosignhost      	cosign-test.umich.edu
+  set	cosigndb		/var/somewhere/cosign
+  set	cosigncadir		/var/cosign/certs/CA
+  set	cosignticketcache	/var/somewhere/cosign/tickets
+  set	cosignkeytab		/etc/keytab.cosign
+  set	cosignlogouturl		http://cosign.edu
+  set	cosignnettimeout	300 (time in seconds for net connections)
+  set	cosignport		6664
+
+  #these three options are for use with "friend" only
+
+  set	mysqldb			friend.cosign.edu
+  set	mysqluser		superfriend
+  set	mysqlpasswd		ThisIsABadPassword
+
     The default location for this file is /etc/cosign.conf.  See the
     cosignd man page for more information.
 
@@ -116,7 +136,6 @@ Creating cosign.conf file:
 
     for each host you'd like to be able to proxy. See the
     cosignd man page for more information.
-
 
 Scripts
 
