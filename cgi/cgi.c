@@ -30,10 +30,11 @@ static	MYSQL	friend_db;
 #define ERROR_HTML	"../templates/error.html"
 #define LOGIN_HTML	"../templates/login.html"
 #define SERVICE_MENU	"/services/"
+#define LOOP_PAGE	"https://weblogin.umich.edu/looping.html"
 #define TKT_PREFIX      _COSIGN_TICKET_CACHE
 #define SIDEWAYS        1
 #define LOOPWINDOW      30 
-#define MAXREDIRECTS	10
+#define MAXREDIRECTS	10	
 
 extern char	*cosign_version;
 char	*cosign_host = _COSIGN_HOST;
@@ -95,9 +96,7 @@ loop_checker( int time, int count, char *cookie )
 		subfile( tmpl );
 		exit( 0 );
 	    }
-	    title = "Error: Loop detected";
-	    err = "We have detected you are looping. Please try again later.";
-	    subfile( tmpl );
+	    printf( "Location:%s\n\n", LOOP_PAGE );
 	    exit( 0 );
 	} else {
 	    /* we're still in the limit, increment and keep going */
