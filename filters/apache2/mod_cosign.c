@@ -777,8 +777,7 @@ set_cosign_http( cmd_parms *params, void *mconfig, int flag )
         cfg = (cosign_host_config *) ap_get_module_config(
                 params->server->module_config, &cosign_module );
     } else {
-        return( "If you want to run Cosign using http, you must do it this way f
-or the whole server.");
+    return( "If you want to run Cosign using http, you must do it this way for the whole server.");
     }
 
     cfg->http = flag;
