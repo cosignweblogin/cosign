@@ -5,6 +5,7 @@
 
 #include <sys/types.h>
 #include <sys/time.h>
+#include <stdio.h>
 #include "rate.h"
 
     double
