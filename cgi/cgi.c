@@ -279,17 +279,6 @@ main( int argc, char *argv[] )
 	if (( misc = strtok( NULL, "/" )) != NULL ) {
 	    cookiecount = atoi( misc );
 	}
-
-	if ( gettimeofday( &tv, NULL ) != 0 ) {
-	    title = "Error: Login Screen";
-	    err = "Please try again later.";
-	    subfile( ERROR_HTML );
-	    exit( 0 );
-	}
-
-	if (( cookietime > 0 ) && ( tv.tv_sec - cookietime ) > EXPIRE_TIME ) {
-	    goto loginscreen;
-	}
     }
 
     method = getenv( "REQUEST_METHOD" );
@@ -330,6 +319,17 @@ main( int argc, char *argv[] )
 	if ( cookie == NULL || strlen( cookie ) < 120 ) {
 	    title = "Authentication Required";
 	    err = "You have not yet logged-in.";
+	    goto loginscreen;
+	}
+
+	if ( gettimeofday( &tv, NULL ) != 0 ) {
+	    title = "Error: Login Screen";
+	    err = "Please try again later.";
+	    subfile( ERROR_HTML );
+	    exit( 0 );
+	}
+
+	if (( tv.tv_sec - cookietime ) > EXPIRE_TIME ) {
 	    goto loginscreen;
 	}
 
