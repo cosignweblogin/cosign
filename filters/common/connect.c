@@ -131,7 +131,7 @@ netretr_ticket( char *scookie, struct sinfo *si, SNET *sn, int convert )
     char                krb4path [ 24 ];
     krb5_principal	kclient, kserver;
     krb5_ccache		kccache;
-    krb5_creds		increds, *v5creds;
+    krb5_creds		increds, *v5creds = NULL;
     krb5_error_code 	kerror;
     krb5_context 	kcontext;
     CREDENTIALS		v4creds;
@@ -318,7 +318,6 @@ netretr_ticket( char *scookie, struct sinfo *si, SNET *sn, int convert )
     }
     increds.client = 0;
     krb5_free_cred_contents( kcontext, &increds );
-    krb5_free_principal( kcontext, kserver );
     krb5_cc_close( kcontext, kccache );
     krb5_free_context( kcontext );
 
