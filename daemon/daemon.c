@@ -107,12 +107,12 @@ main( ac, av )
     struct sigaction	sa, osahup, osachld;
     struct sockaddr_in	sin;
     struct servent	*se;
-    SNET		*pushersn;
+    SNET		*pushersn = NULL;
     int			c, s, err = 0, fd, sinlen;
     int			dontrun = 0, fds[ 2 ];
     int			reuseaddr = 1;
     char		*prog;
-    char		*replhost = _COSIGN_REPL_HOST;
+    char		*replhost = NULL;
     char		*cryptofile = _COSIGN_TLS_KEY;
     char		*certfile = _COSIGN_TLS_CERT;
     char		*cadir = _COSIGN_TLS_CADIR;
@@ -222,7 +222,7 @@ main( ac, av )
 	SSL_load_error_strings();
 	SSL_library_init();
 
-	if (( ctx = SSL_CTX_new( SSLv23_server_method())) == NULL ) {
+	if (( ctx = SSL_CTX_new( SSLv23_method())) == NULL ) {
 	    fprintf( stderr, "SSL_CTX_new: %s\n",
 		    ERR_error_string( ERR_get_error(), NULL ));
 	    exit( 1 );
@@ -301,9 +301,11 @@ main( ac, av )
 	exit( 1 );
     }
 
-    if ( pusherhosts( replhost, port ) != 0 ) {
-	fprintf( stderr, "unhappy with lookup of %s\n", replhost );
-	exit( 1 );
+    if ( replhost != NULL ) {
+	if ( pusherhosts( replhost, port ) != 0 ) {
+	    fprintf( stderr, "unhappy with lookup of %s\n", replhost );
+	    exit( 1 );
+	}
     }
 
     /*
@@ -346,6 +348,7 @@ main( ac, av )
     openlog( prog, LOG_NOWAIT|LOG_PID, LOG_DAEMON );
 #endif /* ultrix */
 
+	if ( replhost != NULL ) {
     if ( pipe( fds ) < 0 ) {
 	syslog( LOG_ERR, "pusher pipe: %m" );
 	exit( 1 );
@@ -375,6 +378,7 @@ main( ac, av )
 	}
 	break;
     }
+	}
 
 
     /* catch SIGHUP */

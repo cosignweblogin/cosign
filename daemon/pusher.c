@@ -131,6 +131,7 @@ pusherparent( int ppipe )
 
 	for ( cur = replhead; cur != NULL; cur = cur->cl_next ) {
 	    if ( cur->cl_pid != 0 ) {
+		snet_writef( cur->cl_psn, "%s\r\n", line );
 		continue;
 	    }
 	    if ( pipe( fds ) < 0 ) {
@@ -181,6 +182,8 @@ pusher( int cpipe )
 {
     SNET	*csn;
     char	*line;
+
+    syslog( LOG_INFO, "pusher child"  );
 
     if (( csn = snet_attach( cpipe, 1024 * 1024 )) == NULL ) {
         syslog( LOG_ERR, "pusherchild: snet_attach failed" );

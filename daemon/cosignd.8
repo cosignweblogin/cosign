@@ -1,4 +1,4 @@
-.TH cosignd "8" "February 2003" "umweb" "System Manager's Manual"
+.TH cosignd "8" "August 2003" "umweb" "System Manager's Manual"
 .SH NAME
 .B cosignd
 \- Cookie Sign-On Daemon
@@ -12,6 +12,8 @@
 .BI \-c\  config-file
 ] [
 .BI \-D\  db-directory
+] [
+.BI \-h\  replication-hostname
 ] [
 .BI \-L\  syslog-facility
 ] [
@@ -43,8 +45,7 @@ With the
 as its configuration file instead.
 
 Each line contains a keyword, which is the role of the client in the cosign system - 
-.B cgi,
-.B daemon,
+.B cgi
 or
 .B service.
 Next is the subject CN ( common name ). The 
@@ -66,9 +67,10 @@ allows clients to use the
 .B LOGIN,
 .B CHECK,
 .B REGISTER,
+.B TIME,
 and
 .B LOGOUT
-commands. The keyword daemon has yet to be implemented.
+commands. 
 .sp
 .SH TERMINOLOGY
 .TP 19
@@ -100,6 +102,9 @@ Associates a service cookie ( cosign-[servicename]= ) with a login cookie ( cosi
 CHECK
 Allows clients to retrieve information about a user based on the cookie presented to cosignd.
 .TP 10
+TIME
+Allows daemons to propagate timestamp information for login cookies.
+.TP 10
 LOGOUT
 Invalidates a user's login cookie, causing any future 
 .B CHECK
@@ -126,6 +131,9 @@ specifies the  directory to store the cookie database, by default _COSIGN_DIR
 .TP 19
 .B \-d
 debug mode. Does not disassociate from controlling tty.
+.TP 19
+.B \-h
+hostname to replicate to. This "turns on" cosignd's replication.
 .TP 19
 .BI \-L\  syslog-facility
 specifies which syslog-facilty to log messages to.
