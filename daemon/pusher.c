@@ -325,9 +325,6 @@ syslog( LOG_DEBUG, "PUSHERPARENT: pid %d fd %d", cur->cl_pid, snet_fd( cur->cl_p
 	}
 	sigprocmask( SIG_UNBLOCK, &signalset, NULL );
 
-tv.tv_sec = 1;
-tv.tv_usec = 0;
-
 	if (( rv = select( max + 1, NULL, &fdset, NULL, &tv )) < 0 ) {
 syslog( LOG_DEBUG, "PUSHERPARENT: continue: %m" );
 	    continue;
