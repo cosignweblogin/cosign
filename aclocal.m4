@@ -22,12 +22,14 @@ AC_DEFUN([CHECK_SSL],
     if test ! -e "$ac_cv_path_ssl" ; then
         AC_MSG_ERROR(cannot find ssl libraries)
     fi
-    if test "X$host_os" = "Xaix" ; then
+    case "X$host_os" in 
+    Xaix*)
 	ADDLIBS="-lssl -lcrypto";
 	AC_SUBST(ADDLIBS)
 	ADDLDFLAGS="-L$ac_cv_path_ssl/lib";
 	AC_SUBST(ADDLDFLAGS)
-    fi
+    ;;
+    esac
 
     CPPFLAGS="$CPPFLAGS -I$ac_cv_path_ssl/include";
     TLSDEFS=-DTLS;

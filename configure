@@ -2756,12 +2756,14 @@ fi
 echo "$as_me: error: cannot find ssl libraries" >&2;}
    { (exit 1); exit 1; }; }
     fi
-    if test "X$host_os" = "Xaix" ; then
+    case "X$host_os" in
+    Xaix*)
 	ADDLIBS="-lssl -lcrypto";
 
 	ADDLDFLAGS="-L$ac_cv_path_ssl/lib";
 
-    fi
+    ;;
+    esac
 
     CPPFLAGS="$CPPFLAGS -I$ac_cv_path_ssl/include";
     TLSDEFS=-DTLS;
