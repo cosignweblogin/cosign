@@ -740,6 +740,7 @@ f_register( SNET *sn, int ac, char *av[], SNET *pushersn )
 
     snet_writef( sn, "%d REGISTER successful: Cookie Stored \r\n", 220 );
     if (( pushersn != NULL ) && ( replicate )) {
+syslog( LOG_DEBUG, "f_register: replicating %s", av[ 3 ] );
 	snet_writef( pushersn, "REGISTER %s %s %s\r\n",
 		av[ 1 ], av[ 2 ], av [ 3 ] );
     }

@@ -330,8 +330,10 @@ syslog ( LOG_DEBUG, "pusher pid XXX for IP: %s", inet_ntoa(cur->cl_sin.sin_addr)
 	for ( cur = replhead; cur != NULL; cur = cur->cl_next ) {
 	    if ( cur->cl_pid > 0 ) {
 		if ( FD_ISSET( snet_fd( cur->cl_psn ), &fdset )) {
-syslog( LOG_DEBUG, "writing to %d", cur->cl_pid );
+syslog( LOG_DEBUG, "writing to %d: %s", cur->cl_pid, line );
 		    snet_writef( cur->cl_psn, "%s\r\n", line );
+		} else {
+syslog( LOG_DEBUG, "NOT writing to %d: %s", cur->cl_pid, line );
 		}
 	    }
 	}
@@ -404,18 +406,17 @@ syslog( LOG_DEBUG, "pusherchild: %s", line );
 		    av[ 1 ], av[ 2 ], av [ 3 ] );
     } else {
 	syslog( LOG_ERR, "pusherchild: what's %s?", av[ 0 ]);
+	exit( 1 );
     }
 
     tv = timeout;
     if (( line = snet_getline_multi( cur->cl_sn, logger, &tv )) == NULL ) {
-	syslog( LOG_ERR, "pusherchild: %m" );
-	if (( close_sn( cur )) != 0 ) {
-	    syslog( LOG_ERR, "pusherchld: close_sn: %m" );
-	}
+	syslog( LOG_ERR, "pusherchld: %m" );
 	exit( 1 );
     }
 
     if ( !krb ) {
+syslog( LOG_DEBUG, "pusherchld: got back: %s", line );
 	goto finish;
     }
 
@@ -436,39 +437,43 @@ syslog( LOG_DEBUG, "pusherchild: %s", line );
 
     if ( fstat( fd, &st) < 0 ) {
         syslog( LOG_ERR, "pusherchld: %m" );
-        goto done2;
+        goto done;
     }
 
     size = st.st_size;
     if ( snet_writef( cur->cl_sn, "%d\r\n", (int)st.st_size ) < 0 ) {
         syslog( LOG_ERR, "login %s failed: %m", av[ 2 ] );
-        goto done2;
+        goto done;
     }
 
     while (( rr = read( fd, buf, sizeof( buf ))) > 0 ) {
         tv = timeout;
         if ( snet_write( cur->cl_sn, buf, (int)rr, &tv ) != rr ) {
 	    syslog( LOG_ERR, "login %s failed: %m", av[ 2 ] );
-            goto done2;
+	    close( fd );
+            goto done;
         }
         size -= rr;
     }
+
+    close( fd );
+
     if ( rr < 0 ) {
         syslog( LOG_ERR, "pusherchld: %m" );
-        goto done2;
+        goto done;
     }
 
     /* Check number of bytes sent to server */
     if ( size != 0 ) {
         syslog( LOG_ERR,
             "login %s failed: Wrong number of bytes sent", av[ 2 ] );
-        goto done2;
+        goto done;
     }
 
     /* End transaction with server */
     if ( snet_writef( cur->cl_sn, ".\r\n" ) < 0 ) {
 	syslog( LOG_ERR, "login %s failed: %m", av[ 2 ] );
-        goto done2;
+        goto done;
     }
 
     tv = timeout;
@@ -476,7 +481,7 @@ syslog( LOG_DEBUG, "pusherchild: %s", line );
         if ( snet_eof( cur->cl_sn )) {
             syslog( LOG_ERR, "pusherchld: connection closed" );
         } else {
-            syslog( LOG_ERR, "pushechld: login %s failed: %m\n", av[ 1 ] );
+            syslog( LOG_ERR, "pusherchld: login %s failed: %m\n", av[ 1 ] );
         }
     }
 
@@ -488,20 +493,13 @@ finish:
 	}
 	exit( 1 );
     }
+	}
 
-    if ( !krb ) {
-	continue;
-    }
-
-done2:
-    close( fd );
+    return( 0 );
 
 done:
     if (( close_sn( cur )) != 0 ) {
 	syslog( LOG_ERR, "pusherchld: close_sn: %m" );
     }
     exit( 1 );
-	}
-
-    return( 0 );
 }
