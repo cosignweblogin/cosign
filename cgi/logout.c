@@ -21,11 +21,12 @@
 #define REDIRECT_HTML	"../templates/redirect.html"
 #define SERVICE_MENU    "../templates/service-menu.html"
 #define VERIFY_LOGOUT   "../templates/verify-logout.html"
-#define SIDEWAYS	1
 
 extern char	*cosign_version;
 char		*err = NULL;
 char		*title = "Logout";
+char		*title = "Logout";
+char		*script = "/cgi-bin/logout";
 char		*cosign_host =_COSIGN_HOST;
 char		*url = _COSIGN_LOGOUT_URL;
 char    	*certfile = _COSIGN_TLS_CERT;
@@ -66,7 +67,7 @@ subfile( char *filename )
 
     if (( fs = fopen( filename, "r" )) == NULL ) {
 	perror( filename );
-	exit( SIDEWAYS );
+	exit( 1 );
     }
 
     while (( c = getc( fs )) != EOF ) {
@@ -86,7 +87,7 @@ subfile( char *filename )
 		break;
 
 	    case 's':
-		printf( "%s", getenv( "SCRIPT_NAME" ));
+		printf( "%s", script );
 		break;
 
             case 'u':
@@ -157,7 +158,7 @@ logout_configure()
 main( int argc, char *argv[] )
 {
     char		*tmpl = VERIFY_LOGOUT;
-    char		*cookie = NULL, *data, *ip_addr, *script, *qs;
+    char		*cookie = NULL, *data, *ip_addr, *qs;
     struct connlist	*head;
 
     if ( argc == 2 && ( strncmp( argv[ 1 ], "-V", 2 ) == 0 )) {
@@ -165,8 +166,24 @@ main( int argc, char *argv[] )
 	exit( 0 );
     }
 
+    if (( ip_addr = getenv( "REMOTE_ADDR" )) == NULL ) {
+        title = "Error: Server Error";
+        err = "REMOTE_ADDR not set";
+        tmpl = ERROR_HTML;
+        subfile( tmpl );
+	exit( 0 );
+    }
+
+    if (( script = getenv( "SCRIPT_NAME" )) == NULL ) {
+        title = "Error: Server Error";
+        err = "SCRIPT_NAME not set";
+        tmpl = ERROR_HTML;
+        subfile( tmpl );
+	exit( 0 );
+    }
+
     if ( cosign_config( cosign_conf ) < 0 ) {
-        title = "Error: But not your fault";
+        title = "Error: System Error";
         err = "We were unable to parse the configuration file";
         tmpl = ERROR_HTML;
         subfile( tmpl );
@@ -175,6 +192,7 @@ main( int argc, char *argv[] )
     logout_configure();
 
     if ( cgi_info( CGI_GET, cl ) == 0 ) {
+	/* this is not a POST, display verify screen */
 	if ((( qs = getenv( "QUERY_STRING" )) != NULL ) &&
 		( *qs != '\0' ) &&
 		( strncmp( qs, "http", 4 ) == 0 )) {
@@ -189,20 +207,16 @@ main( int argc, char *argv[] )
 	exit( 0 );
     }
 
-    ip_addr = getenv( "REMOTE_ADDR" );
-    script = getenv( "SCRIPT_NAME" );
-
     if ( cgi_info( CGI_STDIN, cl ) != 0 ) {
 	/* an actual logout must be the result of a POST, see? */
         fprintf( stderr, "%s: cgi_info failed\n", script );
-        exit( SIDEWAYS );
+        exit( 1 );
     }
 
     if (( cl[ CL_VERIFY ].cl_data == NULL ) ||
 	    ( *cl[ CL_VERIFY ].cl_data == '\0' )) {
-	/* user posted, but did not verify */
+	/* user clicked a submit button but not the one named 'Verify' */
 	printf( "Location: https://%s/\n\n", cosign_host );
-
 	exit( 0 );
     }
 
@@ -229,10 +243,19 @@ main( int argc, char *argv[] )
     /* only the cosign= cookie and not the loop breaking info */
     (void)strtok( cookie, "/" );
 
-    /* setup conn and ssl and hostlist crap */
+    /* clobber the cosign cookie */
+    fputs( "Expires: Mon, 16 Apr 1973 13:10:00 GMT\n"
+	    "Last-Modified: Mon, 16 Apr 1973 13:10:00 GMT\n"
+	    "Cache-Control: no-store, no-cache, must-revalidate\n"
+	    "Cache-Control: pre-check=0, post-check=0, max-age=0\n"
+	    "Pragma: no-cache\n", stdout );
+
+    fputs( "Set-Cookie: cosign=null; path=/; expires=Wednesday, 16-Apr-73 02:10:00 GMT; secure\n", stdout );
+
+    /* setup conn and ssl and hostlist to tell cosignd we're logged out */
     if (( head = connlist_setup( cosign_host, cosign_port )) == NULL ) {
         title = "Error: But not your fault";
-        err = "We were unable to contact the authentication server.  Please try again later.";     
+        err = "We were unable to contact the authentication server.  Please quit your web browser to complete logout.";
         tmpl = ERROR_HTML;
         subfile( tmpl );
         exit( 0 );
@@ -243,7 +266,7 @@ main( int argc, char *argv[] )
 
     if ( cosign_ssl( cryptofile, certfile, cadir, &ctx )) {
         title = "Error: But not your fault";
-        err = "Failed to initialise connections to the authentication server. Please try again later";
+        err = "Failed to initialise connections to the authentication server. Please quit your browser to complete logout.";
         tmpl = ERROR_HTML;
         subfile( tmpl );
         exit( 0 );
@@ -261,15 +284,6 @@ main( int argc, char *argv[] )
 	    */
 	}
     }
-
-    /* clobber the cosign cookie and display logout screen */
-    fputs( "Expires: Mon, 16 Apr 1973 13:10:00 GMT\n"
-	    "Last-Modified: Mon, 16 Apr 1973 13:10:00 GMT\n"
-	    "Cache-Control: no-store, no-cache, must-revalidate\n"
-	    "Cache-Control: pre-check=0, post-check=0, max-age=0\n"
-	    "Pragma: no-cache\n", stdout );
-
-    fputs( "Set-Cookie: cosign=null; path=/; expires=Wednesday, 16-Apr-73 02:10:00 GMT; secure\n", stdout );
 
     printf( "Location: %s\n\n", url );
     exit( 0 );
