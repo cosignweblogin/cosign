@@ -174,7 +174,8 @@ main()
 	subfile ( tmpl );
     }
 
-    if (( kerror = krb5_parse_name( kcontext, cl[ CL_UNIQNAME ].cl_data, &kprinc ))) {
+    if (( kerror = krb5_parse_name( kcontext, cl[ CL_UNIQNAME ].cl_data,
+	    &kprinc ))) {
 	err = (char *)error_message( kerror );
 	title = "( kerberos error )";
 
@@ -260,10 +261,10 @@ main()
 
 	fprintf( stderr, "S: %s\n", line);
 
-	snet_writef( sn, "login %s %s %s UMICH.EDU\r\n",
-		cookiebuf, getenv( "REMOTE_ADDR" ), cl[ CL_UNIQNAME ].cl_data );
-	fprintf( stderr, "C: login %s %s %s UMICH.EDU\n",
-		cookiebuf, getenv( "REMOTE_ADDR" ), cl[ CL_UNIQNAME ].cl_data );
+	snet_writef( sn, "LOGIN %s %s %s UMICH.EDU\r\n",
+		cookie, getenv( "REMOTE_ADDR" ), cl[ CL_UNIQNAME ].cl_data );
+	fprintf( stderr, "C: LOGIN %s %s %s UMICH.EDU\n",
+		cookie, getenv( "REMOTE_ADDR" ), cl[ CL_UNIQNAME ].cl_data );
 
 	if ( ( line = snet_getline( sn, &tv) ) == NULL ) {
 	    fprintf( stderr, "connection to %s failed: %s\n", host, strerror( errno ));
@@ -272,10 +273,8 @@ main()
 	}
 	fprintf( stderr, "S: %s\n", line);
 
-	snet_writef( sn, "quit\r\n",
-		cookiebuf, cl[ CL_UNIQNAME ].cl_data );
-	fprintf( stderr, "C: quit\n",
-		cookiebuf, cl[ CL_UNIQNAME ].cl_data );
+	snet_writef( sn, "quit\r\n" );
+	fprintf( stderr, "C: quit\n" );
 
 	if ( ( line = snet_getline( sn, &tv) ) == NULL ) {
 	    fprintf( stderr, "connection to %s failed: %s\n", host, strerror( errno ));
