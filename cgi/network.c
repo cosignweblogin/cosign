@@ -220,7 +220,7 @@ cosign_check( char *cookie )
 
 
     static SNET *
-connectsn2( struct sockaddr_in *sin )
+connectsn2( struct sockaddr_in *sin, char *host )
 {
     int			s;
     char		*line, buf[ 1024 ];
@@ -311,7 +311,12 @@ connectsn2( struct sockaddr_in *sin )
 
     X509_NAME_get_text_by_NID( X509_get_subject_name( peer ), NID_commonName,
             buf, sizeof( buf ));
-    fprintf( stderr, "CERT Subject: %s\nHost:%s\n", buf, host );
+
+    if ( strcmp( buf, host ) != 0 ) {
+	fprintf( stderr, "CERT CN:%s & host:%s don't match\n", buf, host );
+	X509_free( peer );
+	goto done;
+    }
     X509_free( peer );
 
     return( sn );
@@ -342,7 +347,7 @@ connectsn( char *host, int port )
      * the gethostbyname() routine
      */
     if (( sin.sin_addr.s_addr = inet_addr( host )) != -1 ) {
-	if (( sn = connectsn2( &sin )) != NULL ) {
+	if (( sn = connectsn2( &sin, host )) != NULL ) {
 	    return( sn );
 	}
 	fprintf( stderr, "%s: connection failed\n", host );
@@ -357,7 +362,7 @@ connectsn( char *host, int port )
     for ( i = 0; he->h_addr_list[ i ] != NULL; i++ ) {
 	memcpy( &sin.sin_addr.s_addr, he->h_addr_list[ i ],
 		( unsigned int)he->h_length );
-	if (( sn = connectsn2( &sin )) != NULL ) {
+	if (( sn = connectsn2( &sin, host )) != NULL ) {
 	    return( sn );
 	}
     }
