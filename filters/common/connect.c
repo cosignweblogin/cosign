@@ -40,7 +40,7 @@
 #define MIN(a,b)        ((a)<(b)?(a):(b))
 
 static int connect_sn( struct connlist *, SSL_CTX *, char * );
-static int close_sn( SNET *);
+static int close_sn( struct connlist *);
 void (*logger)( char * ) = NULL;
 
 struct timeval		timeout = { 10 * 60, 0 };
@@ -341,7 +341,7 @@ teardown_conn( struct connlist *cur )
     /* close down all children on exit */
     for ( ; cur != NULL; cur = cur->conn_next ) {
 	if ( cur->conn_sn != NULL  ) {
-	    if ( close_sn( cur->conn_sn ) != 0 ) {
+	    if ( close_sn( cur ) != 0 ) {
 		fprintf( stderr, "teardown_conn: close_sn failed\n" );
 	    }
 	}
@@ -515,32 +515,35 @@ done:
     if ( snet_close( cl->conn_sn ) != 0 ) {
 	fprintf( stderr, "connect_sn: snet_close failed\n" );
     }
+    cl->conn_sn = NULL;
+
     return( -1 );
 }
 
 
     static int
-close_sn( SNET *sn )
+close_sn( struct connlist *cl )
 {
     char		*line;
     struct timeval      tv;
 
     /* Close network connection */
-    if (( snet_writef( sn, "QUIT\r\n" )) <  0 ) {
+    if (( snet_writef( cl->conn_sn, "QUIT\r\n" )) <  0 ) {
 	fprintf( stderr, "close_sn: snet_writef failed\n" );
 	return( -1 );
     }
     tv = timeout;
-    if ( ( line = snet_getline_multi( sn, logger, &tv ) ) == NULL ) {
+    if ( ( line = snet_getline_multi( cl->conn_sn, logger, &tv ) ) == NULL ) {
 	fprintf( stderr, "close_sn: snet_getline_multi failed\n" );
 	return( -1 );
     }
     if ( *line != '2' ) {
 	fprintf( stderr, "close_sn: %s\n", line  );
     }
-    if ( snet_close( sn ) != 0 ) {
+    if ( snet_close( cl->conn_sn ) != 0 ) {
 	fprintf( stderr, "close_sn: snet_close failed\n" );
-	return( -1 );
     }
+    cl->conn_sn = NULL;
+
     return( 0 );
 }
