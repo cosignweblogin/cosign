@@ -240,7 +240,8 @@ pusherparent( int ppipe )
     }
 
     for ( ;; ) {
-	sleep( 1 );
+syslog( LOG_DEBUG, "sleeping 5" );
+	sleep( 5 );
 	if (( line = snet_getline( sn, NULL )) == NULL ) {
 	    syslog( LOG_ERR, "pusherparent: snet_getline: %m" );
 	    exit( 1 );
@@ -258,7 +259,7 @@ pusherparent( int ppipe )
 
 	    switch ( cur->cl_pid = fork() ) {
 	    case 0 :
-syslog ( LOG_DEBUG, "pusher pid XXX for IP: %s", inet_ntoa(cur->cl_sin.sin_addr));
+syslog ( LOG_DEBUG, "PUSHER: %s", inet_ntoa(cur->cl_sin.sin_addr));
 		/* reset SIGCHLD & SIGHUP */
 		memset( &sa, 0, sizeof( struct sigaction ));
 		sa.sa_handler = SIG_DFL;
@@ -302,6 +303,7 @@ syslog ( LOG_DEBUG, "pusher pid XXX for IP: %s", inet_ntoa(cur->cl_sin.sin_addr)
 		exit( 1 );
 	    }
 
+syslog( LOG_DEBUG, "PUSHERPARENT" );
 	    if (( cur->cl_psn = snet_attach( fds[ 1 ], 1024 * 1024 ))
 		    == NULL ) {
 		syslog( LOG_ERR, "pusherparent fork: snet_attach: %m" );
@@ -316,6 +318,7 @@ syslog ( LOG_DEBUG, "pusher pid XXX for IP: %s", inet_ntoa(cur->cl_sin.sin_addr)
 	for ( cur = replhead; cur != NULL; cur = cur->cl_next ) {
 	    if ( cur->cl_pid > 0 ) {
 		FD_SET( snet_fd( cur->cl_psn ), &fdset );
+syslog( LOG_DEBUG, "PUSHERPARENT: pid %d fd %d", cur->cl_pid, snet_fd( cur->cl_psn ));
 		if ( snet_fd( cur->cl_psn ) > max ) {
 		    max = snet_fd( cur->cl_psn );
 		}
@@ -327,14 +330,17 @@ syslog ( LOG_DEBUG, "pusher pid XXX for IP: %s", inet_ntoa(cur->cl_sin.sin_addr)
 	    continue;
 	}
 
+syslog( LOG_DEBUG, "PUSHERPARENT: tv %d:%d", tv.tv_sec, tv.tv_usec );
+
+
 	sigprocmask( SIG_BLOCK, &signalset, NULL );
 	for ( cur = replhead; cur != NULL; cur = cur->cl_next ) {
 	    if ( cur->cl_pid > 0 ) {
 		if ( FD_ISSET( snet_fd( cur->cl_psn ), &fdset )) {
-syslog( LOG_DEBUG, "writing to %d: %s", cur->cl_pid, line );
+syslog( LOG_DEBUG, "PUSHERPARENT: writing to %d: %s", cur->cl_pid, line );
 		    snet_writef( cur->cl_psn, "%s\r\n", line );
 		} else {
-syslog( LOG_DEBUG, "NOT writing to %d: %s", cur->cl_pid, line );
+syslog( LOG_DEBUG, "PUSHERPARENT: NOT writing to %d: %s", cur->cl_pid, line );
 		}
 	    }
 	}

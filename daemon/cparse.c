@@ -167,7 +167,7 @@ read_cookie( char *path, struct cinfo *ci )
 	    (void)fclose( cf );
 	    syslog( LOG_ERR, "read_cookie: line too long");
 	}
-	buf[ len -1 ] = '\0';
+	buf[ len - 1 ] = '\0';
 	p = buf + 1;
 
 	switch( *buf ) {
