@@ -95,10 +95,28 @@ pusherchld( sig )
     int
 pusherparent( int ppipe )
 {
-    SNET	*sn;
-    char	*line;
-    int		fds[ 2 ];
-    struct cl	*cur;
+    struct sigaction	sa, osahup, osachld;
+    SNET		*sn;
+    char		*line;
+    int			fds[ 2 ];
+    struct cl		*cur;
+
+
+    /* catch SIGHUP */
+    memset( &sa, 0, sizeof( struct sigaction ));
+    sa.sa_handler = pusherhup;
+    if ( sigaction( SIGHUP, &sa, &osahup ) < 0 ) {
+	syslog( LOG_ERR, "sigaction: %m" );
+	exit( 1 );
+    }
+
+    /* catch SIGCHLD */
+    memset( &sa, 0, sizeof( struct sigaction ));
+    sa.sa_handler = pusherchld;
+    if ( sigaction( SIGCHLD, &sa, &osachld ) < 0 ) {
+	syslog( LOG_ERR, "sigaction: %m" );
+	exit( 1 );
+    }
 
     if (( sn = snet_attach( ppipe, 1024 * 1024 ) ) == NULL ) {
         syslog( LOG_ERR, "pusherparent: snet_attach failed\n" );
