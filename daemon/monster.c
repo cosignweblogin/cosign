@@ -46,6 +46,7 @@ char		*cryptofile = _COSIGN_TLS_KEY;
 char		*certfile = _COSIGN_TLS_CERT;
 char		*cadir = _COSIGN_TLS_CADIR;
 struct timeval	cosign_net_timeout = { 60 * 4, 0 };
+unsigned short	cosign_port = htons( 6663 );
 
     static void
 monster_configure()
@@ -82,6 +83,12 @@ monster_configure()
 	cosign_net_timeout.tv_sec = atoi( val );
 	cosign_net_timeout.tv_usec = 0;
     }
+
+    if (( val = cosign_config_get( COSIGNPORTKEY )) != NULL ) {
+	syslog( LOG_INFO, "config: overriding default port of (%d)"
+		" to config value of '%s'", cosign_port, val );
+	cosign_port = htons( atoi( val ));
+    }
 }
 
     int
@@ -98,10 +105,9 @@ main( int ac, char **av )
     char		*prog, *line;
     int			c, i, err = 0, state = 0;
     int			login_total, service_total, service_gone;
-    unsigned short	port = htons( 6663 );
     int			rc;
     char           	*cosign_host = NULL;
-	char		*cosign_conf = _COSIGN_CONF;
+    char		*cosign_conf = _COSIGN_CONF;
     int                 facility = _COSIGN_LOG, level = LOG_INFO;
     SSL_CTX		*m_ctx = NULL;
     extern int          optind;
@@ -181,7 +187,7 @@ main( int ac, char **av )
 	    break;
 
 	case 'p' :              /* TCP port */
-	     port = htons( atoi( optarg ));
+	     cosign_port = htons( atoi( optarg ));
 	     break;
 
 	case 'V' :              /* version */
@@ -240,7 +246,7 @@ main( int ac, char **av )
 
 	    memset( &new->cl_sin, 0, sizeof( struct sockaddr_in ));
 	    new->cl_sin.sin_family = AF_INET;
-	    new->cl_sin.sin_port = port;
+	    new->cl_sin.sin_port = cosign_port;
 	    memcpy( &new->cl_sin.sin_addr.s_addr,
 		    he->h_addr_list[ i ], (unsigned int)he->h_length );
 	    new->cl_sn = NULL;

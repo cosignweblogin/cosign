@@ -40,6 +40,7 @@ char		*cryptofile = _COSIGN_TLS_KEY;
 char		*certfile = _COSIGN_TLS_CERT;
 char		*cadir = _COSIGN_TLS_CADIR;
 SSL_CTX 	*ctx = NULL;
+unsigned short	cosign_port = htons( 6663 );
 
 struct cgi_list cl[] = {
 #define CL_LOGIN	0
@@ -231,6 +232,9 @@ kcgi_configure()
     if (( val = cosign_config_get( COSIGNCADIRKEY )) != NULL ) {
 	cadir = val;
     }
+    if (( val = cosign_config_get( COSIGNPORTKEY )) != NULL ) {
+	cosign_port = htons( atoi( val ));
+    }
 }
 
     int
@@ -245,7 +249,6 @@ main( int argc, char *argv[] )
     char			*tmpl = LOGIN_HTML;
     struct timeval		tv;
     struct connlist		*head;
-    unsigned short		port;
 
     if ( argc == 2 && ( strncmp( argv[ 1 ], "-V", 2 ) == 0 )) {
 	printf( "%s\n", cosign_version );
@@ -316,8 +319,7 @@ main( int argc, char *argv[] )
 	/* after here, we have a well-formed cookie */
 
     /* setup conn and ssl and hostlist */
-    port = htons( 6663 );
-    if (( head = connlist_setup( cosign_host, port )) == NULL ) {
+    if (( head = connlist_setup( cosign_host, cosign_port )) == NULL ) {
 	title = "Error: But not your fault";
 	err = "We were unable to contact the authentication server.  Please try again later.";
 	tmpl = ERROR_HTML;

@@ -49,7 +49,7 @@ char		*certfile = _COSIGN_TLS_CERT;
 char		*cadir = _COSIGN_TLS_CADIR;
 char		*replhost = NULL;
 struct timeval	cosign_net_timeout = { 60 * 4, 0 };
-unsigned short	port = 0;
+unsigned short	cosign_port = 0;
 SSL_CTX		*ctx = NULL;
 struct sockaddr_in	cosign_sin;
 
@@ -87,10 +87,16 @@ daemon_configure()
     }
 
     if (( val = cosign_config_get( COSIGNTIMEOUTKEY )) != NULL ) {
-	syslog( LOG_INFO, "config: overriding default net tmeout of (%d)"
+	syslog( LOG_INFO, "config: overriding default net timeout of (%d)"
 		" to config value of '%s'", cosign_net_timeout, val );
 	cosign_net_timeout.tv_sec = atoi( val );
 	cosign_net_timeout.tv_usec = 0;
+    }
+
+    if (( val = cosign_config_get( COSIGNPORTKEY )) != NULL ) {
+	syslog( LOG_INFO, "config: overriding default port of (%d)"
+		" to config value of '%s'", cosign_port, val );
+	cosign_port = htons( atoi( val ));
     }
 }
 
@@ -202,7 +208,7 @@ main( int ac, char *av[] )
 	    break;
 
 	case 'p' :		/* TCP port */
-	    port = htons( atoi( optarg ));
+	    cosign_port = htons( atoi( optarg ));
 	    break;
 
 	case 'V' :		/* version */
@@ -253,13 +259,13 @@ main( int ac, char *av[] )
 	exit( 0 );
     }
 
-    if ( port == 0 ) {
+    if ( cosign_port == 0 ) {
 	if (( se = getservbyname( "cosign", "tcp" )) == NULL ) {
 	    fprintf( stderr, "%s: can't find cosign service\n"
 		    "%s: continuing...\n", prog, prog );
-	    port = htons( 6663 );
+	    cosign_port = htons( 6663 );
 	} else {
-	    port = se->s_port;
+	    cosign_port = se->s_port;
 	}
     }
 
@@ -280,7 +286,7 @@ main( int ac, char *av[] )
     memset( &sin, 0, sizeof( struct sockaddr_in ));
     sin.sin_family = AF_INET;
     sin.sin_addr.s_addr = INADDR_ANY;
-    sin.sin_port = port;
+    sin.sin_port = cosign_port;
     if ( bind( s, (struct sockaddr *)&sin, sizeof( struct sockaddr_in )) < 0 ) {
 	perror( "bind" );
 	exit( 1 );

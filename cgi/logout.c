@@ -32,6 +32,8 @@ char    	*certfile = _COSIGN_TLS_CERT;
 char		*cryptofile = _COSIGN_TLS_KEY;
 char		*cadir =_COSIGN_TLS_CADIR;
 char		*cosign_conf = _COSIGN_CONF;
+
+unsigned short	cosign_port = htons( 6663 );
 SSL_CTX         *ctx = NULL;
 int		nocache = 0;
 
@@ -134,7 +136,7 @@ logout_configure()
     if (( val = cosign_config_get( COSIGNHOSTKEY )) != NULL ) {
         cosign_host = val;
     }
-    if (( val = cosign_config_get( COSIGNLOGOUTURLKEY)) != NULL ) {
+    if (( val = cosign_config_get( COSIGNLOGOUTURLKEY )) != NULL ) {
 	url = val;
     }
     if (( val = cosign_config_get( COSIGNKEYKEY )) != NULL ) {
@@ -146,6 +148,9 @@ logout_configure()
     if (( val = cosign_config_get( COSIGNCADIRKEY )) != NULL ) {
         cadir = val;
     }
+    if (( val = cosign_config_get( COSIGNPORTKEY )) != NULL ) {
+        cosign_port = htons( atoi( val )); 
+    }
 }
 
     int
@@ -153,7 +158,6 @@ main( int argc, char *argv[] )
 {
     char		*tmpl = VERIFY_LOGOUT;
     char		*cookie = NULL, *data, *ip_addr, *script, *qs;
-    unsigned short	port;
     struct connlist	*head;
 
     if ( argc == 2 && ( strncmp( argv[ 1 ], "-V", 2 ) == 0 )) {
@@ -226,8 +230,7 @@ main( int argc, char *argv[] )
     (void)strtok( cookie, "/" );
 
     /* setup conn and ssl and hostlist crap */
-    port = htons( 6663 );
-    if (( head = connlist_setup( cosign_host, port )) == NULL ) {
+    if (( head = connlist_setup( cosign_host, cosign_port )) == NULL ) {
         title = "Error: But not your fault";
         err = "We were unable to contact the authentication server.  Please try again later.";     
         tmpl = ERROR_HTML;

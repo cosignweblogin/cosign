@@ -25,7 +25,7 @@
 
 extern char		*cosign_version;
 extern char		*replhost;
-extern unsigned short	port;
+extern unsigned short	cosign_port;
 extern SSL_CTX		*ctx;
 extern struct timeval	cosign_net_timeout;
 
@@ -98,7 +98,7 @@ pusherhosts( void )
 
         memset( &new->cl_sin, 0, sizeof( struct sockaddr_in ));
         new->cl_sin.sin_family = AF_INET;
-        new->cl_sin.sin_port = port;
+        new->cl_sin.sin_port = cosign_port;
         memcpy( &new->cl_sin.sin_addr.s_addr,
                 he->h_addr_list[ i ], (unsigned int)he->h_length );
         new->cl_sn = NULL;
