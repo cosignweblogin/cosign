@@ -17,6 +17,15 @@ include(`header.html')
 		</li>
 
 		<li>
+		    <a href="https://spg.umich.edu/admin/">SPG Admin</a>
+
+		    <blockquote>
+			The SPG administrative interface ( you probably
+			don't have permission to use it ).
+		    </blockquote>
+		</li>
+
+		<li>
 		    <a href="https://cow-test.www.umich.edu/">COW Test</a>
 
 		    <blockquote>
