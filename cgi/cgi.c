@@ -107,7 +107,7 @@ main()
     krb5_get_init_creds_opt	kopts;
     krb5_creds			kcreds;
     krb5_data			kd_rcs, kd_rs;
-    int				len;
+    int				rc;
     char                	new_cookiebuf[ 128 ];
     char        		new_cookie[ 255 ];
     char			*data, *ip_addr, *service, *ref;
@@ -142,18 +142,22 @@ main()
 	    err = "You mock me with your query string.";
 	    subfile( tmpl );
 	}
-	if (( len = strlen( service )) > MAXPATHLEN ) {
+	if ( strlen( service ) > MAXPATHLEN ) {
 	    fprintf( stderr, "Query String too big\n" );
 	    tmpl = ERROR_HTML;
 	    err = "You mock me with your TOO LONG query string.";
 	    subfile( tmpl );
 	}
-	if ( cosign_register( cookie, ip_addr, service ) < 0 ) {
+	if (( rc = cosign_register( cookie, ip_addr, service )) < 0 ) {
 	    fprintf( stderr, "%s: cosign_register failed\n", script );
 	    tmpl = ERROR_HTML;
 	    err = "Register Failed. Oh Well.";
 	    subfile( tmpl );
 
+	}
+	if ( rc > 0 ) {
+	    err = "You are not logged in. Please log in now.";
+	    goto loginscreen;
 	}
 	ref = strtok( NULL, "&" );
 	printf( "Location: %s\n\n", ref );
@@ -173,7 +177,7 @@ main()
 	goto loginscreen;
     }
 
-    /* no query string, yes cookie */
+    /* no query string, yes cookie -- IP? */
 
     if ( strcmp( method, "POST" ) != 0 ) {
 	if ( cosign_check( cookie ) < 0 ) {

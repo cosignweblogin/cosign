@@ -37,18 +37,27 @@ cosign_login( char *cookie, char *ip, char *user, char *realm )
 
     if ( snet_writef( sn, "LOGIN %s %s %s %s\r\n",
 	    cookie, ip, user, realm ) < 0 ) {
-	fprintf( stderr, "cosign_login: login failed\n" );
+	fprintf( stderr, "cosign_login: LOGIN failed\n" );
+	if (( closesn( sn )) != 0 ) {
+	    fprintf( stderr, "cosign_login: closesn failed\n" );
+	}
 	return( -1 );
     }
 
     tv = timeout;
     if (( line = snet_getline_multi( sn, logger, &tv) ) == NULL ) {
 	fprintf( stderr, "cosign_login: %s\n", strerror( errno ));
+	if (( closesn( sn )) != 0 ) {
+	    fprintf( stderr, "cosign_login: closesn failed\n" );
+	}
 	return( -1 );
     }
 
     if ( *line != '2' ) {
 	fprintf( stderr, "cosign_login: %s\n", line );
+	if (( closesn( sn )) != 0 ) {
+	    fprintf( stderr, "cosign_login: closesn failed\n" );
+	}
 	return( -1 );
     }
 
@@ -73,17 +82,29 @@ cosign_register( char *cookie, char *ip, char *secant )
 
     if ( snet_writef( sn, "REGISTER %s %s %s\r\n", cookie, ip, secant ) < 0 ) {
 	fprintf( stderr, "cosign_register: register failed\n" );
+	if (( closesn( sn )) != 0 ) {
+	    fprintf( stderr, "cosign_register: closesn failed\n" );
+	}
 	return( -1 );
     }
 
     tv = timeout;
     if (( line = snet_getline_multi( sn, logger, &tv) ) == NULL ) {
 	fprintf( stderr, "cosign_register: %s\n", strerror( errno ));
+	if (( closesn( sn )) != 0 ) {
+	    fprintf( stderr, "cosign_register: closesn failed\n" );
+	}
 	return( -1 );
     }
 
     if ( *line != '2' ) {
 	fprintf( stderr, "cosign_register: %s\n", line );
+	if (( closesn( sn )) != 0 ) {
+	    fprintf( stderr, "cosign_register: closesn failed\n" );
+	}
+	if ( *line == '4' ) { /* not logged in */
+	    return( 1 );
+	}
 	return( -1 );
     }
 
@@ -109,16 +130,25 @@ cosign_check( char *cookie )
     if ( snet_writef( sn, "CHECK %s\r\n", cookie ) < 0 ) {
 	fprintf( stderr, "cosign_check: check failed\n" );
 	return( -1 );
+	if (( closesn( sn )) != 0 ) {
+	    fprintf( stderr, "cosign_check: closesn failed\n" );
+	}
     }
 
     tv = timeout;
     if (( line = snet_getline_multi( sn, logger, &tv) ) == NULL ) {
 	fprintf( stderr, "cosign_check: %s\n", strerror( errno ));
+	if (( closesn( sn )) != 0 ) {
+	    fprintf( stderr, "cosign_check: closesn failed\n" );
+	}
 	return( -1 );
     }
 
     if ( *line != '2' ) {
 	fprintf( stderr, "cosign_check: %s\n", line );
+	if (( closesn( sn )) != 0 ) {
+	    fprintf( stderr, "cosign_check: closesn failed\n" );
+	}
 	return( -1 );
     }
 

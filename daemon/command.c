@@ -324,7 +324,7 @@ f_register( sn, ac, av )
 	syslog( LOG_ERR, "%s in cookie %s does not match %s",
 		ci.ci_ipaddr, av[ 1 ], av[ 2 ] );
 	snet_writef( sn,
-		"%d IP address given does not match cookie\r\n", 421 );
+		"%d IP address given does not match cookie\r\n", 525 );
 	return( 1 );
     }
 
@@ -375,7 +375,7 @@ f_register( sn, ac, av )
 	    syslog( LOG_ERR,
 		    "f_register: service cookie already exists: %s", av[ 3 ]);
 	    snet_writef( sn,
-		    "%d REGISTER error: Cookie already exists\r\n", 420 );
+		    "%d REGISTER error: Cookie already exists\r\n", 526 );
 	    return( 1 );
 	}
 	syslog( LOG_ERR, "f_register: link: %m" );
