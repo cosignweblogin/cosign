@@ -25,11 +25,11 @@ CFLAGS=         ${DEFS} ${OPTOPTS} @CFLAGS@ ${INCPATH}
 
 ################ Nothing below should need editing ###################
 
-SRC= daemon.c command.c cparse.c config.c wildcard.c logname.c pusher.c
+SRC= daemon.c command.c cparse.c config.c wildcard.c logname.c pusher.c mnet.c
 MONSTER = monster.c cparse.c logname.c mnet.c
 MOBJ = monster.o cparse.o logname.o mnet.o ../version.o
 COSIGNOBJ= daemon.o command.o cparse.o config.o wildcard.o logname.o \
-	pusher.o ../common/argcargv.o ../common/fbase64.o \
+	pusher.o mnet.o ../common/argcargv.o ../common/fbase64.o \
 	../common/mkcookie.o ../version.o
 
 TARGETS=	cosignd monster

@@ -1,5 +1,6 @@
 #include <sys/wait.h>
 #include <sys/types.h>
+#include <sys/time.h>
 #include <unistd.h>
 #include <signal.h>
 #include <syslog.h>
@@ -13,12 +14,14 @@
 #include "monster.h"
 
 extern char		*cosign_version;
+extern char		*replhost;
+extern SSL_CTX		*ctx;
 static struct cl	*replhead;
 
 static void	pusherhup ( int );
 static void	pusherchld ( int );
 int		pusherparent( int );
-int		pusher( int );
+int		pusher( int, struct cl * );
 int		pusherhosts( char *, int );
 
     int
@@ -56,8 +59,19 @@ pusherhosts( char *name, int port)
 pusherhup( sig )
     int			sig;
 {
-    syslog( LOG_INFO, "reload %s", cosign_version );
+    struct cl		*cur;
+
     /* hup all the children */
+    for ( cur = replhead; cur != NULL; cur = cur->cl_next ) {
+	if ( cur->cl_pid < 0 ) {
+	    continue;
+	}
+	if ( kill( cur->cl_pid, sig ) < 0 ) {
+	    syslog( LOG_ERR, "pusherhup: %m" );
+	}
+    }
+
+    syslog( LOG_INFO, "reload %s", cosign_version );
 
     return;
 }
@@ -67,14 +81,34 @@ pusherchld( sig )
     int			sig;
 {
     int			pid, status;
+    struct cl		*cur;
     extern int		errno;
 
     while (( pid = waitpid( 0, &status, WNOHANG )) > 0 ) {
+	for ( cur = replhead; cur != NULL; cur = cur->cl_next ) {
+	    if ( pid == cur->cl_pid ) {
+		cur->cl_pid = 0;
+		if ( cur->cl_psn != NULL ) {
+		    snet_close( cur->cl_psn );
+		    cur->cl_psn = NULL;
+		}
+	    }
+	}
 	/* mark in the list that child has exited */
 	if ( WIFEXITED( status )) {
-	    if ( WEXITSTATUS( status )) {
+	    switch( WEXITSTATUS( status )) {
+	    case 0:
+		syslog( LOG_ERR, "child %d exited", pid );
+		break;
+
+	    case 2:
+		syslog( LOG_CRIT, "child %d configuration error ", pid );
+		exit( 1 );
+
+	    default:
 		syslog( LOG_ERR, "child %d exited with %d", pid,
 			WEXITSTATUS( status ));
+		break;
 	    }
 	} else if ( WIFSIGNALED( status )) {
 	    syslog( LOG_ERR, "child %d died on signal %d", pid,
@@ -99,7 +133,10 @@ pusherparent( int ppipe )
     SNET		*sn;
     char		*line;
     int			fds[ 2 ];
-    struct cl		*cur;
+    int			max;
+    fd_set		fdset;
+    struct timeval	tv = { 0, 0 };
+    struct cl		*cur, *yacur;
 
 
     /* catch SIGHUP */
@@ -128,10 +165,10 @@ pusherparent( int ppipe )
 	    syslog( LOG_ERR, "pusherparent: snet_getline failed\n" );
 	    exit( 1 );
 	}
+syslog( LOG_INFO, "pusher line: %s", line );
 
 	for ( cur = replhead; cur != NULL; cur = cur->cl_next ) {
 	    if ( cur->cl_pid != 0 ) {
-		snet_writef( cur->cl_psn, "%s\r\n", line );
 		continue;
 	    }
 	    if ( pipe( fds ) < 0 ) {
@@ -145,7 +182,15 @@ pusherparent( int ppipe )
 		    syslog( LOG_ERR, "pusher parent pipe: %m" );
 		    exit( 1 );
 		}
-		pusher( fds[ 1 ] );
+		/* let's not leak fds if we can help it */
+		close( ppipe );
+		for ( yacur = replhead; yacur != NULL;
+			yacur = yacur->cl_next ) {
+		    if ( yacur != cur ) {
+			snet_close( yacur->cl_psn );
+		    }
+		}
+		pusher( fds[ 1 ], cur );
 		exit( 0 );
 
 	    case -1 :
@@ -165,37 +210,48 @@ pusherparent( int ppipe )
 	    }
 	}
 
-	/* select */
-	/* zeroed out tv for not wait */
-	/* for any fds that are set we write the line */
+	max = 0;
+	FD_ZERO( &fdset );
+	for ( cur = replhead; cur != NULL; cur = cur->cl_next ) {
+	    FD_SET( snet_fd( cur->cl_psn ), &fdset );
+	    if ( snet_fd( cur->cl_psn ) > max ) {
+		max = snet_fd( cur->cl_psn );
+	    }
+	}
 
-	syslog( LOG_INFO, "pusher line: %s", line );
+	if ( select( max + 1, NULL, &fdset, NULL, &tv ) < 0 ) {
+	    continue;
+	}
 
+	for ( cur = replhead; cur != NULL; cur = cur->cl_next ) {
+	    if ( FD_ISSET( snet_fd( cur->cl_psn ), &fdset )) {
+		snet_writef( cur->cl_psn, "%s\r\n", line );
+	    }
+	}
     }
 
     return( 0 );
-
 }
 
     int
-pusher( int cpipe )
+pusher( int cpipe, struct cl *cur )
 {
     SNET	*csn;
     char	*line;
-
-    syslog( LOG_INFO, "pusher child"  );
 
     if (( csn = snet_attach( cpipe, 1024 * 1024 )) == NULL ) {
         syslog( LOG_ERR, "pusherchild: snet_attach failed" );
         return( -1 );
     }
 
+    if ( connect_sn( cur, ctx, replhost ) != 0 ) {
+
+    }
     for ( ;; ) {
 	if (( line = snet_getline( csn, NULL )) == NULL ) {
 	    syslog( LOG_ERR, "pusherchild: snet_getline failed" );
 	    exit( 1 );
 	}
-	syslog( LOG_INFO, "pusher child line: %s", line );
     }
 
     return( 0 );

@@ -40,8 +40,8 @@ extern char	*cosign_version;
 int		tlsopt = 0;
 char		*cosign_dir = _COSIGN_DIR;
 char		*cosign_conf = _COSIGN_CONF;
+char		*replhost = NULL;
 SSL_CTX		*ctx = NULL;
-
 
 void		hup ___P(( int ));
 void		chld ___P(( int ));
@@ -112,7 +112,6 @@ main( ac, av )
     int			dontrun = 0, fds[ 2 ];
     int			reuseaddr = 1;
     char		*prog;
-    char		*replhost = NULL;
     char		*cryptofile = _COSIGN_TLS_KEY;
     char		*certfile = _COSIGN_TLS_CERT;
     char		*cadir = _COSIGN_TLS_CADIR;
