@@ -34,7 +34,7 @@ SSL_CTX		*ctx;
     int
 cosign_login( char *cookie, char *ip, char *user, char *realm, char *krb)
 {
-    int			fd;
+    int			fd = 0;
     ssize_t             rr, size = 0;
     char		*line;
     unsigned char	buf[ 8192 ];
@@ -47,16 +47,30 @@ cosign_login( char *cookie, char *ip, char *user, char *realm, char *krb)
 	return( -2 );
     }
 
-    if ( snet_writef( sn, "LOGIN %s %s %s %s kerberos\r\n",
-	    cookie, ip, user, realm ) < 0 ) {
-	fprintf( stderr, "cosign_login: LOGIN failed\n" );
-	goto done;
+    /* if we're doing BasicAuth or PAM we might not have a ticket */
+    if ( krb == NULL ) {
+	if ( snet_writef( sn, "LOGIN %s %s %s %s\r\n",
+		cookie, ip, user, realm ) < 0 ) {
+	    fprintf( stderr, "cosign_login: LOGIN failed\n" );
+	    goto done;
+	}
+    } else {
+	if ( snet_writef( sn, "LOGIN %s %s %s %s kerberos\r\n",
+		cookie, ip, user, realm ) < 0 ) {
+	    fprintf( stderr, "cosign_login: LOGIN failed\n" );
+	    goto done;
+	}
     }
 
     tv = timeout;
     if (( line = snet_getline_multi( sn, logger, &tv )) == NULL ) {
 	fprintf( stderr, "cosign_login: %s\n", strerror( errno ));
 	goto done;
+    }
+
+    if ( krb == NULL ) {
+	/* skip ticket stuff */
+	goto finish;
     }
 
     if ( *line != '3' ) {
@@ -116,6 +130,8 @@ cosign_login( char *cookie, char *ip, char *user, char *realm, char *krb)
             fprintf( stderr, "login %s failed: %s\n", user, strerror( errno ));
         }
     }
+
+finish:
     if ( *line != '2' ) {
         /* Error from server - transaction aborted */
         fprintf( stderr, "cosign_login:%s\n", line );

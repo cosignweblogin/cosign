@@ -20,7 +20,6 @@
 #define SERVICE_MENU    "../templates/service-menu.html"
 #define VERIFY_LOGOUT   "../templates/verify-logout.html"
 #define SIDEWAYS	1
-#define htputs( x ) fputs((x),stdout);
 
 extern char	*cosign_version;
 char	*err = NULL;
@@ -201,13 +200,13 @@ main( int argc, char *argv[] )
     }
 
     /* clobber the cosign cookie and display logout screen */
-    htputs( "Expires: Mon, 16 Apr 1973 13:10:00 GMT\n"
+    fputs( "Expires: Mon, 16 Apr 1973 13:10:00 GMT\n"
 	    "Last-Modified: Mon, 16 Apr 1973 13:10:00 GMT\n"
 	    "Cache-Control: no-store, no-cache, must-revalidate\n"
 	    "Cache-Control: pre-check=0, post-check=0, max-age=0\n"
-	    "Pragma: no-cache\n" );
+	    "Pragma: no-cache\n", stdout );
 
-    fputs( "Set-Cookie: cosign=; path=/; expires=Wednesday, 16-Apr-73 02:10:00 GMT; secure\n", stdout );
+    fputs( "Set-Cookie: cosign=null; path=/; expires=Wednesday, 16-Apr-73 02:10:00 GMT; secure\n", stdout );
 
     printf( "Location: %s\n\n", url );
     exit( 0 );

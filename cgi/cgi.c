@@ -204,7 +204,7 @@ main( int argc, char *argv[] )
 	    subfile( tmpl );
 	    exit( 0 );
 	}
-	if ( strlen( service ) > MAXPATHLEN ) {
+	if ( strlen( service ) > MAXNAMELEN ) {
 	    tmpl = ERROR_HTML;
 	    title = "Error: Max Length Exceeded";
 	    err = "An error occurred while processing your request:  max length exceeded.";
@@ -221,7 +221,7 @@ main( int argc, char *argv[] )
 	}
 	ref++;
 
-	if ( cookie == NULL || strlen( cookie ) == 7 ) {
+	if ( cookie == NULL || strlen( cookie ) < 120 ) {
 	    title = "Authentication Required";
 	    err = "You have not yet logged-in.";
 	    goto loginscreen;

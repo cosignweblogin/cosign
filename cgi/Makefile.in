@@ -22,7 +22,8 @@ CFLAGS=         ${DEFS} ${OPTOPTS} @CFLAGS@ ${INCPATH}
 
 
 OBJ     = network.o ../common/mkcookie.o ../common/fbase64.o ../version.o
-TARGETS = cosign.cgi logout
+CGITARGETS = @BASICCGI@ @KRBCGI@
+TARGETS = logout ${CGITARGETS}
 
 all: ${TARGETS}
 
@@ -39,8 +40,16 @@ cgi.o:	cgi.c
 	-D_KEYTAB_PATH=\"${KEYTABPATH}\" \
 	-c cgi.c
 
+basic.o:	basic.c
+	${CC} ${CFLAGS} \
+	-D_COSIGN_HOST=\"${COSIGNHOST}\" \
+	-c basic.c
+
 cosign.cgi: cgi.o $(OBJ)
 	${CC} -o cosign.cgi cgi.o $(OBJ) $(LDFLAGS)
+
+basicosign.cgi: basic.o $(OBJ)
+	${CC} -o basicosign.cgi basic.o $(OBJ) $(LDFLAGS)
 
 logout.o:	logout.c
 	${CC} ${CFLAGS} \
@@ -57,7 +66,11 @@ clean:
 install : all
 	-mkdir -p ${exec_prefix}
 	-mkdir -p ${DOCROOTDIR}
-	-mkdir -p ${CGIDIR}
-	${INSTALL} -m 0755 -c cosign.cgi ${DOCROOTDIR}/
-	${INSTALL} -m 0755 -c logout ${CGIDIR}/
-
+	if [ x != x@BASICCGI@ ]; then \
+	    ${INSTALL} -m 0755 -c @BASICCGI@ ${DOCROOTDIR}/; \
+	fi
+	if [ x != x@KRBCGI@ ]; then \
+	    ${INSTALL} -m 0755 -c @KRBCGI@ ${DOCROOTDIR}/; \
+	    mkdir -p ${CGIDIR}; \
+	    ${INSTALL} -m 0755 -c logout ${CGIDIR}/; \
+	fi

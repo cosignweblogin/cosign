@@ -58,6 +58,8 @@ AC_DEFUN([CHECK_LIBKRB],
     if test ! -e "$ac_cv_path_krb" ; then
         AC_MSG_ERROR(cannot find krb libraries)
     fi
+    KRBCGI="cosign.cgi"
+    AC_SUBST(KRBCGI)
     KRBDEFS=-DKRB;
     AC_SUBST(KRBDEFS)
     KINC="-I$ac_cv_path_krb/include";
@@ -156,3 +158,9 @@ AC_DEFUN([CHECK_APACHE_APXS],
     fi
 ])
 
+AC_DEFUN([CGI_BASICAUTH],
+[
+    BASICCGI="basicosign.cgi"
+    AC_SUBST(BASICCGI)
+    AC_MSG_RESULT([BasicAuth cgi will be built])
+])

@@ -794,6 +794,7 @@ Optional Features:
   --enable-FEATURE[=ARG]  include FEATURE [ARG=yes]
   --enable-krb=path_to_krb
                           enable kerberos for the cgi and apache filter
+  --enable-basicauth      build the basicauth version of the cgi
 
 Optional Packages:
   --with-PACKAGE[=ARG]    use PACKAGE [ARG=yes]
@@ -2589,6 +2590,8 @@ fi
 echo "$as_me: error: cannot find krb libraries" >&2;}
    { (exit 1); exit 1; }; }
     fi
+    KRBCGI="cosign.cgi"
+
     KRBDEFS=-DKRB;
 
     KINC="-I$ac_cv_path_krb/include";
@@ -2606,6 +2609,21 @@ else
   echo "$as_me:$LINENO: result: kerberos not enabled" >&5
 echo "${ECHO_T}kerberos not enabled" >&6
 fi;
+
+# Check whether --enable-basicauth or --disable-basicauth was given.
+if test "${enable_basicauth+set}" = set; then
+  enableval="$enable_basicauth"
+
+    BASICCGI="basicosign.cgi"
+
+    echo "$as_me:$LINENO: result: BasicAuth cgi will be built" >&5
+echo "${ECHO_T}BasicAuth cgi will be built" >&6
+
+else
+  echo "$as_me:$LINENO: result: BasicAuth cgi will not be built " >&5
+echo "${ECHO_T}BasicAuth cgi will not be built " >&6
+fi;
+
 
 # Check whether --with-krb4 or --without-krb4 was given.
 if test "${with_krb4+set}" = set; then
@@ -3515,11 +3533,13 @@ s,@host@,$host,;t t
 s,@host_cpu@,$host_cpu,;t t
 s,@host_vendor@,$host_vendor,;t t
 s,@host_os@,$host_os,;t t
+s,@KRBCGI@,$KRBCGI,;t t
 s,@KRBDEFS@,$KRBDEFS,;t t
 s,@KINC@,$KINC,;t t
 s,@KLIBS@,$KLIBS,;t t
 s,@KLDFLAGS@,$KLDFLAGS,;t t
 s,@HAVE_KRB@,$HAVE_KRB,;t t
+s,@BASICCGI@,$BASICCGI,;t t
 s,@K4DEFS@,$K4DEFS,;t t
 s,@K4INC@,$K4INC,;t t
 s,@K4LIBS@,$K4LIBS,;t t
