@@ -911,7 +911,7 @@ retr_proxy( SNET *sn, char *login, SNET *pushersn )
     struct proxies	*proxy;
     int			rc;
 
-    if ( ch->ch_flag & CH_PROXY ) {
+    if (( ch->ch_flag & CH_PROXY ) == 0 ) {
 	syslog( LOG_ERR, "%s cannot retrieve cookies", ch->ch_hostname );
 	snet_writef( sn, "%d RETR: %s cannot retrieve cookies.\r\n",
 		443, ch->ch_hostname );
@@ -954,7 +954,7 @@ retr_ticket( SNET *sn, struct cinfo *ci )
     struct timeval      tv;
 
     /* RETR service-cookie TicketType */
-    if ( ch->ch_flag & CH_TICKET ) {
+    if (( ch->ch_flag & CH_TICKET ) == 0 ) {
 	syslog( LOG_ERR, "%s not allowed to retrieve tkts", ch->ch_hostname );
 	snet_writef( sn, "%d RETR: %s not allowed to retrieve tkts.\r\n",
 		441, ch->ch_hostname );
