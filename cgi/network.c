@@ -409,7 +409,7 @@ connectsn( char *host, int port )
 
     memset( &sin, 0, sizeof( struct sockaddr_in ) );
     sin.sin_family = AF_INET;
-    sin.sin_port = port;
+    sin.sin_port = htons( port );
 
     /*
      * this code should be enabled only to deal with bugs in
