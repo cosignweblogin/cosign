@@ -240,6 +240,7 @@ pusherparent( int ppipe )
     }
 
     for ( ;; ) {
+	sleep( 1 );
 	if (( line = snet_getline( sn, NULL )) == NULL ) {
 	    syslog( LOG_ERR, "pusherparent: snet_getline: %m" );
 	    exit( 1 );
