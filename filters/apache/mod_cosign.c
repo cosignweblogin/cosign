@@ -264,8 +264,7 @@ cosign_auth( request_rec *r )
 	    if ( gss_krb5_ccache_name( &minor_status, si.si_krb5tkt, NULL )
 		    != GSS_S_COMPLETE ) {
 		ap_log_error( APLOG_MARK, APLOG_ERR|APLOG_NOERRNO,
-			 r->server, "mod_cosign: problem with
-			 gss_krb5_ccache_name" );
+			 r->server, "mod_cosign: gss_krb5_ccache_name" );
 	    }
 	}
 #endif /* GSS */
