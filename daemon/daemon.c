@@ -24,6 +24,7 @@
 #include <openssl/err.h>
 #include <openssl/ssl.h>
 #include <snet.h>
+#include "command.h"
 
 #define COSIGN_DIR "/var/cosign"
 
@@ -262,7 +263,7 @@ main( ac, av )
 #ifdef ultrix
     openlog( prog, LOG_NOWAIT|LOG_PID );
 #else ultrix
-    openlog( prog, LOG_NOWAIT|LOG_PID, LOG_COSIGN );
+    openlog( prog, LOG_NOWAIT|LOG_PID, LOG_DAEMON );
 #endif ultrix
 
     /* catch SIGHUP */

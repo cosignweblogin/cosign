@@ -18,7 +18,11 @@
 #include <snet.h>
 
 #include "sparse.h"
+#include "mkcookie.h"
 #include "cosign.h"
+
+int	set_cookie_and_redirect( request_rec *, cosign_host_config * );
+void	cosign_child_cleanup( server_rec *, pool * );
 
 module cosign_module;
 

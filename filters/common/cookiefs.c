@@ -76,8 +76,12 @@ cookie_valid( cosign_host_config *cfg, char *cookie, struct sinfo *si,
 	return( -1 );
     }
 
+    if ( rc == 2 ) {
+	fprintf( stderr, "This could have been a loop!\n" ); 
+	return( -1 );
+    }
+
     if ( rc == 1 ) {
-	fprintf( stderr, "we don't like %s: redirect!\n", cookie ); 
 	return( 1 );
     }
 

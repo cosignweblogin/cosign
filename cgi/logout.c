@@ -39,6 +39,7 @@ struct cgi_list cl[] = {
 };
 
 void	(*logger)( char * ) = NULL;
+void	subfile( char * );
 
 
     void

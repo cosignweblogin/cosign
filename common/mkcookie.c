@@ -2,6 +2,7 @@
 #include <openssl/rand.h>
 
 #include "fbase64.h"
+#include "mkcookie.h"
 
     int
 mkcookie( int len, char *buf )

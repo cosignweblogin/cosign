@@ -24,4 +24,3 @@ struct connlist {
 int cookie_valid( cosign_host_config *, char *, struct sinfo *, char * );
 int check_cookie( char *, struct sinfo *, cosign_host_config *);
 int teardown_conn( struct connlist * );
-int mkcookie( int, char * );

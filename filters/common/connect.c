@@ -126,7 +126,7 @@ teardown_conn( struct connlist *cur )
 check_cookie( char *secant, struct sinfo *si, cosign_host_config *cfg )
 {
     struct connlist	**cur, *tmp;
-    int			rc;
+    int			rc, ret = 0;
 
     /* use connection, then shuffle if there is a problem
      * what happens if they are all bad?
@@ -151,7 +151,7 @@ check_cookie( char *secant, struct sinfo *si, cosign_host_config *cfg )
 	if ( (*cur)->conn_sn != NULL ) {
 	    continue;
 	}
-	if ( connect_sn( *cur, cfg->ctx, cfg->host ) != 0 ) {
+	if (( ret = connect_sn( *cur, cfg->ctx, cfg->host )) != 0 ) {
 	    continue;
 	}
 	if (( rc = netcheck_cookie( secant, si, (*cur)->conn_sn )) < 0 ) {
@@ -165,7 +165,11 @@ check_cookie( char *secant, struct sinfo *si, cosign_host_config *cfg )
 	}
     }
 
+    if ( ret < 0 ) {
+	return( 2 );
+    }
     return( 1 );
+
 
 done:
     if ( cur != &cfg->cl ) {

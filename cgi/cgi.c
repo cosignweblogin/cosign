@@ -41,6 +41,7 @@ struct cgi_list cl[] = {
 };
 
 void            (*logger)( char * ) = NULL;
+void            subfile( char * );
 
     void
 subfile( char *filename )
@@ -130,7 +131,7 @@ main( int argc, char *argv[] )
     int				rc;
     char                	new_cookiebuf[ 128 ];
     char        		new_cookie[ 255 ];
-    char			*data, *ip_addr, *service, *ref;
+    char			*data, *ip_addr, *service, *ref = NULL;
     char			*cookie = NULL, *method, *script, *qs;
     char			*tmpl = LOGIN_HTML;
 
