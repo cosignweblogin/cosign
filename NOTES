@@ -91,8 +91,7 @@ otherwise, do we redirect? must discuss.
 Protocol:
 
 cosign.cgi:
-    CREATE login_cookie ip
-    LOGIN login_cookie ip princ [ tgt ]
+    LOGIN login_cookie ip princ realm [ tgt ]
     LOGOUT login_cookie ip
     REGISTER login_cookie ip service_cookie
 
@@ -141,4 +140,9 @@ configuration files:
 
     cosign.cgi: uses same conf file as cosignd.
 
+FILE FORMAT:
 
+v1.0
+i141.211.164.2
+pcanna
+rUMICH.EDU
