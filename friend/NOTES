@@ -8,26 +8,6 @@ into your protected web sites.  It is assumed that users or services
 requiring high security or strong authorization will use your standard
 authentication mechanism ( e.g. Kerberos, DCE, x.509, etc. )
 
-o to do ( v 0.9.0 ):
-
-    o remove all of the umich specific logic and data so friend can be
-      used elsewhere.
-    o refactor, review, and simplify code.
-    o move data and settings to a configuration file.
-
-    Until these refinements are made, there is some almost silly
-    duplication of code ( really, we're trying to keep things as plain
-    and simple as possibly while writing/debugging -- we'll add cleverness
-    when we're sure everything works ).
-
-    Search for FRIEND_DB ( the hostname of your friend database ),
-    FRIEND_LOGIN ( login name to use on that host ), and FRIEND_PASSWD
-    ( db password ) in the php directory and replace them with appropriate
-    values for your site.
-
-    You almost certainly want to rewrite all of the files in the
-    smarty/templates directory too.
-
 o requirements
 
     Friend currently requires that php be installed on your weblogin
