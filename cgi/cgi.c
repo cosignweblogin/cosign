@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2002 Regents of The University of Michigan.
+ * All Rights Reserved.  See COPYRIGHT.
+*/
+
 #include <arpa/inet.h>
 #include <netdb.h>
 #include <netinet/in.h>
@@ -14,29 +19,22 @@
 #define HOST		"beothuk.web.itd.umich.edu"
 #define PORT		6663
 #define LOGIN_HTML	"../html-ssl/login.html"
-#define ERROR		"../html-ssl/error.html"
+#define ERROR_HTML	"../html-ssl/error.html"
 #define htputs( x ) fputs((x),stdout);
 
 char			*err = NULL;
+char			*url = "http://www.umich.edu/";
 char			*title = NULL;
 struct timeval          timeout = { 10 * 60, 0 };
 
 struct cgi_list cl[] = {
-#define CL_UNIQNAME        0
-        { "uniqname",      NULL },
-#define CL_PASSWORD        1
-        { "password",      NULL },
-#define CL_COMMAND      2
-        { "command",    NULL },
-        { NULL,         NULL },
+#define CL_UNIQNAME	0
+        { "uniqname", NULL },
+#define CL_PASSWORD	1
+        { "password", NULL },
+        { NULL, NULL },
 };
 
-/*
- * LOGIN
- * S: 220 COokie SIGNer ready"\r\n"
- * C: login cookie ip_addr username realm"\r\n"
- * S: 250 File stored "\r\n"       
- */
 
     void
 subfile( char *filename )
@@ -131,12 +129,12 @@ main()
 
     if ( mkcookie( sizeof( cookiebuf ), cookiebuf ) != 0 ) {
 	fprintf( stderr, "unable to generate new cookie!\n" );
-	tmpl = ERROR;
+	tmpl = ERROR_HTML;
 	err = "Unable to generate new cookie.  Please reload this screen to try again.";
 	goto dispage;
     }
 
-    sprintf( cookie, "auth=%s", cookiebuf );
+    sprintf( cookie, "cosign=%s", cookiebuf );
 
     printf( "Set-Cookie: %s; path=/; secure\n", cookie );
     htputs( "Cache-Control: private, must-revalidate, no-cache\n"
@@ -172,7 +170,7 @@ main()
 	err = (char *)error_message( kerror );
 	title = "( kerberos error )";
 
-	tmpl = ERROR;
+	tmpl = ERROR_HTML;
 	goto dispage;
     }
 
@@ -180,7 +178,7 @@ main()
 	err = (char *)error_message( kerror );
 	title = "( kerberos error )";
 
-	tmpl = ERROR;
+	tmpl = ERROR_HTML;
 	goto dispage;
     }
 
@@ -214,7 +212,7 @@ main()
     /* password has been accepted, tell cosignd */
     err = "Your password has been accepted.";
     title = "Succeeded";
-    tmpl = ERROR;
+    tmpl = ERROR_HTML;
 
     memset( &sin, 0, sizeof( struct sockaddr_in ));
     sin.sin_family = AF_INET;

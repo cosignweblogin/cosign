@@ -2,7 +2,7 @@ CGIBIN	= /afs/umich.edu/user/c/l/clunis/Public/xcgi/cgi-ssl
 HTML	= /afs/umich.edu/user/c/l/clunis/Public/xcgi/html-ssl/
 
 CC	= gcc
-TARGETS	= cosign
+TARGETS	= cosign logout
 OBJ	= cgi.o mkcookie.o fbase64.o
 
 KDIR	= /afs/umich.edu/group/itd/build/webmaster/projects/weblogin/cookieserver/sun4x_56_krb
@@ -24,6 +24,9 @@ all: ${TARGETS}
 cosign: libs $(OBJ)
 		${CC} -o cosign $(OBJ) $(LIBS) $(LDFLAGS)
 
+logout: libs $(OBJ)
+		${CC} -o logout $(OBJ) $(LIBS) $(LDFLAGS)
+
 libs:
 		cd ../libsnet; ${MAKE} ${MFLAGS} CC=${CC}
 		cd libcgi; ${MAKE} ${MFLAGS} CC=${CC}
@@ -34,5 +37,5 @@ clean:
 		/bin/rm -rf *.o ${TARGETS}
 
 install:
-		/bin/cp cosign $(CGIBIN)
+		/bin/cp $(TARGETS) $(CGIBIN)
 		/bin/cp -r html/* $(HTML)
