@@ -1,5 +1,6 @@
 CC=	gcc
-ALL=	libcgi libsnet cgi daemon filters/apache
+ALL=	libcgi libsnet cgi cgi/html daemon filters/apache
+CFLAGS=
 
 all:	version.o ${ALL}
 
