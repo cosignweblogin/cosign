@@ -3,8 +3,27 @@
  * All Rights Reserved.  See LICENSE.
  */
 
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <sys/param.h>
+#include <openssl/ssl.h>
+
 #include <krb5.h>
+#include <string.h>
+#include <snet.h>
+
+#include "cosigncgi.h"
 #include "login.h"
+#include "config.h"
+#include "network.h"
+
+char	*keytab_path = _KEYTAB_PATH;
+char	*ticket_path = _COSIGN_TICKET_CACHE;
+
+#define LOGIN_ERROR_HTML        "../templates/login_error.html"
+#define ERROR_HTML	        "../templates/error.html"
+
+extern char	*cosign_host, *cosign_conf, *err, *ref, *service, *title;
 
 # ifdef SQL_FRIEND
 #include <crypt.h>
@@ -14,14 +33,146 @@ static	MYSQL	friend_db;
 char	*friend_db_name = _FRIEND_MYSQL_DB;
 char	*friend_login = _FRIEND_MYSQL_LOGIN;
 char	*friend_passwd = _FRIEND_MYSQL_PASSWD;
+# endif  /* SQL_FRIEND */
 
+    static void
+lcgi_configure()
+{
+    char        *val;
+
+    if (( val = cosign_config_get( COSIGNKEYTABKEY )) != NULL ) {
+        keytab_path = val;
+    }
+    if (( val = cosign_config_get( COSIGNTICKKEY )) != NULL ) {
+        ticket_path = val;
+    }
+
+# ifdef SQL_FRIEND
+    if (( val = cosign_config_get( MYSQLDBKEY )) != NULL ) {
+        friend_db_name = val;
+    }
+    if (( val = cosign_config_get( MYSQLUSERKEY )) != NULL ) {
+        friend_login = val;
+    }
+    if (( val = cosign_config_get( MYSQLPASSWDKEY )) != NULL ) {
+        friend_passwd = val;
+    }
+# endif  /* SQL_FRIEND */
+}
+
+    static void
+subfile( char *filename )
+{
+    FILE	*fs;
+    int 	c, i;
+    char	nasties[] = "<>(){}[];'`\" \\";
+
+    fputs( "Cache-Control: no-cache, private\n"
+	    "Pragma: no-cache\n"
+	    "Expires: Mon, 16 Apr 1973 13:10:00 GMT\n"
+	    "Content-type: text/html\n\n", stdout );
+
+    if (( fs = fopen( filename, "r" )) == NULL ) {
+	perror( filename );
+	exit( SIDEWAYS );
+    }
+
+    while (( c = getc( fs )) != EOF ) {
+	if ( c == '$' ) {
+
+	    switch ( c = getc( fs )) {
+            case 'c':
+                if ( service != NULL ) {
+                    for ( i = 0; i < strlen( service ); i++ ) {
+                        /* block XSS attacks while printing */
+                        if ( strchr( nasties, service[ i ] ) != NULL ||
+                                service[ i ] <= 0x1F || service[ i ] >= 0x7F ) {
+
+			    printf( "%%%x", service[ i ] );
+                        } else {
+                            putc( service[ i ], stdout );
+                        }
+                    }
+                }
+                break;
+
+	    case 't':
+		if ( title != NULL ) {
+		    printf( "%s", title );
+		}
+		break;
+
+	    case 'e':
+		if ( err != NULL ) {
+		    printf( "%s", err );
+		}
+		break;
+
+	    case 'l':
+                if (( login != NULL ) && ( login != '\0' )) {
+                    printf( "%s", login );
+                }
+		break;
+
+	    case 's':
+		printf( "%s", getenv( "SCRIPT_NAME" ));
+		break;
+
+	    case 'h':
+		printf( "%s", cosign_host );
+		break;
+
+            case 'k':
+		break;
+
+            case 'r':
+                if ( ref != NULL ) {
+                    for ( i = 0; i < strlen( ref ); i++ ) {
+                        /* block XSS attacks while printing */
+                        if ( strchr( nasties, ref[ i ] ) != NULL ||
+                                ref[ i ] <= 0x1F || ref[ i ] >= 0x7F ) {
+
+			    printf( "%%%x", ref[ i ] );
+                        } else {
+                            putc( ref[ i ], stdout );
+                        }
+                    }
+                }
+                break;
+
+	    case EOF:
+		putchar( '$' );
+		break;
+
+	    case '$':
+		putchar( c );
+		break;
+
+	    default:
+		putchar( '$' );
+		putchar( c );
+	    }
+	} else {
+	    putchar( c );
+	}
+    }
+
+    if ( fclose( fs ) != 0 ) {
+	perror( filename );
+    }
+}
+
+# ifdef SQL_FRIEND
     int
 cosign_login_mysql()
 {
-    MYSQL_RES                   *res;
-    MYSQL_ROW                   row;
-    char                        sql[ 225 ]; /* holds sql query + email addr */
-    char                        *crypted, *p;
+    MYSQL_RES		*res;
+    MYSQL_ROW		row;
+    char		sql[ 225 ]; /* holds sql query + email addr */
+    char		*crypted, *p;
+    char		*tmpl = ERROR_HTML; 
+
+    lcgi_configure();
 
     if ( !mysql_real_connect( &friend_db, friend_db_name, friend_login, friend_passwd, "friend", 3306, NULL, 0 )) {
 	fprintf( stderr, mysql_error( &friend_db ));
@@ -34,7 +185,7 @@ cosign_login_mysql()
     }
 
     /* Check for sql injection prior to username query */
-    for ( p = cl[ CL_LOGIN ].cl_data; *p != '\0'; p++ ) {
+    for ( p = login; *p != '\0'; p++ ) {
 	if (( isalpha( *p ) != 0 ) || (isdigit( *p ) != 0 )) {
 	    continue;
 	}
@@ -46,8 +197,7 @@ cosign_login_mysql()
 	    case '.':
 	    continue;
 	    default:
-	    fprintf( stderr, "invalid username: %s %s\n",
-		    cl[ CL_LOGIN ].cl_data, ip_addr );
+	    fprintf( stderr, "invalid username: %s %s\n", login, ip_addr );
 
 	    err = "Provided login name appears to be invalid";
 	    title = "Invalid Input";
@@ -56,7 +206,7 @@ cosign_login_mysql()
 	    exit( 0 );
 	}
     }
-    snprintf( sql, sizeof( sql ), "SELECT account_name, passwd FROM friends WHERE account_name = '%s'", cl[ CL_LOGIN ].cl_data );
+    snprintf( sql, sizeof( sql ), "SELECT account_name, passwd FROM friends WHERE account_name = '%s'", login );
 
     if( mysql_real_query( &friend_db, sql, sizeof( sql ))) {
 	fprintf( stderr, mysql_error( &friend_db ));
@@ -89,7 +239,7 @@ cosign_login_mysql()
     }
 
     /* crypt the user's password */
-    crypted = crypt( cl[ CL_PASSWORD ].cl_data, row[ 1 ] );
+    crypted = crypt( passwd, row[ 1 ] );
 
     if ( strcmp( crypted, row[ 1 ] ) != 0 ) {
 	mysql_free_result( res );
@@ -106,9 +256,8 @@ cosign_login_mysql()
     mysql_free_result( res );
     mysql_close( &friend_db );
 
-    if ( cosign_login( head, cookie, ip_addr, 
-	    cl[ CL_LOGIN ].cl_data, "friend", NULL ) < 0 ) {
-	fprintf( stderr, "%s: login failed\n", script ) ;
+    if ( cosign_login( head, cookie, ip_addr, login, "friend", NULL ) < 0 ) {
+	fprintf( stderr, "cosign_login_mysql: login failed\n" ) ;
 
 	err = "We were unable to contact the authentication server."
 		"  Please try again later.";
@@ -122,7 +271,8 @@ cosign_login_mysql()
 # endif /* SQL_FRIEND */
 
     int
-cosign_login_krb5()
+cosign_login_krb5( struct connlist *head, char *login, char *passwd,
+	char *ip_addr, char *cookie )
 {
     krb5_error_code             kerror = 0;
     krb5_context                kcontext;
@@ -133,8 +283,11 @@ cosign_login_krb5()
     krb5_ccache                 kccache;
     krb5_keytab                 keytab = 0;
     char                        *realm = "no_realm";
+    char			*tmpl = ERROR_HTML; 
     char                        ktbuf[ MAX_KEYTAB_NAME_LEN + 1 ];
     char                        tmpkrb[ 16 ], krbpath [ MAXPATHLEN ];
+
+    lcgi_configure();
 
     if (( kerror = krb5_init_context( &kcontext ))) {
 	err = (char *)error_message( kerror );
@@ -145,8 +298,7 @@ cosign_login_krb5()
 	exit( 0 );
     }
 
-    if (( kerror = krb5_parse_name( kcontext, cl[ CL_LOGIN ].cl_data,
-	    &kprinc ))) {
+    if (( kerror = krb5_parse_name( kcontext, login, &kprinc ))) {
 	err = (char *)error_message( kerror );
 	title = "Authentication Required ( kerberos error )";
 
@@ -200,8 +352,7 @@ cosign_login_krb5()
     krb5_get_init_creds_opt_set_proxiable( &kopts, 0 );
 
     if (( kerror = krb5_get_init_creds_password( kcontext, &kcreds, 
-	    kprinc, cl[ CL_PASSWORD ].cl_data, NULL, NULL, 0, 
-	    NULL /*keytab */, &kopts ))) {
+	    kprinc, passwd, NULL, NULL, 0, NULL /*keytab */, &kopts ))) {
 
 	if ( kerror == KRB5KRB_AP_ERR_BAD_INTEGRITY ) {
 
@@ -301,9 +452,8 @@ cosign_login_krb5()
     krb5_free_context( kcontext );
 
     /* password has been accepted, tell cosignd */
-    if ( cosign_login( head, cookie, ip_addr, 
-	    cl[ CL_LOGIN ].cl_data, realm, krbpath ) < 0 ) {
-	fprintf( stderr, "%s: login failed\n", script ) ;
+    if ( cosign_login( head, cookie, ip_addr, login, realm, krbpath ) < 0 ) {
+	fprintf( stderr, "cosign_login_krb5: login failed\n") ;
 	err = "We were unable to contact the authentication server."
 		"  Please try again later.";
 	title = "Error: Please try later";

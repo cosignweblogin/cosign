@@ -33,10 +33,9 @@
 
 extern char	*cosign_version;
 char		*cosign_host = _COSIGN_HOST;
+char 		*cosign_conf = _COSIGN_CONF;
 char		*err = NULL, *ref = NULL, *service = NULL;
 char		*title = "Authentication Required";
-char		*keytab_path = _KEYTAB_PATH;
-char		*ticket_path = _COSIGN_TICKET_CACHE;
 char		*cryptofile = _COSIGN_TLS_KEY;
 char		*certfile = _COSIGN_TLS_CERT;
 char		*cadir = _COSIGN_TLS_CADIR;
@@ -225,12 +224,6 @@ kcgi_configure()
     if (( val = cosign_config_get( COSIGNHOSTKEY )) != NULL ) {
 	cosign_host = val;
     }
-    if (( val = cosign_config_get( COSIGNKEYTABKEY )) != NULL ) {
-	keytab_path = val;
-    }
-    if (( val = cosign_config_get( COSIGNTICKKEY )) != NULL ) {
-	ticket_path = val;
-    }
     if (( val = cosign_config_get( COSIGNKEYKEY )) != NULL ) {
 	cryptofile = val;
     }
@@ -240,17 +233,6 @@ kcgi_configure()
     if (( val = cosign_config_get( COSIGNCADIRKEY )) != NULL ) {
 	cadir = val;
     }
-# ifdef SQL_FRIEND
-    if (( val = cosign_config_get( MYSQLDBKEY )) != NULL ) {
-	friend_db_name = val;
-    }
-    if (( val = cosign_config_get( MYSQLUSERKEY )) != NULL ) {
-	friend_login = val;
-    }
-    if (( val = cosign_config_get( MYSQLPASSWDKEY )) != NULL ) {
-	friend_passwd = val;
-    }
-# endif	 /* SQL_FRIEND */
 }
 
     int
@@ -263,7 +245,6 @@ main( int argc, char *argv[] )
     char			*cookie = NULL, *method, *script, *qs;
     char			*misc = NULL;
     char			*tmpl = LOGIN_HTML;
-    char 			*cosign_conf = _COSIGN_CONF;
     struct timeval		tv;
     struct connlist		*head;
     unsigned short		port;
