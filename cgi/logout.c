@@ -126,7 +126,7 @@ main( int argc, char *argv[] )
 {
     char	*tmpl = VERIFY_LOGOUT;
     char	*cookie = NULL, *data, *ip_addr, *script, *qs;
-    int		port;
+    unsigned short	port;
     struct connlist	*head;
 
     if ( argc == 2 && ( strncmp( argv[ 1 ], "-V", 2 ) == 0 )) {

@@ -12,11 +12,11 @@ and state
 ] [
 .BI \-H\  hard-timeout
 ] [
-.BI \-i\  idle-timeout
+.BI \-i\  idle-cache-timeout
 ] [
 .BI \-I\  timestamp-pushing-interval
 ] [
-.BI \-l\  loggedout-keep-time
+.BI \-l\  loggedout-cache
 ] [
 .BI \-L\  syslog-facility
 ] [
@@ -47,11 +47,11 @@ an arbitrary
 .I timestamp-pushing-interval
 with the -I option.
 Monster stats each login cookie, checking to see if it is either past the
-.I idle-timeout
+.I idle-timeout ( 4.5 hours - idle time + grey window from cosignd, + the usual loggedout_cache time in monster)
 , the 
-.I hard-timeout
+.I hard-timeout ( 12 hours )
 or if it is already logged out if it is past the
-.I loggedout-keep-time.
+.I loggedout-keep-time. ( 2 hours )
 If it is past these timeouts, the login cookie is deleted, as well as any
 corresponding Kerberos tickets. When monster encounters a service
 cookie, it looks up the corresponding login cookie and checks for
@@ -86,20 +86,24 @@ debug mode. Does not disassociate from controlling tty.
 hostname to replicate to. This "turns on" monster's state propagation.
 .TP 19
 .BI \-H\  hard-timeout
-specifies, in seconds, the absolute or hard timeout for any login cookie. 
+specifies, in seconds, the absolute or hard timeout for any login cookie, by
+default 12 hours.
 .TP 19
-.BI \-i\  idle-timeout
-specifies, in seconds, the timeout for an idle login cookie.
+.BI \-i\  idle-cache-timeout
+specifies, in seconds, the timeout for removal of an idle login cookie, by
+default 4.5 hours. This is the defualt idle time and grey window from cosignd,
+and the default loggedout_cache time in monster.
 .TP 19
 .BI \-I\  timestamp-pushing-interval
-specifies, in seconds, how long monster should sleep between passes.
+specifies, in seconds, how long monster should sleep between passes, by
+default 2 minutes.
 .TP 19
 .BI \-L\  syslog-facility
 specifies which syslog-facilty to log messages to.
 .TP 19
-.BI \-l\  loggedout-keep-time
+.BI \-l\  loggedout-cache
 specifies, in seconds, how long to store logged out cookies in the
-database before they are deleted.
+database before they are deleted, by default 2 hours.
 .TP 19
 .BI \-p\  port 
 specifies the port of the cosign server, by default

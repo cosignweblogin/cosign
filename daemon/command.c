@@ -35,8 +35,8 @@
 
 #define TKT_PREFIX	_COSIGN_TICKET_CACHE
 
-#define IDLE_OUT	7200
-#define GREY		1800
+extern int	idle_out;
+extern int	grey;
 
 static int	f_noop( SNET *, int, char *[], SNET * );
 static int	f_quit( SNET *, int, char *[], SNET * );
@@ -185,6 +185,8 @@ f_login( SNET *sn, int ac, char *av[], SNET *pushersn )
     extern int		errno;
 
     /* LOGIN login_cookie ip principal realm [tgt] */
+
+    syslog( LOG_ERR, "%d s idle and %d is grey", idle_out, grey );
 
     if ( ch->ch_key != CGI ) {
 	syslog( LOG_ERR, "%s not allowed to login", ch->ch_hostname );
@@ -708,11 +710,11 @@ f_register( SNET *sn, int ac, char *av[], SNET *pushersn )
     }
 
     /* check for idle timeout, and if so, log'em out */
-    if ( tv.tv_sec - ci.ci_itime > IDLE_OUT &&
-	    tv.tv_sec - ci.ci_itime < (IDLE_OUT + GREY )) {
+    if ( tv.tv_sec - ci.ci_itime > idle_out &&
+	    tv.tv_sec - ci.ci_itime < (idle_out + grey )) {
 	snet_writef( sn, "%d REGISTER: Idle Grey Window\r\n", 521 );
 	return( 1 );
-     } else if ( tv.tv_sec - ci.ci_itime >  ( IDLE_OUT + GREY )) {
+     } else if ( tv.tv_sec - ci.ci_itime >  ( idle_out + grey )) {
 	syslog( LOG_INFO, "f_register: idle time out!\n" );
 	if ( do_logout( av[ 1 ] ) < 0 ) {
 	    syslog( LOG_ERR, "f_register: %s: %m", av[ 1 ] );
@@ -806,11 +808,11 @@ f_check( SNET *sn, int ac, char *av[], SNET *pushersn )
 	return( -1 );
     }
 
-    if ( tv.tv_sec - ci.ci_itime > IDLE_OUT &&
-	    tv.tv_sec - ci.ci_itime < (IDLE_OUT + GREY )) {
+    if ( tv.tv_sec - ci.ci_itime > idle_out &&
+	    tv.tv_sec - ci.ci_itime < (idle_out + grey )) {
 	snet_writef( sn, "%d CHECK: Idle Grey Window\r\n", 531 );
 	return( 1 );
-    } else if ( tv.tv_sec - ci.ci_itime > IDLE_OUT ) {
+    } else if ( tv.tv_sec - ci.ci_itime > idle_out ) {
 	syslog( LOG_INFO, "f_check: idle time out!\n" );
 	snet_writef( sn, "%d CHECK: Idle logged out\r\n", 431 );
 	if ( do_logout( login ) < 0 ) {
@@ -882,11 +884,11 @@ f_retr( SNET *sn, int ac, char *av[], SNET *pushersn )
 	return( -1 );
     }
 
-    if ( tv.tv_sec - ci.ci_itime > IDLE_OUT &&
-	    tv.tv_sec - ci.ci_itime < (IDLE_OUT + GREY )) {
+    if ( tv.tv_sec - ci.ci_itime > idle_out &&
+	    tv.tv_sec - ci.ci_itime < (idle_out + grey )) {
 	snet_writef( sn, "%d RETR: Idle Grey Window\r\n", 541 );
 	return( 1 );
-    } else if ( tv.tv_sec - ci.ci_itime > IDLE_OUT ) {
+    } else if ( tv.tv_sec - ci.ci_itime > idle_out ) {
 	syslog( LOG_INFO, "f_retr: idle time out!\n" );
 	snet_writef( sn, "%d RETR: Idle logged out\r\n", 441 );
 	if ( do_logout( login ) < 0 ) {

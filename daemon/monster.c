@@ -21,11 +21,11 @@
 #include "logname.h"
 #include "monster.h"
 
-/* 120 minutes */
-int		idle = 14400;
+/* idle_cache = (idle+grey) from cosignd, plus loggedout_cache here */
+int		idle_cache = 16200;
 int		interval = 120;
 int		hard_timeout = 43200;
-int		logged_out = 7200;
+int		loggedout_cache = 7200;
 int             debug = 0;
 extern char	*cosign_version;
 
@@ -46,7 +46,8 @@ main( int ac, char **av )
     char                login[ MAXCOOKIELEN ], hostname[ MAXHOSTNAMELEN ];
     time_t		itime = 0;
     char		*prog, *line;
-    int			c, i, port = htons( 6663 ), err = 0, state = 0;
+    int			c, i, err = 0, state = 0;
+    unsigned short	port = htons( 6663 );
     int			rc;
     char           	*cosign_dir = _COSIGN_DIR;
     char           	*cosign_host = NULL;
@@ -79,7 +80,7 @@ main( int ac, char **av )
 	    break;
 
 	case 'i' :              /* idle timeout in seconds*/
-	    idle = atoi( optarg );
+	    idle_cache = atoi( optarg );
 	    break;
 
 	case 'I' :              /* timestamp pushing interval*/
@@ -87,7 +88,7 @@ main( int ac, char **av )
 	    break;
 
 	case 'l' :              /* how long to keep logged out cookies*/
-	    logged_out = atoi( optarg );
+	    loggedout_cache = atoi( optarg );
 	    break;
 
 	case 'L' :              /* syslog facility */
@@ -130,8 +131,8 @@ main( int ac, char **av )
 
     if ( err || optind != ac ) {
 	fprintf( stderr, "Usage: monster [ -dV ] [ -h cosignd host ] ");
-	fprintf( stderr, "[ -H hard timeout  ] [ -i idletimeinsecs ] " );
-	fprintf( stderr, "[ -I update interval ] [ -l logged out time ]  " );
+	fprintf( stderr, "[ -H hard timeout  ] [ -i idlecachetimeinsecs ] " );
+	fprintf( stderr, "[ -I update interval ] [ -l loggedoutcachetime ]  " );
 	fprintf( stderr, "[ -L syslog facility] [ -p port ] [ -x ca dir ] " );
 	fprintf( stderr, "[ -y cert file] [ -z private key file ]\n" );
 	exit( -1 );
@@ -443,12 +444,12 @@ decision( char *name, struct timeval *now, time_t *itime, int *state )
     }
 
     /* logged out plus extra non-fail overtime */
-    if ( !ci.ci_state && (( now->tv_sec - ci.ci_itime ) > logged_out )) {
+    if ( !ci.ci_state && (( now->tv_sec - ci.ci_itime ) > loggedout_cache )) {
 	goto delete_stuff;
     }
 
     /* idle out, plus gray window, plus non-failover */
-    if (( now->tv_sec - ci.ci_itime )  > idle ) {
+    if (( now->tv_sec - ci.ci_itime )  > idle_cache ) {
 	goto delete_stuff;
     }
 

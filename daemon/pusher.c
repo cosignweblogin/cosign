@@ -24,7 +24,7 @@
 
 extern char		*cosign_version;
 extern char		*replhost;
-extern unsigned int	port;
+extern unsigned short	port;
 extern SSL_CTX		*ctx;
 static struct cl	*replhead;
 

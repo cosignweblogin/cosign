@@ -243,7 +243,7 @@ main( int argc, char *argv[] )
     char			*misc = NULL;
     char			*tmpl = LOGIN_HTML;
     struct connlist		*head;
-    int				port;
+    unsigned short		port;
 #ifdef SQL_FRIEND
     MYSQL_RES			*res;
     MYSQL_ROW			row;

@@ -13,7 +13,11 @@
 ] [
 .BI \-D\  db-directory
 ] [
+.BI \-g\  grey-window-in-seconds
+] [
 .BI \-h\  replication-hostname
+] [
+.BI \-i\  idle-timeout-in-seconds
 ] [
 .BI \-L\  syslog-facility
 ] [
@@ -138,8 +142,18 @@ specifies the  directory to store the cookie database, by default _COSIGN_DIR
 .B \-d
 debug mode. Does not disassociate from controlling tty.
 .TP 19
-.B \-h
+.BI \-g\  grey-window-in-seconds
+grey window for replication and idle logout. All cosignd's will answer
+5xx during this period (idle + grey) in case they've missed an event in
+this time period. After this grey window, a given cookie will be logged out
+(4xx), by default 1800 seconds ( 30 minutes).
+.TP 19
+.BI \-h\  replication-hostname
 hostname to replicate to. This "turns on" cosignd's replication.
+.TP 19
+.BI \-i\  idle-timeout-in-seconds
+idle timeout, after which an unused cookie will be eligible for idle logout,
+by default 7200 seconds (2 hours).
 .TP 19
 .BI \-L\  syslog-facility
 specifies which syslog-facilty to log messages to.

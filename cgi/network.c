@@ -42,7 +42,7 @@ static int net_check( SNET *, void * );
 /* not using this at present */
 /* static int close_sn( struct connlist * ); */
     struct connlist *
-connlist_setup( char *host, int port )
+connlist_setup( char *host, unsigned short port )
 {
 
     int			i;

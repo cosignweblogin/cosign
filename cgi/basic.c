@@ -21,7 +21,7 @@ extern char	*cosign_version;
 char	*err = NULL, *ref = NULL, *service = NULL;
 char	*title = "Authentication Required";
 char	*cosign_host = _COSIGN_HOST;
-int	port;
+unsigned short	port;
 
 
 void            subfile( char * );

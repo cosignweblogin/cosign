@@ -38,6 +38,8 @@ int		pusherpid;
 
 extern char	*cosign_version;
 int		tlsopt = 0;
+int		idle_out = 7200;
+int		grey = 1800;
 char		*cosign_dir = _COSIGN_DIR;
 char		*cosign_conf = _COSIGN_CONF;
 char		*replhost = NULL;
@@ -122,7 +124,7 @@ main( int ac, char *av[] )
 	prog++;
     }
 
-    while (( c = getopt( ac, av, "b:c:dD:h:L:np:VXx:y:z:" )) != -1 ) {
+    while (( c = getopt( ac, av, "b:c:dD:g:h:i:L:np:VXx:y:z:" )) != -1 ) {
 	switch ( c ) {
 	case 'b' :		/* listen backlog */
 	    backlog = atoi( optarg );
@@ -140,8 +142,16 @@ main( int ac, char *av[] )
 	    cosign_dir = optarg;
 	    break;
 
+	case 'g' :		/* grey window for logouts/replication */
+	    grey = atoi( optarg );
+	    break;
+
 	case 'h' :		/* host to replicate to*/
 	    replhost = optarg;
+	    break;
+
+	case 'i' :		/* idle timeout in seconds */
+	    idle_out  = atoi( optarg );
 	    break;
 
 	case 'L' :              /* syslog facility */
@@ -188,7 +198,8 @@ main( int ac, char *av[] )
     if ( err || optind != ac ) {
 	fprintf( stderr, "Usage: cosignd [ -dV ] [ -b backlog ] ");
 	fprintf( stderr, "[ -c conf file ] [ -D database dir ] " );
-	fprintf( stderr, "[ -L syslog facility] " );
+	fprintf( stderr, "[ -g greywindowinsecs ] [ -h replication_host] " );
+	fprintf( stderr, "[ -i idletimeinsecs] [ -L syslog facility] " );
 	fprintf( stderr, "[ -p port ] [ -x ca dir ] " );
 	fprintf( stderr, "[ -y cert file] [ -z private key file ]\n" );
 	exit( 1 );
