@@ -23,9 +23,9 @@
 #define SIDEWAYS	1
 
 extern char	*cosign_version;
+extern char	*cosign_host;
 char	*err = NULL;
 char	*title = "Logout";
-char	*host = _COSIGN_HOST;
 char	*url = _COSIGN_LOGOUT_URL;
 int	port = 6663;
 int	nocache = 0;
@@ -161,7 +161,7 @@ main( int argc, char *argv[] )
     if (( cl[ CL_VERIFY ].cl_data == NULL ) ||
 	    ( *cl[ CL_VERIFY ].cl_data == '\0' )) {
 	/* user posted, but did not verify */
-	printf( "Location: https://%s/\n\n", host );
+	printf( "Location: https://%s/\n\n", cosign_host );
 
 	exit( 0 );
     }
@@ -187,10 +187,20 @@ main( int argc, char *argv[] )
         }
     }
 
-    /* ssl and data stuff */
+    /* setup conn and ssl and hostlist crap */
+    if (( head = connlist_setup( cosign_host, port )) == NULL ) {
+        title = "Error: But not your fault";
+        err = "We were unable to contact the authentication server.  Please try
+again later.";     
+        tmpl = ERROR_HTML;
+        subfile( tmpl );
+        exit( 0 );
+    }
+
+    ssl_setup(); 
+
 
     if ( cookie != NULL ) {
-	fprintf( stderr, "LOGOUT %s %s\n", cookie, ip_addr );
 	if ( cosign_logout( head, cookie, ip_addr ) < 0 ) {
 	    fprintf( stderr, "%s: logout failed\n", script ) ;
 

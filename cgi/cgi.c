@@ -34,9 +34,9 @@ static	MYSQL	friend_db;
 #define SIDEWAYS        1
 
 extern char	*cosign_version;
+char	*cosign_host = _COSIGN_HOST;
 char	*err = NULL, *ref = NULL, *service = NULL;
 char	*title = "Authentication Required";
-char	*host = _COSIGN_HOST;
 char	*keytab_path = _KEYTAB_PATH;
 int	port = 6663;
 
@@ -114,7 +114,7 @@ subfile( char *filename )
 		break;
 
 	    case 'h':
-		printf( "%s", host );
+		printf( "%s", cosign_host );
 		break;
 
             case 'k':
@@ -222,8 +222,8 @@ main( int argc, char *argv[] )
 	goto loginscreen;
     }
 
-    /* setup conn and ssl and hostlist crap */
-    if (( head = connlist_setup( host, port )) == NULL ) {
+    /* setup conn and ssl and hostlist */
+    if (( head = connlist_setup( cosign_host, port )) == NULL ) {
 	title = "Error: But not your fault";
 	err = "We were unable to contact the authentication server.  Please try again later.";
 	tmpl = ERROR_HTML;
@@ -296,7 +296,7 @@ main( int argc, char *argv[] )
 	}
 
 	/* authentication successful, show service menu */
-	printf( "Location: http://%s%s\n\n", host, SERVICE_MENU );
+	printf( "Location: http://%s%s\n\n", cosign_host, SERVICE_MENU );
 	exit( 0 );
     }
 
@@ -398,7 +398,7 @@ main( int argc, char *argv[] )
 	    /* redirecting to service menu because user is logged in */
 	    if (( ref == NULL ) ||
 		    ( ref = strstr( ref, "http" )) == NULL ) {
-		printf( "Location: http://%s%s\n\n", host, SERVICE_MENU );
+		printf( "Location: http://%s%s\n\n", cosign_host, SERVICE_MENU );
 		exit( 0 );
 	    }
 	}
@@ -580,7 +580,7 @@ main( int argc, char *argv[] )
 
 	    /* redirecting to service menu because user is logged in */
 	    if (( ref == NULL ) || ( ref = strstr( ref, "http" )) == NULL ) {
-		printf( "Location: http://%s%s/\n\n", host, SERVICE_MENU );
+		printf( "Location: http://%s%s/\n\n", cosign_host, SERVICE_MENU );
 		exit( 0 );
 	    }
 	}
@@ -616,7 +616,7 @@ main( int argc, char *argv[] )
 
     if (( strncmp( tmpl, SERVICE_MENU, sizeof( SERVICE_MENU )) == 0 )) {
 	/* authentication successful, show service menu */
-	printf( "Location: http://%s%s\n\n", host, SERVICE_MENU );
+	printf( "Location: http://%s%s\n\n", cosign_host, SERVICE_MENU );
 	exit( 0 );
     }
 
