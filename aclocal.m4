@@ -168,7 +168,7 @@ AC_DEFUN([CGI_BASICAUTH],
 AC_DEFUN([CHECK_LIBMYSQL],
 [
     AC_MSG_CHECKING(for mysql)
-    mysqldirs="/usr/local/mysql /usr/lib/mysql /usr/mysql \
+    mysqldirs="/usr /usr/local/mysql /usr/lib/mysql /usr/mysql \
             /usr/pkg /usr/local /usr"
     AC_CACHE_VAL(ac_cv_path_mysql,[
         for mysqldir in $mysqldirs; do

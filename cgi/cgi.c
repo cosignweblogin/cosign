@@ -22,6 +22,7 @@
 #include "cosigncgi.h"
 #include "network.h"
 
+#define MAXNAMELEN	1024
 #define ERROR_HTML	"../templates/error.html"
 #define LOGIN_HTML	"../templates/login.html"
 #define SERVICE_MENU	"../templates/service-menu.html"
@@ -312,8 +313,7 @@ main( int argc, char *argv[] )
     }
 
     if ( strchr( cl[ CL_LOGIN ].cl_data, '@' ) != NULL ) {
-	/* look up guest account in db */
-	if ( !mysql_connect( &friend_db, "babbler.web.itd.umich.edu", "friend", "(End0!)" )) {
+	if ( !mysql_real_connect( &friend_db, "babbler.web.itd.umich.edu", "friend", "(End0!)", "friend", 3306, NULL, 0 )) {
 	    fprintf( stderr, mysql_error( &friend_db ));
 	    err = "Unable to connect to guest account database.";
 	    title = "Authentication Required ( server problem )";
@@ -322,6 +322,7 @@ main( int argc, char *argv[] )
 	    exit( 0 );
 	}
 
+/*
 	if( mysql_select_db( &friend_db, "friend" )) {
 	    fprintf( stderr, mysql_error( &friend_db ));
 	    err = "Unable to select guest account database.";
@@ -330,6 +331,7 @@ main( int argc, char *argv[] )
 	    subfile ( tmpl );
 	    exit( 0 );
 	}
+*/
 
 	/* XXX should check for sql injection in username query */
 	snprintf( sql, sizeof( sql ), "SELECT account_name, passwd, timestamp FROM friends WHERE account_name = '%s'", cl[ CL_LOGIN ].cl_data );

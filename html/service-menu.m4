@@ -3,6 +3,11 @@ include(`header.html')
 <h5>AUTHENTICATED RESOURCES</h5>
 <ul>
     <li>
+        <a href="/friend-bin/verify">see environment variables</a> <br />
+        See what the authentication filter knows about your account.
+    </li>
+
+    <li>
         <a href="https://directory.umich.edu/">UMOD: directory.umich.edu</a> <br />
 	A web-based interface to the University's LDAP directory.
 	Manage groups, contact colleagues, modify your own entry, and

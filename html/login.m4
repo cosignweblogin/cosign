@@ -62,25 +62,41 @@ include(`header.html')
  <td colspan="3" bgcolor="#FFFFFF" width="737">
     <table width="737" border="0" cellspacing="0" cellpadding="0">
 	<tr>
-	    <td height=1 bgcolor="#FFCC00" width="737"> <img src="/images/spacer.gif" width="737" height="1" alt="" border="0"> </td>
+	    <td height=1 bgcolor="#FFCC00" width="737" colspan="2"> <img src="/images/spacer.gif" width="737" height="1" alt="" border="0"> </td>
 	</tr>
 	<tr>
-	    <td height=10 width="737">
+	    <td height=10 width="737" colspan="2" bgcolor="ffffff">
 		<img src="/images/spacer.gif" width="1" height="10"
 		alt="" border="0">
 	    </td>
 	</tr>
 
 	<tr>
-	    <td>
+	    <td valign="top" class="lower" bgcolor="ffffff">
+		<p>Need An Account?</p>
 		<ul>
-		<li><a href="http://www.itd.umich.edu/help/faq/uniqnames/get.html">Faculty, Staff, and Students: Get an Account</a><br />
-		A valid UM login is required to use this
-		service;  find out how to get yours.<br />
+		<li><a href="http://www.itd.umich.edu/help/faq/uniqnames/get.html">Faculty, Staff, and Students </a><br />
+		All UM students, faculty, and staff should have a uniqname.<br />
 
-		<li><a href="https://login.www.umich.edu/cgi-bin/new_account">Alumni: Create an Account</a><br />
-		UM Alumni are eligible to create an account to
-		stay in touch with the University.
+		<li><a href="https://accounts.www.umich.edu/create/alumnirec/">Alumni</a><br /> UM Alumni are eligible to create an account.
+
+		<!--
+		<li><a href="https://weblogin-test.www.umich.edu/friend/">Friends</a><br />
+		Create a 'Friend' account if you are not otherwise affiliated with the University.<br />
+		-->
+		</ul>
+	    </td>
+
+	    <td valign="top" class="lower" bgcolor="ffffff">
+		<p>Forget Your Password?</p>
+		<ul>
+		<li><a href="https://accounts.www.umich.edu/hint-bin/retrieve">Retrieve your hint</a><br />
+		If you've left yourself a hint you can use it to remind yourself of your password.<br />
+
+		<!--
+		<li><a href="https://weblogin-test.www.umich.edu/friend/passwd/">Reset your Friend password</a><br />
+		If you have a Friend account (not a UM uniqname), you can reset the password online. <br />
+		-->
 		</ul>
 	    </td>
 	</tr>
