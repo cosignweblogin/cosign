@@ -627,6 +627,8 @@ f_register( sn, ac, av )
 	return( -1 );
     }
 
+    utime( av[ 1 ], NULL );
+
     snet_writef( sn, "%d REGISTER successful: Cookie Stored \r\n", 220 );
     return( 0 );
 }
@@ -709,6 +711,12 @@ f_check( sn, ac, av )
 	    return( -1 );
 	}
 	return( 1 );
+    }
+
+    /* prevent idle out if we are actually using it */
+    utime( login, NULL );
+    if ( status == 231 ) {
+	utime( av[ 1 ], NULL );
     }
 
     snet_writef( sn,
@@ -816,6 +824,7 @@ f_retr( sn, ac, av )
         return( 1 );
     }
 
+    utime( login, NULL );
     snet_writef( sn, "%d Retrieving file\r\n", 240 );
     snet_writef( sn, "%d\r\n", (int)st.st_size );
 

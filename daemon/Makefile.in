@@ -25,16 +25,26 @@ CFLAGS=         ${DEFS} ${OPTOPTS} @CFLAGS@ ${INCPATH}
 ################ Nothing below should need editing ###################
 
 SRC= daemon.c command.c cparse.c config.c wildcard.c logname.c
+MONSTER = monster.c cparse.c
+MOBJ = monster.o cparse.o
 COSIGNOBJ= daemon.o command.o cparse.o config.o wildcard.o logname.o \
 	../common/argcargv.o ../common/fbase64.o \
 	../common/mkcookie.o ../version.o
 
-TARGETS=	cosignd
+TARGETS=	cosignd monster
 MANTARGETS=	cosignd.8
 
 all : ${TARGETS}
 
 FRC :
+
+monster.o : monster.c
+	${CC} ${CFLAGS} \
+	-D_COSIGN_DIR=\"${COSIGNDB}\" \
+	-c monster.c
+
+monster: ${MOBJ} Makefile
+	${CC} ${CFLAGS} -o monster ${MOBJ}
 
 daemon.o : daemon.c
 	${CC} ${CFLAGS} \

@@ -12,6 +12,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <fcntl.h>
+#include <errno.h>
 
 #include "cparse.h"
 
@@ -94,13 +95,18 @@ service_to_login( char *service, char *login )
     int
 read_cookie( char *path, struct cinfo *ci )
 {
-    FILE	*cf;
-    struct stat	st;
-    char	buf[ MAXLEN ];
-    char	*p;
-    int		len;
+    FILE		*cf;
+    struct stat		st;
+    char		buf[ MAXLEN ];
+    char		*p;
+    int			len;
+    extern int          errno;
+
 
     if (( cf = fopen( path, "r" )) == NULL ) {
+	if ( errno == ENOENT ) {
+	    return( 1 );
+	}
 	syslog( LOG_ERR, "read_cookie: %s: %m", path  );
 	return( -1 );
     }
@@ -111,7 +117,7 @@ read_cookie( char *path, struct cinfo *ci )
 	return( -1 );
     }
 
-    ci->ci_itime = st.st_atime;
+    ci->ci_itime = st.st_mtime;
 
     /* file ordering matters for version and state, after we don't care */
     if ( fgets( buf, sizeof( ci->ci_version ), cf ) == NULL ) {
@@ -197,7 +203,7 @@ read_cookie( char *path, struct cinfo *ci )
 	    break;
 
 	default:
-	    syslog( LOG_ERR, "read_cooke: unknown keyword %c", *buf );
+	    syslog( LOG_ERR, "read_cookie: unknown keyword %c", *buf );
 	    (void)fclose( cf );
 	    return( -1 );
 	}
