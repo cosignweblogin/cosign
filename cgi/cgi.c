@@ -310,8 +310,6 @@ main( int argc, char *argv[] )
         ref = cl[ CL_REF ].cl_data;
     }
 
-fprintf( stderr, "XXX: %s\n", ref );
-
     if (( cl[ CL_LOGIN ].cl_data == NULL ) ||
 	    ( *cl[ CL_LOGIN ].cl_data == '\0' )) {
 	title = "Authentication Required";
