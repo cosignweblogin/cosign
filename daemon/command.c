@@ -296,13 +296,6 @@ f_login( SNET *sn, int ac, char *av[], SNET *pushersn )
 		snet_writef( sn, "%d LOGIN: Already logged out\r\n", 505 );
 		return( 1 );
 	    }
-	    if ( strcmp( av[ 2 ], ci.ci_ipaddr ) != 0 ) {
-		syslog( LOG_ERR, "%s in cookie %s does not match %s",
-			ci.ci_ipaddr, av[ 1 ], av[ 2 ] );
-		snet_writef( sn,
-			"%d IP address given does not match cookie\r\n", 401 );
-		return( 1 );
-	    }
 	    if ( strcmp( av[ 3 ], ci.ci_user ) != 0 ) {
 		syslog( LOG_ERR, "%s in cookie %s does not match %s",
 			ci.ci_user, av[ 1 ], av[ 3 ] );
@@ -574,14 +567,6 @@ f_logout( SNET *sn, int ac, char *av[], SNET *pushersn )
 	return( 1 );
     }
 
-    if( strcmp( av[ 2 ], ci.ci_ipaddr ) != 0 ) {
-	syslog( LOG_INFO, "%s in cookie %s does not match %s",
-		ci.ci_ipaddr, av[ 1 ], av[ 2 ] );
-	snet_writef( sn,
-		"%d IP address given does not match cookie\r\n", 410 );
-	return( 1 );
-    }
-
     if ( ci.ci_state == 0 ) {
 	syslog( LOG_ERR, "f_logout: %s already logged out", av[ 1 ] );
 	snet_writef( sn, "%d LOGOUT: Already logged out\r\n", 411 );
@@ -648,13 +633,6 @@ f_register( SNET *sn, int ac, char *av[], SNET *pushersn )
 	syslog( LOG_ERR,
 		"f_register: %s already logged out, can't register", av[ 1 ] );
 	snet_writef( sn, "%d REGISTER: Already logged out\r\n", 420 );
-	return( 1 );
-    }
-
-    if ( strcmp( av[ 2 ], ci.ci_ipaddr ) != 0 ) {
-	syslog( LOG_ERR, "%s in cookie %s does not match %s",
-		ci.ci_ipaddr, av[ 1 ], av[ 2 ] );
-	snet_writef( sn, "%d IP address given does not match cookie\r\n", 425 );
 	return( 1 );
     }
 
