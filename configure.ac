@@ -45,6 +45,13 @@ AC_SUBST(cosignkey)
 AC_ARG_WITH(filterdb, AC_HELP_STRING([--with-filterdb=DIR], [default cosign filter database storage]), filterdb="$withval", filterdb="/var/cosign/filter" )
 AC_SUBST(filterdb)
 
+AC_ARG_WITH(cosignhost, AC_HELP_STRING([--with-cosignhost=NAME], [name of host that runs cosignd]), cosignhost="$withval", cosignhost="cosign.example.edu" )
+AC_SUBST(cosignhost)
+
+AC_ARG_WITH(keytabpath, AC_HELP_STRING([--with-keytabpath=FILE], [path
+to keytab]), keytabpath="$withval", keytabpath=NULL )
+AC_SUBST(keytabpath)
+
 CHECK_SSL
 
 # Checks for filters:

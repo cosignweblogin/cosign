@@ -22,13 +22,13 @@
 #define SERVICE_MENU	"../templates/service-menu.html"
 #define SPLASH_HTML	"../templates/splash.html"
 #define TKT_PREFIX	"/ticket/"
-#define KEYTAB_PATH	"/usr/local/etc/kerberos/keytab.cosign"
 #define SIDEWAYS        1
 
 extern char	*version;
 char	*err = NULL, *ref = NULL;
 char	*title = "Authentication Required";
-char	*host = "weblogin.umich.edu";
+char	*host = _COSIGN_HOST;
+char	*keytab_path = _KEYTAB_PATH;
 int	nocache = 0;
 int	port = 6663;
 
@@ -155,6 +155,7 @@ main( int argc, char *argv[] )
     krb5_creds			kcreds;
     krb5_ccache			kccache;
     krb5_keytab			keytab = 0;
+    char			ktbuf[ MAX_KEYTAB_NAME_LEN + 1 ];
     int				rc;
     char                	new_cookiebuf[ 128 ];
     char        		new_cookie[ 255 ];
@@ -358,7 +359,30 @@ main( int argc, char *argv[] )
     }
 
     /* verify no KDC spoofing */
-    if (( kerror = krb5_kt_resolve( kcontext, KEYTAB_PATH, &keytab )) != 0 ) {
+    if ( keytab_path == NULL ) {
+	if (( kerror = krb5_kt_default_name(
+		kcontext, ktbuf, MAX_KEYTAB_NAME_LEN )) != 0 ) {
+	    err = (char *)error_message( kerror );
+	    title = "( Ticket Verify Error )";
+	
+	    tmpl = ERROR_HTML;
+	    subfile ( tmpl );
+	    exit( 0 );
+
+	}
+    } else {
+	if ( strlen( keytab_path ) > MAX_KEYTAB_NAME_LEN ) {
+	    err = "server configuration error";
+	    title = "( Ticket Verify Error )";
+    
+	    tmpl = ERROR_HTML;
+	    subfile ( tmpl );
+	    exit( 0 );
+	}
+	strcpy( ktbuf, keytab_path );
+    }
+
+    if (( kerror = krb5_kt_resolve( kcontext, ktbuf, &keytab )) != 0 ) {
 	err = (char *)error_message( kerror );
 	title = "( Ticket Verify Error )";
 	

@@ -806,6 +806,8 @@ Optional Packages:
   --with-cosigncert=FILE  default cosign cert file location
   --with-cosignkey=FILE   default cosign key file location
   --with-filterdb=DIR     default cosign filter database storage
+  --with-cosignhost=NAME  name of host that runs cosignd
+  --with-keytabpath=FILE  path to keytab
   --with-ssl=DIR          path to ssl
   --with-apache-apxs=FILE path to Apache apxs program
 
@@ -2723,6 +2725,26 @@ fi;
 
 
 
+# Check whether --with-cosignhost or --without-cosignhost was given.
+if test "${with_cosignhost+set}" = set; then
+  withval="$with_cosignhost"
+  cosignhost="$withval"
+else
+  cosignhost="cosign.example.edu"
+fi;
+
+
+
+# Check whether --with-keytabpath or --without-keytabpath was given.
+if test "${with_keytabpath+set}" = set; then
+  withval="$with_keytabpath"
+  keytabpath="$withval"
+else
+  keytabpath=NULL
+fi;
+
+
+
     echo "$as_me:$LINENO: checking for ssl" >&5
 echo $ECHO_N "checking for ssl... $ECHO_C" >&6
     ssldirs="/usr/local/openssl /usr/lib/openssl /usr/openssl \
@@ -3502,6 +3524,8 @@ s,@cosigncadir@,$cosigncadir,;t t
 s,@cosigncert@,$cosigncert,;t t
 s,@cosignkey@,$cosignkey,;t t
 s,@filterdb@,$filterdb,;t t
+s,@cosignhost@,$cosignhost,;t t
+s,@keytabpath@,$keytabpath,;t t
 s,@ADDLIBS@,$ADDLIBS,;t t
 s,@ADDLDFLAGS@,$ADDLDFLAGS,;t t
 s,@TLSDEFS@,$TLSDEFS,;t t

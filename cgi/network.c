@@ -21,16 +21,15 @@
 
 #include "network.h"
 
-#define CERTFILE	"/usr/local/umweb/certs/weblogin.cert"
-#define CRYPTOFILE	"/usr/local/umweb/certs/weblogin.key"
-#define CADIR		"/usr/local/umweb/certs/CA"
-
-struct timeval          timeout = { 10 * 60, 0 };
-extern void            (*logger)( char * );
-extern int		errno;
-extern int		port;
-extern char		*host;
-SSL_CTX			*ctx;
+struct timeval	timeout = { 10 * 60, 0 };
+extern void	(*logger)( char * );
+extern int	errno;
+extern int	port;
+extern char	*host;
+char		*certfile = _COSIGN_TLS_CERT;
+char		*keyfile = _COSIGN_TLS_KEY;
+char		*cadir = _COSIGN_TLS_CADIR;
+SSL_CTX		*ctx;
 
     int
 cosign_login( char *cookie, char *ip, char *user, char *realm, char *krb)
@@ -307,14 +306,14 @@ connectsn2( struct sockaddr_in *sin, char *host )
         exit( 1 );
     }
     if ( SSL_CTX_use_PrivateKey_file( ctx,
-            CRYPTOFILE, SSL_FILETYPE_PEM ) != 1 ) {
+            keyfile, SSL_FILETYPE_PEM ) != 1 ) {
         fprintf( stderr, "SSL_CTX_use_PrivateKey_file: %s: %s\n",
-                CRYPTOFILE, ERR_error_string( ERR_get_error(), NULL ));
+                keyfile, ERR_error_string( ERR_get_error(), NULL ));
         exit( 1 );
     }
-    if ( SSL_CTX_use_certificate_chain_file( ctx, CERTFILE ) != 1 ) {
+    if ( SSL_CTX_use_certificate_chain_file( ctx, certfile ) != 1 ) {
         fprintf( stderr, "SSL_CTX_use_certificate_chain_file: %s: %s\n",
-                CERTFILE, ERR_error_string( ERR_get_error(), NULL ));
+                certfile, ERR_error_string( ERR_get_error(), NULL ));
         exit( 1 );
     }
     if ( SSL_CTX_check_private_key( ctx ) != 1 ) {
@@ -322,9 +321,9 @@ connectsn2( struct sockaddr_in *sin, char *host )
                 ERR_error_string( ERR_get_error(), NULL ));
         exit( 1 );
     }
-    if ( SSL_CTX_load_verify_locations( ctx, NULL, CADIR ) != 1 ) {
+    if ( SSL_CTX_load_verify_locations( ctx, NULL, cadir ) != 1 ) {
         fprintf( stderr, "SSL_CTX_load_verify_locations: %s: %s\n",
-                CRYPTOFILE, ERR_error_string( ERR_get_error(), NULL ));
+                keyfile, ERR_error_string( ERR_get_error(), NULL ));
         exit( 1 );
     }
     SSL_CTX_set_verify( ctx, SSL_VERIFY_PEER, NULL );
