@@ -52,7 +52,10 @@ chosts_free()
 
 /*
  * File format is
- *	keyword hostname [krbtgt(0/1)]
+ *	keyword hostname
+ *	keyword hostname T
+ *	keyword hostname P path
+ *	keyword hostname TP path
  */
     int
 chosts_read( char *path )
@@ -84,7 +87,7 @@ chosts_read( char *path )
 	    continue;
 	}
 
-	if ( ac != 2 && ac != 3 ) {
+	if ( ac < 2 || ac > 4 ) {
 	    fprintf( stderr, "%s: line %d, wrong number of args\n",
 		    path, linenum );
 	    return( -1 );
@@ -106,10 +109,22 @@ chosts_read( char *path )
 
 	new->ch_hostname = strdup( av[ 1 ] );
 
-	if (( ac == 3 ) && ( new->ch_key == SERVICE )) {
-	    new->ch_tkt = atoi( av[ 2 ] );
-	} else {
-	    new->ch_tkt = 0;
+	new->ch_flag = 0;
+	if (( ac >= 3 ) && ( new->ch_key == SERVICE )) {
+	    if ( strchr( av[ 2 ], 'T' ) != 0 ) {
+		new->ch_flag |= CH_TICKET;
+	    }
+	    if ( strchr( av[ 2 ], 'P' ) != 0 ) {
+		if ( ac != 4 ) {
+		    fprintf( stderr, "%s: line %d, wrong number of args\n",
+			    path, linenum );
+		    return( -1 );
+		}
+		if ( proxy_read( new, av[ 3 ] ) < 0 ) {
+		    return( -1 );
+		}
+		new->ch_flag |= CH_PROXY;
+	    }
 	}
 
 	*cur = new;
@@ -117,6 +132,62 @@ chosts_read( char *path )
     }
 
     *cur = NULL;
+
+    /* check for net_error */
+    return( snet_close( sn ));
+}
+
+/*
+ * File format is
+ *	host cookie
+ */
+    int
+proxy_read( struct chosts *chost, char *path )
+{
+    SNET		*sn;
+    struct proxies	*new;
+    char		**av, *line;
+    int			ac;
+    int			linenum = 0;
+
+    if (( sn = snet_open( path, O_RDONLY, 0, 0 )) == NULL ) {
+	perror( path );
+	return( -1 );
+    }
+
+    while (( line = snet_getline( sn, NULL )) != NULL ) {
+	linenum++;
+	if (( ac = argcargv( line, &av )) < 0 ) {
+	    perror( "argcargv" );
+	    return( -1 );
+	}
+	if ( ac == 0 || *av[ 0 ] == '#' ) {
+	    continue;
+	}
+
+	if ( ac != 2 ) {
+	    fprintf( stderr, "%s: line %d, wrong number of args\n",
+		    path, linenum );
+	    return( -1 );
+	}
+
+	if (( new = (struct proxies *)malloc( sizeof( struct proxies )))
+		== NULL ) {
+	    perror( "malloc" );
+	    return( -1 );
+	}
+	if (( new->pr_hostname = strdup( av[ 0 ] )) == NULL ) {
+	    perror( "malloc" );
+	    return( -1 );
+	}
+	if (( new->pr_cookie = strdup( av[ 1 ] )) == NULL ) {
+	    perror( "malloc" );
+	    return( -1 );
+	}
+
+	new->pr_next = chost->ch_proxies;
+	chost->ch_proxies = new;
+    }
 
     /* check for net_error */
     return( snet_close( sn ));

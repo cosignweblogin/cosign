@@ -122,7 +122,7 @@ main( int ac, char *av[] )
 	prog++;
     }
 
-    while (( c = getopt( ac, av, "b:c:dD:h:L:p:VXx:y:z:" )) != -1 ) {
+    while (( c = getopt( ac, av, "b:c:dD:h:L:np:VXx:y:z:" )) != -1 ) {
 	switch ( c ) {
 	case 'b' :		/* listen backlog */
 	    backlog = atoi( optarg );
@@ -152,6 +152,10 @@ main( int ac, char *av[] )
 	    }
 	    break;
 
+	case 'n' :		/* don't run, just syntax check */
+	    dontrun = 1;
+	    break;
+
 	case 'p' :		/* TCP port */
 	    port = htons( atoi( optarg ));
 	    break;
@@ -167,15 +171,15 @@ main( int ac, char *av[] )
 	case 'x' :		/* ca dir */
 	    cadir = optarg;
 	    break;
-	
+
 	case 'y' :		/* cert */
 	    certfile = optarg;
 	    break;
-	
+
 	case 'z' :		/* private key file */
 	    cryptofile = optarg;
 	    break;
-	
+
 	default :
 	    err++;
 	}

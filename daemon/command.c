@@ -823,7 +823,7 @@ f_retr( SNET *sn, int ac, char *av[], SNET *pushersn )
     char		login[ MAXCOOKIELEN ];
 
     /* RETR service-cookie TicketType */
-    if ( ch->ch_tkt != 1 ) {
+    if ( ch->ch_flag & CH_TICKET ) {
 	syslog( LOG_ERR, "%s not allowed to retrieve tkts", ch->ch_hostname );
 	snet_writef( sn, "%d RETR: %s not allowed to retrieve tkts.\r\n",
 		441, ch->ch_hostname );
