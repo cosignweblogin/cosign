@@ -23,6 +23,7 @@
 #define SERVICE_MENU	"../templates/service-menu.html"
 #define SPLASH_HTML	"../templates/splash.html"
 #define TKT_PREFIX	"/ticket/"
+#define KEYTAB_PATH	"/usr/local/etc/kerberos/keytab.cosign"
 #define SIDEWAYS        1
 
 extern char	*version;
@@ -134,6 +135,7 @@ main( int argc, char *argv[] )
     krb5_get_init_creds_opt	kopts;
     krb5_creds			kcreds;
     krb5_ccache			kccache;
+    krb5_keytab			keytab = 0;
     int				rc;
     char                	new_cookiebuf[ 128 ];
     char        		new_cookie[ 255 ];
@@ -340,6 +342,26 @@ main( int argc, char *argv[] )
 	    exit( 0 );
 	}
     }
+
+    /* verify no KDC spoofing */
+    if (( krb5_kt_resolve( kcontext, KEYTAB_PATH, &keytab )) != 0 ) {
+	err = (char *)error_message( kerror );
+	title = "( Ticket Verify Error )";
+	
+	tmpl = ERROR_HTML;
+	subfile ( tmpl );
+	exit( 0 );
+    }
+    if (( krb5_verify_init_creds(
+	    kcontext, &kcreds, NULL, keytab, NULL, NULL )) != 0 ) {
+	err = (char *)error_message( kerror );
+	title = "( Ticket Verify Error )";
+	
+	tmpl = ERROR_HTML;
+	subfile ( tmpl );
+	exit( 0 );
+    }
+    (void)krb5_kt_close( kcontext, keytab );
 
     if (( krb5_cc_initialize( kcontext, kccache, kprinc )) != 0 ) {
 	err = (char *)error_message( kerror );
