@@ -240,6 +240,7 @@ pusherparent( int ppipe )
     }
 
     for ( ;; ) {
+syslog( LOG_DEBUG, "PUSHERPARENT" );
 syslog( LOG_DEBUG, "sleeping 5" );
 	sleep( 5 );
 	if (( line = snet_getline( sn, NULL )) == NULL ) {
@@ -303,7 +304,6 @@ syslog ( LOG_DEBUG, "PUSHER: %s", inet_ntoa(cur->cl_sin.sin_addr));
 		exit( 1 );
 	    }
 
-syslog( LOG_DEBUG, "PUSHERPARENT" );
 	    if (( cur->cl_psn = snet_attach( fds[ 1 ], 1024 * 1024 ))
 		    == NULL ) {
 		syslog( LOG_ERR, "pusherparent fork: snet_attach: %m" );
@@ -325,6 +325,9 @@ syslog( LOG_DEBUG, "PUSHERPARENT: pid %d fd %d", cur->cl_pid, snet_fd( cur->cl_p
 	    }
 	}
 	sigprocmask( SIG_UNBLOCK, &signalset, NULL );
+
+tv.tv_sec = 1;
+tv.tv_usec = 0;
 
 	if ( select( max + 1, NULL, &fdset, NULL, &tv ) < 0 ) {
 	    continue;
