@@ -1,4 +1,4 @@
-include(`service-header.html')
+include(`header.html')
 
 <h5>AUTHENTICATED RESOURCES</h5>
 <ul>
@@ -26,4 +26,4 @@ include(`service-header.html')
     </li>
 </ul>
 
-include(`service-footer.html')
+include(`footer.html')

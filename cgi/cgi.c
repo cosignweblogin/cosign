@@ -19,7 +19,6 @@
 
 #define ERROR_HTML	"../templates/error.html"
 #define LOGIN_HTML	"../templates/login.html"
-#define REDIRECT_HTML	"../templates/redirect.html"
 #define SERVICE_MENU	"../templates/service-menu.html"
 #define SPLASH_HTML	"../templates/splash.html"
 #define TKT_PREFIX	"/ticket/"
@@ -49,7 +48,8 @@ void            subfile( char * );
 subfile( char *filename )
 {
     FILE	*fs;
-    int 	c;
+    int 	c, i;
+    char	nasties[] = "<>(){}[]~?&=;'`\" \\";
 
     if ( nocache ) {
 	fputs( "Cache-Control: private, must-revalidate, no-cache\n"
@@ -97,7 +97,15 @@ subfile( char *filename )
 
             case 'l':
                 if ( url != NULL ) {
-                    printf( "%s", url );
+                    for ( i = 0; i < strlen( url ); i++ ) {
+                        /* block XSS attacks while printing */
+                        if ( strchr( nasties, url[ i ] ) != NULL ||
+                                url[ i ] <= 0x1F || url[ i ] >= 0x7F ) {
+                            printf( "%%%x", url[ i ] );
+                        } else {
+                            putc( url[ i ], stdout );
+                        }
+                    }
                 }
                 break;
 
@@ -171,9 +179,9 @@ main( int argc, char *argv[] )
 	service = strtok( qs, ";" );
 	ref = strtok( NULL, "&" );
 
-	printf( "Set-Cookie: cosign-referrer=%s; path=/; secure\n", ref );
-
 	if ( cookie == NULL || strlen( cookie ) == 7 ) {
+	    printf( "Set-Cookie: cosign-referrer=%s; path=/; secure\n", ref );
+
 	    title = "Authentication Required";
 	    tmpl = SPLASH_HTML;
 	    subfile( tmpl );
@@ -330,7 +338,7 @@ main( int argc, char *argv[] )
 	    err = "Password incorrect.  Is [caps lock] on?";
 	    title = "Authentication Required ( Password Incorrect )";
 
-	    tmpl = ERROR_HTML;
+	    tmpl = LOGIN_HTML;
 	    subfile ( tmpl );
 	    exit( 0 );
 	} else {
@@ -397,11 +405,17 @@ main( int argc, char *argv[] )
     if ( cosign_login( cookie, ip_addr, 
 	    cl[ CL_UNIQNAME ].cl_data, "UMICH.EDU", krbpath ) < 0 ) {
 	fprintf( stderr, "%s: login failed\n", script ) ;
+
+	/* redirecting to / instead of complaining that login failed. */
+	printf( "Location: %s\n\n", host );
+
+	/*
 	err = "Login failed: Sorry!";
 	title = "Error: Authentication Failed";
 	tmpl = ERROR_HTML;
 	subfile( tmpl );
 	exit( 2 );
+	*/
     }
 
     if (( data = getenv( "HTTP_COOKIE" )) != NULL ) {
@@ -419,14 +433,9 @@ main( int argc, char *argv[] )
     }
 
     if (( ref != NULL ) && ( ref = strstr( ref, "http" )) != NULL ) {
-	url = strdup( ref );
-	title = "Authentication Successful";
-	err = "Authentication succeeded.  In a moment your browser will be redirected to:";
-	tmpl = REDIRECT_HTML;
-	nocache = 1;
-
 	/* clobber the referrer cookie */
-	fputs( "Set-Cookie: cosign-referrer=; path=/; secure\n", stdout );
+	fputs( "Set-Cookie: cosign-referrer=null; expires=Wednesday, 16-Apr-73 02:10:00 GMT; path=/; secure\n", stdout );
+	printf( "Location: %s\n\n", ref );
     }
 
     subfile( tmpl );

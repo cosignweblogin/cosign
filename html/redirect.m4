@@ -2,7 +2,6 @@
 
 include(`header.html')
 
-<td valign="top">
     <p>
 	$e
 
@@ -11,6 +10,5 @@ include(`header.html')
     <p class="important">
 	<a class="success" href="$l">$l</a>
     </p>
-</td>
 
 include(`footer.html')

@@ -1,9 +1,7 @@
 include(`header.html')
 
-	<td valign="top">
-	    <p>
-		$e
-	    </p> 
-	</td>
+	<p>
+	    $e
+	</p> 
 
 include(`footer.html')

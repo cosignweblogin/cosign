@@ -47,7 +47,7 @@ subfile( char *filename )
 {
     FILE	*fs;
     int 	c, i;
-    char        nasties[] = "<>(){}[]~?&=;'`\" \\";
+    char	nasties[] = "<>(){}[]~?&=;'`\" \\";
 
     if ( nocache ) {
 	fputs( "Cache-Control: private, must-revalidate, no-cache\n"
@@ -124,7 +124,7 @@ subfile( char *filename )
     int
 main( int argc, char *argv[] )
 {
-    char	*tmpl = REDIRECT_HTML;
+    char	*tmpl = VERIFY_LOGOUT;
     char	*cookie = NULL, *data, *ip_addr, *script, *qs;
 
     if ( argc == 2 && ( strncmp( argv[ 1 ], "-V", 2 ) == 0 )) {
@@ -142,7 +142,6 @@ main( int argc, char *argv[] )
 	}
 
 	title = "Logout Requested";
-	tmpl = VERIFY_LOGOUT;
 
 	subfile ( tmpl );
 	exit( 0 );
@@ -207,10 +206,6 @@ main( int argc, char *argv[] )
             "Expires: Mon, 16 Apr 1973 02:10:00 GMT\n"
             "Pragma: no cache\n" );
 
-    title = "Logout Successful";
-    err = "You have successfully logged out.  In a moment your browser will be redirected to:";
-    nocache = 1;
-    subfile ( tmpl );
-
+    printf( "Location: %s\n\n", url );
     exit( 0 );
 }
