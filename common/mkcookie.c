@@ -16,7 +16,7 @@ mkcookie( int len, char *buf )
 	return( -1 );
     }
 
-    if ( RAND_pseudo_bytes( tmp, randbytes ) < 0 ) {
+    if ( RAND_bytes( tmp, randbytes ) < 0 ) {
         return( -2 );
     }
 
