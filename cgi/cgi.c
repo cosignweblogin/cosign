@@ -17,6 +17,7 @@
 
 #define LOGIN_HTML	"../templates/login.html"
 #define ERROR_HTML	"../templates/error.html"
+#define SPLASH_HTML	"../templates/splash.html"
 #define SIDEWAYS        1               /* we neglected to tell the
 					   user what was happening.  we
 					   should fix all of these.
@@ -137,8 +138,7 @@ main()
 
     if ((( qs = getenv( "QUERY_STRING" )) != NULL ) && ( *qs != '\0' )) {
 	if ( cookie == NULL ) {
-	    tmpl = ERROR_HTML;
-	    err = "You are not logged in yet. A link would be here.";
+	    tmpl = SPLASH_HTML;
 	    subfile( tmpl );
 	    exit( 0 );
 	}
