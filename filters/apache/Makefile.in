@@ -26,7 +26,7 @@ CFLAGS=         ${DEFS} ${OPTOPTS} @CFLAGS@ @APXS_CFLAGS@ @APXS_CFLAGS_SHLIB@ ${
 
 OBJ=	mod_cosign.o connect.o cookiefs.o sparse.o \
 	../../common/argcargv.o ../../common/fbase64.o \
-	../../common/mkcookie.o ../../version.o
+	../../common/mkcookie.o ../../common/rate.o ../../version.o
 
 #   the default target
 all: mod_cosign.so

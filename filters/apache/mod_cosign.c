@@ -329,7 +329,6 @@ cosign_auth( request_rec *r )
 set_cookie:
     /* let them thru regardless if this is "public" */
     if ( cfg->public ) {
-fprintf( stderr, "cfg is public\n" );
 	return( DECLINED );
     }
     if ( set_cookie_and_redirect( r, cfg ) != 0 ) {

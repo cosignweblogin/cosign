@@ -34,6 +34,8 @@
 #include "cosign.h"
 #include "argcargv.h"
 #include "mkcookie.h"
+#include "rate.h"
+
 
 #define MIN(a,b)        ((a)<(b)?(a):(b))
 
@@ -43,6 +45,11 @@ static void (*logger)( char * ) = NULL;
 
 static struct timeval		timeout = { 10 * 60, 0 };
 
+static struct rate   		checkpass = { 0, { }};
+static struct rate   		checkfail = { 0, { }};
+static struct rate   		checkunknown = { 0, { }};
+static double             	rate;
+
 /*
  * -1 means big error, dump this connection
  * 0 means that this host is having a replication problem
@@ -50,12 +57,13 @@ static struct timeval		timeout = { 10 * 60, 0 };
  * 2 means everything's peachy
  */
     static int
-netcheck_cookie( char *scookie, struct sinfo *si, SNET *sn )
+netcheck_cookie( char *scookie, struct sinfo *si, struct connlist *conn )
 {
     int			ac;
     char		*line;
     char		**av;
     struct timeval      tv;
+    SNET		*sn = conn->conn_sn;
     extern int		errno;
 
     /* CHECK service-cookie */
@@ -75,15 +83,25 @@ netcheck_cookie( char *scookie, struct sinfo *si, SNET *sn )
 
     switch( *line ) {
     case '2':
+	if (( rate = rate_tick( &checkpass )) != 0.0 ) {
+	    fprintf( stderr, "mod_cosign: STATS CHECK %s: PASS %.5f / sec",
+		    inet_ntoa( conn->conn_sin.sin_addr ), rate );
+	}
 	break;
 
     case '4':
-	fprintf( stderr, "netcheck_cookie: %s\n", line);
+	if (( rate = rate_tick( &checkfail )) != 0.0 ) {
+	    fprintf( stderr, "mod_cosign: STATS CHECK %s: FAIL %.5f / sec",
+		    inet_ntoa( conn->conn_sin.sin_addr ), rate );
+	}
 	return( 1 );
 
     case '5':
 	/* choose another connection */
-	fprintf( stderr, "choose another connection: %s\n", line );
+	if (( rate = rate_tick( &checkunknown )) != 0.0 ) {
+	    fprintf( stderr, "mod_cosign: STATS CHECK %s: UNKNOWN %.5f / sec",
+		    inet_ntoa( conn->conn_sin.sin_addr ), rate );
+	}
 	return( 0 );
 
     default:
@@ -504,7 +522,7 @@ cosign_check_cookie( char *scookie, struct sinfo *si, cosign_host_config *cfg,
 	if ( (*cur)->conn_sn == NULL ) {
 	    continue;
 	}
-	if (( rc = netcheck_cookie( scookie, si, (*cur)->conn_sn )) < 0 ) {
+	if (( rc = netcheck_cookie( scookie, si, *cur )) < 0 ) {
 	    if ( snet_close( (*cur)->conn_sn ) != 0 ) {
 		fprintf( stderr, "choose_conn: snet_close failed\n" );
 	    }
@@ -524,7 +542,7 @@ cosign_check_cookie( char *scookie, struct sinfo *si, cosign_host_config *cfg,
 	if (( rc = connect_sn( *cur, cfg->ctx, cfg->host )) != 0 ) {
 	    continue;
 	}
-	if (( rc = netcheck_cookie( scookie, si, (*cur)->conn_sn )) < 0 ) {
+	if (( rc = netcheck_cookie( scookie, si, *cur )) < 0 ) {
 	    if ( snet_close( (*cur)->conn_sn ) != 0 ) {
 		fprintf( stderr, "choose_conn: snet_close failed\n" );
 	    }
