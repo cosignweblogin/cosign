@@ -44,6 +44,7 @@ cosign_create_dir_config( pool *p, char *path )
     
     cfg = (cosign_host_config *)ap_pcalloc( p, sizeof( cosign_host_config ));
     cfg->service = NULL;
+    cfg->siteentry = NULL;
     cfg->redirect = NULL;
     cfg->posterror = NULL;
     cfg->port = htons( 6663 );
@@ -77,6 +78,7 @@ cosign_create_server_config( pool *p, server_rec *s )
     cfg = (cosign_host_config *)ap_pcalloc( p, sizeof( cosign_host_config ));
     cfg->host = NULL;
     cfg->service = NULL;
+    cfg->siteentry = NULL;
     cfg->redirect = NULL;
     cfg->posterror = NULL;
     cfg->port = htons( 6663 );
@@ -146,23 +148,27 @@ set_cookie_and_redirect( request_rec *r, cosign_host_config *cfg )
 
     ap_table_set( r->err_headers_out, "Set-Cookie", full_cookie );
 
-    /* live dangerously, we're redirecting to http */
-    if ( cfg->http ) {
-	if (( port = ap_get_server_port( r )) == 80 ) {
-	    ref = ap_psprintf( r->pool, "http://%s%s", 
-		    ap_get_server_name( r ), r->unparsed_uri );
-	} else {
-	    ref = ap_psprintf( r->pool, "http://%s:%d%s", 
-		    ap_get_server_name( r ), port, r->unparsed_uri );
-	}
-    /* live securely, redirecting to https */
+    if ( cfg->siteentry != NULL ) {
+	ref = cfg->siteentry;
     } else {
-	if (( port = ap_get_server_port( r )) == 443 ) {
-	    ref = ap_psprintf( r->pool, "https://%s%s", 
-		    ap_get_server_name( r ), r->unparsed_uri );
+	/* live dangerously, we're redirecting to http */
+	if ( cfg->http ) {
+	    if (( port = ap_get_server_port( r )) == 80 ) {
+		ref = ap_psprintf( r->pool, "http://%s%s", 
+			ap_get_server_name( r ), r->unparsed_uri );
+	    } else {
+		ref = ap_psprintf( r->pool, "http://%s:%d%s", 
+			ap_get_server_name( r ), port, r->unparsed_uri );
+	    }
+	/* live securely, redirecting to https */
 	} else {
-	    ref = ap_psprintf( r->pool, "https://%s:%d%s", 
-		    ap_get_server_name( r ), port, r->unparsed_uri );
+	    if (( port = ap_get_server_port( r )) == 443 ) {
+		ref = ap_psprintf( r->pool, "https://%s%s", 
+			ap_get_server_name( r ), r->unparsed_uri );
+	    } else {
+		ref = ap_psprintf( r->pool, "https://%s:%d%s", 
+			ap_get_server_name( r ), port, r->unparsed_uri );
+	    }
 	}
     }
 
@@ -331,6 +337,7 @@ set_cosign_protect( cmd_parms *params, void *mconfig, int flag )
     } else {
 	cfg = (cosign_host_config *)mconfig;
 	cfg->redirect = ap_pstrdup( params->pool, scfg->redirect );
+	cfg->siteentry = ap_pstrdup( params->pool, scfg->siteentry );
 	cfg->posterror = ap_pstrdup( params->pool, scfg->posterror );
 	cfg->host = ap_pstrdup( params->pool, scfg->host );
 	cfg->cl = scfg->cl;
@@ -340,6 +347,7 @@ set_cosign_protect( cmd_parms *params, void *mconfig, int flag )
 	    cfg->service = ap_pstrdup( params->pool, scfg->service );
 	}
 	cfg->proxy = scfg->proxy; 
+	cfg->http = scfg->http; 
 #ifdef KRB
 	cfg->krbtkt = scfg->krbtkt; 
 #ifdef GSS
@@ -388,12 +396,15 @@ set_cosign_service( cmd_parms *params, void *mconfig, char *arg )
 	cfg = scfg;
     } else {
 	cfg = (cosign_host_config *)mconfig;
+	cfg->siteentry = ap_pstrdup( params->pool, scfg->siteentry );
 	cfg->redirect = ap_pstrdup( params->pool, scfg->redirect );
 	cfg->posterror = ap_pstrdup( params->pool, scfg->posterror );
 	cfg->host = ap_pstrdup( params->pool, scfg->host );
 	cfg->cl = scfg->cl;
 	cfg->port = scfg->port; 
 	cfg->ctx = scfg->ctx;
+	cfg->proxy = scfg->proxy;
+	cfg->http = scfg->http;
 #ifdef KRB
 	cfg->krbtkt = scfg->krbtkt; 
 #ifdef GSS
@@ -410,6 +421,47 @@ set_cosign_service( cmd_parms *params, void *mconfig, char *arg )
     return( NULL );
 }
 
+        static const char *
+set_cosign_siteentry( cmd_parms *params, void *mconfig, char *arg )
+{
+    cosign_host_config		*cfg, *scfg;
+
+    scfg = (cosign_host_config *) ap_get_module_config(
+		params->server->module_config, &cosign_module );
+    if ( params->path == NULL ) {
+	cfg = scfg;
+    } else {
+	cfg = (cosign_host_config *)mconfig;
+	cfg->redirect = ap_pstrdup( params->pool, scfg->redirect );
+	cfg->posterror = ap_pstrdup( params->pool, scfg->posterror );
+	cfg->host = ap_pstrdup( params->pool, scfg->host );
+	cfg->cl = scfg->cl;
+	cfg->port = scfg->port; 
+	cfg->ctx = scfg->ctx;
+	cfg->proxy = scfg->proxy;
+	cfg->http = scfg->http;
+	if ( cfg->service == NULL ) {
+	    cfg->service = ap_pstrdup( params->pool, scfg->service );
+	}
+#ifdef KRB
+	cfg->krbtkt = scfg->krbtkt; 
+#ifdef GSS
+	cfg->gss = scfg->gss;
+#endif /* GSS */
+#ifdef KRB4
+	cfg->krb524 = scfg->krb524;
+#endif /* KRB4 */
+#endif /* KRB */
+    }
+
+    if ( strcasecmp( arg, "none" ) != 0 ) {
+        cfg->siteentry = ap_pstrdup( params->pool, arg );
+    } else {
+	cfg->siteentry = NULL;
+    }
+    cfg->configured = 1;
+    return( NULL );
+}
     static const char *
 set_cosign_port( cmd_parms *params, void *mconfig, char *arg )
 {
@@ -699,6 +751,10 @@ static command_rec cosign_cmds[ ] =
         { "CosignHostname", set_cosign_host,
         NULL, RSRC_CONF, TAKE1,
         "the name of the cosign hosts(s)" },
+
+	{ "CosignSiteEntry", set_cosign_siteentry,
+	NULL, RSRC_CONF | ACCESS_CONF, TAKE1,
+	"\"none\" or URL to redirect for users who successfully authenticate" },
 
         { "CosignHttpOnly", set_cosign_http,
         NULL, RSRC_CONF, FLAG,
