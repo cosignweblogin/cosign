@@ -27,7 +27,7 @@
 #define USER_SZ 30
 #define REALM_SZ 254
 
-static int connect_sn( struct connlist *, SSL_CTX *, char *);
+static int connect_sn( struct connlist *, SSL_CTX * );
 static int close_sn( SNET *);
 void (*logger)( char * ) = NULL;
 
@@ -151,7 +151,7 @@ check_cookie( char *secant, struct sinfo *si, cosign_host_config *cfg )
 	if ( (*cur)->conn_sn != NULL ) {
 	    continue;
 	}
-	if (( ret = connect_sn( *cur, cfg->ctx, cfg->host )) != 0 ) {
+	if (( ret = connect_sn( *cur, cfg->ctx )) != 0 ) {
 	    continue;
 	}
 	if (( rc = netcheck_cookie( secant, si, (*cur)->conn_sn )) < 0 ) {
@@ -186,7 +186,7 @@ done:
 }
 
     static int
-connect_sn( struct connlist *cl, SSL_CTX *ctx, char *host )
+connect_sn( struct connlist *cl, SSL_CTX *ctx )
 {
     int			s;
     char		*line, buf[ 1024 ];
