@@ -540,14 +540,14 @@ connect_sn( struct connlist *conn )
     }
 
     if (( conn->conn_sn = snet_attach( s, 1024 * 1024 ) ) == NULL ) {
-	fprintf( stderr, "connect_sn: snet_attach failed" );
+	fprintf( stderr, "connect_sn: snet_attach failed\n" );
 	(void)close( s );
 	return( -1 );
     }
 
     tv = timeout;
     if (( line = snet_getline_multi( conn->conn_sn, logger, &tv )) == NULL ) {
-	fprintf( stderr, "connect_sn: snet_getline_multi failed" );
+	fprintf( stderr, "connect_sn: snet_getline_multi failed\n" );
 	goto done;
     }
     if ( *line != '2' ) {
@@ -555,29 +555,29 @@ connect_sn( struct connlist *conn )
 	goto done;
     }
     if ( snet_writef( conn->conn_sn, "STARTTLS\r\n" ) < 0 ) {
-	fprintf( stderr, "connect_sn: starttls is kaplooey" );
+	fprintf( stderr, "connect_sn: starttls is kaplooey\n" );
 	goto done;
     }
 
     tv = timeout;
     if (( line = snet_getline_multi( conn->conn_sn, logger, &tv )) == NULL ) {
-	fprintf( stderr, "connect_sn: snet_getline_multi failed" );
+	fprintf( stderr, "connect_sn: snet_getline_multi failed\n" );
 	goto done;
     }
     if ( *line != '2' ) {
-	fprintf( stderr, "connect_sn: %s", line );
+	fprintf( stderr, "connect_sn: %s\n", line );
 	goto done;
     }
 
     if ( snet_starttls( conn->conn_sn, ctx, 0 ) != 1 ) {
-	fprintf( stderr, "snet_starttls: %s",
+	fprintf( stderr, "snet_starttls: %s\n",
 		ERR_error_string( ERR_get_error(), NULL ));
 	err = -2;
 	goto done;
     }
 
     if (( peer = SSL_get_peer_certificate( conn->conn_sn->sn_ssl )) == NULL ) {
-	fprintf( stderr, "no certificate" );
+	fprintf( stderr, "no certificate\n" );
 	err = -2;
 	goto done;
     }
@@ -586,7 +586,7 @@ connect_sn( struct connlist *conn )
 	    buf, sizeof( buf ));
     /* cn and host must match */
     if ( strcmp( buf, cosign_host ) != 0 ) {
-	fprintf( stderr, "cn=%s & host=%s don't match!", buf, cosign_host );
+	fprintf( stderr, "cn=%s & host=%s don't match!\n", buf, cosign_host );
 	X509_free( peer );
 	err = -2;
 	goto done;
@@ -595,39 +595,10 @@ connect_sn( struct connlist *conn )
     return( 0 );
 done:
     if ( snet_close( conn->conn_sn ) != 0 ) {
-	fprintf( stderr, "connect_sn: snet_close failed" );
+	fprintf( stderr, "connect_sn: snet_close failed\n" );
     }
     conn->conn_sn = NULL;
 
     return( err );
 }
 
-#ifdef notdef
-   int 
-close_sn( struct connlist *conn )
-{
-    char		*line;
-    struct timeval      tv;
-
-    /* Close network connection */
-    if (( snet_writef( conn->conn_sn, "QUIT\r\n" )) <  0 ) {
-	fprintf( stderr, "close_sn: snet_writef failed" );
-	return( -1 );
-    }
-    tv = timeout;
-    if ( ( line = snet_getline_multi( conn->conn_sn, logger, &tv ) ) == NULL ) {
-	fprintf( stderr, "close_sn: snet_getline_multi failed" );
-	return( -1 );
-    }
-    if ( *line != '2' ) {
-	fprintf( stderr, "close_sn: %s", line  );
-    }
-    if ( snet_close( conn->conn_sn ) != 0 ) {
-	fprintf( stderr, "close_sn: snet_close failed" );
-    }
-    conn->conn_sn = NULL;
-
-    return( 0 );
-}
-
-#endif /* notdef */
