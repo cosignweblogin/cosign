@@ -131,6 +131,13 @@ netcheck_cookie( char *scookie, struct sinfo *si, struct connlist *conn )
     }
     strcpy( si->si_realm, av[ 3 ] );
 
+#ifdef KRB
+    *si->si_krb5tkt = '\0';
+#ifdef KRB4
+    *si->si_krb4tkt = '\0';
+#endif /* KRB4 */
+
+#endif /* KRB */
     return( 2 );
 }
 
