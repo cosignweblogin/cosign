@@ -543,8 +543,13 @@ f_register( sn, ac, av )
     if ( strcmp( av[ 2 ], ci.ci_ipaddr ) != 0 ) {
 	syslog( LOG_ERR, "%s in cookie %s does not match %s",
 		ci.ci_ipaddr, av[ 1 ], av[ 2 ] );
+	if ( do_logout( av[ 1 ] ) < 0 ) {
+	    syslog( LOG_ERR, "f_register: %s: %m", av[ 1 ] );
+	    snet_writef( sn, "%d REGISTER error: Sorry!\r\n", 524 );
+	    return( -1 );
+	}
 	snet_writef( sn,
-		"%d IP address given does not match cookie\r\n", 525 );
+		"%d IP address given does not match cookie\r\n", 425 );
 	return( 1 );
     }
 
