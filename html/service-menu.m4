@@ -1,35 +1,29 @@
-include(`header.html')
+include(`service-header.html')
 
-	<td valign="top">
-	    <p>
-		Please choose from the following menu of services:
-	    </p>
+<h5>AUTHENTICATED RESOURCES</h5>
+<ul>
+    <li>
+	<a href="https://directory-test.www.umich.edu/">directory.umich.edu</a> <br />
+	Web client for the University's Online Directory ( development
+	version ).
+    </li>
 
-	    <ul>
-		<li>
-		    <a href="https://spg.umich.edu/admin/">SPG Admin</a>
+    <li>
+	<a href="https://mail-test.www.umich.edu/">mail.umich.edu</a> <br />
+	Web-based IMAP e-mail client for UM's central e-mail service
+	( development version ).
+    </li>
 
-		    <blockquote>
-			The SPG administrative interface ( you probably
-			don't have permission to use it ).
-		    </blockquote>
-		</li>
+    <li>
+	<a href="https://beothuk.web.itd.umich.edu/">beothuk</a> <br />
+	Mary March's mother's making Mary March Marry me.
+    </li>
 
-		<li>
-		    <a href="https://cow-test.www.umich.edu/">COW Test</a>
+    <li>
+	<a href="/cgi-bin/logout">logout</a> <br />
+	When you are finished using all authenticated web resources, be
+	sure to logout.
+    </li>
+</ul>
 
-		    <blockquote>
-			Like COW, only testier. ( may be down )
-		    </blockquote>
-		</li>
-
-		<li>
-		    <a href="https://weblogin.umich.edu/cgi-bin/logout">logout</a>
-		    <blockquote>
-			Initiate the logout process.
-		    </blockquote>
-		</li>
-	    </p> 
-	</td>
-
-include(`footer.html')
+include(`service-footer.html')
