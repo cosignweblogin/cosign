@@ -175,7 +175,7 @@ f_login( SNET *sn, int ac, char *av[], SNET *pushersn )
 {
     FILE		*tmpfile;
     char		tmppath[ MAXCOOKIELEN ];
-    char		tmpkrb[ 16 ], krbpath [ 24 ];
+    char		tmpkrb[ 16 ], krbpath [ MAXPATHLEN ];
     char                *sizebuf, *line;
     char                buf[ 8192 ];
     int			fd, krb = 0;
@@ -205,7 +205,11 @@ f_login( SNET *sn, int ac, char *av[], SNET *pushersn )
 		syslog( LOG_ERR, "f_login: mkcookie error." );
 		return( -1 );
 	    }
-	    sprintf( krbpath, "%s/%s", TKT_PREFIX, tmpkrb );
+	    if ( snprintf( krbpath, sizeof( krbpath ), "%s/%s",
+		    TKT_PREFIX, tmpkrb ) < sizeof( krbpath )) {
+		syslog( LOG_ERR, "f_login: krboath too long." );
+		return( -1 );
+	    }
 	} else {
 	    snet_writef( sn, "%d LOGIN: Ticket type not supported.\r\n", 507 );
 	    return( 1 );

@@ -240,7 +240,7 @@ case '2':
 netretr_ticket( char *scookie, struct sinfo *si, SNET *sn, int convert )
 {
     char		*line;
-    char                tmpkrb[ 16 ], krbpath [ 24 ];
+    char                tmpkrb[ 16 ], krbpath [ MAXPATHLEN ];
     char		buf[ 8192 ];
     int			fd, returnval = -1;
     size_t              size = 0;
@@ -296,7 +296,12 @@ netretr_ticket( char *scookie, struct sinfo *si, SNET *sn, int convert )
 	fprintf( stderr, "mkcookie failed in netretr_ticket().\n" );
 	return( -1 );
     }
-    sprintf( krbpath, "%s/%s", TKT_PREFIX, tmpkrb );
+
+    if ( snprintf( krbpath, sizeof( krbpath ), "%s/%s",
+	    TKT_PREFIX, tmpkrb ) < sizeof( krbpath )) {
+	fprintf( stderr, "krbpath too long in netretr_ticket().\n" );
+	return( -1 );
+    }
 
     tv = timeout;
     if (( line = snet_getline( sn, &tv )) == NULL ) {

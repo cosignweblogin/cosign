@@ -175,7 +175,7 @@ main( int argc, char *argv[] )
     int				rc;
     char                	new_cookiebuf[ 128 ];
     char        		new_cookie[ 255 ];
-    char               		tmpkrb[ 16 ], krbpath [ 24 ];
+    char               		tmpkrb[ 16 ], krbpath [ MAXPATHLEN ];
     char			*data, *ip_addr;
     char			*cookie = NULL, *method, *script, *qs;
     char			*tmpl = LOGIN_HTML;
@@ -444,7 +444,16 @@ main( int argc, char *argv[] )
 	    subfile ( tmpl );
 	    exit( 0 );
 	}
-	snprintf( krbpath, sizeof( krbpath ), "%s/%s", TKT_PREFIX, tmpkrb );
+
+	if ( snprintf( krbpath, sizeof( krbpath ), "%s/%s",
+		TKT_PREFIX, tmpkrb ) < sizeof( krbpath )) {
+	    err = "An unknown error occurred.";
+	    title = "Authentication Required ( kerberos error )";
+
+	    tmpl = LOGIN_ERROR_HTML;
+	    subfile ( tmpl );
+	    exit( 0 );
+	}
 
 	if (( kerror = krb5_cc_resolve( kcontext, krbpath, &kccache )) != 0 ) {
 	    err = (char *)error_message( kerror );
