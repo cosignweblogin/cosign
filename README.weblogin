@@ -73,6 +73,32 @@ Things to know about the CGI:
 	    Options ExecCGI
 	</Directory>
 
+    During evaluation, it may be useful to run both the cgi/daemon and
+    the filter on a single server. To test a cosign filter installation
+    on the cosign server, you'll need some special configuration
+    options, like so:
+    in your server root, turn Cosign Protected On:
+	CosignProtected On
+
+    in your document root, turn Cosign Protected Off:
+
+	<Directory /usr/local/projects/cosign/html>
+	    Options ExecCGI
+	    Cosign Protected Off
+	</Directory>
+
+    Then turn a specific location, like test.html, on
+
+	<Location /test.html>
+	    Cosign Protected Off
+	</Location>
+
+    This will make it so the cgi can run when you are not logged in,
+    but that in order to access test.html you must be logged in. More
+    complicated configurations are possible, but this is a basic one to
+    get you going.
+
+
 See README.scripts for a cron job that prunes old cookies from the
 server's database and a cosignd init script.
 
