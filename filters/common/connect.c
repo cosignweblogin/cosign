@@ -239,7 +239,7 @@ netretr_ticket( char *scookie, struct sinfo *si, SNET *sn, int convert )
     sprintf( krb4path, "%s/%s", TKT_PREFIX, tmpkrb );
     krb_set_tkt_string( krb4path );
 
-    if (( kerror = krb5_init_context( &kcontext ))) {
+    if (( kerror = krb5_init_context( &kcontext )) != KSUCCESS ) {
 	fprintf( stderr, "krb5_init_context: %s\n", 
 		(char *)error_message( kerror ));
         returnval = -1;
@@ -247,23 +247,25 @@ netretr_ticket( char *scookie, struct sinfo *si, SNET *sn, int convert )
     }
 
     krb524_init_ets( kcontext );
-    if (( krb5_cc_resolve( kcontext, krbpath, &kccache )) != 0 ) {
+    if (( kerror = krb5_cc_resolve( kcontext, krbpath, &kccache )) !=
+	    KSUCCESS ) {
 	fprintf( stderr, "krb5_cc_resolve: %s\n", 
 		(char *)error_message( kerror ));
         returnval = -1;
 	goto error1;
     }
 
-    if (( krb5_cc_get_principal( kcontext, kccache, &kclient )) != 0 ) {
+    if (( kerror = krb5_cc_get_principal( kcontext, kccache, &kclient )) !=
+	    KSUCCESS ) {
 	fprintf( stderr, "krb5_cc_get_princ: %s\n", 
 		(char *)error_message( kerror ));
         returnval = -1;
 	goto error1;
     }
-    if (( krb5_build_principal( kcontext, &kserver,
+    if (( kerror = krb5_build_principal( kcontext, &kserver,
 	    krb5_princ_realm( kcontext, kclient)->length,
 	    krb5_princ_realm( kcontext, kclient)->data, "krbtgt",
-	    krb5_princ_realm( kcontext, kclient)->data, NULL)) != 0 ) {
+	    krb5_princ_realm( kcontext, kclient)->data, NULL)) != KSUCCESS ) {
 	fprintf( stderr, "krb5_build_princ: %s\n", 
 		(char *)error_message( kerror ));
         returnval = -1;
@@ -275,15 +277,16 @@ netretr_ticket( char *scookie, struct sinfo *si, SNET *sn, int convert )
     increds.server = kserver;
     increds.times.endtime = 0;
     increds.keyblock.enctype = ENCTYPE_DES_CBC_CRC;
-    if (( krb5_get_credentials( kcontext, 0, kccache,
-	    &increds, &v5creds )) != 0 ) {
+    if (( kerror = krb5_get_credentials( kcontext, 0, kccache,
+	    &increds, &v5creds )) != KSUCCESS ) {
 	fprintf( stderr, "krb5_get_credentials: %s\n", 
 		(char *)error_message( kerror ));
         returnval = -1;
 	goto error1;
     }
 
-    if (( krb524_convert_creds_kdc( kcontext, v5creds, &v4creds )) != 0 ) {
+    if (( kerror = krb524_convert_creds_kdc( kcontext, v5creds, &v4creds )) !=
+	    KSUCCESS ) {
 	fprintf( stderr, "krb524: %s\n", 
 		(char *)error_message( kerror ));
         returnval = -1;
@@ -291,16 +294,16 @@ netretr_ticket( char *scookie, struct sinfo *si, SNET *sn, int convert )
     }
 
     /* initialize ticket cache */
-    if (( in_tkt( v4creds.pname, v4creds.pinst )) != KSUCCESS ) {
+    if (( kerror = in_tkt( v4creds.pname, v4creds.pinst )) != KSUCCESS ) {
 	fprintf( stderr, "in_tkt: %s\n", 
 		(char *)error_message( kerror ));
         returnval = -1;
 	goto error1;
     }
 
-    if (( krb_save_credentials( v4creds.service, v4creds.instance,
+    if (( kerror = krb_save_credentials( v4creds.service, v4creds.instance,
 	    v4creds.realm, v4creds.session, v4creds.lifetime, v4creds.kvno,
-	    &(v4creds.ticket_st), v4creds.issue_date ))) {
+	    &(v4creds.ticket_st), v4creds.issue_date )) != KSUCCESS ) {
 	fprintf( stderr, "krb_save_cred: %s\n", 
 		(char *)error_message( kerror ));
         returnval = -1;
@@ -369,17 +372,6 @@ check_cookie( char *scookie, struct sinfo *si, cosign_host_config *cfg,
 	    }
 	    (*cur)->conn_sn = NULL;
 	}
-#ifdef KRB
-	if ( tkt ) {
-	    if (( rc = netretr_ticket( scookie, si, (*cur)->conn_sn,
-		    cfg->krb524)) < 0 ) {
-		if ( snet_close( (*cur)->conn_sn ) != 0 ) {
-		    fprintf( stderr, "choose_conn: snet_close failed\n" );
-		}
-		(*cur)->conn_sn = NULL;
-	    }
-	}
-#endif /* KRB */
 
 	if ( rc > 0 ) {
 	    goto done;
@@ -400,18 +392,6 @@ check_cookie( char *scookie, struct sinfo *si, cosign_host_config *cfg,
 	    }
 	    (*cur)->conn_sn = NULL;
 	}
-
-#ifdef KRB
-	if ( tkt ) {
-	    if (( rc = netretr_ticket( scookie, si, (*cur)->conn_sn,
-		    cfg->krb524 )) < 0 ) {
-		if ( snet_close( (*cur)->conn_sn ) != 0 ) {
-		    fprintf( stderr, "choose_conn: snet_close failed\n" );
-		}
-		(*cur)->conn_sn = NULL;
-	    }
-	}
-#endif /* KRB */
 
 	if ( rc > 0 ) {
 	    goto done;
@@ -434,6 +414,14 @@ done:
     if ( rc == 1 ) {
 	return( 1 );
     } else {
+#ifdef KRB
+	if ( tkt ) {
+	    if ( netretr_ticket( scookie, si, (*cur)->conn_sn, cfg->krb524 )
+		    != 2 ) {
+		fprintf( stderr, "Can't retrieve kerberos ticket\n" );
+	    }
+	}
+#endif /* KRB */
 	return( 0 );
     }
 }
