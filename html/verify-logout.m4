@@ -3,13 +3,13 @@ include(`header.html')
 
 	<h5>LOGOUT</h5>
 	<p>
-	    Are you sure you want to quit all UM web applications
-	    and log out now?
+	    You are about to logout of <a href="/">all weblogin
+	    applications</a>.  Are you sure you want to do this?
 	</p>
 
 	<p class="centerBodyText">
 	    <form name="f" method="post" action="/cgi-bin/logout">
-		<input type="submit" value="Cancel" />
+		<input type="button" value="Back" onClick="history.go(-1)">
 
 		&nbsp;
 		&nbsp;
