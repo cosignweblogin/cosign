@@ -29,7 +29,7 @@
 
     </head>
 
-    <body ifdef(`LOGIN_ONLOAD', `onLoad="focusLogin()"' )
+    <body ifdef(`LOGIN_ONLOAD', `onLoad="if ( window != top ) top.location.href = window.location.href; focusLogin()"' )
 	    ifdef(`LOGOUT_ONLOAD', `onLoad="focusLogout()"' )>
 
 	<div align="center">
