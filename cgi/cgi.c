@@ -446,9 +446,9 @@ main( int argc, char *argv[] )
 	}
 
 	if ( snprintf( krbpath, sizeof( krbpath ), "%s/%s",
-		TKT_PREFIX, tmpkrb ) < sizeof( krbpath )) {
+		TKT_PREFIX, tmpkrb ) > sizeof( krbpath )) {
 	    err = "An unknown error occurred.";
-	    title = "Authentication Required ( kerberos error )";
+	    title = "Authentication Required ( kerberos error: krbpath )";
 
 	    tmpl = LOGIN_ERROR_HTML;
 	    subfile ( tmpl );
