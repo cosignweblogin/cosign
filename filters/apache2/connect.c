@@ -248,7 +248,7 @@ netretr_ticket( char *scookie, struct sinfo *si, SNET *sn, int convert )
     struct timeval      tv;
     extern int		errno;
 #ifdef KRB4
-    char                krb4path [ 24 ];
+    char                krb4path [ MAXPATHLEN ];
     krb5_principal	kclient, kserver;
     krb5_ccache		kccache;
     krb5_creds		increds, *v5creds = NULL;
@@ -298,7 +298,7 @@ netretr_ticket( char *scookie, struct sinfo *si, SNET *sn, int convert )
     }
 
     if ( snprintf( krbpath, sizeof( krbpath ), "%s/%s",
-	    TKT_PREFIX, tmpkrb ) < sizeof( krbpath )) {
+	    TKT_PREFIX, tmpkrb ) > sizeof( krbpath )) {
 	fprintf( stderr, "krbpath too long in netretr_ticket().\n" );
 	return( -1 );
     }
@@ -361,7 +361,13 @@ netretr_ticket( char *scookie, struct sinfo *si, SNET *sn, int convert )
         returnval = -1;
 	goto error1;
     }
-    sprintf( krb4path, "%s/%s", TKT_PREFIX, tmpkrb );
+ 
+    if ( snprintf( krb4path, sizeof( krb4path ), "%s/%s",
+	    TKT_PREFIX, tmpkrb ) > sizeof( krb4path )) {
+	fprintf( stderr, "krb4path too long in netretr_ticket().\n" );
+	return( -1 );
+    }
+
     krb_set_tkt_string( krb4path );
 
     if (( kerror = krb5_init_context( &kcontext )) != KSUCCESS ) {
