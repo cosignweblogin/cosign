@@ -21,7 +21,7 @@
 
 #include "network.h"
 
-struct timeval	timeout = { 10 * 60, 0 };
+static struct timeval	timeout = { 10 * 60, 0 };
 extern void	(*logger)( char * );
 extern int	errno;
 extern int	port;

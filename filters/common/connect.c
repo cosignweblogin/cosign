@@ -43,7 +43,7 @@ static int connect_sn( struct connlist *, SSL_CTX *, char * );
 static int close_sn( struct connlist *);
 void (*logger)( char * ) = NULL;
 
-struct timeval		timeout = { 10 * 60, 0 };
+static struct timeval		timeout = { 10 * 60, 0 };
 
 /*
  * -1 means big error, dump this connection
