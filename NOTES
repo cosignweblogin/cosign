@@ -20,10 +20,9 @@ COSIGND:
 
 ISSUES:
 1) use of qs for redirect back URL ( consistency ).
-2) IE 5.2 on X doesn't redirect properly.
-2a) use of cookie to store referer - should we do qs instead?
+2) use of cookie to store referer - should we do qs instead?
 3) service first experience
-	a) show the service menu with source service highloghted
+	a) show the service menu with source service highlighted
 	b) redirect the user straight away ( no meta-refresh )
 4) logout needs to post
 
