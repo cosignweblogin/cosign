@@ -1,4 +1,5 @@
 ./CVS
 ./libsnet/CVS
+./libsnet/profiled/CVS
 ./EXCLUDE
 ./bprint.c
