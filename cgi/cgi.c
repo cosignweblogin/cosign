@@ -287,7 +287,7 @@ main( int argc, char *argv[] )
 	    exit( 0 );
 	}
 
-	if (( tv.tv_sec - cookietime ) > EXPIRE_TIME ) {
+	if (( cookietime > 0 ) && ( tv.tv_sec - cookietime ) > EXPIRE_TIME ) {
 	    goto loginscreen;
 	}
     }
