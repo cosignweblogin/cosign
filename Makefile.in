@@ -20,6 +20,19 @@ clean:
 	    do (cd $$i; ${MAKE} ${MFLAGS} clean); \
 	done
 
+VERSION=`date +%Y%m%d`
+DISTDIR=../cosign-${VERSION}
+
+dist   : distclean
+	mkdir ${DISTDIR}
+	tar chfFFX - EXCLUDE . | ( cd ${DISTDIR}; tar xvf - )
+	echo ${VERSION} > ${DISTDIR}/VERSION
+
+distclean: clean
+	rm -f config.log config.status Makefile libsnet/Makefile \
+	libcgi/Makefile cgi/Makefile html/Makefile daemon/Makefile \
+	filters/apache/Makefile
+
 install: filters/apache
 	cd filters/apache; ${MAKE} ${MFLAGS} install
 
