@@ -325,12 +325,6 @@ main( ac, av )
 	    exit( command( fd ));
 
 	case -1 :
-	    /*
-	     * We don't tell the client why we're closing -- they will
-	     * queue mail and try later.  We don't sleep() because we'd
-	     * like to cause as much mail as possible to queue on remote
-	     * hosts, thus spreading out load on our (memory bound) server.
-	     */
 	    close( fd );
 	    syslog( LOG_ERR, "fork: %m" );
 	    break;

@@ -4,7 +4,8 @@ TARGETS= cgi html daemon  filters/apache
 CFLAGS=
 
 filters:	 filters/apache
-all:	${ALL}
+all:		filters
+everything:	${ALL}
 
 cgi daemon filters/apache:	version.o libsnet
 cgi:	libcgi
@@ -38,7 +39,7 @@ distclean: clean
 install:  filters/apache
 	cd filters/apache; ${MAKE} ${MFLAGS} install
 
-install-all : all
+install-all : everything
 	for i in ${TARGETS}; \
 	    do (cd $$i; ${MAKE} ${MFLAGS} install); \
 	done

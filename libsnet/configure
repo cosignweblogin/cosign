@@ -2273,19 +2273,19 @@ else
 fi
 
     if test ! -e "$ac_cv_path_ssl" ; then
-        { { echo "$as_me:$LINENO: error: cannot find ssl libraries" >&5
-echo "$as_me: error: cannot find ssl libraries" >&2;}
-   { (exit 1); exit 1; }; }
-    fi
-    CPPFLAGS="$CPPFLAGS -I$ac_cv_path_ssl/include";
-    TLSDEFS=-DTLS;
+        echo "$as_me:$LINENO: result: cannot find ssl libraries" >&5
+echo "${ECHO_T}cannot find ssl libraries" >&6
+    else
+	CPPFLAGS="$CPPFLAGS -I$ac_cv_path_ssl/include";
+	TLSDEFS=-DTLS;
 
-    LIBS="$LIBS -lssl -lcrypto";
-    LDFLAGS="$LDFLAGS -L$ac_cv_path_ssl/lib";
-    HAVE_SSL=yes
+	LIBS="$LIBS -lssl -lcrypto";
+	LDFLAGS="$LDFLAGS -L$ac_cv_path_ssl/lib";
+	HAVE_SSL=yes
 
-    echo "$as_me:$LINENO: result: $ac_cv_path_ssl" >&5
+	echo "$as_me:$LINENO: result: $ac_cv_path_ssl" >&5
 echo "${ECHO_T}$ac_cv_path_ssl" >&6
+    fi
 
 
 # Checks for header files.

@@ -21,16 +21,17 @@ AC_DEFUN([CHECK_SSL],
         done
     ])
     if test ! -e "$ac_cv_path_ssl" ; then
-        AC_MSG_ERROR(cannot find ssl libraries)
+        AC_MSG_RESULT(cannot find ssl libraries)
+    else
+	CPPFLAGS="$CPPFLAGS -I$ac_cv_path_ssl/include";
+	TLSDEFS=-DTLS;
+	AC_SUBST(TLSDEFS)
+	LIBS="$LIBS -lssl -lcrypto";
+	LDFLAGS="$LDFLAGS -L$ac_cv_path_ssl/lib";
+	HAVE_SSL=yes
+	AC_SUBST(HAVE_SSL)
+	AC_MSG_RESULT($ac_cv_path_ssl)
     fi
-    CPPFLAGS="$CPPFLAGS -I$ac_cv_path_ssl/include";
-    TLSDEFS=-DTLS;
-    AC_SUBST(TLSDEFS)
-    LIBS="$LIBS -lssl -lcrypto";
-    LDFLAGS="$LDFLAGS -L$ac_cv_path_ssl/lib";
-    HAVE_SSL=yes
-    AC_SUBST(HAVE_SSL)
-    AC_MSG_RESULT($ac_cv_path_ssl)
 ])
 
 AC_DEFUN([CHECK_PROFILED],
