@@ -25,7 +25,7 @@ include(`header.html')
 	</td>
 
 	<td bgcolor="#FFFFFF">
-	    <input id="uniqname" name="uniqname" size="24" maxlength="8" value="$u">
+	    <input id="uniqname" name="uniqname" size="24" value="$u">
 	</td>
     </tr>
 
