@@ -2,6 +2,7 @@
 #include <sys/time.h>
 #include <sys/stat.h>
 #include <sys/param.h>
+#include <sys/socket.h>
 #include <netinet/in.h>
 #include <string.h>
 #include <unistd.h>
@@ -42,7 +43,7 @@ main( int ac, char **av )
     struct timeval	tv, now;
     struct hostent	*he;
     struct cl		*head = NULL, **tail = NULL, **cur, *new = NULL, *temp;
-    char                login[ MAXPATHLEN ];
+    char                login[ MAXPATHLEN ], hostname[ MAXHOSTNAMELEN ];
     time_t		itime = 0;
     char		*prog, *line;
     int			c, i, port = htons( 6663 ), err = 0, state = 0;
@@ -135,8 +136,8 @@ main( int ac, char **av )
 	if ( cosign_host != NULL ) {
 
     if ( gethostname( hostname, sizeof( hostname )) < 0 ) {
-	syslog( LOG_ERR, "monster: %m" );
-	return;
+	perror( "gethostname" );
+	exit( 1 );
     }
 
     if (( he = gethostbyname( cosign_host )) == NULL ) {
@@ -281,9 +282,7 @@ main( int ac, char **av )
     while ( *cur != NULL ) {
 	if ( (*cur)->cl_sn == NULL ) {
 	    if ( connect_sn( *cur, ctx, cosign_host ) != 0 ) {
-		(*cur)->cl_sn = NULL;
-		cur = &(*cur)->cl_next;
-		continue;
+		goto next;
 	    }
 
 	    snet_writef( (*cur)->cl_sn, "DAEMON %s", hostname );
@@ -295,9 +294,7 @@ main( int ac, char **av )
 		if (( close_sn( *cur )) != 0 ) {
 		    syslog( LOG_ERR, "monster: close_sn: %m" );
 		}
-		(*cur)->cl_sn = NULL;
-		cur = &(*cur)->cl_next;
-		continue;
+		goto next;
 	    }
 
 	    if ( *line == '4' ) {
@@ -311,14 +308,14 @@ main( int ac, char **av )
 		 * we don't need to increment the loop in this case
 		 * because the delete implicitly does.
 		 */
+		continue;
 
 	    } else if ( *line != '2' ) {
 		syslog( LOG_ERR, "monster: %s", line );
 		if (( close_sn( *cur )) != 0 ) {
 		    syslog( LOG_ERR, "monster: close_sn: %m" );
 		}
-		(*cur)->cl_sn = NULL;
-		cur = &(*cur)->cl_next;
+		goto next;
 	    }
 	}
 
@@ -327,7 +324,8 @@ main( int ac, char **av )
 	    if ( snet_close( (*cur)->cl_sn ) != 0 ) {
 		syslog( LOG_ERR, "snet_close: %m\n" );
 	    }
-	    (*cur)->cl_sn = NULL;
+	    goto next;
+	}
 
 	tv = timeout;
 	if (( line = snet_getline_multi( (*cur)->cl_sn, logger, &tv ))
@@ -338,8 +336,7 @@ main( int ac, char **av )
 	    if ( snet_close( (*cur)->cl_sn ) != 0 ) {
 		syslog( LOG_ERR, "snet_close: %m\n" );
 	    }
-	    (*cur)->cl_sn = NULL;
-	    continue;
+	    goto next;
 	}
 
 	if ( *line != '3' ) {
@@ -347,8 +344,9 @@ main( int ac, char **av )
 	    if ( snet_close( (*cur)->cl_sn ) != 0 ) {
 		syslog( LOG_ERR, "snet_close: %m\n" );
 	    }
+next:
 	    (*cur)->cl_sn = NULL;
-	    continue;
+	    cur = &(*cur)->cl_next;
 	}
     }
 
