@@ -77,7 +77,7 @@ cookie_valid( cosign_host_config *cfg, char *cookie, struct sinfo *si,
     }
 
     if ( rc == 2 ) {
-	fprintf( stderr, "This could have been a loop!\n" ); 
+	fprintf( stderr, "Unable to connect to any Cosign server." ); 
 	return( -1 );
     }
 
