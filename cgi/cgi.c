@@ -53,9 +53,9 @@ subfile( char *filename )
     int 	c, i;
     char	nasties[] = "<>(){}[];'`\" \\";
 
-    fputs( "Cache-Control: no-cache, private\n"
+    fputs( "Expires: -1\n"
+	    "Cache-Control: no-cache, private\n"
 	    "Pragma: no-cache\n"
-	    "Expires: -1\n"
 	    "Content-type: text/html\n\n", stdout );
 
     if (( fs = fopen( filename, "r" )) == NULL ) {
@@ -221,12 +221,15 @@ main( int argc, char *argv[] )
 	    exit( 0 );
 	}
 
-	if (( rc = cosign_register( cookie, ip_addr, service )) < 0 ) {
-	    if ( cosign_check( cookie ) < 0 ) {
-		title = "Authentication Required";
-		goto loginscreen;
-	    }
+	if ( cosign_check( cookie ) == 0 ) {
+	    title = "Please Choose A Service";
+	    tmpl = SERVICE_MENU;
 
+	    subfile( tmpl );
+	    exit( 0 );
+	}
+
+	if (( rc = cosign_register( cookie, ip_addr, service )) < 0 ) {
 	    fprintf( stderr, "%s: cosign_register failed\n", script );
 	    title = "Error: Register Failed";
 	    tmpl = ERROR_HTML;
