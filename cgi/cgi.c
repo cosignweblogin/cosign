@@ -163,7 +163,7 @@ subfile( char *filename )
     int
 main( int argc, char *argv[] )
 {
-    krb5_error_code		kerror;
+    krb5_error_code		kerror = 0;
     krb5_context		kcontext;
     krb5_principal		kprinc;
     krb5_principal		sprinc;
@@ -211,18 +211,8 @@ main( int argc, char *argv[] )
     script = getenv( "SCRIPT_NAME" );
     ip_addr = getenv( "REMOTE_ADDR" );
 
-    if ( cookie == NULL ) {
-	if ( strcmp( method, "POST" ) == 0 ) {
-	    title = "Error: Cookies Required";
-	    err = "This service requires that cookies be enabled.";
-	    tmpl = ERROR_HTML;
-	    subfile( tmpl );
-	    exit( 0 );
-	}
-	goto loginscreen;
-    }
-
     /* setup conn and ssl and hostlist */
+    port = htons( 6663 );
     if (( head = connlist_setup( cosign_host, port )) == NULL ) {
 	title = "Error: But not your fault";
 	err = "We were unable to contact the authentication server.  Please try again later.";
@@ -289,6 +279,17 @@ main( int argc, char *argv[] )
 	exit( 0 );
     }
 
+    if ( cookie == NULL ) {
+	if ( strcmp( method, "POST" ) == 0 ) {
+	    title = "Error: Cookies Required";
+	    err = "This service requires that cookies be enabled.";
+	    tmpl = ERROR_HTML;
+	    subfile( tmpl );
+	    exit( 0 );
+	}
+	goto loginscreen;
+    }
+
     if ( strcmp( method, "POST" ) != 0 ) {
 	if ( cosign_check( head, cookie ) < 0 ) {
 	    err = "You are not logged in. Please log in now.";
@@ -308,6 +309,8 @@ main( int argc, char *argv[] )
 	    ( *cl[ CL_REF ].cl_data != '\0' )) {
         ref = cl[ CL_REF ].cl_data;
     }
+
+fprintf( stderr, "XXX: %s\n", ref );
 
     if (( cl[ CL_LOGIN ].cl_data == NULL ) ||
 	    ( *cl[ CL_LOGIN ].cl_data == '\0' )) {

@@ -505,7 +505,7 @@ connect_sn( struct connlist *conn )
     }
     if ( connect( s, ( struct sockaddr *)&conn->conn_sin,
 	    sizeof( struct sockaddr_in )) != 0 ) {
-	fprintf( stderr, "connect: %m" );
+	fprintf( stderr, "connect: %s", strerror( errno ));
 	(void)close( s );
 	return( -1 );
     }
