@@ -43,6 +43,15 @@ Testing your certificates:
 	openssl verify -verbose -purpose sslserver -CApath /var/cosign/certs/CA /var/cosign/certs/cert.pem
 
 
+Customizing your html:
+
+    Before doing a 'make everything' and certainly before doing a 'make
+    install,' be sure to customize the contents of 'html/header.html,
+    'html/footer.html,' and 'html/cosign.css.'  You can, of course,
+    customize the other templates as well but be careful with the
+    variable display strings ( of the form '$a' where 'a' can be any
+    letter or number ).  These are needed by the CGI.
+
 Things to know about the CGI:
 
     You'll need a keytab with the principal of "cosign" and the
@@ -70,6 +79,5 @@ server's database and a cosignd init script.
 
     The certificate CN of the weblogin server must match the argument
     to --with-cosignhost.
-
 
 Questions? cosign@umich.edu
