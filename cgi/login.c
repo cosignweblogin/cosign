@@ -7,6 +7,7 @@
 #include <sys/socket.h>
 #include <sys/param.h>
 #include <openssl/ssl.h>
+#include <netinet/in.h>
 
 #ifdef KRB
 #include <krb5.h>
