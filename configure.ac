@@ -23,7 +23,7 @@ AC_ARG_ENABLE(krb, AC_HELP_STRING([--enable-krb=path_to_krb], [enable kerberos f
 AC_ARG_ENABLE(basicauth, AC_HELP_STRING([--enable-basicauth], [build
 the basicauth version of the cgi]), CGI_BASICAUTH, AC_MSG_RESULT( BasicAuth cgi will not be built ))
 
-AC_ARG_ENABLE(filter-addr-check, AC_HELP_STRING([--enable-filter-addr-check], [ does not work with firewalls, is "extra security" ]), filteraddrcheck="-DCHECK_SOURCE_ADDR")
+AC_ARG_ENABLE(filter-addr-check, AC_HELP_STRING([--enable-filter-addr-check], [does not work with firewalls, is "extra security" ]), filteraddrcheck="-DCHECK_SOURCE_ADDR")
 AC_SUBST(filteraddrcheck)
 
 AC_ARG_ENABLE(mysql, AC_HELP_STRING([--enable-mysql=path_to_mysql], [enable mysql for guest login support in the cgi]), CHECK_LIBMYSQL, AC_MSG_RESULT( mysql not enabled))
