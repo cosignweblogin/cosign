@@ -436,7 +436,6 @@ decision( char *name, struct timeval *now, time_t *itime, int *state )
 
     /* login cookie gave us an ENOENT do we think it's gone */
     if ( rc == 1 ) {
-	syslog( LOG_DEBUG, "%s already gone", name );
 	return( 0 );
     }
 
