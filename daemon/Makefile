@@ -25,8 +25,8 @@ ADDLIBS=	-lsocket -lnsl
 
 ################ Nothing below should need editing ###################
 
-SRC=    daemon.c command.c argcargv.c 
-COSIGNOBJ=	daemon.o command.o argcargv.o 
+SRC=    daemon.c command.c argcargv.c cparse.c
+COSIGNOBJ=	daemon.o command.o argcargv.o cparse.o
 
 INCPATH=	-Ilibsnet
 DEFS=	-DLOG_COSIGN=${COSIGNLOG}

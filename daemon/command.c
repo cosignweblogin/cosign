@@ -23,8 +23,12 @@
 #include <snet.h>
 
 #include "command.h"
+#include "cparse.h"
 
 #define CPATH "/var/cosign"
+#define IP_SZ 254
+#define USER_SZ 30
+#define REALM_SZ 254
 
 extern char	*version;
 
@@ -37,6 +41,8 @@ static int	f_noop ___P(( SNET *, int, char *[] ));
 static int	f_quit ___P(( SNET *, int, char *[] ));
 static int	f_help ___P(( SNET *, int, char *[] ));
 static int	f_login ___P(( SNET *, int, char *[] ));
+static int	f_logout ___P(( SNET *, int, char *[] ));
+
 
 
     int
@@ -125,11 +131,20 @@ f_login( sn, ac, av )
     syslog( LOG_INFO, "f_login: tmpfile: %s", tmppath );
 
     fprintf( tmpfile, "v0\n" );
+    fprintf( tmpfile, "s1\n" );	 /* 1 is logged in, 0 is logged out */
+    if ( strlen( av[ 2 ] ) >= IP_SZ ) {
+	goto file_err;
+    }
     fprintf( tmpfile, "i%s\n", av[ 2 ] );
+    if ( strlen( av[ 3 ] ) >= USER_SZ ) {
+	goto file_err;
+    }
     fprintf( tmpfile, "p%s\n", av[ 3 ] );
+    if ( strlen( av[ 4 ] ) >= REALM_SZ ) {
+	goto file_err;
+    }
     fprintf( tmpfile, "r%s\n", av[ 4 ] );
     fprintf( tmpfile, "t%lu\n", tv.tv_sec );
-    fprintf( tmpfile, "s1\n" );	 /* 1 is logged in, 0 is logged out */
 
     if ( fclose ( tmpfile ) != 0 ) {
 	if ( unlink( tmppath ) != 0 ) {
@@ -159,9 +174,88 @@ f_login( sn, ac, av )
 	syslog( LOG_ERR, "f_login: unlink: %m" );
     }
     snet_writef( sn, "%d LOGIN successful: Cookie Stored \r\n", 200 );
+
     return( 0 );
+
+file_err:
+    if ( unlink( tmppath ) != 0 ) {
+	syslog( LOG_ERR, "f_login: unlink: %m" );
+    }
+    syslog( LOG_ERR, "f_login: bad file format" );
+    snet_writef( sn, "%d LOGIN Syntax Error: Bad File Format\r\n", 503 );
+    return( 1 );
 }
 
+    int
+f_logout( sn, ac, av )
+    SNET        *sn;
+    int         ac;
+    char        *av[];
+{
+    struct cinfo	ci;
+    int			fd;
+    char		path[ MAXPATHLEN ];
+
+    /*LOGOUT login_cookie ip */
+
+    if ( ac != 3 ) {
+	snet_writef( sn, "%d LOGOUT Syntax error\r\n", 510 );
+	return( 1 );
+    }
+
+    /* do we care if there are /s ? */
+    /* strchr for / */
+    if ( snprintf( path, MAXPATHLEN, "%s/%s", CPATH, av[ 1 ] ) >= MAXPATHLEN ) {
+	snet_writef( sn, "%d LOGOUT Syntax error: Cookie too long\r\n", 511 );
+	return( 1 );
+    }
+
+    if ( read_a_cookie( path, &ci ) != 0 ) {
+	syslog( LOG_ERR, "f_logout: read_a_cookie: XXX" );
+	snet_writef( sn, "%d LOGOUT error: Sorry\r\n", 512 );
+	return( 1 );
+    }
+
+    if( strcmp( av[ 2 ], ci.ci_ipaddr ) != 0 ) {
+	syslog( LOG_INFO, "%s in cookie %s does not match %s",
+		ci.ci_ipaddr, path, av[ 2 ] );
+	snet_writef( sn,
+		"%d IP address given does not match cookie\r\n", 410 );
+	return( 1 );
+    }
+
+    if ( ci.ci_state == 0 ) {
+	syslog( LOG_ERR, "f_logout: %s already logged out", path );
+	snet_writef( sn, "%d LOGOUT error: Already logged out\r\n", 410 );
+	return( 1 );
+    }
+
+    if (( fd = open( path, O_WRONLY, 0644 )) < 0 ) {
+	syslog( LOG_ERR, "f_logout: %s: %m" );
+	snet_writef( sn, "%d LOGOUT error: Sorry!\r\n", 522 );
+	return( -1 );
+    }
+
+    if ( lseek( fd, 4, SEEK_SET ) == -1 ) {
+	(void)close( fd );
+	syslog( LOG_ERR, "f_logout: %s: %m", path );
+	snet_writef( sn, "%d LOGOUT error: Sorry!\r\n", 522 );
+	return( -1 );
+    }
+
+    if ( write( fd, "0", 1 ) == -1 ) {
+	(void)close( fd );
+	syslog( LOG_ERR, "f_logout: %s: %m", path );
+	snet_writef( sn, "%d LOGOUT error: Sorry!\r\n", 522);
+	return( -1 );
+    }
+
+    (void)close( fd );
+
+    snet_writef( sn, "%d LOGOUT successful: cookie no longer valid\r\n", 210 );
+    return( 0 );
+
+}
 
 
 struct command	commands[] = {
@@ -169,6 +263,7 @@ struct command	commands[] = {
     { "QUIT",		f_quit },
     { "HELP",		f_help },
     { "LOGIN",		f_login },
+    { "LOGOUT",		f_logout },
 };
 int		ncommands = sizeof( commands ) / sizeof( commands[ 0 ] );
 
