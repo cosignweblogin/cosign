@@ -177,7 +177,7 @@ mkpushers( int ppipe )
 	    cur->cl_pushpass.r_count = 0;
 	    cur->cl_pushfail.r_count = 0;
 	    pusher( fds[ 0 ], cur );
-	    exit( 0 );
+	    exit( 2 );
 
 	case -1 :
 	    syslog( LOG_ERR, "mkpushers fork: %m" );
@@ -286,6 +286,10 @@ pusherparent( int ppipe )
 			syslog( LOG_ERR, "CHILD %d exited", pid );
 			break;
 
+		    case 1:
+			syslog( LOG_ERR, "CHILD %d transient failure", pid );
+			break;
+
 		    case 2:
 			syslog( LOG_CRIT, "CHILD %d configuration error", pid );
 			exit( 1 );
@@ -375,16 +379,20 @@ pusher( int cpipe, struct connlist *cur )
     struct cinfo	ci;
 
     if (( csn = snet_attach( cpipe, 1024 * 1024 )) == NULL ) {
-        syslog( LOG_ERR, "pusherchild: snet_attach: %m" );
-        return( -1 );
+        syslog( LOG_ERR, "pusher: snet_attach: %m" );
+        exit( 1 );
     }
 
-    if (( rc = connect_sn( cur, ctx, replhost, 0 )) == -2 ) {
-	syslog( LOG_ERR, "pusher: connect_sn permanent failure" );
+    if (( rc = connect_sn( cur, ctx, replhost, 0 )) < 0 ) {
+	if ( rc == -2 ) {
+	    syslog( LOG_ERR, "pusher: connect_sn permanent failure" );
+	    exit( 2 );
+	} else if ( rc == -1 ) {
+	    syslog( LOG_ERR, "pusher: connect_sn transient failure" );
+	    exit( 1 );
+	}
+	syslog( LOG_ERR, "pusher: connect_sn unknown failure" );
 	exit( 2 );
-    } else if ( rc == -1 ) {
-	syslog( LOG_ERR, "pusher: connect_sn transient failure" );
-	exit( 1 );
     }
     
     pusherdaemon( cur );
@@ -392,13 +400,13 @@ pusher( int cpipe, struct connlist *cur )
 	for ( ;; ) {
     krb = 0;
     if (( line = snet_getline( csn, NULL )) == NULL ) {
-	syslog( LOG_ERR, "pusherchild: snet_getline: %m" );
+	syslog( LOG_ERR, "pusher: snet_getline: %m" );
 	exit( 1 );
     }
 
     if (( ac = argcargv( line, &av )) < 0 ) {
 	syslog( LOG_ERR, "argcargv: %m" );
-	break;
+	exit( 1 );
     }
 
     switch ( ac ) {
@@ -414,7 +422,7 @@ pusher( int cpipe, struct connlist *cur )
 
     case 5 :
 	if (( strcasecmp( av[ 0 ], "login" )) != 0 ) {
-	    syslog( LOG_ERR, "pusherchild: %s: bad command", av[ 0 ] );
+	    syslog( LOG_ERR, "pusher: %s: bad command", av[ 0 ] );
 	    exit( 1 );
 	}
 	snet_writef( cur->cl_sn, "LOGIN %s %s %s %s\r\n",
@@ -423,7 +431,7 @@ pusher( int cpipe, struct connlist *cur )
 
     case 4 :
 	if (( strcasecmp( av[ 0 ], "register" )) != 0 ) {
-	    syslog( LOG_ERR, "pusherchild: %s: bad command", av[ 0 ] );
+	    syslog( LOG_ERR, "pusher: %s: bad command", av[ 0 ] );
 	    exit( 1 );
 	}
 	snet_writef( cur->cl_sn, "REGISTER %s %s %s\r\n",
@@ -432,20 +440,22 @@ pusher( int cpipe, struct connlist *cur )
 
     case 3 :
 	if (( strcasecmp( av[ 0 ], "logout" )) != 0 ) {
-	    syslog( LOG_ERR, "pusherchild: %s: bad command", av[ 0 ] );
+	    syslog( LOG_ERR, "pusher: %s: bad command", av[ 0 ] );
 	    exit( 1 );
 	}
 	snet_writef( cur->cl_sn, "LOGOUT %s %s\r\n", av[ 1 ], av[ 2 ] );
 	break;
 
     default :
-	syslog( LOG_ERR, "pusherchild: wrong number of args" );
+	syslog( LOG_ERR, "pusher: wrong number of args" );
 	exit( 1 );
     }
 
     tv = cosign_net_timeout;
     if (( line = snet_getline_multi( cur->cl_sn, logger, &tv )) == NULL ) {
-	syslog( LOG_ERR, "pusherchld-getline: %m" );
+	if ( !snet_eof( cur->cl_sn )) {
+	    syslog( LOG_ERR, "pusher: getline: %m" );
+	}
 	exit( 1 );
     }
 
@@ -454,7 +464,7 @@ pusher( int cpipe, struct connlist *cur )
     }
 
     if ( *line != '3' ) {
-        syslog( LOG_ERR, "pusherchld: not 3, got: %s", line );
+        syslog( LOG_ERR, "pusher: not 3, got: %s", line );
         goto error;
     }
 
@@ -464,12 +474,12 @@ pusher( int cpipe, struct connlist *cur )
     }
 
     if (( fd = open( ci.ci_krbtkt, O_RDONLY, 0 )) < 0 ) {
-        syslog( LOG_ERR, "pusherchld-open: %m" );
+        syslog( LOG_ERR, "pusher: open: %m" );
         goto error;
     }
 
     if ( fstat( fd, &st) < 0 ) {
-        syslog( LOG_ERR, "pusherchld-fstat: %m" );
+        syslog( LOG_ERR, "pusher: fstat: %m" );
         goto error;
     }
 
@@ -492,7 +502,7 @@ pusher( int cpipe, struct connlist *cur )
     close( fd );
 
     if ( rr < 0 ) {
-        syslog( LOG_ERR, "pusherchld-rr: %m" );
+        syslog( LOG_ERR, "pusher: rr: %m" );
         goto error;
     }
 
@@ -512,27 +522,25 @@ pusher( int cpipe, struct connlist *cur )
     tv = cosign_net_timeout;
     if (( line = snet_getline_multi( cur->cl_sn, logger, &tv )) == NULL ) {
         if ( snet_eof( cur->cl_sn )) {
-            syslog( LOG_ERR, "pusherchld: connection closed" );
+            syslog( LOG_ERR, "pusher: connection closed" );
         } else {
-            syslog( LOG_ERR, "pusherchld: login %s failed: %m\n", av[ 1 ] );
+            syslog( LOG_ERR, "pusher: login %s failed: %m\n", av[ 1 ] );
         }
     }
 
 done:
     if (( *line != '2' ) && ( *line != '5' )) {
-	syslog( LOG_ERR, "pusherchld: %s", line );
+	syslog( LOG_ERR, "pusher: %s", line );
 	if (( close_sn( cur )) != 0 ) {
-	    syslog( LOG_ERR, "pusherchld: close_sn: %m" );
+	    syslog( LOG_ERR, "pusher: done: close_sn: %m" );
 	}
 	exit( 1 );
     }
 	}
 
-    return( 0 );
-
 error:
     if (( close_sn( cur )) != 0 ) {
-	syslog( LOG_ERR, "pusherchld: close_sn: %m" );
+	syslog( LOG_ERR, "pusher: error: close_sn: %m" );
     }
     exit( 1 );
 }
