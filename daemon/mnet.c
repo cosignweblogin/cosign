@@ -33,7 +33,7 @@ static struct timeval		timeout = { 10 * 60, 0 };
     int
 connect_sn( struct cl *cl, SSL_CTX *ctx, char *host )
 {
-    int			s;
+    int			s, err = -1;
     char		*line, buf[ 1024 ];
     X509		*peer;
     struct timeval      tv;
@@ -81,11 +81,13 @@ connect_sn( struct cl *cl, SSL_CTX *ctx, char *host )
     if ( snet_starttls( cl->cl_sn, ctx, 0 ) != 1 ) {
 	syslog( LOG_ERR, "snet_starttls: %s",
 		ERR_error_string( ERR_get_error(), NULL ));
+	err = -2;
 	goto done;
     }
 
     if (( peer = SSL_get_peer_certificate( cl->cl_sn->sn_ssl )) == NULL ) {
 	syslog( LOG_ERR, "no certificate" );
+	err = -2;
 	goto done;
     }
 
@@ -96,6 +98,7 @@ connect_sn( struct cl *cl, SSL_CTX *ctx, char *host )
     if ( strcmp( buf, host ) != 0 ) {
 	syslog( LOG_ERR, "cn=%s & host=%s don't match!", buf, host );
 	X509_free( peer );
+	err = -2;
 	goto done;
     }
 
@@ -108,7 +111,7 @@ done:
     }
     cl->cl_sn = NULL;
 
-    return( -1 );
+    return( err );
 }
 
 
