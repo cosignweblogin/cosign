@@ -51,6 +51,10 @@ static int	f_time( SNET *, int, char *[], SNET * );
 static int	f_daemon( SNET *, int, char *[], SNET * );
 static int	f_starttls( SNET *, int, char *[], SNET * );
 
+static int	do_register( char *, char * );
+static int	retr_ticket( SNET *, struct cinfo * );
+static int	retr_proxy( SNET *, char *, SNET * );
+
 struct command {
     char	*c_name;
     int		(*c_func)( SNET *, int, char *[], SNET * );
@@ -199,7 +203,6 @@ f_login( SNET *sn, int ac, char *av[], SNET *pushersn )
 	    krb = 1;
 	    if ( mkcookie( sizeof( tmpkrb ), tmpkrb ) != 0 ) {
 		syslog( LOG_ERR, "f_login: mkcookie error." );
-		snet_writef( sn, "%d LOGIN: Server Error .\r\n", 506 );
 		return( -1 );
 	    }
 	    sprintf( krbpath, "%s/%s", TKT_PREFIX, tmpkrb );
@@ -223,20 +226,17 @@ f_login( SNET *sn, int ac, char *av[], SNET *pushersn )
 
     if ( gettimeofday( &tv, NULL ) != 0 ){
 	syslog( LOG_ERR, "f_login: gettimeofday: %m" );
-	snet_writef( sn, "%d LOGIN Error: Sorry!\r\n", 503 );
 	return( -1 );
     }
 
     if ( snprintf( tmppath, sizeof( tmppath ), "%x%x.%i",
 	    tv.tv_sec, tv.tv_usec, (int)getpid()) >= sizeof( tmppath )) {
 	syslog( LOG_ERR, "f_login: tmppath too long" );
-	snet_writef( sn, "%d LOGIN Error: Sorry!\r\n", 503 );
 	return( -1 );
     }
 
     if (( fd = open( tmppath, O_CREAT|O_EXCL|O_WRONLY, 0644 )) < 0 ) {
 	syslog( LOG_ERR, "f_login: open: %m" );
-	snet_writef( sn, "%d LOGIN Error: Sorry!\r\n", 503 );
 	return( -1 );
     }
 
@@ -246,7 +246,6 @@ f_login( SNET *sn, int ac, char *av[], SNET *pushersn )
 	    syslog( LOG_ERR, "f_login: unlink: %m" );
 	}
 	syslog( LOG_ERR, "f_login: fdopen: %m" );
-	snet_writef( sn, "%d LOGIN Error: Sorry!\r\n", 503 );
 	return( -1 );
     }
 
@@ -274,7 +273,6 @@ f_login( SNET *sn, int ac, char *av[], SNET *pushersn )
 	    syslog( LOG_ERR, "f_login: unlink: %m" );
 	}
 	syslog( LOG_ERR, "f_login: fclose: %m" );
-	snet_writef( sn, "%d LOGIN Error: Sorry!\r\n", 503 );
 	return( -1 );
     }
 
@@ -307,7 +305,6 @@ f_login( SNET *sn, int ac, char *av[], SNET *pushersn )
 	    return( 1 );
 	}
 	syslog( LOG_ERR, "f_login: link: %m" );
-	snet_writef( sn, "%d LOGIN Error: Sorry!\r\n", 503 );
 	return( -1 );
     }
 
@@ -328,7 +325,6 @@ f_login( SNET *sn, int ac, char *av[], SNET *pushersn )
 
     if (( fd = open( krbpath, O_CREAT|O_EXCL|O_WRONLY, 0644 )) < 0 ) {
 	syslog( LOG_ERR, "f_login: open: %s: %m", krbpath );
-	snet_writef( sn, "%d %s: %s\r\n", 507, krbpath, strerror( errno ));
 	return( -1 );
     }
 
@@ -574,7 +570,6 @@ f_logout( SNET *sn, int ac, char *av[], SNET *pushersn )
 
     if ( do_logout( av[ 1 ] ) < 0 ) {
 	syslog( LOG_ERR, "f_logout: %s: %m", av[ 1 ] );
-	snet_writef( sn, "%d LOGOUT error: Sorry!\r\n", 514 );
 	return( -1 );
     }
 
@@ -586,15 +581,83 @@ f_logout( SNET *sn, int ac, char *av[], SNET *pushersn )
 
 }
 
+/*
+ * associate serivce with login
+ * 0 = OK
+ * -1 = unknown fatal error
+ * 1 = already registered
+ */
+    int
+do_register( char *login, char *scookie )
+{
+    int			fd;
+    char		tmppath[ MAXCOOKIELEN ];
+    FILE		*tmpfile;
+    struct timeval	tv;
+
+    if ( gettimeofday( &tv, NULL ) != 0 ){
+	syslog( LOG_ERR, "f_register: gettimeofday: %m" );
+	return( -1 );
+    }
+
+    if ( snprintf( tmppath, sizeof( tmppath ), "%x%x.%i",
+	    tv.tv_sec, tv.tv_usec, (int)getpid()) >= sizeof( tmppath )) {
+	syslog( LOG_ERR, "f_register: tmppath too long" );
+	return( -1 );
+    }
+
+    if (( fd = open( tmppath, O_CREAT|O_EXCL|O_WRONLY, 0644 )) < 0 ) {
+	syslog( LOG_ERR, "f_register: open: %m" );
+	return( -1 );
+    }
+
+    if (( tmpfile = fdopen( fd, "w" )) == NULL ) {
+	if ( unlink( tmppath ) != 0 ) {
+	    syslog( LOG_ERR, "f_register: unlink: %m" );
+	}
+	syslog( LOG_ERR, "f_register: fdopen: %m" );
+	return( -1 );
+    }
+
+    /* the service cookie file contains the login cookie only */
+    fprintf( tmpfile, "l%s\n", login );
+
+    if ( fclose ( tmpfile ) != 0 ) {
+	if ( unlink( tmppath ) != 0 ) {
+	    syslog( LOG_ERR, "f_register: unlink: %m" );
+	}
+	return( -1 );
+    }
+
+    if ( link( tmppath, scookie ) != 0 ) {
+	if ( unlink( tmppath ) != 0 ) {
+	    syslog( LOG_ERR, "f_register: unlink: %m" );
+	}
+	if ( errno == EEXIST ) {
+	    syslog( LOG_ERR,
+		    "f_register: service cookie already exists: %s", scookie );
+	    return( 1 );
+	}
+	syslog( LOG_ERR, "f_register: link: %m" );
+	return( -1 );
+    }
+
+    if ( unlink( tmppath ) != 0 ) {
+	syslog( LOG_ERR, "f_register: unlink: %m" );
+	return( -1 );
+    }
+
+    utime( login, NULL );
+
+    return( 0 );
+}
+
     int
 f_register( SNET *sn, int ac, char *av[], SNET *pushersn )
 {
     struct cinfo	ci;
     struct timeval	tv;
-    int			fd;
-    char		tmppath[ MAXCOOKIELEN ];
-    FILE		*tmpfile;
-
+    int			rc;
 
     /* REGISTER login_cookie ip service_cookie */
 
@@ -637,7 +700,6 @@ f_register( SNET *sn, int ac, char *av[], SNET *pushersn )
 
     if ( gettimeofday( &tv, NULL ) != 0 ){
 	syslog( LOG_ERR, "f_register: gettimeofday: %m" );
-	snet_writef( sn, "%d REGISTER Error: Sorry!\r\n", 524 );
 	return( -1 );
     }
 
@@ -657,63 +719,16 @@ f_register( SNET *sn, int ac, char *av[], SNET *pushersn )
 	return( 1 );
     }
 
-    if ( snprintf( tmppath, sizeof( tmppath ), "%x%x.%i",
-	    tv.tv_sec, tv.tv_usec, (int)getpid()) >= sizeof( tmppath )) {
-	syslog( LOG_ERR, "f_register: tmppath too long" );
-	snet_writef( sn, "%d REGISTER Error: Sorry!\r\n", 524 );
+    if (( rc = do_register( av[ 1 ], av[ 3 ] )) < 0 ) {
 	return( -1 );
     }
 
-    if (( fd = open( tmppath, O_CREAT|O_EXCL|O_WRONLY, 0644 )) < 0 ) {
-	syslog( LOG_ERR, "f_register: open: %m" );
-	snet_writef( sn, "%d REGISTER Error: Sorry!\r\n", 524 );
-	return( -1 );
+    /* because already registered is not fatal */
+    if ( rc > 0 ) {
+	snet_writef( sn,
+		"%d REGISTER error: Cookie already exists\r\n", 226 );
+	return( rc );
     }
-
-    if (( tmpfile = fdopen( fd, "w" )) == NULL ) {
-	if ( unlink( tmppath ) != 0 ) {
-	    syslog( LOG_ERR, "f_register: unlink: %m" );
-	}
-	syslog( LOG_ERR, "f_register: fdopen: %m" );
-	snet_writef( sn, "%d REGISTER Error: Sorry!\r\n", 524 );
-	return( -1 );
-    }
-
-    /* the service cookie file contains the login cookie only */
-    fprintf( tmpfile, "l%s\n", av[ 1 ] );
-
-    if ( fclose ( tmpfile ) != 0 ) {
-	if ( unlink( tmppath ) != 0 ) {
-	    syslog( LOG_ERR, "f_register: unlink: %m" );
-	}
-	snet_writef( sn, "%d REGISTER Error: Sorry!\r\n", 524 );
-	return( -1 );
-    }
-
-    if ( link( tmppath, av[ 3 ] ) != 0 ) {
-	if ( unlink( tmppath ) != 0 ) {
-	    syslog( LOG_ERR, "f_register: unlink: %m" );
-	}
-	if( errno == EEXIST ) {
-	    syslog( LOG_ERR,
-		    "f_register: service cookie already exists: %s", av[ 3 ]);
-	    snet_writef( sn,
-		    "%d REGISTER error: Cookie already exists\r\n", 226 );
-	    /* 226 because already logged-in is not fatal */
-	    return( 1 );
-	}
-	syslog( LOG_ERR, "f_register: link: %m" );
-	snet_writef( sn, "%d REGISTER Error: Sorry!\r\n", 524 );
-	return( -1 );
-    }
-
-    if ( unlink( tmppath ) != 0 ) {
-	syslog( LOG_ERR, "f_register: unlink: %m" );
-	snet_writef( sn, "%d REGISTER Error: Sorry!\r\n", 524 );
-	return( -1 );
-    }
-
-    utime( av[ 1 ], NULL );
 
     snet_writef( sn, "%d REGISTER successful: Cookie Stored \r\n", 220 );
     if (( pushersn != NULL ) && ( replicate )) {
@@ -784,7 +799,6 @@ f_check( SNET *sn, int ac, char *av[], SNET *pushersn )
     /* check for idle timeout, and if so, log'em out */
     if ( gettimeofday( &tv, NULL ) != 0 ){
 	syslog( LOG_ERR, "f_check: gettimeofday: %m" );
-	snet_writef( sn, "%d CHECK Error: Sorry!\r\n", 535 );
 	return( -1 );
     }
 
@@ -797,7 +811,6 @@ f_check( SNET *sn, int ac, char *av[], SNET *pushersn )
 	snet_writef( sn, "%d CHECK: Idle logged out\r\n", 431 );
 	if ( do_logout( login ) < 0 ) {
 	    syslog( LOG_ERR, "f_check: %s: %m", login );
-	    snet_writef( sn, "%d CHECK error: Sorry!\r\n", 534 );
 	    return( -1 );
 	}
 	return( 1 );
@@ -816,17 +829,12 @@ f_retr( SNET *sn, int ac, char *av[], SNET *pushersn )
 {
     struct cinfo        ci;
     struct timeval      tv;
-    struct stat		st;
-    int			fd;
-    ssize_t             readlen;
-    char                buf[8192];
     char		login[ MAXCOOKIELEN ];
 
-    /* RETR service-cookie TicketType */
-    if ( ch->ch_flag & CH_TICKET ) {
-	syslog( LOG_ERR, "%s not allowed to retrieve tkts", ch->ch_hostname );
-	snet_writef( sn, "%d RETR: %s not allowed to retrieve tkts.\r\n",
-		441, ch->ch_hostname );
+    if (( ch->ch_key != SERVICE )) {
+	syslog( LOG_ERR, "%s not allowed to retreive", ch->ch_hostname );
+	snet_writef( sn, "%d RETR: %s not allowed to retreive.\r\n",
+		442, ch->ch_hostname );
 	return( 1 );
     }
 
@@ -844,11 +852,6 @@ f_retr( SNET *sn, int ac, char *av[], SNET *pushersn )
     if ( strlen( av[ 1 ] ) >= MAXCOOKIELEN ) {
 	snet_writef( sn, "%d RETR: Service Cookie too long\r\n", 542 );
 	return( 1 );
-    }
-
-    if ( strcmp( av[ 2 ], "tgt") != 0 ) {
-	syslog( LOG_ERR, "f_retr: no such ticket type: %s", av[ 1 ] );
-	snet_writef( sn, "%d RETR: No such ticket type.\r\n", 441 );
     }
 
     if ( service_to_login( av[ 1 ], login ) != 0 ) {
@@ -872,7 +875,6 @@ f_retr( SNET *sn, int ac, char *av[], SNET *pushersn )
     /* check for idle timeout, and if so, log'em out */
     if ( gettimeofday( &tv, NULL ) != 0 ){
 	syslog( LOG_ERR, "f_retr: gettimeofday: %m" );
-	snet_writef( sn, "%d RETR Error: Sorry!\r\n", 545 );
 	return( -1 );
     }
 
@@ -885,17 +887,85 @@ f_retr( SNET *sn, int ac, char *av[], SNET *pushersn )
 	snet_writef( sn, "%d RETR: Idle logged out\r\n", 441 );
 	if ( do_logout( login ) < 0 ) {
 	    syslog( LOG_ERR, "f_retr: %s: %m", login );
-	    snet_writef( sn, "%d RETR error: Sorry!\r\n", 546 );
 	    return( -1 );
 	}
 	return( 1 );
     }
 
+    if ( strcmp( av[ 2 ], "tgt") == 0 ) {
+	return( retr_ticket( sn, &ci ));
+    } else if ( strcmp( av[ 2 ], "proxy") == 0 ) {
+	return( retr_proxy( sn, login, pushersn ));
+    }
+
+    syslog( LOG_ERR, "f_retr: no such retrieve type: %s", av[ 1 ] );
+    snet_writef( sn, "%d RETR: No such retrieve type.\r\n", 441 );
+    return( 1 );
+}
+
+    int
+retr_proxy( SNET *sn, char *login, SNET *pushersn )
+{
+    char		cookiebuf[ 128 ];
+    char		tmppath[ MAXCOOKIELEN ];
+    struct proxies	*proxy;
+    int			rc;
+
+    if ( ch->ch_flag & CH_PROXY ) {
+	syslog( LOG_ERR, "%s cannot retrieve cookies", ch->ch_hostname );
+	snet_writef( sn, "%d RETR: %s cannot retrieve cookies.\r\n",
+		443, ch->ch_hostname );
+	return( 1 );
+    }
+
+    for ( proxy = ch->ch_proxies; proxy != NULL; proxy = proxy->pr_next ) {
+	if ( mkcookie( sizeof( cookiebuf ), cookiebuf ) != 0 ) {
+	    return( -1 );
+	}
+
+	if ( snprintf( tmppath, sizeof( tmppath ), "%s=%s",
+		proxy->pr_cookie, cookiebuf ) >= sizeof( tmppath )) {
+	    syslog( LOG_ERR, "retr_proxy: tmppath too long" );
+	    return( -1 );
+	}
+
+	if (( rc = do_register( login, tmppath )) < 0 ) {
+	    continue;
+	}
+
+	if (( pushersn != NULL ) && ( replicate )) {
+	    snet_writef( pushersn, "REGISTER %s - %s\r\n",
+		    login, tmppath );
+	}
+	snet_writef( sn, "%d-%s %s\r\n", 241, tmppath, proxy->pr_hostname );
+    }
+    snet_writef( sn, "%d Cookies registered and sent\r\n", 241 );
+
+    return( 0 );
+}
+
+    int
+retr_ticket( SNET *sn, struct cinfo *ci )
+{
+    struct stat		st;
+    int			fd;
+    ssize_t             readlen;
+    char                buf[8192];
+    struct timeval      tv;
+
+    /* RETR service-cookie TicketType */
+    if ( ch->ch_flag & CH_TICKET ) {
+	syslog( LOG_ERR, "%s not allowed to retrieve tkts", ch->ch_hostname );
+	snet_writef( sn, "%d RETR: %s not allowed to retrieve tkts.\r\n",
+		441, ch->ch_hostname );
+	return( 1 );
+    }
+
     /* if we get here, we can give them the data pointed to by k */
 
-    if (( fd = open( ci.ci_krbtkt, O_RDONLY, 0 )) < 0 ) {
-        syslog( LOG_ERR, "open: %s: %m", ci.ci_krbtkt );
-        snet_writef( sn, "%d Unable to access %s.\r\n", 547, ci.ci_krbtkt );
+    if (( fd = open( ci->ci_krbtkt, O_RDONLY, 0 )) < 0 ) {
+        syslog( LOG_ERR, "open: %s: %m", ci->ci_krbtkt );
+        snet_writef( sn, "%d Unable to access %s.\r\n", 547, ci->ci_krbtkt );
         return( 1 );
     }
    
@@ -903,7 +973,7 @@ f_retr( SNET *sn, int ac, char *av[], SNET *pushersn )
 
     if ( fstat( fd, &st ) < 0 ) {
         syslog( LOG_ERR, "f_retr: fstat: %m" );
-        snet_writef( sn, "%d Access Error: %s\r\n", 548, ci.ci_krbtkt );
+        snet_writef( sn, "%d Access Error: %s\r\n", 548, ci->ci_krbtkt );
         if ( close( fd ) < 0 ) {
             syslog( LOG_ERR, "close: %m" );
             return( -1 );
@@ -911,7 +981,6 @@ f_retr( SNET *sn, int ac, char *av[], SNET *pushersn )
         return( 1 );
     }
 
-    utime( login, NULL );
     snet_writef( sn, "%d Retrieving file\r\n", 240 );
     snet_writef( sn, "%d\r\n", (int)st.st_size );
 
@@ -928,15 +997,16 @@ f_retr( SNET *sn, int ac, char *av[], SNET *pushersn )
 
     if ( readlen < 0 ) {
         syslog( LOG_ERR, "read: %m" );
+	close( fd );
         return( -1 );
     }
-
-    snet_writef( sn, ".\r\n" );
 
     if ( close( fd ) < 0 ) {
         syslog( LOG_ERR, "close: %m" );
         return( -1 );
     }
+
+    snet_writef( sn, ".\r\n" );
 
     return( 0 );
 }
