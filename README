@@ -32,7 +32,7 @@ CosignHostname		weblogin.umich.edu
 CosignRedirect		https://weblogin.umich.edu/
 ( NOTE: trailing slash is required! The redirects won't work correctly
 without it! )
-CosignPostErrorRedirect https://cosign-test.www.umich.edu/post_error.html
+CosignPostErrorRedirect https://weblogin.umich.edu/post_error.html
 CosignService		<send e-mail to cosign@umich.edu and we will assign>
 CosignCrypto		<path to key> <path to cert> <path to CA directory>
 
@@ -52,9 +52,14 @@ Contact webmaster@umich.edu for umich CA certs, which are free!
 The daemon (cosignd) requires  /var/cosign/daemon to exist and be
 writeable by the user the daemon runs as.
 
---with-cosign-db=DIR overrides this default
---with-cosign-conf=FILE -> allows you to specify new conf file location
+--with-cosigndb=DIR overrides this default
+--with-cosignconf=FILE -> allows you to specify new conf file location
 default is /usr/local/etc/cosign.conf
+
+--with-cosigncadir=DIR	default=/var/cosign/certs/CA 
+--with-cosigncert=FILE	default=/var/cosign/certs/cert.pem
+--with-cosignkey=FILE	default=/var/cosign/certs/key.pem
+
 
 An init script will be included next time :)
 

@@ -32,11 +32,11 @@ AC_SUBST(cosignconf)
 AC_ARG_WITH(cosigncadir, AC_HELP_STRING([--with-cosigncadir=DIR], [default cosign CA dir location]), cosigncadir="$withval", cosigncadir="/var/cosign/certs/CA" )
 AC_SUBST(cosigncadir)
 
-AC_ARG_WITH(cosigncert, AC_HELP_STRING([--with-cosigncert=DIR], [default cosign
+AC_ARG_WITH(cosigncert, AC_HELP_STRING([--with-cosigncert=FILE], [default cosign
 cert file location]), cosigncert="$withval", cosigncert="/var/cosign/certs/cert.pem" )
 AC_SUBST(cosigncert)
 
-AC_ARG_WITH(cosignkey, AC_HELP_STRING([--with-cosignkey=DIR], [default cosign
+AC_ARG_WITH(cosignkey, AC_HELP_STRING([--with-cosignkey=FILE], [default cosign
 key file location]), cosignkey="$withval", cosignkey="/var/cosign/certs/key.pem" )
 AC_SUBST(cosignkey)
 

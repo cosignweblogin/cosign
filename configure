@@ -799,8 +799,8 @@ Optional Packages:
   --with-cosigndb=DIR     default cosign database storage
   --with-cosignconf=FILE  default cosign conf file location
   --with-cosigncadir=DIR  default cosign CA dir location
-  --with-cosigncert=DIR   default cosign cert file location
-  --with-cosignkey=DIR    default cosign key file location
+  --with-cosigncert=FILE  default cosign cert file location
+  --with-cosignkey=FILE   default cosign key file location
   --with-ssl=DIR          path to ssl
   --with-apache-apxs=FILE path to Apache apxs program
 
