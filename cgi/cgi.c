@@ -33,6 +33,7 @@
 #define MAXCOOKIETIME	86400	 /* Valid life of session cookie: 24 hours */
 
 extern char	*cosign_version;
+unsigned short	cosign_port;
 char		*cosign_host = _COSIGN_HOST;
 char 		*cosign_conf = _COSIGN_CONF;
 char		*title = "Authentication Required";
@@ -40,7 +41,6 @@ char		*cryptofile = _COSIGN_TLS_KEY;
 char		*certfile = _COSIGN_TLS_CERT;
 char		*cadir = _COSIGN_TLS_CADIR;
 SSL_CTX 	*ctx = NULL;
-unsigned short	cosign_port = htons( 6663 );
 
 struct cgi_list cl[] = {
 #define CL_LOGIN	0
@@ -144,6 +144,8 @@ kcgi_configure()
     }
     if (( val = cosign_config_get( COSIGNPORTKEY )) != NULL ) {
 	cosign_port = htons( atoi( val ));
+    } else {
+	cosign_port = htons( 6663 );
     }
 }
 
@@ -492,7 +494,7 @@ loginscreen:
 	exit( 0 );
     }
 
-    snprintf( new_cookie, sizeof( new_cookie ), "cosign=%s/%d",
+    snprintf( new_cookie, sizeof( new_cookie ), "cosign=%s/%lu",
 	    new_cookiebuf, tv.tv_sec );
     printf( "Set-Cookie: %s; path=/; secure\n", new_cookie );
 

@@ -31,7 +31,7 @@ char		*cryptofile = _COSIGN_TLS_KEY;
 char		*cadir =_COSIGN_TLS_CADIR;
 char		*cosign_conf = _COSIGN_CONF;
 
-unsigned short	cosign_port = htons( 6663 );
+unsigned short	cosign_port;
 SSL_CTX         *ctx = NULL;
 
 struct cgi_list cl[] = {
@@ -73,6 +73,8 @@ logout_configure()
     }
     if (( val = cosign_config_get( COSIGNPORTKEY )) != NULL ) {
         cosign_port = htons( atoi( val )); 
+    } else {
+	cosign_port = htons( 6663 );
     }
 }
 

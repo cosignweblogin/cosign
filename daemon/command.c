@@ -249,7 +249,8 @@ f_login( SNET *sn, int ac, char *av[], SNET *pushersn )
     }
 
     if ( snprintf( tmppath, sizeof( tmppath ), "%x%x.%i",
-	    tv.tv_sec, tv.tv_usec, (int)getpid()) >= sizeof( tmppath )) {
+	    (int)tv.tv_sec, (int)tv.tv_usec, (int)getpid()) >=
+	    sizeof( tmppath )) {
 	syslog( LOG_ERR, "f_login: tmppath too long" );
 	return( -1 );
     }
@@ -639,7 +640,8 @@ do_register( char *login, char *scookie )
     }
 
     if ( snprintf( tmppath, sizeof( tmppath ), "%x%x.%i",
-	    tv.tv_sec, tv.tv_usec, (int)getpid()) >= sizeof( tmppath )) {
+	    (int)tv.tv_sec, (int)tv.tv_usec, (int)getpid()) >=
+	    sizeof( tmppath )) {
 	syslog( LOG_ERR, "do_register: tmppath too long" );
 	return( -1 );
     }

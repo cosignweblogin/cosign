@@ -87,8 +87,8 @@ daemon_configure()
     }
 
     if (( val = cosign_config_get( COSIGNTIMEOUTKEY )) != NULL ) {
-	syslog( LOG_INFO, "config: overriding default net timeout of (%d)"
-		" to config value of '%s'", cosign_net_timeout, val );
+	syslog( LOG_INFO, "config: overriding default net timeout of (%lu)"
+		" to config value of '%s'", cosign_net_timeout.tv_sec, val );
 	cosign_net_timeout.tv_sec = atoi( val );
 	cosign_net_timeout.tv_usec = 0;
     }

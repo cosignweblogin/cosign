@@ -185,8 +185,9 @@ netretr_proxy( char *scookie, struct sinfo *si, SNET *sn, char *proxydb,
 	return( -1 );
     }
 
-    if ( snprintf( tmppath, sizeof( tmppath ), "%s/%x%x.%i", proxydb,
-            tv.tv_sec, tv.tv_usec, (int)getpid()) >= sizeof( tmppath )) {
+    if ( snprintf( tmppath, sizeof( tmppath ), "%s/%x%x.%i",
+	    proxydb, (int)tv.tv_sec, (int)tv.tv_usec, (int)getpid()) >=
+	    sizeof( tmppath )) {
 	cosign_log( APLOG_ERR, s,
 		"mod_cosign: netretr_proxy: tmppath too long");
         return( -1 );

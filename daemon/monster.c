@@ -46,7 +46,7 @@ char		*cryptofile = _COSIGN_TLS_KEY;
 char		*certfile = _COSIGN_TLS_CERT;
 char		*cadir = _COSIGN_TLS_CADIR;
 struct timeval	cosign_net_timeout = { 60 * 4, 0 };
-unsigned short	cosign_port = htons( 6663 );
+unsigned short	cosign_port;
 
     static void
 monster_configure()
@@ -78,7 +78,7 @@ monster_configure()
     }
 
     if (( val = cosign_config_get( COSIGNTIMEOUTKEY )) != NULL ) {
-	syslog( LOG_INFO, "config: overriding default net timeout of (%d)"
+	syslog( LOG_INFO, "config: overriding default net timeout of (%lu)"
 		" to config value of '%s'", cosign_net_timeout.tv_sec, val );
 	cosign_net_timeout.tv_sec = atoi( val );
 	cosign_net_timeout.tv_usec = 0;
@@ -88,6 +88,8 @@ monster_configure()
 	syslog( LOG_INFO, "config: overriding default port of (%d)"
 		" to config value of '%s'", cosign_port, val );
 	cosign_port = htons( atoi( val ));
+    } else {
+	cosign_port = htons( 6663 );
     }
 }
 
