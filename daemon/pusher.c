@@ -241,8 +241,6 @@ pusherparent( int ppipe )
 
     for ( ;; ) {
 syslog( LOG_DEBUG, "PUSHERPARENT" );
-syslog( LOG_DEBUG, "sleeping 5" );
-	sleep( 5 );
 	if (( line = snet_getline( sn, NULL )) == NULL ) {
 	    syslog( LOG_ERR, "pusherparent: snet_getline: %m" );
 	    exit( 1 );
