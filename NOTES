@@ -38,41 +38,7 @@ most recently used?
 ?? if you run thru the whole list and mark everything down, that's a
 forbidden?
 
-
-check cookie in fs
-    yes check cache expired
-	yes revalidate
-	    yes setup env
-	else
-	    no there's an error
-    no go to setup env
-else
-     no cookie data retr
-     setup env
-
-struct secantinfo {
-    char        *cookie
-    char        *user;
-    char        *realm;
-    char        *ip;
-}
-
-logged_out?
-
-declare cookieinfo on the stack in cookiefs?
--check for file with cookie in fs
-stat to determine last mtime
--if there, read into local cookieinfo
--if mtime is in the cache window
-	what do we compare?
-cookieinfo from
-module?
-
-fill in cookie, user, realm, ip
-
-cookie_valid returns 0, which is "move along", -1, which is "set a
-cookie and redirect" if we want to know what the cookie problem is, we
-could use error codes.  we could have a big ugly switch.
+how do we reclaim *down* connections?
 
 
 MODULE:
