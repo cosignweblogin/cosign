@@ -16,9 +16,14 @@
 
 #include "sparse.h"
 #include "cosign.h"
+#include "argcargv.h"
 
-void                    (*logger)( char * ) = NULL;
-struct timeval          timeout = { 10 * 60, 0 };
+static int choose_conn();
+static int connect_sn( struct connlist *);
+static int close_sn( SNET *);
+void (*logger)( char * ) = NULL;
+
+struct timeval		timeout = { 10 * 60, 0 };
 struct connlist         *conn_head = NULL;
 
     int
@@ -28,7 +33,6 @@ copy_connections( struct sinlist *s_cur )
     int	c = -1;
 
     if ( s_cur->s_copied ) {
-	fprintf( stderr, "sl already copied\n" );
 	choose_conn();
 	return( 0 );
     }
@@ -49,7 +53,7 @@ copy_connections( struct sinlist *s_cur )
 	    exit( 1 );
 	}
 	new->conn_sn = NULL;
-	new->conn_flag |= CONN_UNUSED;
+	new->conn_flag = CONN_UNUSED;
 	memcpy( &new->conn_sin, &s_cur->s_sin, sizeof( struct sockaddr_in ));
 	s_cur->s_copied = 1;
 	new->conn_next = *cur;
@@ -61,19 +65,104 @@ copy_connections( struct sinlist *s_cur )
 }
 
     int
+netcheck_cookie( char *secant, struct sinfo *si )
+{
+    int			ac;
+    char		*line;
+    char		**av;
+    struct timeval      tv;
+
+    /* CHECK service-cookie */
+    if ( snet_writef( conn_head->conn_sn, "CHECK %s\r\n", secant ) < 0 ) {
+	fprintf( stderr, "netcheck_cookie: snet_writef failed\n");
+	return( -1 );
+    }
+
+    tv = timeout;
+    if (( line = snet_getline_multi( conn_head->conn_sn, logger, &tv ))
+	    == NULL ) {
+	fprintf( stderr, "netcheck_cookie: snet_getline_multi failed\n");
+	return( -1 );
+    }
+
+    switch( *line ) {
+
+    case '2':
+	fprintf( stderr, "We like 200!\n" );
+	break;
+
+    case '3':
+	fprintf( stderr, "Kerberos Stuff not implemented yet!\n" );
+	break;
+
+    case '4':
+	fprintf( stderr, "netcheck_cookie : %s\n", line);
+	return( -1 );
+
+    case '5':
+	/* choose another connection */
+	fprintf( stderr, "choose another connection...\n" );
+	return( -1 );
+
+    default:
+	fprintf( stderr, "cosignd told me sumthin' wacky: %s\n", line );
+	return( -1 );
+    }
+
+    if (( ac = argcargv( line, &av )) != 4 ) {
+	fprintf( stderr, "netcheck_cookie: wrong number of args: %s\n", line);
+	return( -1 );
+    }
+
+    /* I guess we check some sizing here :) */
+    if ( strlen( av[ 1 ] ) >= sizeof( si->si_ipaddr )) {
+	fprintf( stderr, "Swedish hacker port?\n" );
+	return( -1 );
+    }
+    strcpy( si->si_ipaddr, av[ 1 ] );
+    if ( strlen( av[ 2 ] ) >= sizeof( si->si_user )) {
+	fprintf( stderr, "Swedish hacker port?\n" );
+	return(- 1 );
+    }
+    strcpy( si->si_user, av[ 2 ] );
+    if ( strlen( av[ 3 ] ) >= sizeof( si->si_realm )) {
+	fprintf( stderr, "Swedish hacker port?\n" );
+	return( -1 );
+    }
+    strcpy( si->si_realm, av[ 3 ] );
+
+    return( 0 );
+}
+
+    int
+teardown_conn( )
+{
+    struct connlist *cur = NULL;
+
+    for ( cur = conn_head; cur != NULL; cur = cur->conn_next ) {
+	if ( cur->conn_sn != NULL  ) {
+	    if ( close_sn( cur->conn_sn ) != 0 ) {
+		fprintf( stderr, "teardown_conn: close_sn failed\n" );
+	    }
+	}
+    }
+    return( 0 );
+}
+
+    static int
 choose_conn( )
 {
     struct connlist *cur = NULL;
 
     for ( cur = conn_head; cur != NULL; cur = cur->conn_next ) {
 	if ( cur->conn_flag & CONN_OPEN ) {
-	    fprintf( stderr, "we theoretically have a conn open.\n" );
+fprintf( stderr, "we theoretically have a conn open.\n" );
 	    return( 0 );
 	}
 	if ( cur->conn_flag & CONN_PROB ) {
-	    fprintf( stderr, "we theoretically have a conn problem.\n" );
+fprintf( stderr, "we theoretically have a conn problem.\n" );
 	} else {
-	    fprintf( stderr, "opening conn...\n" );
+fprintf( stderr, "opening conn...\n" );
 	    if ( connect_sn( cur ) != 0 ) {
 		continue;
 	    }
@@ -99,74 +188,60 @@ choose_conn( )
      * still works or we have a new one. in the last case 
      * we need to re-order the list.
      */
+
     return( 0 );
 }
 
-
-    int
+    static int
 connect_sn( struct connlist *cl )
 {
     int			i, s;
     char		*line;
     struct timeval      tv;
 
-    if ( ( s = socket( PF_INET, SOCK_STREAM, NULL ) ) < 0 ) {
+    if (( s = socket( PF_INET, SOCK_STREAM, NULL )) < 0 ) {
 	    cl->conn_flag |= CONN_PROB;
-	    return( 1 );
+	    return( -1 );
     }
 
     if ( connect( s, ( struct sockaddr *)&cl->conn_sin,
-	    sizeof( struct sockaddr_in ) ) != 0 ) {
+	    sizeof( struct sockaddr_in )) != 0 ) {
 	perror( "connect" );
 	(void)close( s );
 	cl->conn_flag |= CONN_PROB;
-	return( 1 );
+	return( -1 );
     }
 
-    if ( ( cl->conn_sn = snet_attach( s, 1024 * 1024 ) ) == NULL ) {
-	/* log something */
+    if (( cl->conn_sn = snet_attach( s, 1024 * 1024 ) ) == NULL ) {
+	fprintf( stderr, "connect_sn: snet_attach failed\n" );
 	(void)close( s );
 	cl->conn_flag |= CONN_PROB;
-	return( 1 );
+	return( -1 );
     }
     tv = timeout;
     if ( ( line = snet_getline_multi( cl->conn_sn, logger, &tv) ) == NULL ) {
-	    /* log something */
+	fprintf( stderr, "connect_sn: snet_getline_multi failed\n" );
 	if ( snet_close( cl->conn_sn ) != 0 ) {
-	    /* log something */
+	    fprintf( stderr, "connect_sn: snet_close failed\n" );
 	}
 	cl->conn_flag |= CONN_PROB;
-	return( 1 );
+	return( -1 );
     }
-fprintf( stderr, "%s\n", line);
+
     if ( *line !='2' ) {
-	fprintf( stderr, "%s\n", line);
 	if ( snet_close( cl->conn_sn ) != 0 ) {
-	    /* log something */
+	    fprintf( stderr, "connect_sn: snet_close failed\n" );
 	}
 	cl->conn_flag |= CONN_PROB;
-	return( 1 );
+	return( -1 );
     }
 
     cl->conn_flag |= CONN_OPEN;
     return( 0 );
 }
-    int
-teardown_conn( )
-{
-    struct connlist *cur = NULL;
 
-    for ( cur = conn_head; cur != NULL; cur = cur->conn_next ) {
-	if ( cur->conn_sn != NULL  ) {
-	    if ( close_sn( cur->conn_sn ) != 0 ) {
-	    /* log something */
-	    }
-	}
-    }
-    return( 0 );
-}
 
-    int
+    static int
 close_sn( SNET *sn )
 {
     char		*line;
@@ -174,20 +249,20 @@ close_sn( SNET *sn )
 
     /* Close network connection */
     if ( snet_writef( sn, "QUIT\r\n" ) == NULL ) {
-	/* log something */
-	return( 1 );
+	fprintf( stderr, "close_sn: snet_writef failed\n" );
+	return( -1 );
     }
     tv = timeout;
     if ( ( line = snet_getline_multi( sn, logger, &tv ) ) == NULL ) {
-	/* log something */
-	return( 1 );
+	fprintf( stderr, "close_sn: snet_getline_multi failed\n" );
+	return( -1 );
     }
     if ( *line != '2' ) {
-	/* log something */
+	fprintf( stderr, "close_sn: the server gave us not a 2\n" );
     }
     if ( snet_close( sn ) != 0 ) {
-	/* log something */
-	return( 1 );
+	fprintf( stderr, "close_sn: snet_close failed\n" );
+	return( -1 );
     }
     return( 0 );
 }

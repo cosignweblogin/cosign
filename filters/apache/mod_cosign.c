@@ -106,18 +106,18 @@ cosign_auth( request_rec *r )
     /*
      * Verify cfg has been setup correctly by admin
      */
+
     if ( !cfg->configured || !cfg->protect ) {
 	return( DECLINED );
     }
     if (( cfg->host == NULL ) || ( cfg->redirect == NULL )
 	    || ( cfg->service == NULL || cfg->posterror == NULL )) {
-	fprintf( stderr, "somebody made a booboo!?\n" );
+	fprintf( stderr, "Cosign is not configured correctly
+		- check your setup\n" );
 	return( FORBIDDEN );
     }
 
     /*
-     * retrieve & parse cookies. break on ; ?
-     *
      * Look for cfg->service cookie. if there isn't one,
      * set it and redirect.
      */
@@ -129,7 +129,7 @@ cosign_auth( request_rec *r )
 	cookiename = ap_getword( r->pool, &pair, '=');
 	if ( strcasecmp( cookiename, cfg->service) == 0 ) {
 	    /* we found a matching cookie */
-	    goto check_cookie;
+	    goto validate_cookie;
 	}
     }
 
@@ -139,22 +139,28 @@ cosign_auth( request_rec *r )
 	return( FORBIDDEN );
     }
 
-
     /*
      * Validate cookie with backside server.  If we already have a cached
      * version of the data, just verify the cookie's still valid.
      * Otherwise, retrieve the auth info from the server.
      */
-check_cookie:
+
+validate_cookie:
     my_cookie = ap_psprintf( r->pool, "%s=%s", cookiename, pair );
     strcpy( si.si_ipaddr, r->connection->remote_ip );
-    if ( cookie_valid( cfg->sl, my_cookie, &si ) != 0 ) {
+    if ( cookie_valid( cfg->sl, my_cookie, &si ) < 0 ) {
+fprintf( stderr, "want to redirect now!\n" );
+    #ifdef notdef
 	if ( set_cookie_and_redirect( r, cfg ) == 0 ) {
 	    return( HTTP_MOVED_TEMPORARILY );
 	} else {
 	    return( FORBIDDEN );
 	}
+    #endif notdef
     }
+    ap_table_set( r->subprocess_env, "REMOTE_REALM", si.si_realm );
+    r->connection->user = ap_pstrcat( r->pool, si.si_user, NULL);
+    /* add in Kerberos info here */
 
     return( DECLINED );
 }
@@ -172,26 +178,20 @@ set_cosign_protect( cmd_parms *params, void *mconfig, int flag )
     }
 
     cfg->protect = flag; 
+    cfg->configured = 1; 
     return( NULL );
 }
 
     static const char *
 set_cosign_post_error( cmd_parms *params, void *mconfig, char *arg )
 {
-    cosign_host_config		*cfg, *scfg;
+    cosign_host_config		*cfg;
 
-    scfg = (cosign_host_config *) ap_get_module_config(
-		params->server->module_config, &cosign_module );
     if ( params->path == NULL ) {
-	cfg = scfg;
+	cfg = (cosign_host_config *) ap_get_module_config(
+		params->server->module_config, &cosign_module );
     } else {
-	cfg = (cosign_host_config *)mconfig;
-	if ( !cfg->configured ) {
-	    cfg->redirect = ap_pstrdup( params->pool, scfg->redirect );
-	    cfg->host = ap_pstrdup( params->pool, scfg->host );
-	    cfg->sl = scfg->sl;
-	    cfg->port = scfg->port; 
-	}
+	return( "CosignPostErrorRedirect not valid per dir!" );
     }
 
     if ( cfg->posterror != NULL ) {
@@ -214,6 +214,7 @@ set_cosign_service( cmd_parms *params, void *mconfig, char *arg )
     } else {
 	cfg = (cosign_host_config *)mconfig;
 	cfg->redirect = ap_pstrdup( params->pool, scfg->redirect );
+	cfg->posterror = ap_pstrdup( params->pool, scfg->posterror );
 	cfg->host = ap_pstrdup( params->pool, scfg->host );
 	cfg->sl = scfg->sl;
 	cfg->port = scfg->port; 
@@ -239,7 +240,7 @@ set_cosign_port( cmd_parms *params, void *mconfig, char *arg )
 	cfg = (cosign_host_config *) ap_get_module_config(
 		params->server->module_config, &cosign_module );
     } else {
-	return( "not valid in this context, baby!" );
+	return( "CosignPort not valid per dir!" );
     }
 
     portarg = strtol( arg, (char **)NULL, 10 );
@@ -260,7 +261,7 @@ set_cosign_redirect( cmd_parms *params, void *mconfig, char *arg )
 	cfg = (cosign_host_config *) ap_get_module_config(
 		params->server->module_config, &cosign_module );
     } else {
-	return( "not valid in this context, baby!" );
+	return( "CosignRedirect not valid per dir!" );
     }
 
     if ( cfg->redirect != NULL ) {
@@ -284,7 +285,7 @@ set_cosign_host( cmd_parms *params, void *mconfig, char *arg )
 	cfg = (cosign_host_config *) ap_get_module_config(
 		params->server->module_config, &cosign_module );
     } else {
-	return( "not valid in this context, baby!" );
+	return( "CosignHostname not valid per dir!" );
     }
 
     if ( cfg->host != NULL ) {
@@ -320,7 +321,7 @@ fprintf( stderr, "setting ip address: %s ", inet_ntoa( *( struct in_addr *)he->h
 command_rec cosign_cmds[ ] =
 {
         { "CosignPostErrorRedirect", set_cosign_post_error,
-        NULL, RSRC_CONF | ACCESS_CONF, TAKE1,
+        NULL, RSRC_CONF, TAKE1,
         "the URL to deliver bad news about POSTed data" },
 
         { "CosignService", set_cosign_service,

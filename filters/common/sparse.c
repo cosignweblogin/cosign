@@ -41,6 +41,7 @@ read_a_secant( char *path, struct sinfo *si )
 	if ( buf[ len - 1 ] != '\n' ) {
 	    (void)fclose( sf );
 	    fprintf( stderr, "read_a_secant: line too long");
+	    return( -1 );
 	}
 	buf[ len -1 ] = '\0';
 	p = buf + 1;

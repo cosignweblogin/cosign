@@ -5,7 +5,7 @@ struct sinfo {
     time_t	si_itime;
 };
 
-#define SECANT_NOT_IN_FS 	-1
+#define SECANT_NOT_IN_FS 	1
 #define SECANT_OK		0
 
 int read_a_secant( char *, struct sinfo * );
