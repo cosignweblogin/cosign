@@ -1,7 +1,6 @@
 <META HTTP-EQUIV="Refresh" CONTENT="3; URL=$l">
 
-#define ONLOAD
-#include "header.html"
+include(`header.html')
 
 <td valign="top">
     <p>
@@ -13,4 +12,4 @@
     </p> 
 </td>
 
-#include "footer.html"
+include(`footer.html')

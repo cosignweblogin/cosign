@@ -1,5 +1,5 @@
-#define ONLOAD onLoad="setfocus()"
-#include "header.html"
+define( `ONLOAD', `1' )
+include(`header.html')
 
 	<td valign="top">
 	    <form name="login" action="$s"
@@ -53,4 +53,4 @@
 	    </form>
     </td>
 
-#include "footer.html"
+include(`footer.html')

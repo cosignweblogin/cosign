@@ -52,10 +52,14 @@
 	    }
 	    -->
 	</style>
+
+    <META HTTP-EQUIV="Pragma" CONTENT="no-cache">
+    <META HTTP-EQUIV="Expires" CONTENT="Monday, 16-Apr-73 00:00:00 GMT">
     </head>
 
-    <body bgcolor="#cccccc" vlink="#cc0000" link="#cc0000"
-	    text="#000000" alink="#cccc33" ONLOAD>
+    <body bgcolor="#cccccc" vlink="#cc0000" link="#cc0000" text="#000000"
+	    alink="#cccc33"
+	    ifdef(`ONLOAD', `onLoad="setFocus()"' )>
 
     <table class="main" summary="format login box" bgcolor="#FFFFFF"
 	    border="0" cellpadding="5" cellspacing="0" width="55%"

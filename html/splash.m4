@@ -1,5 +1,4 @@
-#define ONLOAD
-#include "header.html"
+include(`header.html')
 
 	<td valign="top">
             <p>
@@ -14,4 +13,4 @@
             </p>
 	</td>
 
-#include "footer.html"
+include(`footer.html')
