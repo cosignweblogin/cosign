@@ -196,29 +196,35 @@ main( int argc, char *argv[] )
     ip_addr = getenv( "REMOTE_ADDR" );
 
     if ((( qs = getenv( "QUERY_STRING" )) != NULL ) && ( *qs != '\0' )) {
-	service = strtok( qs, ";" );
-	ref = strtok( NULL, "" );
-
-	if ( cookie == NULL || strlen( cookie ) == 7 ) {
-	    title = "Authentication Required";
-	    err = "You have not yet logged-in.";
-	    goto loginscreen;
-	}
-
-	if ( strncmp( service, "cosign-", 7 ) != 0 ) {
+	if ((( service = strtok( qs, ";" )) == NULL ) ||
+		( strncmp( service, "cosign-", 7 ) != 0 )) {
 	    title = "Error: Unrecognized Service";
 	    tmpl = ERROR_HTML;
 	    err = "Unable to determine referring service from query string.";
 	    subfile( tmpl );
 	    exit( 0 );
 	}
-
 	if ( strlen( service ) > MAXPATHLEN ) {
 	    tmpl = ERROR_HTML;
 	    title = "Error: Max Length Exceeded";
 	    err = "An error occurred while processing your request:  max length exceeded.";
 	    subfile( tmpl );
 	    exit( 0 );
+	}
+
+	if ((( ref = strtok( NULL, "" )) == NULL ) || ( *ref != '&' )) {
+	    title = "Error: malformatted referrer";
+	    tmpl = ERROR_HTML;
+	    err = "Unable to determine referring service from query string.";
+	    subfile( tmpl );
+	    exit( 0 );
+	}
+	ref++;
+
+	if ( cookie == NULL || strlen( cookie ) == 7 ) {
+	    title = "Authentication Required";
+	    err = "You have not yet logged-in.";
+	    goto loginscreen;
 	}
 
 	if (( rc = cosign_register( cookie, ip_addr, service )) < 0 ) {
