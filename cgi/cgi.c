@@ -28,7 +28,7 @@ extern char	*version;
 char	*err = NULL;
 char	*url = "http://www.umich.edu/";
 char	*title = "Authentication Required";
-char	*host = "cosign-test.www.umich.edu";
+char	*host = "weblogin.umich.edu";
 int	nocache = 0;
 int	port = 6663;
 
@@ -87,6 +87,10 @@ subfile( char *filename )
 
 	    case 's':
 		printf( "%s", getenv( "SCRIPT_NAME" ));
+		break;
+
+	    case 'h':
+		printf( "%s", host );
 		break;
 
             case 'l':

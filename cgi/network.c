@@ -19,8 +19,8 @@
 
 #include "network.h"
 
-#define CERTFILE	"/usr/local/umweb/certs/cosign-test.www.cert"
-#define CRYPTOFILE	"/usr/local/umweb/certs/cosign-test.www.key"
+#define CERTFILE	"/usr/local/umweb/certs/weblogin.cert"
+#define CRYPTOFILE	"/usr/local/umweb/certs/weblogin.key"
 #define CAFILE		"/usr/local/umweb/certs/umwebCA.pem"
 
 struct timeval          timeout = { 10 * 60, 0 };

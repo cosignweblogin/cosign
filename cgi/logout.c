@@ -24,7 +24,7 @@ extern char	*version;
 char	*err = NULL;
 char	*title = "Logout";
 char	*url = "http://www.umich.edu/";
-char	*host = "cosign-test.www.umich.edu";
+char	*host = "weblogin.umich.edu";
 int	port = 6663;
 int	nocache = 0;
 
