@@ -94,7 +94,6 @@ cosign_cookie_valid( cosign_host_config *cfg, char *cookie, struct sinfo *si,
         return( -1 );
     }
 
-
     if ( rc == 2 ) {
 	fprintf( stderr, "Unable to connect to any Cosign server.\n" ); 
 	return( -1 );

@@ -121,8 +121,8 @@ netcheck_cookie( char *scookie, struct sinfo *si, SNET *sn )
     static int
 netretr_proxy( char *scookie, struct sinfo *si, SNET *sn )
 {
-    int                 fd;
-    char                *line;
+    int			fd;
+    char		*line;
     char                path[ MAXPATHLEN ], tmppath[ MAXPATHLEN ];
     struct timeval      tv;
     FILE                *tmpfile;
@@ -130,7 +130,7 @@ netretr_proxy( char *scookie, struct sinfo *si, SNET *sn )
     /* RETR service-cookie cookies */
     if ( snet_writef( sn, "RETR %s cookies\r\n", scookie ) < 0 ) {
 	fprintf( stderr, "netretr_proxy: snet_writef failed\n");
-        return( -1 );
+	return( -1 );
     }
 
     /* name our file and open tmp file */
@@ -141,8 +141,8 @@ netretr_proxy( char *scookie, struct sinfo *si, SNET *sn )
     }
 
     if ( gettimeofday( &tv, NULL ) < 0 ) {
-        perror( "gettimeofday" );
-        return( -1 );
+	perror( "gettimeofday" );
+	return( -1 );
     }
 
     if ( snprintf( tmppath, sizeof( tmppath ), "%s/%x%x.%i", proxydb,
@@ -166,49 +166,49 @@ netretr_proxy( char *scookie, struct sinfo *si, SNET *sn )
 
     tv = timeout;
     do {
-        if (( line = snet_getline( sn, &tv )) == NULL ) {
-            fprintf( stderr, "netretr_proxy: snet_getline failed.\n" );
-            return ( -1 );
-        }
+	if (( line = snet_getline( sn, &tv )) == NULL ) {
+	    fprintf( stderr, "netretr_proxy: snet_getline failed.\n" );
+	    return ( -1 );
+	}
 
-        switch( *line ) {
-case '2':
-            break;
+	switch( *line ) {
+	case '2':
+	    break;
 
-        case '4':
-            fprintf( stderr, "netretr_proxy: %s\n", line);
-            return( 1 );
+	case '4':
+	    fprintf( stderr, "netretr_proxy: %s\n", line);
+	    return( 1 );
 
-        case '5':
-            /* choose another connection */
-            fprintf( stderr, "choose another connection: %s\n", line );
-            return( 0 );
+	case '5':
+	    /* choose another connection */
+	    fprintf( stderr, "choose another connection: %s\n", line );
+	    return( 0 );
 
-        default:
-            fprintf( stderr, "cosignd told me sumthin' wacky: %s\n", line );
-            return( -1 );
-        }
+	default:
+	    fprintf( stderr, "cosignd told me sumthin' wacky: %s\n", line );
+	    return( -1 );
+	}
 
-        if ( strlen( line ) < 3 ) {
-            fprintf( stderr, "netretr_proxy: short line: %s\n", line );
-            return( -1 );
-        }
+	if ( strlen( line ) < 3 ) {
+	    fprintf( stderr, "netretr_proxy: short line: %s\n", line );
+	    return( -1 );
+	}
         if ( !isdigit( (int)line[ 1 ] ) ||
                 !isdigit( (int)line[ 2 ] )) {
-            fprintf( stderr, "netretr_proxy: bad response: %s\n", line );
-            return( -1 );
+	    fprintf( stderr, "netretr_proxy: bad response: %s\n", line );
+	    return( -1 );
         }
 
-        if ( line[ 3 ] != '\0' &&
-                line[ 3 ] != ' ' &&
-                line [ 3 ] != '-' ) {
-            fprintf( stderr, "netretr_proxy: bad response: %s\n", line );
-            return( -1 );
-        }
+	if ( line[ 3 ] != '\0' &&
+		line[ 3 ] != ' ' &&
+		line [ 3 ] != '-' ) {
+	    fprintf( stderr, "netretr_proxy: bad response: %s\n", line );
+	    return( -1 );
+	}
 
 	if ( line[ 3 ] == '-' ) {
-            fprintf( tmpfile, "x%s\n", &line[ 4 ] );
-        }
+	    fprintf( tmpfile, "x%s\n", &line[ 4 ] );
+	}
 
     } while ( line[ 3 ] == '-' );
 
@@ -350,6 +350,11 @@ netretr_ticket( char *scookie, struct sinfo *si, SNET *sn, int convert )
     }
 
     /* copy the path to the ticket file */
+    if ( strlen( krbpath ) >= sizeof( si->si_krb5tkt )) {
+	fprintf( stderr, "netcheck_cookie: krb5tkt path too long\n" );
+        returnval = -1;
+	goto error1;
+    }
     strcpy( si->si_krb5tkt, krbpath );
 
 #ifdef KRB4
@@ -361,13 +366,12 @@ netretr_ticket( char *scookie, struct sinfo *si, SNET *sn, int convert )
         returnval = -1;
 	goto error1;
     }
- 
+
     if ( snprintf( krb4path, sizeof( krb4path ), "%s/%s",
 	    TKT_PREFIX, tmpkrb ) >= sizeof( krb4path )) {
 	fprintf( stderr, "krb4path too long in netretr_ticket().\n" );
 	return( -1 );
     }
-
     krb_set_tkt_string( krb4path );
 
     if (( kerror = krb5_init_context( &kcontext )) != KSUCCESS ) {
@@ -441,6 +445,11 @@ netretr_ticket( char *scookie, struct sinfo *si, SNET *sn, int convert )
 	goto error1;
     }
 
+    if ( strlen( krb4path ) >= sizeof( si->si_krb4tkt )) {
+	fprintf( stderr, "netcheck_cookie: krb4tkt path too long\n" );
+        returnval = -1;
+	goto error1;
+    }
     strcpy( si->si_krb4tkt, krb4path );
 
     memset( &v4creds, 0, sizeof( v4creds ));
@@ -545,13 +554,13 @@ done:
 	return( 1 );
     } else {
 	if (( first ) && ( cfg->proxy )) {
-            if ( netretr_proxy( scookie, si, cfg->cl->conn_sn )
-                    != 2 ) {
-                fprintf( stderr, "Can't retrieve proxy cookies\n" );
-            }
-        }
+	    if ( netretr_proxy( scookie, si, cfg->cl->conn_sn )
+		    != 2 ) {
+		fprintf( stderr, "Can't retrieve proxy cookies\n" );
+	    }
+	}
 #ifdef KRB
-        if (( first ) && ( cfg->krbtkt )) {
+	if (( first ) && ( cfg->krbtkt )) {
 	    if ( netretr_ticket( scookie, si, cfg->cl->conn_sn, cfg->krb524 )
 		    != 2 ) {
 		fprintf( stderr, "Can't retrieve kerberos ticket\n" );

@@ -350,6 +350,11 @@ netretr_ticket( char *scookie, struct sinfo *si, SNET *sn, int convert )
     }
 
     /* copy the path to the ticket file */
+    if ( strlen( krbpath ) >= sizeof( si->si_krb5tkt )) {
+	fprintf( stderr, "netcheck_cookie: krb5tkt path too long\n" );
+        returnval = -1;
+	goto error1;
+    }
     strcpy( si->si_krb5tkt, krbpath );
 
 #ifdef KRB4
@@ -440,6 +445,11 @@ netretr_ticket( char *scookie, struct sinfo *si, SNET *sn, int convert )
 	goto error1;
     }
 
+    if ( strlen( krb4path ) >= sizeof( si->si_krb4tkt )) {
+	fprintf( stderr, "netcheck_cookie: krb4tkt path too long\n" );
+        returnval = -1;
+	goto error1;
+    }
     strcpy( si->si_krb4tkt, krb4path );
 
     memset( &v4creds, 0, sizeof( v4creds ));
