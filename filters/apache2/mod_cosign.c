@@ -145,8 +145,9 @@ set_cookie_and_redirect( request_rec *r, cosign_host_config *cfg )
     }
 
     if ( r->method_number == M_POST ) {
-	my_cookie = apr_psprintf( r->pool,
-		"%s=%s", cfg->posterror, cookiebuf );
+	dest = apr_psprintf( r->pool, "%s", cfg->posterror );
+	apr_table_set( r->headers_out, "Location", dest );
+	return( 0 );
     } else {
 	my_cookie = apr_psprintf( r->pool,
 		"%s=%s", cfg->service, cookiebuf );
