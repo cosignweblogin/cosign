@@ -8,6 +8,7 @@ COSIGNCERT=@cosigncert@
 COSIGNKEY=@cosignkey@
 COSIGNHOST = @cosignhost@
 COSIGNLOGOUTURL = @cosignlogouturl@
+COSIGNTICKETCACHE = @ticketcache@
 KEYTABPATH = @keytabpath@
 FRIEND_MYSQL_DB = @frienddbhost@
 FRIEND_MYSQL_LOGIN = @frienddblogin@
@@ -44,6 +45,7 @@ cgi.o:	cgi.c
 	-D_FRIEND_MYSQL_DB=\"${FRIEND_MYSQL_DB}\" \
 	-D_FRIEND_MYSQL_LOGIN=\"${FRIEND_MYSQL_LOGIN}\" \
 	-D_FRIEND_MYSQL_PASSWD=\"${FRIEND_MYSQL_PASSWD}\" \
+	-D_COSIGN_TICKET_CACHE=\"${COSIGNTICKETCACHE}\" \
 	-c cgi.c
 
 basic.o:	basic.c

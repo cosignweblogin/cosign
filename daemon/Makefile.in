@@ -11,12 +11,14 @@ COSIGNCADIR=@cosigncadir@
 COSIGNCERT=@cosigncert@
 COSIGNKEY=@cosignkey@
 COSIGNHOST = @cosignhost@
+COSIGNTICKETCACHE=@ticketcache@
+
 COSIGNSYSLOG=LOG_LOCAL7
 
 INCPATH=        @CPPFLAGS@ -I../libsnet -I../common
 OPTOPTS=        @OPTOPTS@
 CC=             @CC@
-DEFS=           @TLSDEFS@
+DEFS=           @TLSDEFS@ -D_COSIGN_TICKET_CACHE=\"${COSIGNTICKETCACHE}\"
 LIBS=           -lsnet @LIBS@
 LDFLAGS=        -L../libsnet/.libs @LDFLAGS@ ${LIBS}
 INSTALL=        @INSTALL@

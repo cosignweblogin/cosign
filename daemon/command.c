@@ -33,7 +33,7 @@
 #define MIN(a,b)        ((a)<(b)?(a):(b))
 #define MAX(a,b)        ((a)>(b)?(a):(b))
 
-#define TKT_PREFIX	"/ticket"
+#define TKT_PREFIX	_COSIGN_TICKET_CACHE
 
 #define IDLE_OUT	7200
 #define GREY		1800

@@ -11,7 +11,6 @@
 #include <sys/param.h>
 #include <netinet/in.h>
 #include <unistd.h>
-#include <crypt.h>
 #include <time.h>
 #include <krb5.h>
 
@@ -22,6 +21,7 @@
 #include "network.h"
 
 #ifdef SQL_FRIEND
+#include <crypt.h>
 #include <mysql.h>
 static	MYSQL	friend_db;
 #endif
@@ -30,7 +30,7 @@ static	MYSQL	friend_db;
 #define ERROR_HTML	"../templates/error.html"
 #define LOGIN_HTML	"../templates/login.html"
 #define SERVICE_MENU	"/services/"
-#define TKT_PREFIX	"/ticket"
+#define TKT_PREFIX      _COSIGN_TICKET_CACHE
 #define SIDEWAYS        1
 
 extern char	*cosign_version;
