@@ -255,6 +255,7 @@ cosign_auth( request_rec *r )
     if ( cv == 0 ) {
 	r->connection->user = ap_pstrcat( r->pool, si.si_user, NULL);
 	r->connection->ap_auth_type = "Cosign";
+	ap_table_set( r->subprocess_env, "COSIGN_SERVICE", cfg->service );
 	ap_table_set( r->subprocess_env, "REMOTE_REALM", si.si_realm );
 #ifdef KRB
 	if ( cfg->krbtkt ) {
