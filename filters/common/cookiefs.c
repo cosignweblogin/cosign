@@ -22,7 +22,7 @@
 #include "sparse.h"
 #include "cosign.h"
 
-#define CPATH		"/var/cosigndb"
+#define CPATH		"/var/cosign/filter"
 #define IDLETIME	60
 
     int
@@ -45,6 +45,7 @@ cookie_valid( cosign_host_config *cfg, char *cookie, struct sinfo *si,
 	fprintf( stderr, "cookie_valid: cookie too long\n" );
 	return( -1 );
     }
+fprintf( stderr, "path: %s\n", path );
 
     if ( gettimeofday( &tv, NULL ) != 0 ){
 	perror( "cookie_valid" );

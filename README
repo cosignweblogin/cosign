@@ -1,0 +1,4 @@
+/var/cosign/daemon
+/var/cosign/filter
+find /var/cosign -type f -mtime +1 -exec rm {} \;
+

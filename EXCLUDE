@@ -1,7 +1,7 @@
 ./CVS
 ./cgi/CVS
-./cgi/html/CVS
 ./daemon/CVS
+./html/CVS
 ./filters/CVS
 ./filters/apache/CVS
 ./libcgi/CVS
@@ -9,5 +9,8 @@
 ./libsnet/CVS
 ./libsnet/profiled/CVS
 ./filters/apache/bprint.c
+./config.log
+./config.status
+./Makefile
 ./EXCLUDE
 ./NOTES

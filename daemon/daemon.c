@@ -26,7 +26,7 @@
 #include <snet.h>
 #include "command.h"
 
-#define COSIGN_DIR "/var/cosign"
+#define COSIGN_DIR "/var/cosign/daemon"
 
 
 int		debug = 0;
