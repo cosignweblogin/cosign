@@ -44,7 +44,7 @@ struct cgi_list cl[] = {
 
 static struct subfile_list sl[] = {
 #define SL_URL	0
-        { 'l', SUBF_STR, _COSIGN_LOGOUT_URL },
+        { 'u', SUBF_STR, _COSIGN_LOGOUT_URL },
 #define SL_TITLE	1
         { 't', SUBF_STR, NULL },
 #define SL_ERROR		2

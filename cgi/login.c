@@ -39,7 +39,9 @@ static struct subfile_list sl[] = {
         { 't', SUBF_STR, NULL },
 #define SL_SERVICE	2
         { 'c', SUBF_STR_ESC, NULL },
-#define SL_ERROR	3
+#define SL_REF		3
+        { 'r', SUBF_STR_ESC, NULL },
+#define SL_ERROR	4
         { 'e', SUBF_STR, NULL },
         { '\0', 0, NULL },
 };
@@ -81,7 +83,7 @@ lcgi_configure()
 # ifdef SQL_FRIEND
     void
 cosign_login_mysql( struct connlist *head, char *id, char *passwd,
-	char *ip_addr, char *cookie )
+	char *ip_addr, char *cookie, char *ref, char *service )
 {
     MYSQL_RES		*res;
     MYSQL_ROW		row;
@@ -187,7 +189,7 @@ cosign_login_mysql( struct connlist *head, char *id, char *passwd,
 #ifdef KRB
     void
 cosign_login_krb5( struct connlist *head, char *id, char *passwd,
-	char *ip_addr, char *cookie )
+	char *ip_addr, char *cookie, char *ref, char *service )
 {
     krb5_error_code             kerror = 0;
     krb5_context                kcontext;
@@ -207,8 +209,8 @@ cosign_login_krb5( struct connlist *head, char *id, char *passwd,
     if (( kerror = krb5_init_context( &kcontext ))) {
 	sl[ SL_ERROR ].sl_data = (char *)error_message( kerror );
 	sl[ SL_TITLE ].sl_data = "Authentication Required ( kerberos error )";
-	tmpl = LOGIN_ERROR_HTML;
-	subfile( tmpl, sl, 1 );
+	tmpl = ERROR_HTML;
+	subfile( tmpl, sl, 0 );
 	exit( 0 );
     }
 
@@ -267,6 +269,12 @@ cosign_login_krb5( struct connlist *head, char *id, char *passwd,
 	    sl[ SL_ERROR ].sl_data = "Password incorrect.  Is [caps lock] on?";
 	    sl[ SL_TITLE ].sl_data = "Password Incorrect";
 	    tmpl = LOGIN_ERROR_HTML;
+	    if ( ref != NULL ) {
+		sl[ SL_REF ].sl_data = ref;
+	    }
+	    if ( service != NULL ) {
+		sl[ SL_SERVICE ].sl_data = service;
+	    }
 	    subfile( tmpl, sl, 1 );
 	    exit( 0 );
 	} else {

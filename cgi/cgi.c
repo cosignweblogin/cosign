@@ -393,7 +393,7 @@ main( int argc, char *argv[] )
 
     if (( cl[ CL_REF ].cl_data != NULL ) ||
 	    ( *cl[ CL_REF ].cl_data != '\0' )) {
-        ref = cl[ CL_REF ].cl_data;
+        ref = sl[ SL_REF ].sl_data = cl[ CL_REF ].cl_data;
     }
 
     if (( cl[ CL_LOGIN ].cl_data == NULL ) ||
@@ -418,7 +418,7 @@ main( int argc, char *argv[] )
     if ( strchr( login, '@' ) != NULL ) {
 # ifdef SQL_FRIEND
 	cosign_login_mysql( head, login, cl[ CL_PASSWORD ].cl_data,
-		ip_addr, cookie );
+		ip_addr, cookie, ref, service );
 #else
 	/* no @ unless we're friendly. */
 	sl[ SL_ERROR ].sl_data = sl[ SL_TITLE ].sl_data = "Your login id may not contain an '@'";
@@ -431,7 +431,7 @@ main( int argc, char *argv[] )
 # ifdef KRB
 	/* not a friend, must be kerberos */
 	cosign_login_krb5( head, login, cl[ CL_PASSWORD ].cl_data,
-		ip_addr, cookie );
+		ip_addr, cookie, ref, service );
 # else /* KRB */
 	sl[ SL_TITLE ].sl_data = "Error: Server Configuration";
 	sl[ SL_ERROR ].sl_data = "No Login Method Configured";
@@ -445,10 +445,9 @@ main( int argc, char *argv[] )
 	    ( *cl[ CL_SERVICE ].cl_data != '\0' )) {
 
 	/* url decode here the service cookie? */
+	service = sl[ SL_SERVICE ].sl_data = cl[ CL_SERVICE ].cl_data;
 
-        if (( rc = cosign_register( head, cookie, ip_addr,
-		cl[ CL_SERVICE ].cl_data )) < 0 ) {
-
+        if (( rc = cosign_register( head, cookie, ip_addr, service )) < 0 ) {
 	    /* this should not be possible... do it anyway? */
             if ( cosign_check( head, cookie ) < 0 ) {
                 sl[ SL_TITLE ].sl_data = "Authentication Required";
