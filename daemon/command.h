@@ -9,5 +9,7 @@
 #define ___P(x)		()
 #endif /* __STDC__ */
 
+extern int	tlsopt;
+
 int		command ___P(( int ));
 int		argcargv ___P(( char *, char **[] ));

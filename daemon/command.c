@@ -864,6 +864,17 @@ command( fd )
 	exit( 1 );
     }
 
+    /* for debugging, TLS not required but still available */
+    if ( tlsopt ) {
+	commands = auth_commands;
+	ncommands = sizeof( auth_commands ) / sizeof( auth_commands[ 0 ] );
+	if (( ch = chosts_find( "DEBUG" )) == NULL ) {
+	    syslog( LOG_ERR, "No debugging access" );
+	    snet_writef( snet, "%d No DEBUG access\r\n", 508 );
+	    exit( 1 );
+	}
+    }
+
     snet_writef( snet, "%d COokie SIGNer ready\r\n", 220 );
 
     tv.tv_sec = 60 * 10;	/* 10 minutes, should get this from config */

@@ -34,6 +34,7 @@ int		debug = 0;
 int		backlog = 5;
 
 extern char	*version;
+int		tlsopt = 0;
 char		*cosign_dir = _COSIGN_DIR;
 char		*cosign_conf = _COSIGN_CONF;
 
@@ -109,7 +110,7 @@ main( ac, av )
 	prog++;
     }
 
-    while (( c = getopt( ac, av, "b:c:dD:L:p:Vx:y:z:" )) != -1 ) {
+    while (( c = getopt( ac, av, "b:c:dD:L:p:VXx:y:z:" )) != -1 ) {
 	switch ( c ) {
 	case 'b' :		/* listen backlog */
 	    backlog = atoi( optarg );
@@ -142,6 +143,10 @@ main( ac, av )
 	case 'V' :		/* version */
 	    printf( "%s\n", version );
 	    exit( 0 );
+
+	case 'X' :		/* no required tls/ssl for debugging */
+	    tlsopt = 1;
+	    break;
 
 	case 'x' :		/* ca dir */
 	    cadir = optarg;
