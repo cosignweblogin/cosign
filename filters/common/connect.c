@@ -14,6 +14,7 @@
 
 #include <snet.h>
 
+#include "sparse.h"
 #include "cosign.h"
 
 void                    (*logger)( char * ) = NULL;
@@ -82,6 +83,11 @@ choose_conn( )
 
     if ( cur == NULL ) {
 	return( -1 );
+    }
+
+    /* this needs work :) XXX */
+    if ( cur->conn_next == NULL ) {
+	return( 0 );
     }
 
     cur = conn_head->conn_next;

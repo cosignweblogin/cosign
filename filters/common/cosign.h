@@ -26,6 +26,6 @@ struct connlist {
 #define CONN_OPEN	( 1 << 1 )
 #define CONN_PROB	( 1 << 2 )
 
-int cookie_valid( struct sinlist *, char * );
+int cookie_valid( struct sinlist *, char *, struct sinfo * );
 int copy_connections( struct sinlist * );
 int teardown_conn( );

@@ -13,6 +13,7 @@
 #include <snet.h>
 #include <string.h>
 
+#include "sparse.h"
 #include "cosign.h"
 
 module cosign_module;
@@ -59,11 +60,16 @@ set_cookie_and_redirect( request_rec *r, cosign_host_config *cfg )
 
     if ( mkcookie( sizeof( cookiebuf ), cookiebuf ) != 0 ) {
 	fprintf( stderr, "Raisins! Something wrong with your cookie!\n" );
-	return( FORBIDDEN );
+	return( -1 );
     }
 
-    my_cookie = ap_psprintf( r->pool,
-	    "%s=%s;path=/;", cfg->service, cookiebuf );
+    if ( r->method_number == M_POST ) {
+	my_cookie = ap_psprintf( r->pool,
+		"%s=%s;path=/;", cfg->posterror, cookiebuf );
+    } else {
+	my_cookie = ap_psprintf( r->pool,
+		"%s=%s;path=/;", cfg->service, cookiebuf );
+    }
 
     /* cookie needs to be set and sent in error headers as 
      * standard headers don't get returned when we redirect,
@@ -72,10 +78,10 @@ set_cookie_and_redirect( request_rec *r, cosign_host_config *cfg )
 
     ap_table_set( r->err_headers_out, "Set-Cookie", my_cookie );
     ap_table_set( r->headers_out,
-	    "Expires", "Mon, 16 Apr 2002 02:10:00 GMT" );
+	    "Expires", "Thurs, 27 Jan 1977 21:20:00 GMT" );
     dest = ap_psprintf( r->pool, "%s?%s", cfg->redirect, my_cookie );
     ap_table_set( r->headers_out, "Location", dest );
-    return( HTTP_MOVED_TEMPORARILY );
+    return( 0 );
 }
 
     static int
@@ -84,6 +90,7 @@ cosign_auth( request_rec *r )
     const char		*cookiename = NULL;
     const char		*data = NULL, *pair = NULL;
     char		*my_cookie;
+    struct sinfo	si;
     cosign_host_config	*cfg;
 
     /*
@@ -103,7 +110,7 @@ cosign_auth( request_rec *r )
 	return( DECLINED );
     }
     if (( cfg->host == NULL ) || ( cfg->redirect == NULL )
-	    || ( cfg->service == NULL )) {
+	    || ( cfg->service == NULL || cfg->posterror == NULL )) {
 	fprintf( stderr, "somebody made a booboo!?\n" );
 	return( FORBIDDEN );
     }
@@ -122,17 +129,15 @@ cosign_auth( request_rec *r )
 	cookiename = ap_getword( r->pool, &pair, '=');
 	if ( strcasecmp( cookiename, cfg->service) == 0 ) {
 	    /* we found a matching cookie */
-fprintf( stderr, "goto check!!\n" );
 	    goto check_cookie;
 	}
     }
 
-    set_cookie_and_redirect( r, cfg );
-
-    /*
-     * Check to see if we have seen this cookie before, *and*
-     * whether it's valid ( time ). This is the next level "down".
-     */
+    if ( set_cookie_and_redirect( r, cfg ) == 0 ) {
+	return( HTTP_MOVED_TEMPORARILY );
+    } else {
+	return( FORBIDDEN );
+    }
 
 
     /*
@@ -142,10 +147,15 @@ fprintf( stderr, "goto check!!\n" );
      */
 check_cookie:
     my_cookie = ap_psprintf( r->pool, "%s=%s", cookiename, pair );
-    cookie_valid( cfg->sl, my_cookie );
-/*
- */
-fprintf( stderr, "URI!! %s\n", r->uri );
+    strcpy( si.si_ipaddr, r->connection->remote_ip );
+    if ( cookie_valid( cfg->sl, my_cookie, &si ) != 0 ) {
+	if ( set_cookie_and_redirect( r, cfg ) == 0 ) {
+	    return( HTTP_MOVED_TEMPORARILY );
+	} else {
+	    return( FORBIDDEN );
+	}
+    }
+
     return( DECLINED );
 }
 
@@ -341,8 +351,9 @@ cosign_child_cleanup( server_rec *s, pool *p )
 {
     /* upon child exit, close all ropen SNETs */
     if ( teardown_conn() != 0 ) {
-    /* log sumthin */
+	fprintf( stderr, "teardown_conn: something bad happened\n" );
     }
+    return;
 }
 module MODULE_VAR_EXPORT cosign_module = {
     STANDARD_MODULE_STUFF, 
