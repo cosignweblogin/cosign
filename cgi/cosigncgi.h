@@ -4,8 +4,6 @@ struct connlist {
     struct connlist     *conn_next;
 };
 
-#define MAXSNAMELEN	1024
-
 int	mkcookie( int, char * );
 void	ssl_setup( void );
 struct connlist * connlist_setup( char *, int );
