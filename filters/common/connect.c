@@ -27,7 +27,7 @@
 #define USER_SZ 30
 #define REALM_SZ 254
 
-static int connect_sn( struct connlist *, SSL_CTX * );
+static int connect_sn( struct connlist *, SSL_CTX *, char * );
 static int close_sn( SNET *);
 void (*logger)( char * ) = NULL;
 
@@ -151,7 +151,7 @@ check_cookie( char *secant, struct sinfo *si, cosign_host_config *cfg )
 	if ( (*cur)->conn_sn != NULL ) {
 	    continue;
 	}
-	if (( ret = connect_sn( *cur, cfg->ctx )) != 0 ) {
+	if (( ret = connect_sn( *cur, cfg->ctx, cfg->host )) != 0 ) {
 	    continue;
 	}
 	if (( rc = netcheck_cookie( secant, si, (*cur)->conn_sn )) < 0 ) {
@@ -186,7 +186,7 @@ done:
 }
 
     static int
-connect_sn( struct connlist *cl, SSL_CTX *ctx )
+connect_sn( struct connlist *cl, SSL_CTX *ctx, char *host )
 {
     int			s;
     char		*line, buf[ 1024 ];
@@ -247,6 +247,14 @@ connect_sn( struct connlist *cl, SSL_CTX *ctx )
 
     X509_NAME_get_text_by_NID( X509_get_subject_name( peer ), NID_commonName,
 	    buf, sizeof( buf ));
+
+    /* cn and host must match */
+    if ( strcmp( buf, host ) != 0 ) {
+	fprintf( stderr, "cn=%s & host=%s don't match!\n", buf, host );
+	X509_free( peer );
+	goto done;
+    }
+
     X509_free( peer );
 
     return( 0 );
