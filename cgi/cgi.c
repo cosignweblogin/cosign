@@ -32,6 +32,8 @@ static	MYSQL	friend_db;
 #define SERVICE_MENU	"/services/"
 #define TKT_PREFIX      _COSIGN_TICKET_CACHE
 #define SIDEWAYS        1
+#define LOOPWINDOW      30 
+#define MAXREDIRECTS	10
 
 extern char	*cosign_version;
 char	*cosign_host = _COSIGN_HOST;
@@ -51,7 +53,67 @@ struct cgi_list cl[] = {
         { NULL, NULL },
 };
 
-void            subfile( char * );
+void	subfile( char * );
+void	loop_checker( int, int, char * );
+
+    void
+loop_checker( int time, int count, char *cookie )
+{
+    struct timeval	tv;
+    char       		new_cookie[ 255 ];
+    char		*tmpl = ERROR_HTML;
+
+    if ( gettimeofday( &tv, NULL ) != 0 ) {
+	title = "Error: Loop Breaker";
+	err = "Please try again later.";
+	subfile( tmpl );
+	exit( 0 );
+    }
+
+    /* we're past our window, all is well */
+    if (( tv.tv_sec - time ) > LOOPWINDOW ) {
+	time = tv.tv_sec;
+	count = 1;
+	if ( snprintf( new_cookie, sizeof( new_cookie ),
+		"%s/%d/%d", cookie, time, count) >= sizeof( new_cookie )) {
+	    title = "Error: Loop Breaker";
+	    err = "Please try again later.";
+	    subfile( tmpl );
+	    exit( 0 );
+	}
+	printf( "Set-Cookie: %s; path=/; secure\n", new_cookie );
+	return;
+    } else {
+       /* too many redirects - break the loop and give an error */
+       if ( count >= MAXREDIRECTS ) {
+	    time = tv.tv_sec;
+	    count = 1;
+	    if ( snprintf( new_cookie, sizeof( new_cookie ),
+		    "%s/%d/%d", cookie, time, count) >= sizeof( new_cookie )) {
+		title = "Error: Loop Breaker";
+		err = "Please try again later.";
+		subfile( tmpl );
+		exit( 0 );
+	    }
+	    title = "Error: Loop detected";
+	    err = "We have detected you are looping. That sucks. ";
+	    subfile( tmpl );
+	    exit( 0 );
+	} else {
+	    /* we're still in the limit, increment and keep going */
+	    count++;
+	    if ( snprintf( new_cookie, sizeof( new_cookie ),
+		    "%s/%d/%d", cookie, time, count) >= sizeof( new_cookie )) {
+		title = "Error: Loop Breaker";
+		err = "Please try again later.";
+		subfile( tmpl );
+		exit( 0 );
+	    }
+	    printf( "Set-Cookie: %s; path=/; secure\n", new_cookie );
+	    return;
+	}
+    }
+}
 
     void
 subfile( char *filename )
@@ -172,12 +234,13 @@ main( int argc, char *argv[] )
     krb5_keytab			keytab = 0;
     char			*realm = "no_realm";
     char			ktbuf[ MAX_KEYTAB_NAME_LEN + 1 ];
-    int				rc;
+    int				rc, cookietime = 0, cookiecount = 0;
     char                	new_cookiebuf[ 128 ];
     char        		new_cookie[ 255 ];
     char               		tmpkrb[ 16 ], krbpath [ MAXPATHLEN ];
     char			*data, *ip_addr;
     char			*cookie = NULL, *method, *script, *qs;
+    char			*misc = NULL;
     char			*tmpl = LOGIN_HTML;
     struct connlist		*head;
     int				port;
@@ -204,6 +267,15 @@ main( int argc, char *argv[] )
 		    break;
 		}
 	    }
+	}
+
+	(void)strtok( cookie, "/" );
+	if (( misc = strtok( NULL, "/" )) != NULL ) {
+	    cookietime = atoi( misc );
+	}
+
+	if (( misc = strtok( NULL, "/" )) != NULL ) {
+	    cookiecount = atoi( misc );
 	}
     }
 
@@ -266,6 +338,8 @@ main( int argc, char *argv[] )
 	    err = "You are not logged in.  Please log in now.";
 	    goto loginscreen;
 	}
+
+	loop_checker( cookietime, cookiecount, cookie );
 
 	/* if no referrer, redirect to top of site from conf file */
 	printf( "Location: %s\n\n", ref );
@@ -607,6 +681,8 @@ main( int argc, char *argv[] )
             exit( 0 );
         }
     }
+
+    loop_checker( cookietime, cookiecount, cookie );
 
     if (( ref != NULL ) && ( ref = strstr( ref, "http" )) != NULL ) {
 	printf( "Location: %s\n\n", ref );
