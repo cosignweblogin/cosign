@@ -21,7 +21,7 @@ extern char	*cosign_version;
 char	*err = NULL, *ref = NULL, *service = NULL;
 char	*title = "Authentication Required";
 char	*cosign_host = _COSIGN_HOST;
-int	port = 6663;
+int	port;
 
 
 void            subfile( char * );
@@ -181,6 +181,7 @@ main( int argc, char *argv[] )
 	exit( 0 );
     }
 
+    port = htons( 6663 );
     if (( head = connlist_setup( cosign_host, port )) == NULL ) {
 	title = "Error: But not your fault";
 	err = "We were unable to contact the authentication server.  Please try again later.";     
