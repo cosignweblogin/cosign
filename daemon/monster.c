@@ -373,7 +373,6 @@ next:
 	} else if ( strncmp( de->d_name, "cosign-", 7 ) == 0 ) {
 
 	    if ( service_to_login( de->d_name, login ) != 0 ) {
-		syslog( LOG_ERR, "service to login: %s", de->d_name );
 		continue;
 	    }
 	    if (( rc = decision( login, &now, &itime, &state )) < 0 ) {

@@ -312,7 +312,6 @@ pusherparent( int ppipe )
     sigprocmask( SIG_UNBLOCK, &signalset, NULL );
 
     for ( ;; ) {
-syslog( LOG_DEBUG, "PUSHERPARENT" );
 	if (( line = snet_getline( sn, NULL )) == NULL ) {
 	    syslog( LOG_ERR, "pusherparent: snet_getline: %m" );
 	    exit( 1 );
@@ -329,7 +328,6 @@ syslog( LOG_DEBUG, "PUSHERPARENT" );
 	for ( cur = replhead; cur != NULL; cur = cur->cl_next ) {
 	    if ( cur->cl_pid > 0 ) {
 		FD_SET( snet_fd( cur->cl_psn ), &fdset );
-syslog( LOG_DEBUG, "PUSHERPARENT: pid %d fd %d", cur->cl_pid, snet_fd( cur->cl_psn ));
 		if ( snet_fd( cur->cl_psn ) > max ) {
 		    max = snet_fd( cur->cl_psn );
 		}
@@ -345,10 +343,10 @@ syslog( LOG_DEBUG, "PUSHERPARENT: pid %d fd %d", cur->cl_pid, snet_fd( cur->cl_p
 	for ( cur = replhead; cur != NULL; cur = cur->cl_next ) {
 	    if ( cur->cl_pid > 0 ) {
 		if ( FD_ISSET( snet_fd( cur->cl_psn ), &fdset )) {
-syslog( LOG_DEBUG, "PUSHERPARENT: writing to %d: %s", cur->cl_pid, line );
 		    snet_writef( cur->cl_psn, "%s\r\n", line );
 		} else {
-syslog( LOG_DEBUG, "PUSHERPARENT: NOT writing to %d: %s", cur->cl_pid, line );
+		    syslog( LOG_DEBUG, "pusherparent: drop %d: %s",
+			    cur->cl_pid, line );
 		}
 	    }
 	}

@@ -95,7 +95,6 @@ int	ncommands = sizeof( unauth_commands ) / sizeof(unauth_commands[ 0 ] );
 f_quit( SNET *sn, int ac, char *av[], SNET *pushersn )
 {
     snet_writef( sn, "%d Service closing transmission channel\r\n", 221 );
-    syslog( LOG_INFO, "done" );
     exit( 0 );
 }
 
@@ -141,7 +140,7 @@ f_starttls( SNET *sn, int ac, char *av[], SNET *pushersn )
     if (( rc = snet_starttls( sn, ctx, 1 )) != 1 ) {
 	syslog( LOG_ERR, "f_starttls: snet_starttls: %s",
 		ERR_error_string( ERR_get_error(), NULL ) );
-	snet_writef( sn, "%d SSL didn't work error! XXX\r\n", 501 );
+	snet_writef( sn, "%d SSL didn't work error!\r\n", 501 );
 	return( 1 );
     }
     if (( peer = SSL_get_peer_certificate( sn->sn_ssl ))
@@ -286,7 +285,7 @@ f_login( SNET *sn, int ac, char *av[], SNET *pushersn )
 	if ( errno == EEXIST ) {
 	    syslog( LOG_ERR, "f_login: file already exists: %s", av[ 1 ]);
 	    if ( read_cookie( av[ 1 ], &ci ) != 0 ) {
-		syslog( LOG_ERR, "f_login: read_cookie: XXX" );
+		syslog( LOG_ERR, "f_login: read_cookie" );
 		snet_writef( sn, "%d LOGIN error: Sorry\r\n", 503 );
 		return( 1 );
 	    }
@@ -494,17 +493,17 @@ f_time( SNET *sn, int ac, char *av[], SNET *pushersn )
 	}
 
 	if ( strchr( av[ 0 ], '/' ) != NULL ) {
-	    syslog( LOG_DEBUG, "f_time: cookie name contains '/'" );
+	    syslog( LOG_ERR, "f_time: cookie name contains '/'" );
 	    continue;
 	}
 
 	if ( strncmp( av[ 0 ], "cosign=", 7 ) != 0 ) {
-	    syslog( LOG_DEBUG, "f_time: cookie name malformat" );
+	    syslog( LOG_ERR, "f_time: cookie name malformat" );
 	    continue;
 	}
 
 	if ( strlen( av[ 0 ] ) >= MAXPATHLEN ) {
-	    syslog( LOG_DEBUG, "f_time: cookie name too long" );
+	    syslog( LOG_ERR, "f_time: cookie name too long" );
 	    continue;
 	}
 
@@ -562,7 +561,7 @@ f_logout( SNET *sn, int ac, char *av[], SNET *pushersn )
     }
 
     if ( read_cookie( av[ 1 ], &ci ) != 0 ) {
-	syslog( LOG_ERR, "f_logout: read_cookie: XXX" );
+	syslog( LOG_ERR, "f_logout: read_cookie" );
 	snet_writef( sn, "%d LOGOUT error: Sorry\r\n", 513 );
 	return( 1 );
     }
@@ -624,7 +623,7 @@ f_register( SNET *sn, int ac, char *av[], SNET *pushersn )
     }
 
     if ( read_cookie( av[ 1 ], &ci ) != 0 ) {
-	syslog( LOG_ERR, "f_register: read_cookie: XXX" );
+	syslog( LOG_DEBUG, "f_register: %s", av[ 1 ] );
 	snet_writef( sn, "%d REGISTER error: Sorry\r\n", 523 );
 	return( 1 );
     }
@@ -760,7 +759,6 @@ f_check( SNET *sn, int ac, char *av[], SNET *pushersn )
     if ( strncmp( av[ 1 ], "cosign-", 7 ) == 0 ) {
 	status = 231;
 	if ( service_to_login( av[ 1 ], login ) != 0 ) {
-	    syslog( LOG_DEBUG, "f_check: ask someone else about it!"  );
 	    snet_writef( sn, "%d CHECK: cookie not in db!\r\n", 533 );
 	    return( 1 );
 	}
@@ -770,7 +768,7 @@ f_check( SNET *sn, int ac, char *av[], SNET *pushersn )
     }
 
     if ( read_cookie( login, &ci ) != 0 ) {
-	syslog( LOG_ERR, "f_check: read_cookie: XXX" );
+	syslog( LOG_DEBUG, "f_check: %s", login );
 	snet_writef( sn, "%d CHECK: Who me? Dunno.\r\n", 534 );
 	return( 1 );
     }
@@ -854,13 +852,12 @@ f_retr( SNET *sn, int ac, char *av[], SNET *pushersn )
     }
 
     if ( service_to_login( av[ 1 ], login ) != 0 ) {
-	syslog( LOG_DEBUG, "f_retr: ask someone else about it!"  );
 	snet_writef( sn, "%d RETR: cookie not in db!\r\n", 543 );
 	return( 1 );
     }
 
     if ( read_cookie( login, &ci ) != 0 ) {
-	syslog( LOG_ERR, "f_retr: read_cookie: XXX" );
+	syslog( LOG_ERR, "f_retr: read_cookie" );
 	snet_writef( sn, "%d RETR: Who me? Dunno.\r\n", 544 );
 	return( 1 );
     }
@@ -952,6 +949,7 @@ command( int fd, SNET *pushersn )
     int					ac, i;
     char				**av, *line;
     struct timeval			tv;
+    extern int				errno;
 
     srandom( (unsigned)getpid());
 
@@ -1011,6 +1009,8 @@ command( int fd, SNET *pushersn )
 		"421 Service not available, closing transmission channel\r\n" );
     } else {
 	if ( snet_eof( snet )) {
+	    exit( 0 );
+	} else if ( errno == ETIMEDOUT ) {
 	    exit( 0 );
 	} else {
 	    syslog( LOG_ERR, "snet_getline: %m" );
