@@ -250,7 +250,7 @@ read_config( char *path )
 		al_new->al_proxies = NULL;
 
 	    } else if ( strcmp( av[ 0 ], "service" ) == 0 ) {
-		if (( ac != 3 ) || ( ac != 4 )) {
+		if (( ac != 3 ) && ( ac != 4 )) {
 		    fprintf( stderr,
 			"line %d: keyword service takes 3 or 4 args\n",
 			linenum );

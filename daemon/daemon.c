@@ -37,6 +37,8 @@ int		debug = 0;
 int		backlog = 5;
 int		pusherpid;
 int		reconfig = 0;
+int		hupsig;
+int		child_signal = 0;
 
 extern char	*cosign_version;
 int		tlsopt = 0;
@@ -89,59 +91,17 @@ daemon_configure()
     void
 hup( int sig )
 {
-
-    reconfig = 1;
-
-#ifdef notdef
-    syslog( LOG_INFO, "reload %s", cosign_version );
-    if ( cosign_config( cosign_conf ) < 0 ) {
-	syslog( LOG_ERR, "%s: re-read failed", cosign_conf );
-	exit( 1 );
-    }
-
-    /* We do not re-call configure() because it is not possbible to */
-    /* re-configure the SSL and daemon dir etc while the code is running */
-
-    if ( kill( pusherpid, sig ) < 0 ) {
-	syslog( LOG_CRIT, "kill pusherpid: %m" );
-	exit( 1 );
-    }
-#endif
-
+    reconfig++; 
+    hupsig = sig;
     return;
 }
 
     void
 chld( int sig )
 {
-    int			pid, status;
-    extern int		errno;
-
-    while (( pid = waitpid( 0, &status, WNOHANG )) > 0 ) {
-	if ( WIFEXITED( status )) {
-	    if ( WEXITSTATUS( status )) {
-		syslog( LOG_ERR, "child %d exited with %d", pid,
-			WEXITSTATUS( status ));
-	    }
-	} else if ( WIFSIGNALED( status )) {
-	    syslog( LOG_ERR, "child %d died on signal %d", pid,
-		    WTERMSIG( status ));
-	} else {
-	    syslog( LOG_ERR, "child %d died", pid );
-	}
-	if ( pid == pusherpid ) {
-	    syslog( LOG_CRIT, "pusherpid %d died!", pusherpid );
-	    exit( 1 );
-	}
-    }
-
-    if ( pid < 0 && errno != ECHILD ) {
-	syslog( LOG_ERR, "wait3: %m" );
-	exit( 1 );
-    }
+    child_signal++;
     return;
 }
-
 
     int
 main( int ac, char *av[] )
@@ -152,7 +112,8 @@ main( int ac, char *av[] )
     SNET		*pushersn = NULL;
     int			c, s, err = 0, fd, sinlen;
     int			dontrun = 0, fds[ 2 ];
-    int			reuseaddr = 1;
+    int			reuseaddr = 1, status;
+    pid_t		pid;
     char		*prog;
     int                 facility = _COSIGN_LOG;
     int			level = LOG_INFO;
@@ -165,35 +126,34 @@ main( int ac, char *av[] )
 	prog++;
     }
 
-    /*
-     * Read config file before chdir(), in case config file is relative path.
-     * We read configuration this early so command line options can override
-     * any configuration in the conf file.
-     */
+
+#define	COSIGN_OPTS	"b:c:dD:F:g:h:i:L:np:VXx:y:z:"
+    while (( c = getopt( ac, av, COSIGN_OPTS )) != -1 ) {
+	switch ( c ) {
+	case 'c' :		/* config file */
+	    cosign_conf = optarg;
+	    break;
+
+	default :
+	    break;
+	}
+    }
 
     if ( cosign_config( cosign_conf ) < 0 ) {
 	exit( 1 );
     }
-
-    /* Configure ourself based on the config file */
     daemon_configure();
 
-    while (( c = getopt( ac, av, "b:c:dD:F:g:h:i:L:np:VXx:y:z:" )) != -1 ) {
+    /* reset optind to parse all other args */
+    optind = 1;
+
+    while (( c = getopt( ac, av, COSIGN_OPTS )) != -1 ) {
 	switch ( c ) {
 	case 'b' :		/* listen backlog */
 	    backlog = atoi( optarg );
 	    break;
 
-	case 'c' :		/* config file */
-	    cosign_conf = optarg;
-	    /* this causes a precedence order problem, we should instead
-	     * parse getopt() in 2 rounds, with the -c first
-	     * and then everything else. Maybe next time.
-	     */
-	    if ( cosign_config( cosign_conf ) < 0 ) {
-		exit( 1 );
-	    }
-	    daemon_configure();
+	case 'c' :		/* already have conf file */
 	    break;
 
 	case 'd' :		/* debug */
@@ -326,7 +286,6 @@ main( int ac, char *av[] )
 	SSL_CTX_set_verify( ctx,
 		SSL_VERIFY_PEER | SSL_VERIFY_FAIL_IF_NO_PEER_CERT, NULL);
     }
-
 
     if ( dontrun ) {
 	exit( 0 );
@@ -469,14 +428,50 @@ main( int ac, char *av[] )
 	exit( 1 );
     }
 
-
-
-
     /*
      * Begin accepting connections.
      */
     for (;;) {
-	/* should select() so we can manage an event queue */
+	/* ssl and conf file stuff here later, but for now this is HUP */
+	if ( reconfig > 0 ) {
+	    reconfig = 0;
+	    syslog( LOG_INFO, "reload %s", cosign_version );
+	    if ( cosign_config( cosign_conf ) < 0 ) {
+		syslog( LOG_ERR, "%s: re-read failed", cosign_conf );
+		exit( 1 );
+	    }
+
+	    if ( kill( pusherpid, hupsig ) < 0 ) {
+		syslog( LOG_CRIT, "kill pusherpid: %m" );
+		exit( 1 );
+	    }
+	}
+
+	if ( child_signal > 0 ) {
+	    child_signal = 0;
+	    while (( pid = waitpid( 0, &status, WNOHANG )) > 0 ) {
+		if ( WIFEXITED( status )) {
+		    if ( WEXITSTATUS( status )) {
+			syslog( LOG_ERR, "child %d exited with %d", pid,
+				WEXITSTATUS( status ));
+		    }
+		} else if ( WIFSIGNALED( status )) {
+		    syslog( LOG_ERR, "child %d died on signal %d", pid,
+			    WTERMSIG( status ));
+		} else {
+		    syslog( LOG_ERR, "child %d died", pid );
+		}
+		if ( pid == pusherpid ) {
+		    syslog( LOG_CRIT, "pusherpid %d died!", pusherpid );
+		    exit( 1 );
+		}
+	    }
+
+	    if ( pid < 0 && errno != ECHILD ) {
+		syslog( LOG_ERR, "wait3: %m" );
+		exit( 1 );
+	    }
+	}
 
 	sinlen = sizeof( struct sockaddr_in );
 	if (( fd = accept( s, (struct sockaddr *)&cosign_sin, &sinlen )) < 0 ) {
