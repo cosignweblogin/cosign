@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2002 Regents of The University of Michigan.
- * All Rights Reserved.  See COPYRIGHT.
+ * All Rights Reserved.  See LICENSE.
 */
 
 #include <arpa/inet.h>

@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2002 Regents of The University of Michigan.
- * All Rights Reserved.  See COPYRIGHT.
+ * All Rights Reserved.  See LICENSE.
 */
 
 #include <arpa/inet.h>
@@ -97,7 +97,7 @@ subfile( char *filename )
 	perror( filename );
     }
 
-    return;
+    exit( 0 );
 }
 
 
@@ -131,7 +131,7 @@ main()
 	fprintf( stderr, "unable to generate new cookie!\n" );
 	tmpl = ERROR_HTML;
 	err = "Unable to generate new cookie.  Please reload this screen to try again.";
-	goto dispage;
+	subfile ( tmpl );
     }
 
     sprintf( cookie, "cosign=%s", cookiebuf );
@@ -148,7 +148,7 @@ main()
             err = "Please enter your uniqname and password.";
         }
 
-        goto dispage;
+        subfile ( tmpl );
     }
 
     if (( cl[ CL_PASSWORD ].cl_data == NULL ) ||
@@ -156,14 +156,14 @@ main()
 	err = "Unable to login because password is a required field.";
 	title = "( missing password )";
 
-        goto dispage;
+        subfile ( tmpl );
     }
 
     /* only the POST method may be used to login */
     if ( strcmp( getenv( "REQUEST_METHOD" ), "GET" ) == 0 ) {
 	err = "Please enter your uniqname and password.";
 
-        goto dispage;
+        subfile ( tmpl );
     }
 
     if (( kerror = krb5_init_context( &kcontext ))) {
@@ -171,7 +171,7 @@ main()
 	title = "( kerberos error )";
 
 	tmpl = ERROR_HTML;
-	goto dispage;
+	subfile ( tmpl );
     }
 
     if (( kerror = krb5_parse_name( kcontext, cl[ CL_UNIQNAME ].cl_data, &kprinc ))) {
@@ -179,7 +179,7 @@ main()
 	title = "( kerberos error )";
 
 	tmpl = ERROR_HTML;
-	goto dispage;
+	subfile ( tmpl );
     }
 
     krb5_get_init_creds_opt_init( &kopts );
@@ -197,12 +197,12 @@ main()
 	    err = "Password incorrect.  Is [caps lock] on?";
 	    title = "( Password Incorrect )";
 
-	    goto dispage;
+	    subfile ( tmpl );
 	} else {
 	    err = (char *)error_message( kerror );
 	    title = "( Password Error )";
 	    
-	    goto dispage;
+	    subfile ( tmpl );
 	}
     }
 
@@ -220,7 +220,7 @@ main()
 
     if (( he = gethostbyname( host )) == NULL ) {
 	fprintf( stderr, "%s: Unknown host\n", host );
-	goto dispage;
+	subfile ( tmpl );
     }
 
     for ( i = 0; he->h_addr_list[ i ] != NULL; i++ ) {
@@ -241,7 +241,7 @@ main()
 
 	    fprintf( stderr,  "failed: %s\n", strerror( errno ));
 	    (void)close( s );
-	    goto dispage;
+	    subfile ( tmpl );
 	}
 	fputs( "success!\n", stderr );
 
@@ -255,7 +255,7 @@ main()
 	if ( ( line = snet_getline( sn, &tv) ) == NULL ) {
 	    fprintf( stderr, "connection to %s failed: %s\n", host, strerror( errno ));
 	    snet_close( sn );
-	    goto dispage;
+	    subfile ( tmpl );
 	}
 
 	fprintf( stderr, "S: %s\n", line);
@@ -268,7 +268,7 @@ main()
 	if ( ( line = snet_getline( sn, &tv) ) == NULL ) {
 	    fprintf( stderr, "connection to %s failed: %s\n", host, strerror( errno ));
 	    snet_close( sn );
-	    goto dispage;
+	    subfile ( tmpl );
 	}
 	fprintf( stderr, "S: %s\n", line);
 
@@ -280,16 +280,13 @@ main()
 	if ( ( line = snet_getline( sn, &tv) ) == NULL ) {
 	    fprintf( stderr, "connection to %s failed: %s\n", host, strerror( errno ));
 	    snet_close( sn );
-	    goto dispage;
+	    subfile ( tmpl );
 	}
 	fprintf( stderr, "S: %s\n", line);
 
 	snet_close( sn );     
-	goto dispage;
+	subfile ( tmpl );
     }
-
-dispage:
-    subfile ( tmpl );
 
     exit( 0 );
 }
