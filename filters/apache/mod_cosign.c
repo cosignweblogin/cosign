@@ -66,10 +66,9 @@ cosign_init( server_rec *s, pool *p )
     int
 set_cookie_and_redirect( request_rec *r, cosign_host_config *cfg )
 {
-    char		*dest;
-    char		*my_cookie;
-    char		*full_cookie;
+    char		*dest, *my_cookie, *full_cookie, *ref;
     char		cookiebuf[ 128 ];
+    unsigned int	port;
 
     if ( mkcookie( sizeof( cookiebuf ), cookiebuf ) != 0 ) {
 	fprintf( stderr, "Raisins! Something wrong with your cookie!\n" );
@@ -93,7 +92,14 @@ set_cookie_and_redirect( request_rec *r, cosign_host_config *cfg )
     ap_table_set( r->err_headers_out, "Set-Cookie", full_cookie );
     ap_table_set( r->headers_out,
 	    "Expires", "Thurs, 27 Jan 1977 21:20:00 GMT" );
-    dest = ap_psprintf( r->pool, "%s?%s", cfg->redirect, my_cookie );
+    if (( port = ap_get_server_port( r )) == 443 ) {
+	ref = ap_psprintf( r->pool, "https://%s%s", 
+		ap_get_server_name( r ), r->unparsed_uri );
+    } else {
+	ref = ap_psprintf( r->pool, "https://%s:%d%s", 
+		ap_get_server_name( r ), port, r->unparsed_uri );
+    }
+    dest = ap_psprintf( r->pool, "%s?%s&%s", cfg->redirect, my_cookie, ref );
     ap_table_set( r->headers_out, "Location", dest );
     return( 0 );
 }
