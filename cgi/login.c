@@ -24,7 +24,7 @@
 #include "network.h"
 #include "subfile.h"
 
-#ifdef KRB || SQL_FRIEND
+#if defined( KRB ) || defined( SQL_FRIEND )
 
 #ifdef KRB
 static char	*keytab_path = _KEYTAB_PATH;
@@ -84,7 +84,7 @@ lcgi_configure()
     if (( val = cosign_config_get( MYSQLPASSWDKEY )) != NULL ) {
         friend_passwd = val;
     }
-#endif /* SQL_FRIEND */
+# endif /* SQL_FRIEND */
 }
 
 # ifdef SQL_FRIEND
@@ -155,6 +155,12 @@ cosign_login_mysql( struct connlist *head, char *id, char *passwd,
 		"Is [caps lock] on?";
 	sl[ SL_TITLE ].sl_data = "Authentication Required "
 		"( guest account error )";
+	if ( ref != NULL ) {
+	    sl[ SL_REF ].sl_data = ref;
+	}
+	if ( service != NULL ) {
+	    sl[ SL_SERVICE ].sl_data = service;
+	}
 	tmpl = LOGIN_ERROR_HTML;
 	subfile ( tmpl, sl, 1 );
 	exit( 0 );

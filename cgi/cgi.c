@@ -419,14 +419,14 @@ main( int argc, char *argv[] )
 # ifdef SQL_FRIEND
 	cosign_login_mysql( head, login, cl[ CL_PASSWORD ].cl_data,
 		ip_addr, cookie, ref, service );
-#else
+# else
 	/* no @ unless we're friendly. */
 	sl[ SL_ERROR ].sl_data = sl[ SL_TITLE ].sl_data = "Your login id may not contain an '@'";
 	tmpl = LOGIN_ERROR_HTML;
 	subfile( tmpl, sl, 1 );
 	exit( 0 );
 
-# endif
+# endif  /* SQL_FRIEND */
     } else {
 # ifdef KRB
 	/* not a friend, must be kerberos */
