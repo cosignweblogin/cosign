@@ -283,7 +283,7 @@ netretr_proxy( char *scookie, struct sinfo *si, SNET *sn, char *proxydb,
 #ifdef KRB
     static int
 netretr_ticket( char *scookie, struct sinfo *si, SNET *sn, int convert,
-	char *tkt_prefix )
+	char *tkt_prefix,  server_rec *s )
 {
     char		*line;
     char                tmpkrb[ 16 ], krbpath [ MAXPATHLEN ];
