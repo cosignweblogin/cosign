@@ -193,18 +193,8 @@ main( int argc, char *argv[] )
 	if ( cookie == NULL || strlen( cookie ) == 7 ) {
 	    title = "Authentication Required";
 
-	    /* XXX lame hack to make ref work */
-	    if ( mkcookie( sizeof( new_cookiebuf ), new_cookiebuf ) != 0 ) {
-		fprintf( stderr, "%s: mkcookie: failed\n", script );
-		exit( SIDEWAYS );
-	    }
-
-	    sprintf( new_cookie, "cosign=%s", new_cookiebuf );
-	    printf( "Set-Cookie: %s; path=/; secure\n", new_cookie );
-
 	    tmpl = SPLASH_HTML;
-	    subfile( tmpl );
-	    exit( 0 );
+	    goto loginscreen;
 	}
 
 	if ( strncmp( service, "cosign-", 7 ) != 0 ) {
@@ -227,8 +217,7 @@ main( int argc, char *argv[] )
 	    if ( cosign_check( cookie ) < 0 ) {
 		title = "Authentication Required";
 		tmpl = SPLASH_HTML;
-		subfile( tmpl );
-		exit( 0 );
+		goto loginscreen;
 	    }
 
 	    fprintf( stderr, "%s: cosign_register failed\n", script );
