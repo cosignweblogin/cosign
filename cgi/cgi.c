@@ -32,8 +32,8 @@ char	*keytab_path = _KEYTAB_PATH;
 int	port = 6663;
 
 struct cgi_list cl[] = {
-#define CL_UNIQNAME	0
-        { "uniqname", NULL },
+#define CL_LOGIN	0
+        { "login", NULL },
 #define CL_PASSWORD	1
         { "password", NULL },
 #define CL_REF		2
@@ -94,9 +94,9 @@ subfile( char *filename )
 		break;
 
 	    case 'u':
-                if (( cl[ CL_UNIQNAME ].cl_data != NULL ) &&
-                        ( *cl[ CL_UNIQNAME ].cl_data != '\0' )) {
-                    printf( "%s", cl[ CL_UNIQNAME ].cl_data );
+                if (( cl[ CL_LOGIN ].cl_data != NULL ) &&
+                        ( *cl[ CL_LOGIN ].cl_data != '\0' )) {
+                    printf( "%s", cl[ CL_LOGIN ].cl_data );
                 }
 		break;
 
@@ -284,10 +284,10 @@ main( int argc, char *argv[] )
         ref = cl[ CL_REF ].cl_data;
     }
 
-    if (( cl[ CL_UNIQNAME ].cl_data == NULL ) ||
-	    ( *cl[ CL_UNIQNAME ].cl_data == '\0' )) {
+    if (( cl[ CL_LOGIN ].cl_data == NULL ) ||
+	    ( *cl[ CL_LOGIN ].cl_data == '\0' )) {
 	title = "Authentication Required";
-	err = "Please enter your uniqname and password.";
+	err = "Please enter your login and password.";
         subfile ( tmpl );
 	exit( 0 );
     }
@@ -311,7 +311,7 @@ main( int argc, char *argv[] )
     }
 
 
-    if (( kerror = krb5_parse_name( kcontext, cl[ CL_UNIQNAME ].cl_data,
+    if (( kerror = krb5_parse_name( kcontext, cl[ CL_LOGIN ].cl_data,
 	    &kprinc ))) {
 	err = (char *)error_message( kerror );
 	title = "Authentication Required ( kerberos error )";
@@ -464,7 +464,7 @@ main( int argc, char *argv[] )
     tmpl = SERVICE_MENU;
 
     if ( cosign_login( cookie, ip_addr, 
-	    cl[ CL_UNIQNAME ].cl_data, realm, krbpath ) < 0 ) {
+	    cl[ CL_LOGIN ].cl_data, realm, krbpath ) < 0 ) {
 	fprintf( stderr, "%s: login failed\n", script ) ;
 
 	/* redirecting to service menu because user is logged in */

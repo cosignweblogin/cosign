@@ -12,20 +12,20 @@ include(`header.html')
     By using this service you agree to adhere to <a
     href="http://www.umich.edu/~policies/">
     UM computing policies and guidelines</a>. Please
-    type your uniqname and password and click
+    type your login and password and click
     the &#8220;Login&#8221; button to continue.
 </p> 
 
-<table align="center" summary="separates uniqname and password fields">
+<table align="center" summary="separates login and password fields">
     <tr>
 	<td bgcolor="#FFFFFF">
 	    <p>
-		<b><label for="uniqname">uniqname</label>:</b>
+		<b><label for="login">login</label>:</b>
 	    </p>
 	</td>
 
 	<td bgcolor="#FFFFFF">
-	    <input id="uniqname" name="uniqname" size="24" value="$u">
+	    <input id="login" name="login" size="24" value="$u">
 	</td>
     </tr>
 
