@@ -320,11 +320,7 @@ main( int ac, char **av )
     /*
      * Start logging.
      */
-#ifdef ultrix
-    openlog( prog, LOG_NOWAIT|LOG_PID );
-#else /* ultrix */
     openlog( prog, LOG_NOWAIT|LOG_PID, facility );
-#endif /* ultrix */
     setlogmask( LOG_UPTO( level ));
 
 

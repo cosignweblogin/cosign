@@ -36,6 +36,7 @@
 int		debug = 0;
 int		backlog = 5;
 int		pusherpid;
+int		reconfig = 0;
 
 extern char	*cosign_version;
 int		tlsopt = 0;
@@ -88,6 +89,10 @@ daemon_configure()
     void
 hup( int sig )
 {
+
+    reconfig = 1;
+
+#ifdef notdef
     syslog( LOG_INFO, "reload %s", cosign_version );
     if ( cosign_config( cosign_conf ) < 0 ) {
 	syslog( LOG_ERR, "%s: re-read failed", cosign_conf );
@@ -101,6 +106,7 @@ hup( int sig )
 	syslog( LOG_CRIT, "kill pusherpid: %m" );
 	exit( 1 );
     }
+#endif
 
     return;
 }
@@ -180,7 +186,10 @@ main( int ac, char *av[] )
 
 	case 'c' :		/* config file */
 	    cosign_conf = optarg;
-	    /* Must now re-configure :( */
+	    /* this causes a precedence order problem, we should instead
+	     * parse getopt() in 2 rounds, with the -c first
+	     * and then everything else. Maybe next time.
+	     */
 	    if ( cosign_config( cosign_conf ) < 0 ) {
 		exit( 1 );
 	    }
@@ -258,9 +267,10 @@ main( int ac, char *av[] )
 
     if ( err || optind != ac ) {
 	fprintf( stderr, "Usage: cosignd [ -dV ] [ -b backlog ] ");
-	fprintf( stderr, "[ -c conf file ] [ -D database dir ] " );
+	fprintf( stderr, "[ -c conf-file ] [ -D database-dir ] " );
+	fprintf( stderr, "[ -F syslog-facility] " );
 	fprintf( stderr, "[ -g greywindowinsecs ] [ -h replication_host] " );
-	fprintf( stderr, "[ -i idletimeinsecs] [ -L syslog facility] " );
+	fprintf( stderr, "[ -i idletimeinsecs] [ -L syslog-level] " );
 	fprintf( stderr, "[ -p port ] [ -x ca dir ] " );
 	fprintf( stderr, "[ -y cert file] [ -z private key file ]\n" );
 	exit( 1 );
@@ -390,8 +400,8 @@ main( int ac, char *av[] )
 		}
 	    }
 	    if (( i = open( "/", O_RDONLY, 0 )) == 0 ) {
-		dup2( i, 1 );
-		dup2( i, 2 );
+		(void)dup2( i, 1 );
+		(void)dup2( i, 2 );
 	    }
 	    break;
 	case -1 :
@@ -405,11 +415,7 @@ main( int ac, char *av[] )
     /*
      * Start logging.
      */
-#ifdef ultrix
-    openlog( prog, LOG_NOWAIT|LOG_PID );
-#else /* ultrix */
     openlog( prog, LOG_NOWAIT|LOG_PID, facility );
-#endif /* ultrix */
     setlogmask( LOG_UPTO( level ));
 
     syslog( LOG_INFO, "restart %s", cosign_version );
@@ -474,7 +480,7 @@ main( int ac, char *av[] )
 
 	sinlen = sizeof( struct sockaddr_in );
 	if (( fd = accept( s, (struct sockaddr *)&cosign_sin, &sinlen )) < 0 ) {
-	    if ( errno != EINTR ) {	/* other errors? */
+	    if ( errno != EINTR ) {
 		syslog( LOG_ERR, "accept: %m" );
 	    }
 	    continue;
