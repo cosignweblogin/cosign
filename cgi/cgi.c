@@ -13,6 +13,7 @@
 #include <unistd.h>
 #include <time.h>
 #include <krb5.h>
+#include <ctype.h>
 
 #include <openssl/ssl.h>
 #include <snet.h>
@@ -247,7 +248,7 @@ main( int argc, char *argv[] )
     MYSQL_RES			*res;
     MYSQL_ROW			row;
     char			sql[ 225 ]; /* holds sql query + email addr */
-    char			*crypted;
+    char			*crypted, *p;
 #endif
 
     if ( argc == 2 && ( strncmp( argv[ 1 ], "-V", 2 ) == 0 )) {
@@ -406,7 +407,29 @@ main( int argc, char *argv[] )
 	    exit( 0 );
 	}
 
-	/* XXX should check for sql injection in username query */
+	/* Check for sql injection prior to username query */
+        for ( p = cl[ CL_LOGIN ].cl_data; *p != '\0'; p++ ) {
+            if (( isalpha( *p ) != 0 ) || (isdigit( *p ) != 0 )) {
+                continue;
+            }
+
+            switch ( *p ) {
+                case '@':
+                case '_':
+                case '-':
+                case '.':
+                continue;
+                default:
+                fprintf( stderr, "invalid username: %s %s\n",
+                        cl[ CL_LOGIN ].cl_data, ip_addr );
+
+                err = "Provided login name appears to be invalid";
+                title = "Invalid Input";
+                tmpl = ERROR_HTML;
+                subfile( tmpl );
+                exit( 0 );
+            }
+        }
 	snprintf( sql, sizeof( sql ), "SELECT account_name, passwd FROM friends WHERE account_name = '%s'", cl[ CL_LOGIN ].cl_data );
 
 	if( mysql_real_query( &friend_db, sql, sizeof( sql ))) {
