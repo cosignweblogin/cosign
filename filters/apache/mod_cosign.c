@@ -196,6 +196,8 @@ cosign_auth( request_rec *r )
     /*
      * Verify cfg has been setup correctly by admin
      */
+
+fprintf( stderr, "service is %s\n", cfg->service );
     if (( cfg->host == NULL ) || ( cfg->redirect == NULL ) ||
 		( cfg->service == NULL || cfg->posterror == NULL )) {
 	ap_log_error( APLOG_MARK, APLOG_ERR|APLOG_NOERRNO, r->server,
@@ -299,13 +301,23 @@ set_cookie:
     static const char *
 set_cosign_protect( cmd_parms *params, void *mconfig, int flag )
 {
-    cosign_host_config		*cfg;
+    cosign_host_config		*cfg, *scfg;
 
-    if ( params->path == NULL ) {
-	cfg = (cosign_host_config *) ap_get_module_config(
+    scfg = (cosign_host_config *) ap_get_module_config(
 		params->server->module_config, &cosign_module );
+    if ( params->path == NULL ) {
+	cfg = scfg;
     } else {
 	cfg = (cosign_host_config *)mconfig;
+	cfg->redirect = ap_pstrdup( params->pool, scfg->redirect );
+	cfg->posterror = ap_pstrdup( params->pool, scfg->posterror );
+	cfg->host = ap_pstrdup( params->pool, scfg->host );
+	cfg->cl = scfg->cl;
+	cfg->port = scfg->port; 
+	cfg->ctx = scfg->ctx;
+	if ( cfg->service == NULL ) {
+	    cfg->service = ap_pstrdup( params->pool, scfg->service );
+	}
     }
 
     cfg->protect = flag; 
