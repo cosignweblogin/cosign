@@ -201,7 +201,7 @@ main( int argc, char *argv[] )
 
 	if ( cookie == NULL || strlen( cookie ) == 7 ) {
 	    title = "Authentication Required";
-	    err = "Something about coming in from the top.";
+	    err = "You have not yet logged-in.";
 	    goto loginscreen;
 	}
 
