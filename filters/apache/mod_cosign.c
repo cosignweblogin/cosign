@@ -165,14 +165,6 @@ fprintf( stderr, "want to redirect now!\n" );
     return( DECLINED );
 }
 
-    int
-cosign_fixup( request_rec *r )
-{
-    /* add a directive and figure out the cfg stuff */
-    ap_table_unset( r->headers_in, "Cookie" );
-    return( DECLINED );
-}
-
 
     static const char *
 set_cosign_protect( cmd_parms *params, void *mconfig, int flag )
@@ -379,8 +371,8 @@ module MODULE_VAR_EXPORT cosign_module = {
     NULL,                  /* [#5] check if the user is ok _here_ */
     cosign_auth,           /* [#3] check access by host address   */
     NULL,                  /* [#6] determine MIME type            */
-    cosign_fixup,	   /* [#7] pre-run fixups                 */
-    NULL,                  /* [#9] log a transaction              */
+    NULL,	  	   /* [#7] pre-run fixups                 */
+    NULL,          	   /* [#9] log a transaction              */
     NULL,                  /* [#2] header parser                  */
     NULL,                  /* child_init                          */
     cosign_child_cleanup,  /* child_exit                          */
