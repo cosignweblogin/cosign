@@ -64,6 +64,21 @@ blockquote {
     margin-right: 10px;
 }
 
+.splash_button {
+    font-size: 90%;
+    font-family: "Verdana", "Helvetica", sans-serif;
+    margin-left: 300px;
+}
+
+blockquote.deep {
+    font-size: 90%;
+    font-family: "Verdana", "Helvetica", sans-serif;
+    font-weight: normal;
+    color: #000000;
+    margin-left: 40px;
+    margin-right: 10px;
+}
+
 ul {
     color: #000000;
     font-size: 90%;

@@ -26,8 +26,7 @@
 #define SIDEWAYS        1
 
 extern char	*version;
-char	*err = NULL;
-char	*url = "http://www.umich.edu/";
+char	*err = NULL, *ref = NULL;
 char	*title = "Authentication Required";
 char	*host = "weblogin.umich.edu";
 int	nocache = 0;
@@ -38,6 +37,8 @@ struct cgi_list cl[] = {
         { "uniqname", NULL },
 #define CL_PASSWORD	1
         { "password", NULL },
+#define CL_REF		2
+        { "ref", NULL },
         { NULL, NULL },
 };
 
@@ -95,15 +96,18 @@ subfile( char *filename )
 		printf( "%s", host );
 		break;
 
-            case 'l':
-                if ( url != NULL ) {
-                    for ( i = 0; i < strlen( url ); i++ ) {
+            case 'k':
+		break;
+
+            case 'r':
+                if ( ref != NULL ) {
+                    for ( i = 0; i < strlen( ref ); i++ ) {
                         /* block XSS attacks while printing */
-                        if ( strchr( nasties, url[ i ] ) != NULL ||
-                                url[ i ] <= 0x1F || url[ i ] >= 0x7F ) {
-                            printf( "%%%x", url[ i ] );
+                        if ( strchr( nasties, ref[ i ] ) != NULL ||
+                                ref[ i ] <= 0x1F || ref[ i ] >= 0x7F ) {
+                            printf( "%%%x", ref[ i ] );
                         } else {
-                            putc( url[ i ], stdout );
+                            putc( ref[ i ], stdout );
                         }
                     }
                 }
@@ -148,7 +152,7 @@ main( int argc, char *argv[] )
     char                	new_cookiebuf[ 128 ];
     char        		new_cookie[ 255 ];
     char               		tmpkrb[ 16 ], krbpath [ 24 ];
-    char			*data, *ip_addr, *service, *ref = NULL;
+    char			*data, *ip_addr, *service;
     char			*cookie = NULL, *method, *script, *qs;
     char			*tmpl = LOGIN_HTML;
 
@@ -180,9 +184,11 @@ main( int argc, char *argv[] )
 	ref = strtok( NULL, "&" );
 
 	if ( cookie == NULL || strlen( cookie ) == 7 ) {
-	    printf( "Set-Cookie: cosign-referrer=%s; path=/; secure\n", ref );
-
 	    title = "Authentication Required";
+
+	    /* XXX lame hack to make ref work */
+	    printf( "Set-Cookie: cosign=expired; path=/; secure\n" );
+
 	    tmpl = SPLASH_HTML;
 	    subfile( tmpl );
 	    exit( 0 );
@@ -204,6 +210,7 @@ main( int argc, char *argv[] )
 	    exit( 0 );
 	}
 
+fprintf( stderr, "%s: cosign_register coming\n", script );
 	if (( rc = cosign_register( cookie, ip_addr, service )) < 0 ) {
 	    if ( cosign_check( cookie ) < 0 ) {
 		title = "Authentication Required";
@@ -225,13 +232,12 @@ main( int argc, char *argv[] )
 	    goto loginscreen;
 	}
 
-	/* when would we ever get here?  -- clunis */
+	/* if no referrer, redirect to top of site from conf file */
 	printf( "Location: %s\n\n", ref );
 	exit( 0 );
-
-	/* if no referrer, redirect to top of site from conf file */
     }
 
+fprintf( stderr, "%s: cookie check\n", script );
     if ( cookie == NULL ) {
 	if ( strcmp( method, "POST" ) == 0 ) {
 	    title = "Error: Cookies Required";
@@ -240,12 +246,10 @@ main( int argc, char *argv[] )
 	    subfile( tmpl );
 	    exit( 0 );
 	}
-
 	goto loginscreen;
     }
 
-    /* no query string, yes cookie -- IP? */
-
+fprintf( stderr, "%s: cosign check redux\n", script );
     if ( strcmp( method, "POST" ) != 0 ) {
 	if ( cosign_check( cookie ) < 0 ) {
 	    /* fprintf( stderr, "no longer logged in\n" ); */
@@ -261,11 +265,21 @@ main( int argc, char *argv[] )
 	exit( 0 );
     }
 
+fprintf( stderr, "%s: cgi_info\n", script );
     if ( cgi_info( CGI_STDIN, cl ) != 0 ) {
 	fprintf( stderr, "%s: cgi_info failed\n", script );
 	exit( SIDEWAYS );
     }
 
+fprintf( stderr, "%s: ref\n", script );
+    if (( cl[ CL_REF ].cl_data != NULL ) ||
+	    ( *cl[ CL_REF ].cl_data != '\0' )) {
+fprintf( stderr, "%s: ass ref\n", script );
+        ref = cl[ CL_REF ].cl_data;
+fprintf( stderr, "%s: assed ref\n", script );
+    }
+
+fprintf( stderr, "%s: uniqname\n", script );
     if (( cl[ CL_UNIQNAME ].cl_data == NULL ) ||
 	    ( *cl[ CL_UNIQNAME ].cl_data == '\0' )) {
 	title = "Authentication Required";
@@ -402,6 +416,7 @@ main( int argc, char *argv[] )
     nocache = 1;
 
     /* what happens when we get an already logged in back? tri-val? */
+fprintf( stderr, "%s: cosign_login\n", script );
     if ( cosign_login( cookie, ip_addr, 
 	    cl[ CL_UNIQNAME ].cl_data, "UMICH.EDU", krbpath ) < 0 ) {
 	fprintf( stderr, "%s: login failed\n", script ) ;
@@ -418,23 +433,7 @@ main( int argc, char *argv[] )
 	*/
     }
 
-    if (( data = getenv( "HTTP_COOKIE" )) != NULL ) {
-	ref = strtok( data, ";" );
-
-	/* nibble away the cookie string until we see the referrer cookie */
-	if ( strncmp( ref, "cosign-referrer=", 15 ) != 0 ) {
-	    while (( ref = strtok( NULL, ";" )) != NULL ) {
-		if ( *ref == ' ' ) ++ref;
-		if ( strncmp( ref, "cosign-referrer=", 15 ) == 0 ) {
-		    break;
-		}
-	    }
-	}
-    }
-
     if (( ref != NULL ) && ( ref = strstr( ref, "http" )) != NULL ) {
-	/* clobber the referrer cookie */
-	fputs( "Set-Cookie: cosign-referrer=null; expires=Wednesday, 16-Apr-73 02:10:00 GMT; path=/; secure\n", stdout );
 	printf( "Location: %s\n\n", ref );
     }
 
@@ -442,7 +441,6 @@ main( int argc, char *argv[] )
     exit( 0 );
 
 loginscreen:
-
     if ( mkcookie( sizeof( new_cookiebuf ), new_cookiebuf ) != 0 ) {
 	fprintf( stderr, "%s: mkcookie: failed\n", script );
 	exit( SIDEWAYS );

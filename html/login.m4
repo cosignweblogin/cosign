@@ -43,6 +43,7 @@ include(`header.html')
 
     <tr>
 	<td colspan="2" align="right" bgcolor="#FFFFFF">
+	    <input type="hidden" name="ref" value="$r">
 	    <input type="submit" value="Login">
 	    <p class="error" align="center">$e</p>
 	</td>
