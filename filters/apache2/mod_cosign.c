@@ -36,6 +36,7 @@
 #include "sparse.h"
 #include "mkcookie.h"
 #include "cosign.h"
+#include "log.h"
 
 static int	set_cookie_and_redirect( request_rec *, cosign_host_config * );
 
@@ -123,8 +124,8 @@ cosign_init(apr_pool_t *p, apr_pool_t *plog, apr_pool_t *ptemp, server_rec *s)
 {
     extern char	*cosign_version;
 
-    ap_log_error( APLOG_MARK, APLOG_INFO|APLOG_NOERRNO, 0, s,
-	    "mod_cosign: version %s initialized.", cosign_version );
+    cosign_log( APLOG_NOTICE, s, "mod_cosign: version %s initialized.",
+		cosign_version );
     return( OK );
 }
 
@@ -137,7 +138,7 @@ set_cookie_and_redirect( request_rec *r, cosign_host_config *cfg )
     struct timeval      now;
 
     if ( mkcookie( sizeof( cookiebuf ), cookiebuf ) != 0 ) {
-	ap_log_error( APLOG_MARK, APLOG_ERR|APLOG_NOERRNO, 0, r->server,
+	cosign_log( APLOG_ERR, r->server,
 		"mod_cosign: Raisins! Something wrong with mkcookie()" );
 	return( -1 );
     }
@@ -257,22 +258,22 @@ cosign_auth( request_rec *r )
 
     if (( cfg->host == NULL ) || ( cfg->redirect == NULL ) ||
 		( cfg->service == NULL || cfg->posterror == NULL )) {
-	ap_log_error( APLOG_MARK, APLOG_ERR|APLOG_NOERRNO, 0, r->server,
+	cosign_log( APLOG_ERR, r->server,
 		"mod_cosign: Cosign is not configured correctly:" );
 	if ( cfg->host == NULL ) {
-	    ap_log_error( APLOG_MARK, APLOG_ERR|APLOG_NOERRNO, 0, r->server,
+	    cosign_log( APLOG_ERR, r->server,
 		    "mod_cosign: CosignHostname not set." );
 	}
 	if ( cfg->redirect == NULL ) {
-	    ap_log_error( APLOG_MARK, APLOG_ERR|APLOG_NOERRNO, 0, r->server,
+	    cosign_log( APLOG_ERR, r->server,
 		    "mod_cosign: CosignRedirect not set." );
 	}
 	if ( cfg->service == NULL ) {
-	    ap_log_error( APLOG_MARK, APLOG_ERR|APLOG_NOERRNO, 0, r->server,
+	    cosign_log( APLOG_ERR, r->server,
 		    "mod_cosign: CosignService not set." );
 	}
 	if ( cfg->posterror == NULL ) {
-	    ap_log_error( APLOG_MARK, APLOG_ERR|APLOG_NOERRNO, 0, r->server,
+	    cosign_log( APLOG_ERR, r->server,
 		    "mod_cosign: CosignPostErrorRedirect not set." );
 	}
 	return( HTTP_SERVICE_UNAVAILABLE );
@@ -325,7 +326,7 @@ cosign_auth( request_rec *r )
      * Otherwise, retrieve the auth info from the server.
      */
     if (( cv = cosign_cookie_valid( cfg, my_cookie, &si,
-	    r->connection->remote_ip )) < 0 ) {	
+	    r->connection->remote_ip, r->server )) < 0 ) {	
 	return( HTTP_SERVICE_UNAVAILABLE );	/* it's all forbidden! */
     } 
 
@@ -342,7 +343,7 @@ cosign_auth( request_rec *r )
 	if ( cfg->gss ) {
 	    if ( gss_krb5_ccache_name( &minor_status, si.si_krb5tkt, NULL )
 		    != GSS_S_COMPLETE ) {
-		ap_log_error( APLOG_MARK, APLOG_ERR|APLOG_NOERRNO, 0,
+		cosign_log( APLOG_ERR,
 			 r->server, "mod_cosign: gss_krb5_ccache_name" );
 	    }
 	}
@@ -775,31 +776,31 @@ set_cosign_certs( cmd_parms *params, void *mconfig,
     SSL_load_error_strings();
     SSL_library_init();
     if (( cfg->ctx = SSL_CTX_new( SSLv23_client_method())) == NULL ) {
-	ap_log_error( APLOG_MARK, APLOG_ERR|APLOG_NOERRNO, 0, params->server,
+	cosign_log( APLOG_ERR, params->server,
 		"SSL_CTX_new: %s\n", ERR_error_string( ERR_get_error(), NULL ));
 	exit( 1 );
     }
     if ( SSL_CTX_use_PrivateKey_file( cfg->ctx,
 	    cfg->key, SSL_FILETYPE_PEM ) != 1 ) {
-	ap_log_error( APLOG_MARK, APLOG_ERR|APLOG_NOERRNO, 0, params->server,
+	cosign_log( APLOG_ERR, params->server,
 		"SSL_CTX_use_PrivateKey_file: %s: %s\n",
 		cfg->key, ERR_error_string( ERR_get_error(), NULL ));
 	exit( 1 );
     }
     if ( SSL_CTX_use_certificate_chain_file( cfg->ctx, cfg->cert ) != 1 ) {
-	ap_log_error( APLOG_MARK, APLOG_ERR|APLOG_NOERRNO, 0, params->server,
+	cosign_log( APLOG_ERR, params->server,
 		"SSL_CTX_use_certificate_chain_file: %s: %s\n",
 		cfg->cert, ERR_error_string( ERR_get_error(), NULL ));
 	exit( 1 );
     }
     if ( SSL_CTX_check_private_key( cfg->ctx ) != 1 ) {
-	ap_log_error( APLOG_MARK, APLOG_ERR|APLOG_NOERRNO, 0, params->server,
+	cosign_log( APLOG_ERR, params->server,
 		"SSL_CTX_check_private_key: %s\n",
 		ERR_error_string( ERR_get_error(), NULL ));
 	exit( 1 );
     }
     if ( SSL_CTX_load_verify_locations( cfg->ctx, NULL, cfg->cadir ) != 1 ) {
-	ap_log_error( APLOG_MARK, APLOG_ERR|APLOG_NOERRNO, 0, params->server,
+	cosign_log( APLOG_ERR, params->server,
 		"SSL_CTX_load_verify_locations: %s: %s\n",
 		cfg->key, ERR_error_string( ERR_get_error(), NULL ));
 	exit( 1 );
