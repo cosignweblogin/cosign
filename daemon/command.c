@@ -37,16 +37,10 @@ extern SSL_CTX	*ctx;
 #define REALM_SZ 254
 #define IDLE_OUT 1800
 
-extern char	*version;
-
-struct command {
-    char	*c_name;
-    int		(*c_func) ___P(( SNET *, int, char *[] ));
-};
-
 static int	f_noop ___P(( SNET *, int, char *[] ));
 static int	f_quit ___P(( SNET *, int, char *[] ));
 static int	f_help ___P(( SNET *, int, char *[] ));
+static int	f_notauth ___P(( SNET *, int, char *[] ));
 static int	f_login ___P(( SNET *, int, char *[] ));
 static int	f_logout ___P(( SNET *, int, char *[] ));
 static int	f_register ___P(( SNET *, int, char *[] ));
@@ -54,6 +48,37 @@ static int	f_check ___P(( SNET *, int, char *[] ));
 #ifdef TLS
 static int	f_starttls ___P(( SNET *, int, char *[] ));
 #endif TLS
+
+struct command {
+    char	*c_name;
+    int		(*c_func) ___P(( SNET *, int, char *[] ));
+};
+
+struct command	unauth_commands[] = {
+    { "NOOP",		f_noop },
+    { "QUIT",		f_quit },
+    { "HELP",		f_help },
+    { "STARTTLS",	f_starttls },
+    { "LOGIN",		f_notauth },
+    { "LOGOUT",		f_notauth },
+    { "REGISTER",	f_notauth },
+    { "CHECK",		f_notauth },
+};
+
+struct command	auth_commands[] = {
+    { "NOOP",		f_noop },
+    { "QUIT",		f_quit },
+    { "HELP",		f_help },
+    { "STARTTLS",	f_starttls },
+    { "LOGIN",		f_login },
+    { "LOGOUT",		f_logout },
+    { "REGISTER",	f_register },
+    { "CHECK",		f_check },
+};
+
+extern char	*version;
+struct command 	*commands = unauth_commands;
+int	ncommands = sizeof( unauth_commands ) / sizeof(unauth_commands[ 0 ] );
 
     int
 f_quit( sn, ac, av )
@@ -64,7 +89,6 @@ f_quit( sn, ac, av )
     snet_writef( sn, "%d Service closing transmission channel\r\n", 221 );
     exit( 0 );
 }
-
 
     int
 f_noop( sn, ac, av )
@@ -83,6 +107,16 @@ f_help( sn, ac, av )
     char        *av[];
 {
     snet_writef( sn, "%d Slainte Mhath!\r\n", 203 );
+    return( 0 );
+}
+
+    int
+f_notauth( sn, ac, av )
+    SNET        *sn;
+    int         ac;
+    char        *av[];
+{
+    snet_writef( sn, "%d You must call STARTTLS first!\r\n", 550 );
     return( 0 );
 }
 
@@ -123,6 +157,8 @@ f_starttls( sn, ac, av )
     X509_get_subject_name( peer ), buf, sizeof( buf )));
     X509_free( peer );
 
+    commands = auth_commands;
+    ncommands = sizeof( auth_commands ) / sizeof( auth_commands[ 0 ] );
     return( 0 );
 }
 
@@ -534,18 +570,6 @@ f_check( sn, ac, av )
 	    "%d %s %s %s\r\n", status, ci.ci_ipaddr, ci.ci_user, ci.ci_realm );
     return( 0 );
 }
-
-struct command	commands[] = {
-    { "NOOP",		f_noop },
-    { "QUIT",		f_quit },
-    { "HELP",		f_help },
-    { "STARTTLS",	f_starttls },
-    { "LOGIN",		f_login },
-    { "LOGOUT",		f_logout },
-    { "REGISTER",	f_register },
-    { "CHECK",		f_check },
-};
-int		ncommands = sizeof( commands ) / sizeof( commands[ 0 ] );
 
     int
 command( fd )
