@@ -10,7 +10,6 @@ MODULE:
 CGI:
     initial info and ticket propogation (belt)
     conf file
-    get a ticket with the keytab
     screens
     service menu
 
