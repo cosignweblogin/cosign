@@ -17,7 +17,7 @@ DEFS=           @TLSDEFS@ @KRBDEFS@ @K4DEFS@ @GSSDEFS@
 LIBS=           -lsnet @K4LIBS@ @GSSLIBS@
 LDFLAGS=        -L../../libsnet/.libs @K4LDFLAGS@ @GSSLDFLAGS@ ${LIBS}
 
-CFLAGS=         ${DEFS} ${OPTOPTS} @CFLAGS@ @APXS_CFLAGS_SHLIB@ ${INCPATH} -DEAPI
+CFLAGS=         ${DEFS} ${OPTOPTS} @CFLAGS@ @APXS_CFLAGS@ @APXS_CFLAGS_SHLIB@ ${INCPATH}
 
 
 OBJ=	mod_cosign.o connect.o cookiefs.o sparse.o \
