@@ -161,6 +161,12 @@ cosign_login_mysql( struct connlist *head, char *id, char *passwd,
 	mysql_close( &friend_db );
 
 	/* this is a valid friend account but password failed */
+	if ( ref != NULL ) {
+	    sl[ SL_REF ].sl_data = ref;
+	}
+	if ( service != NULL ) {
+	    sl[ SL_SERVICE ].sl_data = service;
+	}
 	sl[ SL_ERROR ].sl_data = "Unable to login because guest password "
 	    "is incorrect.";
 	sl[ SL_TITLE ].sl_data = "Authentication Required "
