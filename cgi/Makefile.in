@@ -26,13 +26,17 @@ INSTALL=     @INSTALL@
 CFLAGS=      ${DEFS} ${OPTOPTS} @CFLAGS@ ${INCPATH}
 
 
-OBJ     = network.o ../common/mkcookie.o ../common/fbase64.o \
+OBJ     = login.o network.o ../common/mkcookie.o ../common/fbase64.o \
 	../common/config.o ../common/wildcard.o ../common/argcargv.o \
 	../version.o 
 CGITARGETS = @BASICCGI@ @KRBCGI@
 TARGETS = logout ${CGITARGETS}
 
 all: ${TARGETS}
+
+login.o:	login.c
+	${CC} ${CFLAGS} \
+	-c login.c
 
 network.o:	network.c
 	${CC} ${CFLAGS} \

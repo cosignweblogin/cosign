@@ -44,8 +44,6 @@ struct cgi_list cl[] = {
         { NULL, NULL },
 };
 
-void	subfile( char * );
-
 
     void
 subfile( char *filename )
