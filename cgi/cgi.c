@@ -162,6 +162,7 @@ main( int argc, char *argv[] )
     krb5_creds			kcreds;
     krb5_ccache			kccache;
     krb5_keytab			keytab = 0;
+    char			*realm = "no_realm";
     char			ktbuf[ MAX_KEYTAB_NAME_LEN + 1 ];
     int				rc;
     char                	new_cookiebuf[ 128 ];
@@ -314,8 +315,15 @@ main( int argc, char *argv[] )
 	exit( 0 );
     }
 
-    /* need to get realm out of kprinc */
-    //krb5_princ_realm
+    /* need to get realm out */
+    if (( kerror = krb5_get_default_realm( kcontext, &realm )) != 0 ) {
+	err = (char *)error_message( kerror );
+	title = "Authentication Required ( kerberos realm error )";
+
+	tmpl = ERROR_HTML;
+	subfile ( tmpl );
+	exit( 0 );
+    }
 
     if ( mkcookie( sizeof( tmpkrb ), tmpkrb ) != 0 ) {
 	err = "An unknown error occurred.";
@@ -450,7 +458,7 @@ main( int argc, char *argv[] )
     tmpl = SERVICE_MENU;
 
     if ( cosign_login( cookie, ip_addr, 
-	    cl[ CL_UNIQNAME ].cl_data, "UMICH.EDU", krbpath ) < 0 ) {
+	    cl[ CL_UNIQNAME ].cl_data, realm, krbpath ) < 0 ) {
 	fprintf( stderr, "%s: login failed\n", script ) ;
 
 	/* redirecting to service menu because user is logged in */
