@@ -88,7 +88,7 @@ extern char	*cosign_version;
 extern SSL_CTX	*ctx;
 struct command 	*commands = unauth_commands;
 struct chosts	*ch = NULL;
-int		isdaemon = 0;
+int		replicate = 1;
 int	ncommands = sizeof( unauth_commands ) / sizeof(unauth_commands[ 0 ] );
 
     int
@@ -349,11 +349,10 @@ f_login( sn, ac, av, pushersn )
 
     if ( !krb ) {
 	snet_writef( sn, "%d LOGIN successful: Cookie Stored.\r\n", 200 );
-	if (( pushersn != NULL ) && ( isdaemon )) {
+	if (( pushersn != NULL ) && ( replicate )) {
 	    snet_writef( pushersn, "LOGIN %s %s %s %s\r\n",
 		    av[ 1 ], av[ 2 ], av[ 3 ], av[ 4 ]);
 	}
-syslog( LOG_INFO, "daemon command at work!" );
 	return( 0 );
     }
 
@@ -428,7 +427,7 @@ syslog( LOG_INFO, "daemon command at work!" );
     }
 
     snet_writef( sn, "%d LOGIN successful: Cookie & Ticket Stored.\r\n", 201 );
-    if (( pushersn != NULL ) && ( isdaemon )) {
+    if (( pushersn != NULL ) && ( replicate )) {
 	snet_writef( pushersn, "LOGIN %s %s %s %s %s\r\n",
 		av[ 1 ], av[ 2 ], av[ 3 ], av[ 4 ], av[ 5 ]);
     }
@@ -451,6 +450,9 @@ f_daemon( sn, ac, av, pushersn )
     char	*av[];
     SNET	*pushersn;
 {
+
+    char	hostname[ MAXHOSTNAMELEN ];
+
     if ( ch->ch_key != CGI ) {
 	syslog( LOG_ERR, "%s is not a daemon", ch->ch_hostname );
 	snet_writef( sn, "%d DAEMON: %s not a daemon.\r\n",
@@ -458,12 +460,22 @@ f_daemon( sn, ac, av, pushersn )
 	return( 1 );
     }
 
-    if ( ac != 1 ) {
+    if ( ac != 2 ) {
 	snet_writef( sn, "%d Syntax error\r\n", 571 );
 	return( 1 );
     }
 
-    isdaemon = 1;
+    if ( gethostname( hostname, sizeof( hostname )) < 0 ) {
+	syslog( LOG_ERR, "f_daemon: %m" );
+	snet_writef( sn, "%d DAEMON error. Sorry!\r\n", 572 );
+	return( 1 );
+    }
+
+    if ( strcmp( hostname, av[ 1 ] ) == 0 ) {
+	snet_writef( sn, "%d Schizophrenia!\r\n", 471 );
+	return( 1 );
+    }
+    replicate = 0;
 
     snet_writef( sn, "%d Daemon flag set\r\n", 271 );
     return( 0 );
@@ -619,7 +631,7 @@ f_logout( sn, ac, av, pushersn )
     }
 
     snet_writef( sn, "%d LOGOUT successful: cookie no longer valid\r\n", 210 );
-    if (( pushersn != NULL ) && ( isdaemon )) {
+    if (( pushersn != NULL ) && ( replicate )) {
 	snet_writef( pushersn, "LOGOUT %s %s\r\n", av[ 1 ], av [ 2 ] );
     }
     return( 0 );
@@ -767,7 +779,7 @@ f_register( sn, ac, av, pushersn )
     utime( av[ 1 ], NULL );
 
     snet_writef( sn, "%d REGISTER successful: Cookie Stored \r\n", 220 );
-    if (( pushersn != NULL ) && ( isdaemon )) {
+    if (( pushersn != NULL ) && ( replicate )) {
 	snet_writef( pushersn, "REGISTER %s %s %s\r\n",
 		av[ 1 ], av[ 2 ], av [ 3 ] );
     }

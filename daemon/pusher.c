@@ -39,20 +39,31 @@ void		pusherdaemon( struct cl * );
 pusherdaemon( struct cl *cur )
 {
     struct timeval	tv;
-    char		*line;
+    char		*line, hostname[ MAXHOSTNAMELEN ];
 
-    snet_writef( cur->cl_sn, "DAEMON" );
+    if ( gethostname( hostname, sizeof( hostname )) < 0 ) {
+	syslog( LOG_ERR, "pusherdaemon: %m" );
+	return;
+    }
+
+    snet_writef( cur->cl_sn, "DAEMON %s", hostname );
 
     tv = timeout;
     if (( line = snet_getline_multi( cur->cl_sn, logger, &tv )) == NULL ) {
 	syslog( LOG_ERR, "pusherdaemon: %m" );
 	if (( close_sn( cur )) != 0 ) {
-	    syslog( LOG_ERR, "pusherchld: close_sn: %m" );
+	    syslog( LOG_ERR, "pusherdaemon: close_sn: %m" );
 	}
 	exit( 1 );
     }
 
-    if ( *line != '2' ) {
+    if ( *line == '4' ) {
+syslog( LOG_DEBUG, "pusherdaemon: %s", line );
+	if (( close_sn( cur )) != 0 ) {
+	    syslog( LOG_ERR, "pusherdaemon: close_sn: %m" );
+	}
+	exit( 3 );
+    } else if ( *line != '2' ) {
 	syslog( LOG_ERR, "pusherdaemon: %s", line );
 	if (( close_sn( cur )) != 0 ) {
 	    syslog( LOG_ERR, "pusherdaemon: close_sn: %m" );
@@ -141,8 +152,13 @@ syslog( LOG_DEBUG, "FOUND IT! %d", pid );
 		break;
 
 	    case 2:
-		syslog( LOG_CRIT, "CHILD %d configuration error ", pid );
+		syslog( LOG_CRIT, "CHILD %d configuration error", pid );
 		exit( 1 );
+
+	    case 3:
+		syslog( LOG_ERR, "CHILD %d talking to itself", pid );
+		/* remove from list? */
+		break;
 
 	    default:
 		syslog( LOG_ERR, "CHILD %d exited with %d", pid,
