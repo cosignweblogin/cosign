@@ -1,17 +1,23 @@
 Before you begin:
 
-    You will need a source of entropy.  If your system has /dev/*random
-    then you're all set, otherwise you should get something like prngd
-    or egd.  Solaris users prior to version 9 can use the andirand
-    package to add /dev/random.  AIX users will want to get prngd.
+    To build the Apache filter you need Apache 1.3.X.  Support for
+    Apache 2.0 will be available in a later release.  Your web
+    server should have SSL enabled.
 
-    You need OpenSSL 0.9.7a or newer.
+    You will need OpenSSL 0.9.7a or newer.
 
-    Finally, to build the Apache filter you need Apache 1.3.X.  Support
-    for Apache 2.0 will be available in a later release.
+    You will need a source of entropy for the OpenSSL libraries to
+    work.  If your system has /dev/*random then you're all set,
+    otherwise you should get something like prngd or egd.  Solaris
+    users should refer to document 27606 "Differing /dev/random
+    support requirements within Solaris [TM] Operating Environments"
+    at <http://sunsolve.sun.com/>.  AIX users will want to get
+    prngd.
 
-    You almost certainly do not need Kerberos installed on your machine
-    unless you are building the central server.
+    You almost certainly do not need Kerberos installed on your
+    machine unless you are building the central server.  If you
+    are building a central server, you will need MIT krb5-1.2.7 or
+    later.
 
     For documentation and information concerning cosign terminology,
     see: http://weblogin.org/
