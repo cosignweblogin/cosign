@@ -33,6 +33,9 @@
 #include "argcargv.h"
 #include "mkcookie.h"
 
+#define IP_SZ		254
+#define USER_SZ 	254
+#define RREALM_SZ 	254
 #define TKT_PREFIX	"/ticket"
 #define MIN(a,b)        ((a)<(b)?(a):(b))
 
@@ -96,17 +99,17 @@ netcheck_cookie( char *scookie, struct sinfo *si, SNET *sn )
     }
 
     /* I guess we check some sizing here :) */
-    if ( strlen( av[ 1 ] ) >= sizeof( si->si_ipaddr )) {
+    if ( strlen( av[ 1 ] ) >= IP_SZ ) {
 	fprintf( stderr, "netcheck_cookie: IP address too long\n" );
 	return( -1 );
     }
     strcpy( si->si_ipaddr, av[ 1 ] );
-    if ( strlen( av[ 2 ] ) >= sizeof( si->si_user )) {
+    if ( strlen( av[ 2 ] ) >= USER_SZ ) {
 	fprintf( stderr, "netcheck_cookie: username too long\n" );
 	return( -1 );
     }
     strcpy( si->si_user, av[ 2 ] );
-    if ( strlen( av[ 3 ] ) >= sizeof( si->si_realm )) {
+    if ( strlen( av[ 3 ] ) >= RREALM_SZ ) {
 	fprintf( stderr, "netcheck_cookie: realm too long\n" );
 	return( -1 );
     }
@@ -131,7 +134,7 @@ netretr_ticket( char *scookie, struct sinfo *si, SNET *sn, int convert )
     char                krb4path [ 24 ];
     krb5_principal	kclient, kserver;
     krb5_ccache		kccache;
-    krb5_creds		increds, *v5creds = NULL;
+    krb5_creds		increds, *v5creds;
     krb5_error_code 	kerror;
     krb5_context 	kcontext;
     CREDENTIALS		v4creds;
@@ -318,6 +321,7 @@ netretr_ticket( char *scookie, struct sinfo *si, SNET *sn, int convert )
     }
     increds.client = 0;
     krb5_free_cred_contents( kcontext, &increds );
+    krb5_free_principal( kcontext, kserver );
     krb5_cc_close( kcontext, kccache );
     krb5_free_context( kcontext );
 

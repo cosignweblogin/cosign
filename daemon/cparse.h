@@ -2,7 +2,7 @@ struct cinfo {
     int		ci_version;
     int		ci_state;
     char	ci_ipaddr[ 256 ];
-    char	ci_user[ 131 ];
+    char	ci_user[ 256 ];
     char	ci_realm[ 256 ];
     char	ci_ctime[ 12 ];
     char	ci_krbtkt[ 24 ];
