@@ -43,7 +43,7 @@ connect_sn( struct cl *cl, SSL_CTX *ctx, char *host )
     }
     if ( connect( s, ( struct sockaddr *)&cl->cl_sin,
 	    sizeof( struct sockaddr_in )) != 0 ) {
-	perror( "connect" );
+	syslog( LOG_ERR, "connect: %m" );
 	(void)close( s );
 	return( -1 );
     }
@@ -93,7 +93,7 @@ connect_sn( struct cl *cl, SSL_CTX *ctx, char *host )
 
     X509_NAME_get_text_by_NID( X509_get_subject_name( peer ), NID_commonName,
 	    buf, sizeof( buf ));
-
+#ifdef notdef
     /* cn and host must match */
     if ( strcmp( buf, host ) != 0 ) {
 	syslog( LOG_ERR, "cn=%s & host=%s don't match!", buf, host );
@@ -101,9 +101,8 @@ connect_sn( struct cl *cl, SSL_CTX *ctx, char *host )
 	err = -2;
 	goto done;
     }
-
+#endif 
     X509_free( peer );
-
     return( 0 );
 done:
     if ( snet_close( cl->cl_sn ) != 0 ) {

@@ -13,11 +13,15 @@ CGI:
 
 COSIGND:
     replication (suspenders)
-	idle time out race condition
 	-grace period which returns 5xx ( allows for repl skew )
 	-dynamic grace period times?
     actual load prob is number of cookies
     more conf file
+    1) tix
+    2) our hostname
+    3) daemon command
+    4) cert matching
+    5) grey area
 
 post 1.0
 	not doing much with cosign-[name]

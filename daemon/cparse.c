@@ -21,7 +21,7 @@
     int
 do_logout( char *path )
 {
-    if ( chmod( path, (  S_ISGID | S_IRUSR )) < 0 ) {
+    if ( chmod( path, (  S_ISGID | S_IRUSR  )) < 0 ) {
 	syslog( LOG_ERR, "do_logout: %s: %m", path  );
 	return( -1 ) ;
     }

@@ -344,8 +344,10 @@ f_login( sn, ac, av, pushersn )
 
     if ( !krb ) {
 	snet_writef( sn, "%d LOGIN successful: Cookie Stored.\r\n", 200 );
-	snet_writef( pushersn, "LOGIN %s %s %s %s\r\n",
-		av[ 1 ], av[ 2 ], av[ 3 ], av[ 4 ]);
+	if ( pushersn != NULL ) {
+	    snet_writef( pushersn, "LOGIN %s %s %s %s\r\n",
+		    av[ 1 ], av[ 2 ], av[ 3 ], av[ 4 ]);
+	}
 	return( 0 );
     }
 
@@ -420,8 +422,10 @@ f_login( sn, ac, av, pushersn )
     }
 
     snet_writef( sn, "%d LOGIN successful: Cookie & Ticket Stored.\r\n", 201 );
-    snet_writef( pushersn, "LOGIN %s %s %s %s %s\r\n",
-	    av[ 1 ], av[ 2 ], av[ 3 ], av[ 4 ], av[ 5 ]);
+    if ( pushersn != NULL ) {
+	snet_writef( pushersn, "LOGIN %s %s %s %s %s\r\n",
+		av[ 1 ], av[ 2 ], av[ 3 ], av[ 4 ], av[ 5 ]);
+    }
     return( 0 );
 
 file_err:
@@ -586,7 +590,9 @@ f_logout( sn, ac, av, pushersn )
     }
 
     snet_writef( sn, "%d LOGOUT successful: cookie no longer valid\r\n", 210 );
-    snet_writef( pushersn, "LOGOUT %s %s\r\n", av[ 1 ], av [ 2 ] );
+    if ( pushersn != NULL ) {
+	snet_writef( pushersn, "LOGOUT %s %s\r\n", av[ 1 ], av [ 2 ] );
+    }
     return( 0 );
 
 }
@@ -647,13 +653,7 @@ f_register( sn, ac, av, pushersn )
     if ( strcmp( av[ 2 ], ci.ci_ipaddr ) != 0 ) {
 	syslog( LOG_ERR, "%s in cookie %s does not match %s",
 		ci.ci_ipaddr, av[ 1 ], av[ 2 ] );
-	if ( do_logout( av[ 1 ] ) < 0 ) {
-	    syslog( LOG_ERR, "f_register: %s: %m", av[ 1 ] );
-	    snet_writef( sn, "%d REGISTER error: Sorry!\r\n", 524 );
-	    return( -1 );
-	}
-	snet_writef( sn,
-		"%d IP address given does not match cookie\r\n", 425 );
+	snet_writef( sn, "%d IP address given does not match cookie\r\n", 425 );
 	return( 1 );
     }
 
@@ -734,8 +734,10 @@ f_register( sn, ac, av, pushersn )
     utime( av[ 1 ], NULL );
 
     snet_writef( sn, "%d REGISTER successful: Cookie Stored \r\n", 220 );
-    snet_writef( pushersn, "REGISTER %s %s %s\r\n",
-	    av[ 1 ], av[ 2 ], av [ 3 ] );
+    if ( pushersn != NULL ) {
+	snet_writef( pushersn, "REGISTER %s %s %s\r\n",
+		av[ 1 ], av[ 2 ], av [ 3 ] );
+    }
     return( 0 );
 }
 
