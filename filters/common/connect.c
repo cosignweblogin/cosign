@@ -129,7 +129,6 @@ check_cookie( char *secant, struct sinfo *si, cosign_host_config *cfg )
     int			rc;
 
     /* use connection, then shuffle if there is a problem
-     * how do we reclaim once it's bad?
      * what happens if they are all bad?
      */
     for ( cur = &cfg->cl; *cur != NULL; cur = &(*cur)->conn_next ) {

@@ -181,7 +181,7 @@ cosign_auth( request_rec *r )
 	    ap_log_error( APLOG_MARK, APLOG_ERR|APLOG_NOERRNO, r->server,
 		    "mod_cosign: CosignPostErrorRedirect not set." );
 	}
-	return( FORBIDDEN );
+	return( HTTP_SERVICE_UNAVAILABLE );
     }
 
     /*
@@ -213,7 +213,7 @@ cosign_auth( request_rec *r )
     my_cookie = ap_psprintf( r->pool, "%s=%s", cookiename, pair );
     if (( cv = cookie_valid( cfg, my_cookie, &si,
 	    r->connection->remote_ip )) < 0 ) {	
-	return( FORBIDDEN );	/* it's all forbidden! */
+	return( HTTP_SERVICE_UNAVAILABLE );	/* it's all forbidden! */
     } 
 
     /* Everything Shines, let them thru */
@@ -228,7 +228,7 @@ cosign_auth( request_rec *r )
 
 set_cookie:
     if ( set_cookie_and_redirect( r, cfg ) != 0 ) {
-	return( FORBIDDEN );
+	return( HTTP_SERVICE_UNAVAILABLE );
     }
     return( HTTP_MOVED_TEMPORARILY );
 }
