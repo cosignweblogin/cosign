@@ -9,10 +9,32 @@
 #include "rate.h"
 
     double
-rate_tick( struct rate *r )
+rate_get( struct rate *r )
 {
     long		seconds;
-    struct timeval	tv;
+
+    if (r->r_count <= 1 ) {
+	return( (double)0 );
+    }
+
+    seconds = r->r_tv_last.tv_sec - r->r_tv.tv_sec;
+    if ( r->r_tv_last.tv_usec <= r->r_tv.tv_usec ) {
+	r->r_tv.tv_usec -= 1000000;
+	seconds -= 1;
+    }
+    if (( r->r_tv_last.tv_usec - r->r_tv.tv_usec ) >= 500000 ) {
+	seconds += 1;
+    }
+
+    if ( seconds <= 0 ) {
+	return( (double)0 );
+    }
+    return( (double)(RATE_INTERVAL - 1) / seconds );
+}
+
+    double
+rate_tick( struct rate *r )
+{
     double		rate;
 
     if ( r->r_count == 0 ) {
@@ -22,22 +44,13 @@ rate_tick( struct rate *r )
 	r->r_count = 1;
 	return( (double)0 );
     }
+    if ( gettimeofday( &r->r_tv_last, NULL ) < 0 ) {
+	return( (double)0 );
+    }
     if (( ++r->r_count % RATE_INTERVAL ) == 0 ) {
-	if ( gettimeofday( &tv, NULL ) < 0 ) {
-	    return( (double)0 );
-	}
-	seconds = tv.tv_sec - r->r_tv.tv_sec;
-	if ( tv.tv_usec <= r->r_tv.tv_usec ) {
-	    r->r_tv.tv_usec -= 1000000;
-	    seconds -= 1;
-	}
-	if (( tv.tv_usec - r->r_tv.tv_usec ) >= 500000 ) {
-	    seconds += 1;
-	}
-
-	rate = (double)RATE_INTERVAL / tv.tv_sec;
+	rate = rate_get( r );
 	r->r_count = 1;
-	r->r_tv = tv;
+	r->r_tv = r->r_tv_last;
 	return( rate );
     }
     return( (double)0 );

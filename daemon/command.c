@@ -96,10 +96,9 @@ extern int	debug;
 extern SSL_CTX	*ctx;
 struct command 	*commands = unauth_commands;
 struct chosts	*ch = NULL;
-struct rate	checkpass = { 0, { }};
-struct rate	checkfail = { 0, { }};
-struct rate	checkunknown = { 0, { }};
-struct rate	regunknown = { 0, { }};
+struct rate	checkpass = { 0 };
+struct rate	checkfail = { 0 };
+struct rate	checkunknown = { 0 };
 
 int		replicate = 1;
 int	ncommands = sizeof( unauth_commands ) / sizeof(unauth_commands[ 0 ] );
@@ -330,8 +329,9 @@ f_login( SNET *sn, int ac, char *av[], SNET *pushersn )
 	    snet_writef( pushersn, "LOGIN %s %s %s %s\r\n",
 		    av[ 1 ], av[ 2 ], av[ 3 ], av[ 4 ]);
 	}
-	syslog( LOG_INFO, "%sLOGIN %s %s %s", replicate ? "" : "R-",
-		av[ 3 ], av [ 4 ], av [ 2 ] );
+	if ( replicate ) {
+	    syslog( LOG_INFO, "LOGIN %s %s %s", av[ 3 ], av [ 4 ], av [ 2 ] );
+	}
 	return( 0 );
     }
 
@@ -410,8 +410,9 @@ f_login( SNET *sn, int ac, char *av[], SNET *pushersn )
 	snet_writef( pushersn, "LOGIN %s %s %s %s %s\r\n",
 		av[ 1 ], av[ 2 ], av[ 3 ], av[ 4 ], av[ 5 ]);
     }
-    syslog( LOG_INFO, "%sLOGIN %s %s %s", replicate ? "" : "R-",
-	    av[ 3 ], av [ 4 ], av [ 2 ] );
+    if ( replicate ) {
+	syslog( LOG_INFO, "LOGIN %s %s %s", av[ 3 ], av [ 4 ], av [ 2 ] );
+    }
     return( 0 );
 
 file_err:
@@ -603,8 +604,9 @@ f_logout( SNET *sn, int ac, char *av[], SNET *pushersn )
     if (( pushersn != NULL ) && ( replicate )) {
 	snet_writef( pushersn, "LOGOUT %s %s\r\n", av[ 1 ], av [ 2 ] );
     }
-    syslog( LOG_INFO, "%sLOGOUT %s %s %s", replicate ? "" : "R-",
-	    ci.ci_user, ci.ci_realm, av[ 2 ] );
+    if ( replicate ) {
+	syslog( LOG_INFO, "LOGOUT %s %s %s", ci.ci_user, ci.ci_realm, av[ 2 ] );
+    }
     return( 0 );
 
 }
@@ -687,7 +689,6 @@ f_register( SNET *sn, int ac, char *av[], SNET *pushersn )
     struct cinfo	ci;
     struct timeval	tv;
     int			rc;
-    double		rate;
 
     /* REGISTER login_cookie ip service_cookie */
 
@@ -718,10 +719,6 @@ f_register( SNET *sn, int ac, char *av[], SNET *pushersn )
     }
 
     if ( read_cookie( av[ 1 ], &ci ) != 0 ) {
-	if (( rate = rate_tick( &regunknown )) != 0.0 ) {
-	    syslog( LOG_NOTICE, "STATS REGISTER %s: UNKNOWN %.5f / sec",
-		     inet_ntoa( cosign_sin.sin_addr ), rate);
-	}
 	snet_writef( sn, "%d REGISTER error: Sorry\r\n", 523 );
 	return( 1 );
     }
@@ -770,8 +767,10 @@ f_register( SNET *sn, int ac, char *av[], SNET *pushersn )
 		av[ 1 ], av[ 2 ], av [ 3 ] );
     }
     (void)strtok( av[ 3 ], "=" );
-    syslog( LOG_INFO, "%sREGISTER %s %s %s %s", replicate ? "" : "R-",
-	    ci.ci_user, ci.ci_realm, ci.ci_ipaddr, av[ 3 ] );
+    if ( replicate ) {
+	syslog( LOG_INFO, "REGISTER %s %s %s %s", 
+		ci.ci_user, ci.ci_realm, ci.ci_ipaddr, av[ 3 ] );
+    }
     return( 0 );
 }
 
@@ -1078,6 +1077,7 @@ command( int fd, SNET *pushersn )
     char				**av, *line;
     struct timeval			tv;
     extern int				errno;
+    double				rate;
 
     srandom( (unsigned)getpid());
 
@@ -1141,6 +1141,18 @@ command( int fd, SNET *pushersn )
 		"421 Service not available, closing transmission channel\r\n" );
     } else {
 	if ( snet_eof( snet )) {
+	    if (( rate = rate_get( &checkpass )) != 0.0 ) {
+		syslog( LOG_NOTICE, "STATS CHECK %s: PASS %.5f / sec",
+			inet_ntoa( cosign_sin.sin_addr), rate );
+	    }
+	    if (( rate = rate_get( &checkfail )) != 0.0 ) {
+		syslog( LOG_NOTICE, "STATS CHECK %s: FAIL %.5f / sec",
+			inet_ntoa( cosign_sin.sin_addr), rate );
+	    }
+	    if (( rate = rate_get( &checkunknown )) != 0.0 ) {
+		syslog( LOG_NOTICE, "STATS CHECK %s: UNKNOWN %.5f / sec",
+			inet_ntoa( cosign_sin.sin_addr), rate );
+	    }
 	    exit( 0 );
 	} else if ( errno == ETIMEDOUT ) {
 	    exit( 0 );

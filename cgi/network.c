@@ -182,6 +182,11 @@ cosign_choose_conn( struct connlist *head, void *netparams,
     if ( ret < 0 ) {
 	fprintf( stderr, "cosign_choose_conn: no connection to servers.\n" );
     }
+
+    if ( rc == 0 ) {
+	fprintf( stderr,
+		"cosign_choose_conn: all servers returned UNKNOWN\n");
+    }
     return( -1 );
 
 done:
@@ -271,7 +276,6 @@ net_login( SNET *sn, void *vlp )
 
     case '5':
         /* choose another connection */
-        fprintf( stderr, "net_login: %s\n", line );
         return( 0 );
 
     default:
@@ -352,7 +356,6 @@ finish:
 
     case '5':
         /* choose another connection */
-        fprintf( stderr, "net_login: %s\n", line );
         return( 0 );
 
     default:
@@ -408,7 +411,6 @@ net_logout( SNET *sn, void *vlp )
 
     case '5':
         /* choose another connection */
-        fprintf( stderr, "net_logout: %s\n", line );
         return( 0 );
 
     default:
@@ -464,7 +466,6 @@ net_register( SNET *sn, void *vrp )
 
     case '5':
         /* choose another connection */
-        fprintf( stderr, "net_register: %d: %s\n", snet_fd( sn ), line );
         return( 0 );
 
     default:
@@ -515,7 +516,6 @@ net_check( SNET *sn, void *vcp )
 
     case '5':
         /* choose another connection */
-        fprintf( stderr, "net_check: %d: %s\n", snet_fd( sn ), line );
         return( 0 );
 
     default:

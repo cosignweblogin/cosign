@@ -1,3 +1,8 @@
+todo as of 10/11/04:
+    add timestamp to service cookie - if more than N old, don't check,
+    just set and redirect.
+    look at timestamp in login cookie as well.
+
 email addresses can be 256 wes sez
 MODULE:
 

@@ -45,9 +45,9 @@ static void (*logger)( char * ) = NULL;
 
 static struct timeval		timeout = { 10 * 60, 0 };
 
-static struct rate   		checkpass = { 0, { }};
-static struct rate   		checkfail = { 0, { }};
-static struct rate   		checkunknown = { 0, { }};
+static struct rate   		checkpass = { 0 };
+static struct rate   		checkfail = { 0 };
+static struct rate   		checkunknown = { 0 };
 static double             	rate;
 
 /*
