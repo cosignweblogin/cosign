@@ -4,19 +4,18 @@
 ##
 
 #   the used tools
-APXS=@apxspath@
-CC=@CC@
-APACHECTL=@apachectlpath@
+CC=             @CC@
+APXS=           @APXS@
+APACHECTL=      @APACHECTL@
+INSTALL=        @INSTALL@
 
 #   additional user defines, includes and libraries
 
 INCPATH=        @CPPFLAGS@ @APXS_INCLUDE@ -I../../libsnet
 OPTOPTS=        @OPTOPTS@
-CC=             @CC@
 DEFS=           @TLSDEFS@
 LIBS=           -lsnet
-LDFLAGS=        -L../../libsnet ${LIBS}
-INSTALL=        @INSTALL@
+LDFLAGS=        -L../../libsnet/.libs ${LIBS}
 
 CFLAGS=         ${DEFS} ${OPTOPTS} @CFLAGS@ @APXS_CFLAGS_SHLIB@ ${INCPATH} -DEAPI
 
@@ -28,7 +27,7 @@ OBJ=	mod_cosign.o mkcookie.o fbase64.o connect.o cookiefs.o sparse.o \
 all: mod_cosign.so
 
 #   compile the DSO file
-mod_cosign.so: ../../libsnet/libsnet.a ${OBJ}
+mod_cosign.so: ../../libsnet/libsnet.la ${OBJ}
 	$(APXS) -c ${OBJ} ${LDFLAGS}
 
 #   install the DSO file into the Apache installation

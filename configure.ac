@@ -20,13 +20,17 @@ AC_CHECK_LIB([socket], [socket])
 CHECK_SSL
 CHECK_LIBKRB
 
-# Checks for Apache SAPI filter.
-CHECK_APACHE
+# Checks for filters:
 CHECK_APACHE_APXS
-if test x_$HAVE_APACHE = x_yes; then
-    AC_PATH_PROG(apachectlpath, apachectl)
-fi
 
+if test "x_$FILTERS" = "x_" ; then
+  AC_MSG_ERROR([No web server found])
+fi
+AC_SUBST(FILTERS)
+
+for i in $FILTERS; do
+  FILTER_CONFIG_FILES="$FILTER_CONFIG_FILES $i/Makefile"
+done
 
 # Checks for header files.
 #AC_HEADER_STDC
@@ -49,11 +53,13 @@ if test x_$GCC = x_yes; then
 fi
 AC_SUBST(OPTOPTS)
 
+AC_CONFIG_SUBDIRS(libsnet)
+
 AC_CONFIG_FILES([Makefile
                  cgi/Makefile
                  html/Makefile
                  daemon/Makefile
-                 filters/apache/Makefile
-                 libcgi/Makefile
-                 libsnet/Makefile])
+                 $FILTER_CONFIG_FILES
+                 libcgi/Makefile])
+
 AC_OUTPUT

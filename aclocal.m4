@@ -2,35 +2,34 @@ AC_DEFUN([CHECK_SSL],
 [
     AC_MSG_CHECKING(for ssl)
     ssldirs="/usr/local/openssl /usr/lib/openssl /usr/openssl \
-            /usr/local/ssl /usr/lib/ssl /usr/ssl \
-            /usr/pkg /usr/local /usr"
+        /usr/local/ssl /usr/lib/ssl /usr/ssl \
+        /usr/pkg /usr/local /usr"
     AC_ARG_WITH(ssl,
-            AC_HELP_STRING([--with-ssl=DIR], [path to ssl]),
-            ssldirs="$withval")
-    for dir in $ssldirs; do
-        ssldir="$dir"
-        if test -f "$dir/include/openssl/ssl.h"; then
-            found_ssl="yes";
-            CPPFLAGS="$CPPFLAGS -I$ssldir/include";
-            break;
-        fi
-        if test -f "$dir/include/ssl.h"; then
-            found_ssl="yes";
-            CPPFLAGS="$CPPFLAGS -I$ssldir/include";
-            break
-        fi
-    done
-    if test x_$found_ssl != x_yes; then
+        AC_HELP_STRING([--with-ssl=DIR], [path to ssl]),
+        ssldirs="$withval")
+    AC_CACHE_VAL(ac_cv_path_ssl,[
+        for ssldir in $ssldirs; do
+            if test -f "$ssldir/include/openssl/ssl.h"; then
+                ac_cv_path_ssl=$ssldir;
+                break;
+            fi
+            if test -f "$ssldir/include/ssl.h"; then
+                ac_cv_path_ssl=$ssldir;
+                break
+            fi
+        done
+    ])
+    if test ! -e "$ac_cv_path_ssl" ; then
         AC_MSG_ERROR(cannot find ssl libraries)
-    else
-        TLSDEFS=-DTLS;
-        AC_SUBST(TLSDEFS)
-        LIBS="$LIBS -lssl -lcrypto";
-        LDFLAGS="$LDFLAGS -L$ssldir/lib";
-        HAVE_SSL=yes
     fi
+    CPPFLAGS="$CPPFLAGS -I$ac_cv_path_ssl/include";
+    TLSDEFS=-DTLS;
+    AC_SUBST(TLSDEFS)
+    LIBS="$LIBS -lssl -lcrypto";
+    LDFLAGS="$LDFLAGS -L$ac_cv_path_ssl/lib";
+    HAVE_SSL=yes
     AC_SUBST(HAVE_SSL)
-    AC_MSG_RESULT(yes)
+    AC_MSG_RESULT($ac_cv_path_ssl)
 ])
 
 AC_DEFUN([CHECK_LIBKRB],
@@ -40,95 +39,73 @@ AC_DEFUN([CHECK_LIBKRB],
             /usr/local/krb5 /usr/lib/krb /usr/krb \
             /usr/pkg /usr/local /usr"
     AC_ARG_WITH(krb,
-            AC_HELP_STRING([--with-krb=DIR], [path to krb]),
-            krbdirs="$withval")
-    for dir in $krbdirs; do
-        krbdir="$dir"
-        if test -f "$dir/include/krb5.h"; then
-            found_krb="yes";
-            KINC="-I$krbdir/include";
-	    AC_SUBST(KINC)
-            break;
-        fi
-    done
-    if test x_$found_krb != x_yes; then
+        AC_HELP_STRING([--with-krb=DIR],
+            [directory under which Kerberos V in installed]),
+        krbdirs="$withval")
+    AC_CACHE_VAL(ac_cv_path_krb,[
+        for krbdir in $krbdirs; do
+            if test -f "$krbdir/include/krb5.h"; then
+                ac_cv_path_krb=$krbdir
+                break;
+            fi
+        done
+    ])
+    if test ! -e "$ac_cv_path_krb" ; then
         AC_MSG_ERROR(cannot find krb libraries)
-    else
-        TLSDEFS=-DTLS;
-        AC_SUBST(TLSDEFS)
-        KLIBS="-lkrb5 -lk5crypto -lcom_err";
-	AC_SUBST(KLIBS)
-        KLDFLAGS="-L$krbdir/lib";
-	AC_SUBST(KLDFLAGS)
-        HAVE_KRB=yes
     fi
+    KINC="-I$ac_cv_path_krb/include";
+    AC_SUBST(KINC)
+    KLIBS="-lkrb5 -lk5crypto -lcom_err";
+    AC_SUBST(KLIBS)
+    KLDFLAGS="-L$ac_cv_path_krb/lib";
+    AC_SUBST(KLDFLAGS)
+    HAVE_KRB=yes
     AC_SUBST(HAVE_KRB)
-    AC_MSG_RESULT(yes)
-])
-
-AC_DEFUN([CHECK_APACHE],
-[
-    AC_MSG_CHECKING(for apache)
-    apachedirs="/usr/local/apache /usr/apache \
-            /usr/pkg /usr/local /usr /usr/local/httpd"
-    AC_ARG_WITH(apache,
-            AC_HELP_STRING([--with-apache=DIR], [path to apache]),
-            apachedirs="$withval")
-    for dir in $apachedirs; do
-        apachedir="$dir"
-        if test -f "$dir/include/httpd/http_core.h"; then
-            found_apache="yes";
-            break
-        fi
-        if test -f "$dir/include/http_core.h"; then
-            found_apache="yes";
-            break
-        fi
-        if test -f "$dir/include/apache/http_core.h"; then
-            found_apache="yes";
-            break
-        fi
-    done
-    if test x_$found_apache != x_yes; then
-        AC_MSG_ERROR(cannot find apache )
-    else
-        HAVE_APACHE=yes
-    fi
-    AC_SUBST(HAVE_APACHE)
-    AC_MSG_RESULT(yes)
+    AC_MSG_RESULT($ac_cv_path_krb)
 ])
 
 AC_DEFUN([CHECK_APACHE_APXS],
 [
-    if test x_$HAVE_APACHE = x_yes; then
-        AC_MSG_CHECKING(for apache DSO support)
-        AC_ARG_WITH(apxs,
-                AC_HELP_STRING([--with-apxs=FILE], [path to apxs]),
-                apxspath="$withval")
-        if test -n "$apxspath" -a -f "$apxspath"; then
-            found_apxs="yes"
-        else
-            dirs=$apachedir/bin:$PATH:/usr/local/apache/bin
+    AC_MSG_CHECKING([for Apache DSO support / apxs])
+    AC_ARG_WITH(apache-apxs,
+        AC_HELP_STRING([--with-apache-apxs=FILE], [path to Apache apxs program]),
+        APXS=$withval)
+    if test -f "$APXS" ; then
+        ac_cv_path_apxs=$APXS   # put it into the cache
+    else
+        apxsdirs="$PATH:/usr/local/apache/bin:/usr/apache/bin:/usr/pkg/bin:/usr/local/bin:/usr/local/httpd/bin"
+        AC_CACHE_VAL(ac_cv_path_apxs,[
             saved_ifs=$IFS
             IFS=:
-            for i in $dirs; do
-                apxspath=$i/apxs
-                if test -f "$apxspath"; then
-                    found_apxs="yes"
+            for i in $apxsdirs; do
+                if test -f "$i/apxs"; then
+                    ac_cv_path_apxs="$i/apxs"
                     break
                 fi
             done
             IFS=$saved_ifs
+        ])
+        APXS="$ac_cv_path_apxs"
+    fi
+    if test -f "$APXS" ; then
+        HAVE_APACHE=yes
+        FILTERS="$FILTERS filters/apache"
+        APXS_INCLUDE="-I`$APXS -q INCLUDEDIR`"
+        APXS_CFLAGS_SHLIB="`$APXS -q CFLAGS_SHLIB`"
+        APXS_SBINDIR="`$APXS -q SBINDIR`"
+        APXS_TARGET="`$APXS -q TARGET`"
+        if test x_$APXS_TARGET = x_httpd ; then
+            APACHECTL="${APXS_SBINDIR}/apachectl"
+        else
+            APACHECTL="${APXS_SBINDIR}/${APXS_TARGET}ctl"
         fi
-        if test x_$found_apxs != x_yes; then
-            AC_MSG_ERROR(cannot find apxs )
-        fi
-        APXS_INCLUDE="-I`$apxspath -q INCLUDEDIR`"
-        APXS_CFLAGS_SHLIB="`$apxspath -q CFLAGS_SHLIB`"
-        AC_SUBST(apxspath)
+        AC_SUBST(APXS)
         AC_SUBST(APXS_INCLUDE)
         AC_SUBST(APXS_CFLAGS_SHLIB)
-        AC_MSG_RESULT($apxspath)
+        AC_SUBST(APACHECTL)
+        AC_MSG_RESULT($APXS)
+    else
+        AC_MSG_RESULT([not found - Apache filter support disabled])
     fi
 ])
 

@@ -1,9 +1,9 @@
 CC=	gcc
-ALL=	libcgi libsnet cgi html daemon filters/apache
-TARGETS= cgi html daemon filters/apache
+ALL=	libcgi libsnet cgi html daemon  filters/apache
+TARGETS= cgi html daemon  filters/apache
 CFLAGS=
 
-first:	filters/apache
+filters:	 filters/apache
 all:	${ALL}
 
 cgi daemon filters/apache:	version.o libsnet
@@ -29,11 +29,13 @@ dist   : distclean
 	echo ${VERSION} > ${DISTDIR}/VERSION
 
 distclean: clean
-	rm -f config.log config.status Makefile libsnet/Makefile \
-	libcgi/Makefile cgi/Makefile html/Makefile daemon/Makefile \
-	filters/apache/Makefile
+	( cd libsnet ; make distclean )
+	rm -f config.log config.status config.cache Makefile \
+	  libcgi/Makefile cgi/Makefile html/Makefile daemon/Makefile \
+	  filters/apache/Makefile
+	rm -rf autom4te.cache
 
-install: filters/apache
+install:  filters/apache
 	cd filters/apache; ${MAKE} ${MFLAGS} install
 
 install-all : all

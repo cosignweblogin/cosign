@@ -9,7 +9,7 @@ OPTOPTS=        @OPTOPTS@
 CC=             @CC@
 DEFS=           @TLSDEFS@
 LIBS=           -lsnet -lcgi @LIBS@ @KLIBS@
-LDFLAGS=        -L../libsnet -L../libcgi @LDFLAGS@ @KLDFLAGS@ ${LIBS}
+LDFLAGS=        -L../libsnet/.libs -L../libcgi @LDFLAGS@ @KLDFLAGS@ ${LIBS}
 INSTALL=        @INSTALL@
 
 CFLAGS=         ${DEFS} ${OPTOPTS} @CFLAGS@ ${INCPATH}

@@ -264,6 +264,7 @@ PACKAGE_STRING='cosign VERSION'
 PACKAGE_BUGREPORT='cosign@umich.edu'
 
 ac_unique_file="version.c"
+ac_subdirs_all="$ac_subdirs_all libsnet"
 
 # Initialize some variables set by options.
 ac_init_help=
@@ -789,9 +790,8 @@ Optional Packages:
   --with-PACKAGE[=ARG]    use PACKAGE [ARG=yes]
   --without-PACKAGE       do not use PACKAGE (same as --with-PACKAGE=no)
   --with-ssl=DIR          path to ssl
-  --with-krb=DIR          path to krb
-  --with-apache=DIR       path to apache
-  --with-apxs=FILE        path to apxs
+  --with-krb=DIR          directory under which Kerberos V in installed
+  --with-apache-apxs=FILE path to Apache apxs program
 
 Some influential environment variables:
   CC          C compiler command
@@ -2492,41 +2492,45 @@ fi
     echo "$as_me:$LINENO: checking for ssl" >&5
 echo $ECHO_N "checking for ssl... $ECHO_C" >&6
     ssldirs="/usr/local/openssl /usr/lib/openssl /usr/openssl \
-            /usr/local/ssl /usr/lib/ssl /usr/ssl \
-            /usr/pkg /usr/local /usr"
+        /usr/local/ssl /usr/lib/ssl /usr/ssl \
+        /usr/pkg /usr/local /usr"
 
 # Check whether --with-ssl or --without-ssl was given.
 if test "${with_ssl+set}" = set; then
   withval="$with_ssl"
   ssldirs="$withval"
 fi;
-    for dir in $ssldirs; do
-        ssldir="$dir"
-        if test -f "$dir/include/openssl/ssl.h"; then
-            found_ssl="yes";
-            CPPFLAGS="$CPPFLAGS -I$ssldir/include";
-            break;
-        fi
-        if test -f "$dir/include/ssl.h"; then
-            found_ssl="yes";
-            CPPFLAGS="$CPPFLAGS -I$ssldir/include";
-            break
-        fi
-    done
-    if test x_$found_ssl != x_yes; then
+    if test "${ac_cv_path_ssl+set}" = set; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+
+        for ssldir in $ssldirs; do
+            if test -f "$ssldir/include/openssl/ssl.h"; then
+                ac_cv_path_ssl=$ssldir;
+                break;
+            fi
+            if test -f "$ssldir/include/ssl.h"; then
+                ac_cv_path_ssl=$ssldir;
+                break
+            fi
+        done
+
+fi
+
+    if test ! -e "$ac_cv_path_ssl" ; then
         { { echo "$as_me:$LINENO: error: cannot find ssl libraries" >&5
 echo "$as_me: error: cannot find ssl libraries" >&2;}
    { (exit 1); exit 1; }; }
-    else
-        TLSDEFS=-DTLS;
-
-        LIBS="$LIBS -lssl -lcrypto";
-        LDFLAGS="$LDFLAGS -L$ssldir/lib";
-        HAVE_SSL=yes
     fi
+    CPPFLAGS="$CPPFLAGS -I$ac_cv_path_ssl/include";
+    TLSDEFS=-DTLS;
 
-    echo "$as_me:$LINENO: result: yes" >&5
-echo "${ECHO_T}yes" >&6
+    LIBS="$LIBS -lssl -lcrypto";
+    LDFLAGS="$LDFLAGS -L$ac_cv_path_ssl/lib";
+    HAVE_SSL=yes
+
+    echo "$as_me:$LINENO: result: $ac_cv_path_ssl" >&5
+echo "${ECHO_T}$ac_cv_path_ssl" >&6
 
 
     echo "$as_me:$LINENO: checking for krb" >&5
@@ -2540,152 +2544,102 @@ if test "${with_krb+set}" = set; then
   withval="$with_krb"
   krbdirs="$withval"
 fi;
-    for dir in $krbdirs; do
-        krbdir="$dir"
-        if test -f "$dir/include/krb5.h"; then
-            found_krb="yes";
-            KINC="-I$krbdir/include";
+    if test "${ac_cv_path_krb+set}" = set; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
 
-            break;
-        fi
-    done
-    if test x_$found_krb != x_yes; then
+        for krbdir in $krbdirs; do
+            if test -f "$krbdir/include/krb5.h"; then
+                ac_cv_path_krb=$krbdir
+                break;
+            fi
+        done
+
+fi
+
+    if test ! -e "$ac_cv_path_krb" ; then
         { { echo "$as_me:$LINENO: error: cannot find krb libraries" >&5
 echo "$as_me: error: cannot find krb libraries" >&2;}
    { (exit 1); exit 1; }; }
-    else
-        TLSDEFS=-DTLS;
-
-        KLIBS="-lkrb5 -lk5crypto -lcom_err";
-
-        KLDFLAGS="-L$krbdir/lib";
-
-        HAVE_KRB=yes
     fi
+    KINC="-I$ac_cv_path_krb/include";
 
-    echo "$as_me:$LINENO: result: yes" >&5
-echo "${ECHO_T}yes" >&6
+    KLIBS="-lkrb5 -lk5crypto -lcom_err";
+
+    KLDFLAGS="-L$ac_cv_path_krb/lib";
+
+    HAVE_KRB=yes
+
+    echo "$as_me:$LINENO: result: $ac_cv_path_krb" >&5
+echo "${ECHO_T}$ac_cv_path_krb" >&6
 
 
-# Checks for Apache SAPI filter.
+# Checks for filters:
 
-    echo "$as_me:$LINENO: checking for apache" >&5
-echo $ECHO_N "checking for apache... $ECHO_C" >&6
-    apachedirs="/usr/local/apache /usr/apache \
-            /usr/pkg /usr/local /usr /usr/local/httpd"
+    echo "$as_me:$LINENO: checking for Apache DSO support / apxs" >&5
+echo $ECHO_N "checking for Apache DSO support / apxs... $ECHO_C" >&6
 
-# Check whether --with-apache or --without-apache was given.
-if test "${with_apache+set}" = set; then
-  withval="$with_apache"
-  apachedirs="$withval"
+# Check whether --with-apache-apxs or --without-apache-apxs was given.
+if test "${with_apache_apxs+set}" = set; then
+  withval="$with_apache_apxs"
+  APXS=$withval
 fi;
-    for dir in $apachedirs; do
-        apachedir="$dir"
-        if test -f "$dir/include/httpd/http_core.h"; then
-            found_apache="yes";
-            break
-        fi
-        if test -f "$dir/include/http_core.h"; then
-            found_apache="yes";
-            break
-        fi
-        if test -f "$dir/include/apache/http_core.h"; then
-            found_apache="yes";
-            break
-        fi
-    done
-    if test x_$found_apache != x_yes; then
-        { { echo "$as_me:$LINENO: error: cannot find apache " >&5
-echo "$as_me: error: cannot find apache " >&2;}
-   { (exit 1); exit 1; }; }
+    if test -f "$APXS" ; then
+        ac_cv_path_apxs=$APXS   # put it into the cache
     else
-        HAVE_APACHE=yes
-    fi
+        apxsdirs="$PATH:/usr/local/apache/bin:/usr/apache/bin:/usr/pkg/bin:/usr/local/bin:/usr/local/httpd/bin"
+        if test "${ac_cv_path_apxs+set}" = set; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
 
-    echo "$as_me:$LINENO: result: yes" >&5
-echo "${ECHO_T}yes" >&6
-
-
-    if test x_$HAVE_APACHE = x_yes; then
-        echo "$as_me:$LINENO: checking for apache DSO support" >&5
-echo $ECHO_N "checking for apache DSO support... $ECHO_C" >&6
-
-# Check whether --with-apxs or --without-apxs was given.
-if test "${with_apxs+set}" = set; then
-  withval="$with_apxs"
-  apxspath="$withval"
-fi;
-        if test -n "$apxspath" -a -f "$apxspath"; then
-            found_apxs="yes"
-        else
-            dirs=$apachedir/bin:$PATH:/usr/local/apache/bin
             saved_ifs=$IFS
             IFS=:
-            for i in $dirs; do
-                apxspath=$i/apxs
-                if test -f "$apxspath"; then
-                    found_apxs="yes"
+            for i in $apxsdirs; do
+                if test -f "$i/apxs"; then
+                    ac_cv_path_apxs="$i/apxs"
                     break
                 fi
             done
             IFS=$saved_ifs
+
+fi
+
+        APXS="$ac_cv_path_apxs"
+    fi
+    if test -f "$APXS" ; then
+        HAVE_APACHE=yes
+        FILTERS="$FILTERS filters/apache"
+        APXS_INCLUDE="-I`$APXS -q INCLUDEDIR`"
+        APXS_CFLAGS_SHLIB="`$APXS -q CFLAGS_SHLIB`"
+        APXS_SBINDIR="`$APXS -q SBINDIR`"
+        APXS_TARGET="`$APXS -q TARGET`"
+        if test x_$APXS_TARGET = x_httpd ; then
+            APACHECTL="${APXS_SBINDIR}/apachectl"
+        else
+            APACHECTL="${APXS_SBINDIR}/${APXS_TARGET}ctl"
         fi
-        if test x_$found_apxs != x_yes; then
-            { { echo "$as_me:$LINENO: error: cannot find apxs " >&5
-echo "$as_me: error: cannot find apxs " >&2;}
-   { (exit 1); exit 1; }; }
-        fi
-        APXS_INCLUDE="-I`$apxspath -q INCLUDEDIR`"
-        APXS_CFLAGS_SHLIB="`$apxspath -q CFLAGS_SHLIB`"
 
 
 
-        echo "$as_me:$LINENO: result: $apxspath" >&5
-echo "${ECHO_T}$apxspath" >&6
+
+        echo "$as_me:$LINENO: result: $APXS" >&5
+echo "${ECHO_T}$APXS" >&6
+    else
+        echo "$as_me:$LINENO: result: not found - Apache filter support disabled" >&5
+echo "${ECHO_T}not found - Apache filter support disabled" >&6
     fi
 
-if test x_$HAVE_APACHE = x_yes; then
-    # Extract the first word of "apachectl", so it can be a program name with args.
-set dummy apachectl; ac_word=$2
-echo "$as_me:$LINENO: checking for $ac_word" >&5
-echo $ECHO_N "checking for $ac_word... $ECHO_C" >&6
-if test "${ac_cv_path_apachectlpath+set}" = set; then
-  echo $ECHO_N "(cached) $ECHO_C" >&6
-else
-  case $apachectlpath in
-  [\\/]* | ?:[\\/]*)
-  ac_cv_path_apachectlpath="$apachectlpath" # Let the user override the test with a path.
-  ;;
-  *)
-  as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
-for as_dir in $PATH
-do
-  IFS=$as_save_IFS
-  test -z "$as_dir" && as_dir=.
-  for ac_exec_ext in '' $ac_executable_extensions; do
-  if $as_executable_p "$as_dir/$ac_word$ac_exec_ext"; then
-    ac_cv_path_apachectlpath="$as_dir/$ac_word$ac_exec_ext"
-    echo "$as_me:$LINENO: found $as_dir/$ac_word$ac_exec_ext" >&5
-    break 2
-  fi
+
+if test "x_$FILTERS" = "x_" ; then
+  { { echo "$as_me:$LINENO: error: No web server found" >&5
+echo "$as_me: error: No web server found" >&2;}
+   { (exit 1); exit 1; }; }
+fi
+
+
+for i in $FILTERS; do
+  FILTER_CONFIG_FILES="$FILTER_CONFIG_FILES $i/Makefile"
 done
-done
-
-  ;;
-esac
-fi
-apachectlpath=$ac_cv_path_apachectlpath
-
-if test -n "$apachectlpath"; then
-  echo "$as_me:$LINENO: result: $apachectlpath" >&5
-echo "${ECHO_T}$apachectlpath" >&6
-else
-  echo "$as_me:$LINENO: result: no" >&5
-echo "${ECHO_T}no" >&6
-fi
-
-fi
-
 
 # Checks for header files.
 #AC_HEADER_STDC
@@ -2708,7 +2662,13 @@ if test x_$GCC = x_yes; then
 fi
 
 
-ac_config_files="$ac_config_files Makefile cgi/Makefile html/Makefile daemon/Makefile filters/apache/Makefile libcgi/Makefile libsnet/Makefile"
+
+
+subdirs="$subdirs libsnet"
+
+
+ac_config_files="$ac_config_files Makefile cgi/Makefile html/Makefile daemon/Makefile $FILTER_CONFIG_FILES libcgi/Makefile"
+
 
 cat >confcache <<\_ACEOF
 # This file is a shell script that caches the results of configure
@@ -3211,9 +3171,8 @@ do
   "cgi/Makefile" ) CONFIG_FILES="$CONFIG_FILES cgi/Makefile" ;;
   "html/Makefile" ) CONFIG_FILES="$CONFIG_FILES html/Makefile" ;;
   "daemon/Makefile" ) CONFIG_FILES="$CONFIG_FILES daemon/Makefile" ;;
-  "filters/apache/Makefile" ) CONFIG_FILES="$CONFIG_FILES filters/apache/Makefile" ;;
+  "$FILTER_CONFIG_FILES" ) CONFIG_FILES="$CONFIG_FILES $FILTER_CONFIG_FILES" ;;
   "libcgi/Makefile" ) CONFIG_FILES="$CONFIG_FILES libcgi/Makefile" ;;
-  "libsnet/Makefile" ) CONFIG_FILES="$CONFIG_FILES libsnet/Makefile" ;;
   *) { { echo "$as_me:$LINENO: error: invalid argument: $ac_config_target" >&5
 echo "$as_me: error: invalid argument: $ac_config_target" >&2;}
    { (exit 1); exit 1; }; };;
@@ -3315,12 +3274,13 @@ s,@KINC@,$KINC,;t t
 s,@KLIBS@,$KLIBS,;t t
 s,@KLDFLAGS@,$KLDFLAGS,;t t
 s,@HAVE_KRB@,$HAVE_KRB,;t t
-s,@HAVE_APACHE@,$HAVE_APACHE,;t t
-s,@apxspath@,$apxspath,;t t
+s,@APXS@,$APXS,;t t
 s,@APXS_INCLUDE@,$APXS_INCLUDE,;t t
 s,@APXS_CFLAGS_SHLIB@,$APXS_CFLAGS_SHLIB,;t t
-s,@apachectlpath@,$apachectlpath,;t t
+s,@APACHECTL@,$APACHECTL,;t t
+s,@FILTERS@,$FILTERS,;t t
 s,@OPTOPTS@,$OPTOPTS,;t t
+s,@subdirs@,$subdirs,;t t
 CEOF
 
 _ACEOF
@@ -3546,5 +3506,144 @@ if test "$no_create" != yes; then
   # Use ||, not &&, to avoid exiting from the if with $? = 1, which
   # would make configure fail if this is the last instruction.
   $ac_cs_success || { (exit 1); exit 1; }
+fi
+
+#
+# CONFIG_SUBDIRS section.
+#
+if test "$no_recursion" != yes; then
+
+  # Remove --cache-file and --srcdir arguments so they do not pile up.
+  ac_sub_configure_args=
+  ac_prev=
+  for ac_arg in $ac_configure_args; do
+    if test -n "$ac_prev"; then
+      ac_prev=
+      continue
+    fi
+    case $ac_arg in
+    -cache-file | --cache-file | --cache-fil | --cache-fi \
+    | --cache-f | --cache- | --cache | --cach | --cac | --ca | --c)
+      ac_prev=cache_file ;;
+    -cache-file=* | --cache-file=* | --cache-fil=* | --cache-fi=* \
+    | --cache-f=* | --cache-=* | --cache=* | --cach=* | --cac=* | --ca=* \
+    | --c=*)
+      ;;
+    --config-cache | -C)
+      ;;
+    -srcdir | --srcdir | --srcdi | --srcd | --src | --sr)
+      ac_prev=srcdir ;;
+    -srcdir=* | --srcdir=* | --srcdi=* | --srcd=* | --src=* | --sr=*)
+      ;;
+    -prefix | --prefix | --prefi | --pref | --pre | --pr | --p)
+      ac_prev=prefix ;;
+    -prefix=* | --prefix=* | --prefi=* | --pref=* | --pre=* | --pr=* | --p=*)
+      ;;
+    *) ac_sub_configure_args="$ac_sub_configure_args $ac_arg" ;;
+    esac
+  done
+
+  # Always prepend --prefix to ensure using the same prefix
+  # in subdir configurations.
+  ac_sub_configure_args="--prefix=$prefix $ac_sub_configure_args"
+
+  ac_popdir=`pwd`
+  for ac_dir in : $subdirs; do test "x$ac_dir" = x: && continue
+
+    # Do not complain, so a configure script can configure whichever
+    # parts of a large source tree are present.
+    test -d $srcdir/$ac_dir || continue
+
+    { echo "$as_me:$LINENO: configuring in $ac_dir" >&5
+echo "$as_me: configuring in $ac_dir" >&6;}
+    { case "$ac_dir" in
+  [\\/]* | ?:[\\/]* ) as_incr_dir=;;
+  *)                      as_incr_dir=.;;
+esac
+as_dummy="$ac_dir"
+for as_mkdir_dir in `IFS='/\\'; set X $as_dummy; shift; echo "$@"`; do
+  case $as_mkdir_dir in
+    # Skip DOS drivespec
+    ?:) as_incr_dir=$as_mkdir_dir ;;
+    *)
+      as_incr_dir=$as_incr_dir/$as_mkdir_dir
+      test -d "$as_incr_dir" ||
+        mkdir "$as_incr_dir" ||
+	{ { echo "$as_me:$LINENO: error: cannot create \"$ac_dir\"" >&5
+echo "$as_me: error: cannot create \"$ac_dir\"" >&2;}
+   { (exit 1); exit 1; }; }
+    ;;
+  esac
+done; }
+
+    ac_builddir=.
+
+if test "$ac_dir" != .; then
+  ac_dir_suffix=/`echo "$ac_dir" | sed 's,^\.[\\/],,'`
+  # A "../" for each directory in $ac_dir_suffix.
+  ac_top_builddir=`echo "$ac_dir_suffix" | sed 's,/[^\\/]*,../,g'`
+else
+  ac_dir_suffix= ac_top_builddir=
+fi
+
+case $srcdir in
+  .)  # No --srcdir option.  We are building in place.
+    ac_srcdir=.
+    if test -z "$ac_top_builddir"; then
+       ac_top_srcdir=.
+    else
+       ac_top_srcdir=`echo $ac_top_builddir | sed 's,/$,,'`
+    fi ;;
+  [\\/]* | ?:[\\/]* )  # Absolute path.
+    ac_srcdir=$srcdir$ac_dir_suffix;
+    ac_top_srcdir=$srcdir ;;
+  *) # Relative path.
+    ac_srcdir=$ac_top_builddir$srcdir$ac_dir_suffix
+    ac_top_srcdir=$ac_top_builddir$srcdir ;;
+esac
+# Don't blindly perform a `cd "$ac_dir"/$ac_foo && pwd` since $ac_foo can be
+# absolute.
+ac_abs_builddir=`cd "$ac_dir" && cd $ac_builddir && pwd`
+ac_abs_top_builddir=`cd "$ac_dir" && cd $ac_top_builddir && pwd`
+ac_abs_srcdir=`cd "$ac_dir" && cd $ac_srcdir && pwd`
+ac_abs_top_srcdir=`cd "$ac_dir" && cd $ac_top_srcdir && pwd`
+
+
+    cd $ac_dir
+
+    # Check for guested configure; otherwise get Cygnus style configure.
+    if test -f $ac_srcdir/configure.gnu; then
+      ac_sub_configure="$SHELL '$ac_srcdir/configure.gnu'"
+    elif test -f $ac_srcdir/configure; then
+      ac_sub_configure="$SHELL '$ac_srcdir/configure'"
+    elif test -f $ac_srcdir/configure.in; then
+      ac_sub_configure=$ac_configure
+    else
+      { echo "$as_me:$LINENO: WARNING: no configuration information is in $ac_dir" >&5
+echo "$as_me: WARNING: no configuration information is in $ac_dir" >&2;}
+      ac_sub_configure=
+    fi
+
+    # The recursion is here.
+    if test -n "$ac_sub_configure"; then
+      # Make the cache file name correct relative to the subdirectory.
+      case $cache_file in
+      [\\/]* | ?:[\\/]* ) ac_sub_cache_file=$cache_file ;;
+      *) # Relative path.
+        ac_sub_cache_file=$ac_top_builddir$cache_file ;;
+      esac
+
+      { echo "$as_me:$LINENO: running $ac_sub_configure $ac_sub_configure_args --cache-file=$ac_sub_cache_file --srcdir=$ac_srcdir" >&5
+echo "$as_me: running $ac_sub_configure $ac_sub_configure_args --cache-file=$ac_sub_cache_file --srcdir=$ac_srcdir" >&6;}
+      # The eval makes quoting arguments work.
+      eval $ac_sub_configure $ac_sub_configure_args \
+           --cache-file=$ac_sub_cache_file --srcdir=$ac_srcdir ||
+        { { echo "$as_me:$LINENO: error: $ac_sub_configure failed for $ac_dir" >&5
+echo "$as_me: error: $ac_sub_configure failed for $ac_dir" >&2;}
+   { (exit 1); exit 1; }; }
+    fi
+
+    cd $ac_popdir
+  done
 fi
 
