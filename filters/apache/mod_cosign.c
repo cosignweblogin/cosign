@@ -337,7 +337,9 @@ set_cosign_protect( cmd_parms *params, void *mconfig, int flag )
     } else {
 	cfg = (cosign_host_config *)mconfig;
 	cfg->redirect = ap_pstrdup( params->pool, scfg->redirect );
-	cfg->siteentry = ap_pstrdup( params->pool, scfg->siteentry );
+	if ( cfg->siteentry != NULL ) {
+	    cfg->siteentry = ap_pstrdup( params->pool, scfg->siteentry );
+	}
 	cfg->posterror = ap_pstrdup( params->pool, scfg->posterror );
 	cfg->host = ap_pstrdup( params->pool, scfg->host );
 	cfg->cl = scfg->cl;
@@ -396,7 +398,9 @@ set_cosign_service( cmd_parms *params, void *mconfig, char *arg )
 	cfg = scfg;
     } else {
 	cfg = (cosign_host_config *)mconfig;
-	cfg->siteentry = ap_pstrdup( params->pool, scfg->siteentry );
+	if ( cfg->siteentry != NULL ) {
+	    cfg->siteentry = ap_pstrdup( params->pool, scfg->siteentry );
+	}
 	cfg->redirect = ap_pstrdup( params->pool, scfg->redirect );
 	cfg->posterror = ap_pstrdup( params->pool, scfg->posterror );
 	cfg->host = ap_pstrdup( params->pool, scfg->host );
