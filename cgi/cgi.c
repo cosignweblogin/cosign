@@ -151,7 +151,7 @@ kcgi_configure()
 main( int argc, char *argv[] )
 {
     int				rc, cookietime = 0, cookiecount = 0;
-    int				rebasic = 0, len;
+    int				rebasic = 0, len, server_port;
     char                	new_cookiebuf[ 128 ];
     char        		new_cookie[ 255 ];
     char			*data, *ip_addr;
@@ -163,12 +163,16 @@ main( int argc, char *argv[] )
     struct timeval		tv;
     struct connlist		*head;
 
-    if ( argc == 2 && ( strncmp( argv[ 1 ], "-V", 2 ) == 0 )) {
-	printf( "%s\n", cosign_version );
-	exit( 0 );
+    if ( argc == 2 ) {
+	if ( strncmp( argv[ 1 ], "-V", 2 ) == 0 ) {
+	    printf( "%s\n", cosign_version );
+	    exit( 0 );
+	} else if ( strncmp( argv[ 1 ], "basic", 5 ) == 0 ) {
+	    rebasic = 1;
+	}
     } else if ( argc != 1 ) {
-	printf( "usage: %s [-V]\n", argv[ 0 ] );
-	exit( 0 );
+	fprintf( stderr, "usage: %s [-V]\n", argv[ 0 ] );
+	exit( 1 );
     }
 
     if ( cosign_config( cosign_conf ) < 0 ) {
@@ -193,6 +197,7 @@ main( int argc, char *argv[] )
     method = getenv( "REQUEST_METHOD" );
     ip_addr = getenv( "REMOTE_ADDR" );
     remote_user = getenv( "REMOTE_USER" );
+    server_port = atoi( getenv( "SERVER_PORT" ));
 
     if ((( qs = getenv( "QUERY_STRING" )) != NULL ) && ( *qs != '\0' )) {
 	if (( p = strtok( qs, "&" )) == NULL ) {
@@ -233,7 +238,7 @@ main( int argc, char *argv[] )
 		subfile( tmpl, sl, 0 );
 		exit( 0 );
 	    }
-	    sl[ SL_REF ].sl_data = ref++;
+	    sl[ SL_REF ].sl_data = ref;
 	}
     }
 
@@ -342,6 +347,7 @@ main( int argc, char *argv[] )
 	if ( rc > 0 ) {
 	    sl[ SL_ERROR ].sl_data = "You are not logged in. "
 		    "Please log in now.";
+	    fprintf( stderr, "basically not possible\n" ) ;
 	    goto loginscreen;
 	}
 
@@ -362,7 +368,7 @@ main( int argc, char *argv[] )
 		tmpl = ERROR_HTML;
 		subfile( tmpl, sl, 0 );
 		exit( 0 );
-	    } else {
+	    } else if ( !rebasic ) {
 		sl[ SL_ERROR ].sl_data = "You are not logged in. "
 			"Please log in now.";
 		goto loginscreen;
@@ -370,7 +376,12 @@ main( int argc, char *argv[] )
 	}
 
 	/* authentication successful, show service menu */
-	printf( "Location: https://%s%s\n\n", cosign_host, SERVICE_MENU );
+	if ( server_port != 443 ) {
+	    printf( "Location: https://%s:%d%s\n\n", cosign_host,
+		    server_port, SERVICE_MENU );
+	} else {
+	    printf( "Location: https://%s%s\n\n", cosign_host, SERVICE_MENU );
+	}
 	exit( 0 );
     }
 
@@ -459,7 +470,12 @@ main( int argc, char *argv[] )
 	exit( 0 );
     }
 
-    printf( "Location: https://%s%s\n\n", cosign_host, SERVICE_MENU );
+    if ( server_port != 443 ) {
+	printf( "Location: https://%s:%d%s\n\n", cosign_host,
+		server_port, SERVICE_MENU );
+    } else {
+	printf( "Location: https://%s%s\n\n", cosign_host, SERVICE_MENU );
+    }
     exit( 0 );
 
 loginscreen:
@@ -481,8 +497,17 @@ loginscreen:
     printf( "Set-Cookie: %s; path=/; secure\n", new_cookie );
 
     if ( remote_user ) {
-	printf( "Location: https://%s%s?basic&%s&%s\n\n", cosign_host, script,
-		service, ref);
+	if ( server_port != 443 ) {
+	    printf( "Location: https://%s:%d%s?basic",
+		    cosign_host, server_port, script );
+	} else {
+	    printf( "Location: https://%s%s?basic", cosign_host, script );
+	}
+	if (( ref != NULL ) && ( service != NULL )) {
+	    printf( "&%s&%s\n\n", service, ref );
+	} else {
+	    fputs( "\n\n", stdout );
+	}
     } else {
 	if ( sl[ SL_ERROR ].sl_data == NULL ) {
 	    sl[ SL_ERROR ].sl_data = "Please type your login and password "

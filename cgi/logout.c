@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2002 Regents of The University of Michigan.
  * All Rights Reserved.  See LICENSE.
-*/
+ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -33,8 +33,6 @@ char		*cosign_conf = _COSIGN_CONF;
 
 unsigned short	cosign_port = htons( 6663 );
 SSL_CTX         *ctx = NULL;
-int		nocache = 0;
-
 
 struct cgi_list cl[] = {
 #define CL_VERIFY	0
