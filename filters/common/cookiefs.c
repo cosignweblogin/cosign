@@ -7,6 +7,8 @@
 #include <sys/time.h>
 #include <sys/stat.h>
 #include <sys/socket.h>
+#include <sys/param.h>
+#include <netinet/in.h>
 #include <utime.h>
 #include <unistd.h>
 #include <string.h>
