@@ -409,6 +409,11 @@ cosign_ssl( char *cryptofile, char *certfile, char *cadir, SSL_CTX **ctx )
 		ERR_error_string( ERR_get_error(), NULL ));
 	return( 1 );
     }
+    if ( SSL_CTX_load_verify_locations( tmp, NULL, cadir ) != 1 ) {
+	fprintf( stderr, "SSL_CTX_load_verify_location: %s\n",
+                ERR_error_string( ERR_get_error(), NULL ));
+        return( 1 );
+    }
 
     SSL_CTX_set_verify( tmp,
 	    SSL_VERIFY_PEER | SSL_VERIFY_FAIL_IF_NO_PEER_CERT, NULL);
