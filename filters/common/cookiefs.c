@@ -68,9 +68,11 @@ cosign_cookie_valid( cosign_host_config *cfg, char *cookie, struct sinfo *si,
     }
 
     if (( rs == 0 ) && (( tv.tv_sec - lsi.si_itime ) <= IDLETIME )) {
+#ifdef CHECK_SOURCE_ADDR
 	if ( strcmp( ipaddr, lsi.si_ipaddr ) != 0 ) {
 	    return( -1 );
 	}
+#endif /* CHECK_SOURCE_ADDR */
 	strcpy( si->si_ipaddr, lsi.si_ipaddr );
 	strcpy( si->si_user, lsi.si_user );
 	strcpy( si->si_realm, lsi.si_realm );
@@ -107,9 +109,11 @@ cosign_cookie_valid( cosign_host_config *cfg, char *cookie, struct sinfo *si,
 	return( 1 );
     }
 
+#ifdef CHECK_SOURCE_ADDR
     if ( strcmp( ipaddr, si->si_ipaddr ) != 0 ) {
 	return( 1 );
     }
+#endif /* CHECK_SOURCE_ADDR */
 
     if ( rs == 0 ) {
 	/* check net info against local info */
