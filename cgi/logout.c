@@ -206,12 +206,12 @@ main( int argc, char *argv[] )
 	if ( cosign_logout( head, cookie, ip_addr ) < 0 ) {
 	    fprintf( stderr, "%s: logout failed\n", script ) ;
 
-	    err = "Logout failed.  Perhaps you were not logged-in?";
-	    title = "Error:  Logout Failed";
-	    tmpl = ERROR_HTML;
-
-	    subfile( tmpl );
-	    exit( 2 );
+	    /* the user doesn't care that logout failed, as long as the
+		cookie gets expired.  We could log user's IP and cookie
+		string in the error log, but I think that's just
+		useless noise so I'm going to just ignore this case
+		altogether.  -- clunis
+	    */
 	}
     }
 
