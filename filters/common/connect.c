@@ -36,6 +36,10 @@ copy_connections( struct sinlist *s_cur )
     struct connlist **cur = NULL, *new = NULL;
     int	c = -1;
 
+    /* make sure each child has its own copy of the available
+     * connections. and initialize.
+     */
+
     if ( s_cur->s_copied ) {
 	choose_conn();
 	return( 0 );
@@ -120,17 +124,17 @@ netcheck_cookie( char *secant, struct sinfo *si )
 
     /* I guess we check some sizing here :) */
     if ( strlen( av[ 1 ] ) >= IP_SZ ) {
-	fprintf( stderr, "Swedish hacker port?\n" );
+	fprintf( stderr, "netcheck_cookie: IP address too long\n" );
 	return( -1 );
     }
     strcpy( si->si_ipaddr, av[ 1 ] );
     if ( strlen( av[ 2 ] ) >= USER_SZ ) {
-	fprintf( stderr, "Swedish hacker port?\n" );
+	fprintf( stderr, "netcheck_cookie: username too long\n" );
 	return(- 1 );
     }
     strcpy( si->si_user, av[ 2 ] );
     if ( strlen( av[ 3 ] ) >= REALM_SZ ) {
-	fprintf( stderr, "Swedish hacker port?\n" );
+	fprintf( stderr, "netcheck_cookie: realm too long\n" );
 	return( -1 );
     }
     strcpy( si->si_realm, av[ 3 ] );
@@ -143,6 +147,7 @@ teardown_conn( )
 {
     struct connlist *cur = NULL;
 
+    /* close down all children on exit */
     for ( cur = conn_head; cur != NULL; cur = cur->conn_next ) {
 	if ( cur->conn_sn != NULL  ) {
 	    if ( close_sn( cur->conn_sn ) != 0 ) {
@@ -158,6 +163,10 @@ choose_conn( )
 {
     struct connlist *cur = NULL;
 
+    /* use connection, then shuffle if there is a problem
+     * how do we reclaim once it's bad?
+     * what happens if they are all bad?
+     */
     for ( cur = conn_head; cur != NULL; cur = cur->conn_next ) {
 	if ( cur->conn_flag & CONN_OPEN ) {
 fprintf( stderr, "we theoretically have a conn open.\n" );

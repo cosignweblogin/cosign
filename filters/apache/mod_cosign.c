@@ -51,6 +51,7 @@ cosign_create_server_config( pool *p, server_rec *s )
     cfg->sl = NULL;
     return( cfg );
 }
+
     int
 set_cookie_and_redirect( request_rec *r, cosign_host_config *cfg )
 {
