@@ -47,6 +47,10 @@ hup( sig )
     int			sig;
 {
     syslog( LOG_INFO, "reload %s", version );
+    if ( chosts_read( cosign_conf ) < 0 ) {
+	syslog( LOG_ERR, "%s: re-read failed", cosign_conf );
+	exit( 1 );
+    }
 }
 
     void
