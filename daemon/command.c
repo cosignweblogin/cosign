@@ -1013,7 +1013,7 @@ command( int fd, SNET *pushersn )
 		"421 Service not available, closing transmission channel\r\n" );
     } else {
 	if ( snet_eof( snet )) {
-	    syslog( LOG_ERR, "client dropped connection" );
+	    exit( 0 );
 	} else {
 	    syslog( LOG_ERR, "snet_getline: %m" );
 	}
