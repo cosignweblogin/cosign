@@ -254,13 +254,13 @@ kcgi_configure()
 	cadir = val;
     }
 # ifdef SQL_FRIEND
-    if (( val = getConfigValue( MYSQLDBKEY )) != NULL ) {
+    if (( val = cosign_config_get( MYSQLDBKEY )) != NULL ) {
 	friend_db_name = val;
     }
-    if (( val = getConfigValue( MYSQLUSERKEY )) != NULL ) {
+    if (( val = cosign_config_get( MYSQLUSERKEY )) != NULL ) {
 	friend_login = val;
     }
-    if (( val = getConfigValue( MYSQLPASSWDKEY )) != NULL ) {
+    if (( val = cosign_config_get( MYSQLPASSWDKEY )) != NULL ) {
 	friend_passwd = val;
     }
 # endif	 /* SQL_FRIEND */
@@ -301,6 +301,9 @@ main( int argc, char *argv[] )
 
     if ( argc == 2 && ( strncmp( argv[ 1 ], "-V", 2 ) == 0 )) {
 	printf( "%s\n", cosign_version );
+	exit( 0 );
+    } else if ( argc != 1 ) {
+	printf( "usage: %s [-V]\n", argv[ 0 ] );
 	exit( 0 );
     }
 
