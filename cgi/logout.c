@@ -82,7 +82,7 @@ subfile( char *filename )
 		printf( "%s", getenv( "SCRIPT_NAME" ));
 		break;
 
-            case 'l':
+            case 'u':
                 if ( url != NULL ) {
 		    for ( i = 0; i < strlen( url ); i++ ) {
 			/* block XSS attacks while printing */

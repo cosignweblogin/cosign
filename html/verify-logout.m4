@@ -15,13 +15,13 @@ include(`header.html')
 		&nbsp;
 		&nbsp;
 
-		<input type="hidden" name="url" value="$l" />
+		<input type="hidden" name="url" value="$u" />
 		<input type="submit" name="verify" value="Logout" />
 	    </form>
 	</p>
 
 	<p class="smallBodyText">
-	    After logout your browser will redirect to: $l
+	    After logout your browser will redirect to: $u
 	</p>
 
 include(`footer.html')

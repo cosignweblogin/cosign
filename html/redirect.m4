@@ -1,4 +1,4 @@
-<META HTTP-EQUIV="Refresh" CONTENT="3; URL=$l">
+<META HTTP-EQUIV="Refresh" CONTENT="3; URL=$u">
 
 include(`header.html')
 
@@ -8,7 +8,7 @@ include(`header.html')
     </p> 
 
     <p class="important">
-	<a class="success" href="$l">$l</a>
+	<a class="success" href="$u">$u</a>
     </p>
 
 include(`footer.html')

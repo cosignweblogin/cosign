@@ -99,7 +99,7 @@ subfile( char *filename )
 		}
 		break;
 
-	    case 'u':
+	    case 'l':
                 if (( cl[ CL_LOGIN ].cl_data != NULL ) &&
                         ( *cl[ CL_LOGIN ].cl_data != '\0' )) {
                     printf( "%s", cl[ CL_LOGIN ].cl_data );
@@ -179,7 +179,7 @@ main( int argc, char *argv[] )
     char			*tmpl = LOGIN_HTML;
     MYSQL_RES			*res;
     MYSQL_ROW			row;
-    char			sql[ 384 ];
+    char			sql[ 225 ]; /* holds sql query + email addr */
     char			*crypted;
 
     if ( argc == 2 && ( strncmp( argv[ 1 ], "-V", 2 ) == 0 )) {
@@ -334,7 +334,7 @@ main( int argc, char *argv[] )
 	/* XXX should check for sql injection in username query */
 	snprintf( sql, sizeof( sql ), "SELECT account_name, passwd, timestamp FROM friends WHERE account_name = '%s'", cl[ CL_LOGIN ].cl_data );
 
-	if( mysql_real_query( &friend_db, sql, 255 )) {
+	if( mysql_real_query( &friend_db, sql, sizeof( sql ))) {
 	    fprintf( stderr, mysql_error( &friend_db ));
 	    err = "Unable to query guest account database.";
 	    title = "Authentication Required ( server problem )";
@@ -366,211 +366,210 @@ main( int argc, char *argv[] )
 	/* crypt the user's password */
 	crypted = crypt( cl[ CL_PASSWORD ].cl_data, row[ 1 ] );
 
-	if ( strcmp( crypted, row[ 1 ] ) == 0 ) {
-	    err = "Your password has been accepted.";
-	    title = "Choose a Service";
-	    tmpl = SERVICE_MENU;
-
-	    if ( cosign_login( cookie, ip_addr, 
-		    cl[ CL_LOGIN ].cl_data, "friend", NULL ) < 0 ) {
-		fprintf( stderr, "%s: login failed\n", script ) ;
-
-		/* redirecting to service menu because user is logged in */
-		if (( ref == NULL ) ||
-			( ref = strstr( ref, "http" )) == NULL ) {
-		    printf( "Location: %s\n\n", host );
-		    exit( 0 );
-		}
-	    }
+	if ( strcmp( crypted, row[ 1 ] ) != 0 ) {
 	    mysql_free_result( res );
 	    mysql_close( &friend_db );
 
-	    goto accepted;
+	    /* this is a valid friend account but password failed */
+	    err = "Unable to login because guest password is incorrect.";
+	    title = "Authentication Required ( guest password incorrect )";
+
+	    subfile ( tmpl );
+	    exit( 0 );
 	}
+
+	err = "Your password has been accepted.";
+	title = "Choose a Service";
+	tmpl = SERVICE_MENU;
 
 	mysql_free_result( res );
 	mysql_close( &friend_db );
 
-	/* this is a valid friend account but password failed */
-	err = "Unable to login because guest password is incorrect.";
-	title = "Authentication Required ( guest password incorrect )";
+	if ( cosign_login( cookie, ip_addr, 
+		cl[ CL_LOGIN ].cl_data, "friend", NULL ) < 0 ) {
+	    fprintf( stderr, "%s: login failed\n", script ) ;
 
-        subfile ( tmpl );
-	exit( 0 );
-    }
+	    /* redirecting to service menu because user is logged in */
+	    if (( ref == NULL ) ||
+		    ( ref = strstr( ref, "http" )) == NULL ) {
+		printf( "Location: %s\n\n", host );
+		exit( 0 );
+	    }
+	}
+    } else {
+	/* not a friend, must be kerberos */
+	if (( kerror = krb5_init_context( &kcontext ))) {
+	    err = (char *)error_message( kerror );
+	    title = "Authentication Required ( kerberos error )";
 
-    if (( kerror = krb5_init_context( &kcontext ))) {
-	err = (char *)error_message( kerror );
-	title = "Authentication Required ( kerberos error )";
-
-	tmpl = ERROR_HTML;
-	subfile ( tmpl );
-	exit( 0 );
-    }
-
-    if (( kerror = krb5_parse_name( kcontext, cl[ CL_LOGIN ].cl_data,
-	    &kprinc ))) {
-	err = (char *)error_message( kerror );
-	title = "Authentication Required ( kerberos error )";
-
-	tmpl = ERROR_HTML;
-	subfile ( tmpl );
-	exit( 0 );
-    }
-
-    /* need to get realm out */
-    if (( kerror = krb5_get_default_realm( kcontext, &realm )) != 0 ) {
-	err = (char *)error_message( kerror );
-	title = "Authentication Required ( kerberos realm error )";
-
-	tmpl = ERROR_HTML;
-	subfile ( tmpl );
-	exit( 0 );
-    }
-
-    if ( mkcookie( sizeof( tmpkrb ), tmpkrb ) != 0 ) {
-	err = "An unknown error occurred.";
-	title = "Authentication Required ( kerberos error )";
-
-	tmpl = ERROR_HTML;
-	subfile ( tmpl );
-	exit( 0 );
-    }
-    snprintf( krbpath, sizeof( krbpath ), "%s/%s", TKT_PREFIX, tmpkrb );
-
-    if (( kerror = krb5_cc_resolve( kcontext, krbpath, &kccache )) != 0 ) {
-	err = (char *)error_message( kerror );
-	title = "Authentication Required ( kerberos error )";
-
-	tmpl = ERROR_HTML;
-	subfile ( tmpl );
-	exit( 0 );
-    }
-
-    krb5_get_init_creds_opt_init( &kopts );
-    krb5_get_init_creds_opt_set_tkt_life( &kopts, 10*60*60 );
-    krb5_get_init_creds_opt_set_renew_life( &kopts, 0 );
-    krb5_get_init_creds_opt_set_forwardable( &kopts, 1 );
-    krb5_get_init_creds_opt_set_proxiable( &kopts, 0 );
-
-    if (( kerror = krb5_get_init_creds_password( kcontext, &kcreds, 
-	    kprinc, cl[ CL_PASSWORD ].cl_data, krb5_prompter_posix, NULL, 0, 
-	    NULL /*keytab */, &kopts ))) {
-
-	if ( kerror == KRB5KRB_AP_ERR_BAD_INTEGRITY ) {
-
-	    err = "Password incorrect.  Is [caps lock] on?";
-	    title = "Authentication Required ( Password Incorrect )";
-
-	    tmpl = LOGIN_HTML;
+	    tmpl = ERROR_HTML;
 	    subfile ( tmpl );
 	    exit( 0 );
-	} else {
+	}
+
+	if (( kerror = krb5_parse_name( kcontext, cl[ CL_LOGIN ].cl_data,
+		&kprinc ))) {
 	    err = (char *)error_message( kerror );
-	    title = "( Password Error )";
+	    title = "Authentication Required ( kerberos error )";
+
+	    tmpl = ERROR_HTML;
+	    subfile ( tmpl );
+	    exit( 0 );
+	}
+
+	/* need to get realm out */
+	if (( kerror = krb5_get_default_realm( kcontext, &realm )) != 0 ) {
+	    err = (char *)error_message( kerror );
+	    title = "Authentication Required ( kerberos realm error )";
+
+	    tmpl = ERROR_HTML;
+	    subfile ( tmpl );
+	    exit( 0 );
+	}
+
+	if ( mkcookie( sizeof( tmpkrb ), tmpkrb ) != 0 ) {
+	    err = "An unknown error occurred.";
+	    title = "Authentication Required ( kerberos error )";
+
+	    tmpl = ERROR_HTML;
+	    subfile ( tmpl );
+	    exit( 0 );
+	}
+	snprintf( krbpath, sizeof( krbpath ), "%s/%s", TKT_PREFIX, tmpkrb );
+
+	if (( kerror = krb5_cc_resolve( kcontext, krbpath, &kccache )) != 0 ) {
+	    err = (char *)error_message( kerror );
+	    title = "Authentication Required ( kerberos error )";
+
+	    tmpl = ERROR_HTML;
+	    subfile ( tmpl );
+	    exit( 0 );
+	}
+
+	krb5_get_init_creds_opt_init( &kopts );
+	krb5_get_init_creds_opt_set_tkt_life( &kopts, 10*60*60 );
+	krb5_get_init_creds_opt_set_renew_life( &kopts, 0 );
+	krb5_get_init_creds_opt_set_forwardable( &kopts, 1 );
+	krb5_get_init_creds_opt_set_proxiable( &kopts, 0 );
+
+	if (( kerror = krb5_get_init_creds_password( kcontext, &kcreds, 
+		kprinc, cl[ CL_PASSWORD ].cl_data, krb5_prompter_posix, NULL, 0, 
+		NULL /*keytab */, &kopts ))) {
+
+	    if ( kerror == KRB5KRB_AP_ERR_BAD_INTEGRITY ) {
+
+		err = "Password incorrect.  Is [caps lock] on?";
+		title = "Authentication Required ( Password Incorrect )";
+
+		tmpl = LOGIN_HTML;
+		subfile ( tmpl );
+		exit( 0 );
+	    } else {
+		err = (char *)error_message( kerror );
+		title = "( Password Error )";
+		
+		tmpl = ERROR_HTML;
+		subfile ( tmpl );
+		exit( 0 );
+	    }
+	}
+
+	/* verify no KDC spoofing */
+	if ( *keytab_path == '\0' ) {
+	    if (( kerror = krb5_kt_default_name(
+		    kcontext, ktbuf, MAX_KEYTAB_NAME_LEN )) != 0 ) {
+		err = (char *)error_message( kerror );
+		title = "( Ticket Verify Error )";
+	    
+		tmpl = ERROR_HTML;
+		subfile ( tmpl );
+		exit( 0 );
+
+	    }
+	} else {
+	    if ( strlen( keytab_path ) > MAX_KEYTAB_NAME_LEN ) {
+		err = "server configuration error";
+		title = "( Ticket Verify Error )";
+	
+		tmpl = ERROR_HTML;
+		subfile ( tmpl );
+		exit( 0 );
+	    }
+	    strcpy( ktbuf, keytab_path );
+	}
+
+	if (( kerror = krb5_kt_resolve( kcontext, ktbuf, &keytab )) != 0 ) {
+	    err = (char *)error_message( kerror );
+	    title = "( KT Resolve Error )";
 	    
 	    tmpl = ERROR_HTML;
 	    subfile ( tmpl );
 	    exit( 0 );
 	}
-    }
 
-    /* verify no KDC spoofing */
-    if ( *keytab_path == '\0' ) {
-	if (( kerror = krb5_kt_default_name(
-		kcontext, ktbuf, MAX_KEYTAB_NAME_LEN )) != 0 ) {
+	if (( kerror = krb5_sname_to_principal( kcontext, NULL, "cosign",
+		KRB5_NT_SRV_HST, &sprinc )) != 0 ) {
+	    err = (char *)error_message( kerror );
+	    title = "( Server Principal Error )";
+	    
+	    tmpl = ERROR_HTML;
+	    subfile ( tmpl );
+	    exit( 0 );
+	}
+
+	if (( kerror = krb5_verify_init_creds(
+		kcontext, &kcreds, sprinc, keytab, NULL, NULL )) != 0 ) {
 	    err = (char *)error_message( kerror );
 	    title = "( Ticket Verify Error )";
-	
+	    
 	    tmpl = ERROR_HTML;
 	    subfile ( tmpl );
-	    exit( 0 );
-
-	}
-    } else {
-	if ( strlen( keytab_path ) > MAX_KEYTAB_NAME_LEN ) {
-	    err = "server configuration error";
-	    title = "( Ticket Verify Error )";
-    
-	    tmpl = ERROR_HTML;
-	    subfile ( tmpl );
+	    krb5_free_principal( kcontext, sprinc );
 	    exit( 0 );
 	}
-	strcpy( ktbuf, keytab_path );
-    }
-
-    if (( kerror = krb5_kt_resolve( kcontext, ktbuf, &keytab )) != 0 ) {
-	err = (char *)error_message( kerror );
-	title = "( KT Resolve Error )";
-	
-	tmpl = ERROR_HTML;
-	subfile ( tmpl );
-	exit( 0 );
-    }
-
-    if (( kerror = krb5_sname_to_principal( kcontext, NULL, "cosign",
-	    KRB5_NT_SRV_HST, &sprinc )) != 0 ) {
-	err = (char *)error_message( kerror );
-	title = "( Server Principal Error )";
-	
-	tmpl = ERROR_HTML;
-	subfile ( tmpl );
-	exit( 0 );
-    }
-
-    if (( kerror = krb5_verify_init_creds(
-	    kcontext, &kcreds, sprinc, keytab, NULL, NULL )) != 0 ) {
-	err = (char *)error_message( kerror );
-	title = "( Ticket Verify Error )";
-	
-	tmpl = ERROR_HTML;
-	subfile ( tmpl );
+	(void)krb5_kt_close( kcontext, keytab );
 	krb5_free_principal( kcontext, sprinc );
-	exit( 0 );
-    }
-    (void)krb5_kt_close( kcontext, keytab );
-    krb5_free_principal( kcontext, sprinc );
 
-    if (( kerror = krb5_cc_initialize( kcontext, kccache, kprinc )) != 0 ) {
-	err = (char *)error_message( kerror );
-	title = "( Ticket Sticking Error )";
-	
-	tmpl = ERROR_HTML;
-	subfile ( tmpl );
-	exit( 0 );
-    }
-
-    if (( kerror = krb5_cc_store_cred( kcontext, kccache, &kcreds )) != 0 ) {
-	err = (char *)error_message( kerror );
-	title = "( Ticket Storing Error )";
-	
-	tmpl = ERROR_HTML;
-	subfile ( tmpl );
-	exit( 0 );
-    }
-
-    krb5_free_cred_contents( kcontext, &kcreds );
-    krb5_free_principal( kcontext, kprinc );
-    krb5_cc_close( kcontext, kccache );
-    krb5_free_context( kcontext );
-
-    /* password has been accepted, tell cosignd */
-    err = "Your password has been accepted.";
-    title = "Choose a Service";
-    tmpl = SERVICE_MENU;
-
-    if ( cosign_login( cookie, ip_addr, 
-	    cl[ CL_LOGIN ].cl_data, realm, krbpath ) < 0 ) {
-	fprintf( stderr, "%s: login failed\n", script ) ;
-
-	/* redirecting to service menu because user is logged in */
-	if (( ref == NULL ) || ( ref = strstr( ref, "http" )) == NULL ) {
-	    printf( "Location: %s\n\n", host );
+	if (( kerror = krb5_cc_initialize( kcontext, kccache, kprinc )) != 0 ) {
+	    err = (char *)error_message( kerror );
+	    title = "( Ticket Sticking Error )";
+	    
+	    tmpl = ERROR_HTML;
+	    subfile ( tmpl );
 	    exit( 0 );
+	}
+
+	if (( kerror = krb5_cc_store_cred( kcontext, kccache, &kcreds )) != 0 ) {
+	    err = (char *)error_message( kerror );
+	    title = "( Ticket Storing Error )";
+	    
+	    tmpl = ERROR_HTML;
+	    subfile ( tmpl );
+	    exit( 0 );
+	}
+
+	krb5_free_cred_contents( kcontext, &kcreds );
+	krb5_free_principal( kcontext, kprinc );
+	krb5_cc_close( kcontext, kccache );
+	krb5_free_context( kcontext );
+
+	/* password has been accepted, tell cosignd */
+	err = "Your password has been accepted.";
+	title = "Choose a Service";
+	tmpl = SERVICE_MENU;
+
+	if ( cosign_login( cookie, ip_addr, 
+		cl[ CL_LOGIN ].cl_data, realm, krbpath ) < 0 ) {
+	    fprintf( stderr, "%s: login failed\n", script ) ;
+
+	    /* redirecting to service menu because user is logged in */
+	    if (( ref == NULL ) || ( ref = strstr( ref, "http" )) == NULL ) {
+		printf( "Location: %s\n\n", host );
+		exit( 0 );
+	    }
 	}
     }
 
-accepted:
     if (( cl[ CL_SERVICE ].cl_data != NULL ) &&
 	    ( *cl[ CL_SERVICE ].cl_data != '\0' )) {
 

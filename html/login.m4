@@ -25,7 +25,7 @@ include(`header.html')
 	</td>
 
 	<td bgcolor="#FFFFFF">
-	    <input id="login" name="login" size="24" value="$u">
+	    <input id="login" name="login" size="24" value="$l">
 	</td>
     </tr>
 
