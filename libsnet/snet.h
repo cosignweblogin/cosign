@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 1995,2001 Regents of The University of Michigan.
- * All Rights Reserved.  See LICENSE.
+ * All Rights Reserved.  See COPYRIGHT.
  */
 
 #ifdef __STDC__
@@ -20,6 +20,10 @@ typedef struct {
     char	*sn_wbuf;
     int		sn_wbuflen;
     int		sn_flag;
+#ifdef TLS
+    void	*sn_sslctx;
+    void	*sn_ssl;
+#endif TLS
 } SNET;
 
 #define snet_fd( sn )	((sn)->sn_fd)
@@ -34,4 +38,5 @@ char	*snet_getline_multi ___P(( SNET *, void (*)(char *),
 		struct timeval * ));
 int	snet_read ___P(( SNET *, char *, int, struct timeval * ));
 int	snet_write ___P(( SNET *, char *, int, struct timeval * ));
-int	snet_starttls ___P(( SNET * ));
+char	*snet_inittls ___P(( SNET *, int, int, char * ));
+char	*snet_starttls ___P(( SNET *, int ));

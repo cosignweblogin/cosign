@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 1995,2001 Regents of The University of Michigan.
- * All Rights Reserved.  See LICENSE.
+ * All Rights Reserved.  See COPYRIGHT.
  */
 
 #include <sys/types.h>
@@ -17,6 +17,12 @@
 #include <inttypes.h>
 
 #include <netinet/in.h>
+
+#ifdef TLS
+#include <openssl/ssl.h>
+#include <openssl/rand.h>
+#include <openssl/err.h>
+#endif TLS
 
 
 #ifdef __STDC__
@@ -108,6 +114,90 @@ snet_close( sn )
     return( 0 );
 }
 
+#ifdef TLS
+    char *
+snet_inittls( sn, server, devrand, cryptofile )
+    SNET		*sn;
+    int			server;
+    int			devrand;
+    char		*cryptofile;
+{
+    char		randfile[ MAXPATHLEN ];
+    STACK_OF(X509_NAME)	*certnames;
+
+    SSL_load_error_strings();
+    SSL_library_init();
+    if ( !devrand ) {
+	if ( RAND_file_name( randfile, sizeof( randfile )) == NULL ) {
+	    return( ERR_error_string( ERR_get_error(), NULL ));
+	}
+	if ( RAND_load_file( randfile, -1 ) <= 0 ) {
+	    return( ERR_error_string( ERR_get_error(), NULL ));
+	}
+	if ( RAND_write_file( randfile ) < 0 ) {
+	    return( ERR_error_string( ERR_get_error(), NULL ));
+	}
+    }
+
+    if (( sn->sn_sslctx = SSL_CTX_new( server ? SSLv23_server_method() :
+	    SSLv23_client_method())) == NULL ) {
+	return( ERR_error_string( ERR_get_error(), NULL ));
+    }
+    if ( cryptofile ) {
+	if ( server ) {
+	    /* this is really supposed to be SSL_CTX_load_verify_locations */
+	    if (( certnames = SSL_load_client_CA_file( cryptofile )) == NULL ) {
+		return( "SSL_load_client_CA_file" );
+		return( ERR_error_string( ERR_get_error(), NULL ));
+	    }
+	    SSL_CTX_set_client_CA_list( sn->sn_sslctx, certnames );
+	}
+
+	if ( SSL_CTX_use_PrivateKey_file( sn->sn_sslctx,
+		cryptofile, SSL_FILETYPE_PEM ) != 1 ) {
+	    return( "SSL_CTX_use_PrivateKey_file" );
+	    return( ERR_error_string( ERR_get_error(), NULL ));
+	}
+
+	if ( SSL_CTX_use_certificate_chain_file( sn->sn_sslctx,
+		cryptofile ) != 1 ) {
+	    return( "SSL_CTX_use_certificate_chain_file" );
+	    return( ERR_error_string( ERR_get_error(), NULL ));
+	}
+	if ( SSL_CTX_check_private_key( sn->sn_sslctx ) != 1 ) {
+	    return( "SSL_CTX_check_private_key" );
+	    return( ERR_error_string( ERR_get_error(), NULL ));
+	}
+    }
+    return( NULL );
+}
+
+    char *
+snet_starttls( sn, server )
+    SNET		*sn;
+    int			server;
+{
+    int			rc;
+
+    if (( sn->sn_ssl = SSL_new( sn->sn_sslctx )) == NULL ) {
+	return( "SSL_new" );
+    }
+    if ( SSL_set_fd( sn->sn_ssl, sn->sn_fd ) != 1 ) {
+	return( "SSL_set_fd" );
+    }
+    if ( server ) {
+	rc = SSL_accept( sn->sn_ssl );
+    } else {
+	rc = SSL_connect( sn->sn_ssl );
+    }
+    if ( rc != 1 ) {
+	return( ERR_error_string( ERR_get_error(), NULL ));
+    }
+    sn->sn_flag |= SNET_TLS;
+    return( 0 );
+}
+#endif TLS
+
 /*
  * Just like fprintf, only use the SNET header to get the fd, and use
  * snet_write() to move the data.
@@ -167,7 +257,7 @@ snet_writef( sn, format, va_alist )
 
 	    case 'c' :
 		SNET_WRITEFGROW( 1 );
-		*cur++ = va_arg( vl, char );
+		*cur++ = va_arg( vl, int );
 		break;
 
 	    case 'd' :
@@ -246,7 +336,11 @@ snet_write( sn, buf, len, tv )
     struct timeval	*tv;
 {
     if ( sn->sn_flag & SNET_TLS ) {
-	/* ssl_write */
+#ifdef TLS
+	return( SSL_write( sn->sn_ssl, buf, len ));
+#else
+	return( -1 );
+#endif TLS
     } else {
 	return( write( snet_fd( sn ), buf, len ));
     }
@@ -303,11 +397,16 @@ snet_readread( sn, buf, len, tv )
     }
 
     if ( sn->sn_flag & SNET_TLS ) {
-	/* ssl_read( ... ) */
+#ifdef TLS
+	rc = SSL_read( sn->sn_ssl, buf, len );
+#else TLS
+	rc = -1;
+#endif TLS
     } else {
-	if (( rc = read( snet_fd( sn ), buf, len )) == 0 ) {
-	    sn->sn_flag = SNET_EOF;
-	}
+	rc = read( snet_fd( sn ), buf, len );
+    }
+    if ( rc == 0 ) {
+	sn->sn_flag = SNET_EOF;
     }
 
     return( rc );
