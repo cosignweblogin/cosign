@@ -37,6 +37,11 @@ cosign_cookie_valid( cosign_host_config *cfg, char *cookie, struct sinfo *si,
     FILE		*tmpfile;
     extern int		errno;
 
+    if ( access( filterdb, R_OK | W_OK | X_OK ) != 0 ) {
+	perror( filterdb );
+	return( -1 );
+    }
+
     if ( strchr( cookie, '/' ) != NULL ) {
 	fprintf( stderr, "cosign_cookie_valid: cookie contains '/'\n" );
 	return( -1 );

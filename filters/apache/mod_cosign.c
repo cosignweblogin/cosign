@@ -491,7 +491,7 @@ set_cosign_certs( cmd_parms *params, void *mconfig,
 	return( "An error occured reading the Certfile." );
     }
 
-    if ( access( cfg->cadir, R_OK ) != 0 ) {
+    if ( access( cfg->cadir, R_OK | X_OK ) != 0 ) {
 	return( "An error occured reading the CADir." );
     }
 
