@@ -35,7 +35,7 @@ do_logout( char *path )
 service_to_login( char *service, char *login )
 {
     FILE	*scf;
-    char	buf[ MAXPATHLEN ];
+    char	buf[ MAXCOOKIELEN + 2 ];
     char	*p;
     int		len;
 

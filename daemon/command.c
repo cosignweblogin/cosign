@@ -171,7 +171,7 @@ f_starttls( SNET *sn, int ac, char *av[], SNET *pushersn )
 f_login( SNET *sn, int ac, char *av[], SNET *pushersn )
 {
     FILE		*tmpfile;
-    char		tmppath[ MAXPATHLEN ];
+    char		tmppath[ MAXCOOKIELEN ];
     char		tmpkrb[ 16 ], krbpath [ 24 ];
     char                *sizebuf, *line;
     char                buf[ 8192 ];
@@ -216,7 +216,7 @@ f_login( SNET *sn, int ac, char *av[], SNET *pushersn )
 	return( 1 );
     }
 
-    if ( strlen( av[ 1 ] ) >= MAXPATHLEN ) {
+    if ( strlen( av[ 1 ] ) >= MAXCOOKIELEN ) {
 	syslog( LOG_ERR, "f_login: cookie too long" );
 	snet_writef( sn, "%d LOGIN: Cookie too long.\r\n", 502 );
 	return( 1 );
@@ -228,8 +228,8 @@ f_login( SNET *sn, int ac, char *av[], SNET *pushersn )
 	return( -1 );
     }
 
-    if ( snprintf( tmppath, MAXPATHLEN, "%x%x.%i",
-	    tv.tv_sec, tv.tv_usec, (int)getpid()) >= MAXPATHLEN ) {
+    if ( snprintf( tmppath, sizeof( tmppath ), "%x%x.%i",
+	    tv.tv_sec, tv.tv_usec, (int)getpid()) >= sizeof( tmppath )) {
 	syslog( LOG_ERR, "f_login: tmppath too long" );
 	snet_writef( sn, "%d LOGIN Error: Sorry!\r\n", 503 );
 	return( -1 );
@@ -503,7 +503,7 @@ f_time( SNET *sn, int ac, char *av[], SNET *pushersn )
 	    continue;
 	}
 
-	if ( strlen( av[ 0 ] ) >= MAXPATHLEN ) {
+	if ( strlen( av[ 0 ] ) >= MAXCOOKIELEN ) {
 	    syslog( LOG_ERR, "f_time: cookie name too long" );
 	    continue;
 	}
@@ -556,7 +556,7 @@ f_logout( SNET *sn, int ac, char *av[], SNET *pushersn )
 	return( 1 );
     }
 
-    if ( strlen( av[ 1 ] ) >= MAXPATHLEN ) {
+    if ( strlen( av[ 1 ] ) >= MAXCOOKIELEN ) {
 	snet_writef( sn, "%d LOGOUT: Cookie too long\r\n", 512 );
 	return( 1 );
     }
@@ -593,7 +593,7 @@ f_register( SNET *sn, int ac, char *av[], SNET *pushersn )
     struct cinfo	ci;
     struct timeval	tv;
     int			fd;
-    char		tmppath[ MAXPATHLEN ];
+    char		tmppath[ MAXCOOKIELEN ];
     FILE		*tmpfile;
 
 
@@ -617,8 +617,8 @@ f_register( SNET *sn, int ac, char *av[], SNET *pushersn )
 	return( 1 );
     }
 
-    if ( strlen( av[ 1 ] ) >= MAXPATHLEN ||
-	    strlen( av[ 3 ] ) >= MAXPATHLEN ) {
+    if ( strlen( av[ 1 ] ) >= MAXCOOKIELEN ||
+	    strlen( av[ 3 ] ) >= MAXCOOKIELEN ) {
 	snet_writef( sn, "%d REGISTER: Cookie too long\r\n", 522 );
 	return( 1 );
     }
@@ -658,8 +658,8 @@ f_register( SNET *sn, int ac, char *av[], SNET *pushersn )
 	return( 1 );
     }
 
-    if ( snprintf( tmppath, MAXPATHLEN, "%x%x.%i",
-	    tv.tv_sec, tv.tv_usec, (int)getpid()) >= MAXPATHLEN ) {
+    if ( snprintf( tmppath, sizeof( tmppath ), "%x%x.%i",
+	    tv.tv_sec, tv.tv_usec, (int)getpid()) >= sizeof( tmppath )) {
 	syslog( LOG_ERR, "f_register: tmppath too long" );
 	snet_writef( sn, "%d REGISTER Error: Sorry!\r\n", 524 );
 	return( -1 );
@@ -729,7 +729,7 @@ f_check( SNET *sn, int ac, char *av[], SNET *pushersn )
 {
     struct cinfo 	ci;
     struct timeval	tv;
-    char		login[ MAXPATHLEN ];
+    char		login[ MAXCOOKIELEN ];
     int			status;
 
     /* CHECK (service/login)cookie */
@@ -752,7 +752,7 @@ f_check( SNET *sn, int ac, char *av[], SNET *pushersn )
 	return( 1 );
     }
 
-    if ( strlen( av[ 1 ] ) >= MAXPATHLEN ) {
+    if ( strlen( av[ 1 ] ) >= MAXCOOKIELEN ) {
 	snet_writef( sn, "%d CHECK: Service Cookie too long\r\n", 532 );
 	return( 1 );
     }
@@ -821,7 +821,7 @@ f_retr( SNET *sn, int ac, char *av[], SNET *pushersn )
     int			fd;
     ssize_t             readlen;
     char                buf[8192];
-    char		login[ MAXPATHLEN ];
+    char		login[ MAXCOOKIELEN ];
 
     /* RETR service-cookie TicketType */
     if ( ch->ch_tkt != 1 ) {
@@ -842,7 +842,7 @@ f_retr( SNET *sn, int ac, char *av[], SNET *pushersn )
 	return( 1 );
     }
 
-    if ( strlen( av[ 1 ] ) >= MAXPATHLEN ) {
+    if ( strlen( av[ 1 ] ) >= MAXCOOKIELEN ) {
 	snet_writef( sn, "%d RETR: Service Cookie too long\r\n", 542 );
 	return( 1 );
     }

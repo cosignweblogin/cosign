@@ -43,7 +43,7 @@ main( int ac, char **av )
     struct timeval	tv, now;
     struct hostent	*he;
     struct cl		*head = NULL, **tail = NULL, **cur, *new = NULL, *temp;
-    char                login[ MAXPATHLEN ], hostname[ MAXHOSTNAMELEN ];
+    char                login[ MAXCOOKIELEN ], hostname[ MAXHOSTNAMELEN ];
     time_t		itime = 0;
     char		*prog, *line;
     int			c, i, port = htons( 6663 ), err = 0, state = 0;
