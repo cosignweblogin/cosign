@@ -141,7 +141,7 @@ cosign_choose_conn( struct connlist *head, void *netparams,
 {
 
     struct connlist 	*cur;
-    int 		rc, ret = 0;
+    int 		rc = 0, ret = 0;
 
     for ( cur = head; cur != NULL; cur = cur->conn_next ) {
         if ( cur->conn_sn == NULL ) {

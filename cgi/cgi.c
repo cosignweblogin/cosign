@@ -36,6 +36,7 @@ static	MYSQL	friend_db;
 #define SIDEWAYS        1
 #define LOOPWINDOW      30 
 #define MAXREDIRECTS	10	
+#define EXPIRE_TIME	86400	 /* 24 hours */
 
 extern char	*cosign_version;
 char	*cosign_host = _COSIGN_HOST;
@@ -242,6 +243,7 @@ main( int argc, char *argv[] )
     char			*cookie = NULL, *method, *script, *qs;
     char			*misc = NULL;
     char			*tmpl = LOGIN_HTML;
+    struct timeval		tv;
     struct connlist		*head;
     unsigned short		port;
 #ifdef SQL_FRIEND
@@ -276,6 +278,17 @@ main( int argc, char *argv[] )
 
 	if (( misc = strtok( NULL, "/" )) != NULL ) {
 	    cookiecount = atoi( misc );
+	}
+
+	if ( gettimeofday( &tv, NULL ) != 0 ) {
+	    title = "Error: Login Screen";
+	    err = "Please try again later.";
+	    subfile( ERROR_HTML );
+	    exit( 0 );
+	}
+
+	if (( tv.tv_sec - cookietime ) > EXPIRE_TIME ) {
+	    goto loginscreen;
 	}
     }
 
@@ -724,7 +737,15 @@ loginscreen:
 	err = "Please type your login and password and click the Login button to continue.";
     }
 
-    snprintf( new_cookie, sizeof( new_cookie ), "cosign=%s", new_cookiebuf );
+    if ( gettimeofday( &tv, NULL ) != 0 ) {
+	title = "Error: Login Screen";
+	err = "Please try again later.";
+	subfile( ERROR_HTML );
+	exit( 0 );
+    }
+
+    snprintf( new_cookie, sizeof( new_cookie ), "cosign=%s/%d",
+	    new_cookiebuf, tv.tv_sec );
     printf( "Set-Cookie: %s; path=/; secure\n", new_cookie );
     subfile( tmpl );
     exit( 0 );

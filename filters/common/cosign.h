@@ -18,6 +18,7 @@ typedef struct {
     char		*tkt_prefix;
     int                 http;
     int			proxy;
+    int			expiretime;
 #ifdef KRB
 #ifdef GSS
     int			gss;

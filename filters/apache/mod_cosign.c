@@ -61,6 +61,7 @@ cosign_create_dir_config( pool *p, char *path )
     cfg->tkt_prefix = _COSIGN_TICKET_CACHE;
     cfg->http = 0;
     cfg->proxy = 0;
+    cfg->expiretime = 86400; /* 24 hours */
 #ifdef KRB
     cfg->krbtkt = 0;
 #ifdef GSS
@@ -99,6 +100,7 @@ cosign_create_server_config( pool *p, server_rec *s )
     cfg->tkt_prefix = _COSIGN_TICKET_CACHE;
     cfg->http = 0;
     cfg->proxy = 0;
+    cfg->expiretime = 86400; /* 24 hours */
 #ifdef KRB
     cfg->krbtkt = 0;
 #ifdef GSS
@@ -128,6 +130,7 @@ set_cookie_and_redirect( request_rec *r, cosign_host_config *cfg )
     char		*dest, *my_cookie, *full_cookie, *ref;
     char		cookiebuf[ 128 ];
     unsigned int	port;
+    struct timeval	now;
 
     if ( mkcookie( sizeof( cookiebuf ), cookiebuf ) != 0 ) {
 	ap_log_error( APLOG_MARK, APLOG_ERR|APLOG_NOERRNO, r->server,
@@ -137,16 +140,20 @@ set_cookie_and_redirect( request_rec *r, cosign_host_config *cfg )
 
     if ( r->method_number == M_POST ) {
 	my_cookie = ap_psprintf( r->pool,
-		"%s=%s;", cfg->posterror, cookiebuf );
+		"%s=%s", cfg->posterror, cookiebuf );
     } else {
 	my_cookie = ap_psprintf( r->pool,
-		"%s=%s;", cfg->service, cookiebuf );
+		"%s=%s", cfg->service, cookiebuf );
     }
 
+    /* prevent the reuse of stale cookies by bad browsers */
+    gettimeofday( &now, NULL );
     if ( cfg->http ) { /* living dangerously */
-	full_cookie = ap_psprintf( r->pool, "%s;path=/", my_cookie );
+	full_cookie = ap_psprintf( r->pool, "%s/%d;path=/",
+		my_cookie, now.tv_sec);
     } else {
-	full_cookie = ap_psprintf( r->pool, "%s;path=/;secure", my_cookie );
+	full_cookie = ap_psprintf( r->pool, "%s/%d;path=/;secure",
+		my_cookie, now.tv_sec );
     }
 
     /* cookie needs to be set and sent in error headers as 
@@ -180,7 +187,7 @@ set_cookie_and_redirect( request_rec *r, cosign_host_config *cfg )
 	}
     }
 
-    dest = ap_psprintf( r->pool, "%s?%s&%s", cfg->redirect, my_cookie, ref );
+    dest = ap_psprintf( r->pool, "%s?%s;&%s", cfg->redirect, my_cookie, ref );
     ap_table_set( r->headers_out, "Location", dest );
     return( 0 );
 }
@@ -212,10 +219,13 @@ cosign_auth( request_rec *r )
 {
     const char		*cookiename = NULL;
     const char		*data = NULL, *pair = NULL;
+    char                *misc = NULL;
     char		*my_cookie;
     int			cv;
+    int			cookietime = 0;
     struct sinfo	si;
     cosign_host_config	*cfg;
+    struct timeval	now;
 #ifdef GSS
     int			minor_status;
 #endif /* GSS */
@@ -291,6 +301,16 @@ cosign_auth( request_rec *r )
 	goto set_cookie;
     }
     my_cookie = ap_psprintf( r->pool, "%s=%s", cookiename, pair );
+
+    /* if it's a stale cookie, give out a new one */
+    gettimeofday( &now, NULL ); 
+    (void)strtok( my_cookie, "/" );
+    if (( misc = strtok( NULL, "/" )) != NULL ) {
+	cookietime = atoi( misc );
+    }
+    if (( cookietime > 0 ) && ( now.tv_sec - cookietime ) > cfg->expiretime ) {
+	goto set_cookie;
+    }
 
     /*
      * Validate cookie with backside server.  If we already have a cached
@@ -371,6 +391,7 @@ set_cosign_protect( cmd_parms *params, void *mconfig, int flag )
 	}
 	cfg->proxy = scfg->proxy; 
 	cfg->http = scfg->http; 
+	cfg->expiretime = scfg->expiretime; 
 #ifdef KRB
 	cfg->krbtkt = scfg->krbtkt; 
 #ifdef GSS
@@ -434,6 +455,7 @@ set_cosign_service( cmd_parms *params, void *mconfig, char *arg )
 	cfg->ctx = scfg->ctx;
 	cfg->proxy = scfg->proxy;
 	cfg->http = scfg->http;
+	cfg->expiretime = scfg->expiretime; 
 #ifdef KRB
 	cfg->krbtkt = scfg->krbtkt; 
 #ifdef GSS
@@ -473,6 +495,7 @@ set_cosign_siteentry( cmd_parms *params, void *mconfig, char *arg )
 	cfg->ctx = scfg->ctx;
 	cfg->proxy = scfg->proxy;
 	cfg->http = scfg->http;
+	cfg->expiretime = scfg->expiretime; 
 	if ( cfg->service == NULL ) {
 	    cfg->service = ap_pstrdup( params->pool, scfg->service );
 	}
@@ -521,6 +544,7 @@ set_cosign_public( cmd_parms *params, void *mconfig, int flag )
 	cfg->ctx = scfg->ctx;
 	cfg->proxy = scfg->proxy;
 	cfg->http = scfg->http;
+	cfg->expiretime = scfg->expiretime; 
 	if ( cfg->service == NULL ) {
 	    cfg->service = ap_pstrdup( params->pool, scfg->service );
 	}
@@ -836,6 +860,23 @@ set_cosign_http( cmd_parms *params, void *mconfig, int flag )
     return( NULL );
 }
 
+    static const char *
+set_cosign_expiretime( cmd_parms *params, void *mconfig, char *arg )
+{
+    cosign_host_config		*cfg;
+
+    if ( params->path == NULL ) {
+	cfg = (cosign_host_config *) ap_get_module_config(
+		params->server->module_config, &cosign_module );
+    } else {
+	return( "Service cookie expiration policy applies server-wide.");
+    }
+
+    cfg->expiretime = atoi(arg); 
+    cfg->configured = 1; 
+    return( NULL );
+}
+
     static void
 cosign_child_cleanup( server_rec *s, pool *p )
 {
@@ -908,6 +949,11 @@ static command_rec cosign_cmds[ ] =
         { "CosignGetProxyCookies", set_cosign_proxy_cookies,
         NULL, RSRC_CONF, FLAG,
         "whether or not to get proxy cookies" },
+
+	{ "CosignCookieExpireTime", set_cosign_expiretime,
+	NULL, RSRC_CONF, TAKE1,
+	"time (in seconds) after which we will issue a new service cookie" },
+
 #ifdef KRB
         { "CosignGetKerberosTickets", set_cosign_tickets,
         NULL, RSRC_CONF, FLAG,
