@@ -5,6 +5,11 @@
 
     #include "cgi.h"
 
+    char *concat( char *a, char *b );
+    char *stradd( char *a, char b );
+    void yyerror( const char *msg );
+    int  yylex( void );
+
     extern struct cgi_list	*yy_cl;
     struct cgi_list		*c;
     int				found;

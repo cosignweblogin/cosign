@@ -6,9 +6,6 @@ hts Reserved.])
 AC_CONFIG_SRCDIR([version.c])
 #AC_CONFIG_HEADER([config.h])
 
-AC_PATH_PROG(apxspath, apxs)
-AC_PATH_PROG(apachectlpath, apachectl)
-
 # Checks for programs.
 AC_PROG_AWK
 AC_PROG_CC
@@ -22,7 +19,14 @@ AC_CHECK_LIB([socket], [socket])
 
 CHECK_SSL
 CHECK_LIBKRB
+
+# Checks for Apache SAPI filter.
 CHECK_APACHE
+CHECK_APACHE_APXS
+if test x_$HAVE_APACHE = x_yes; then
+    AC_PATH_PROG(apachectlpath, apachectl)
+fi
+
 
 # Checks for header files.
 #AC_HEADER_STDC
@@ -38,6 +42,12 @@ CHECK_APACHE
 #AC_FUNC_MALLOC
 #AC_FUNC_UTIME_NULL
 #AC_CHECK_FUNCS([bzero dup2 gethostbyaddr gethostbyname gettimeofday inet_ntoa isascii memset select socket strcasecmp strchr strdup strerror strrchr strstr strtol utime])
+
+# Misc.
+if test x_$GCC = x_yes; then
+    OPTOPTS=${OPTOPTS:-"-Wall -Wmissing-prototypes"}
+fi
+AC_SUBST(OPTOPTS)
 
 AC_CONFIG_FILES([Makefile
                  cgi/Makefile

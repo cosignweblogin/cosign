@@ -5,7 +5,7 @@ CGIDIR  = @prefix@/cgi-ssl
 DOCROOTDIR  = @prefix@/html
 
 INCPATH=        @CPPFLAGS@ @KINC@ -I../libsnet -I../libcgi
-OPTOPTS=        -Wall -Wmissing-prototypes
+OPTOPTS=        @OPTOPTS@
 CC=             @CC@
 DEFS=           @TLSDEFS@
 LIBS=           -lsnet -lcgi @LIBS@ @KLIBS@

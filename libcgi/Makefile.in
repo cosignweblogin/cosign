@@ -4,7 +4,7 @@ OBJ = cgi.o parse.o token.o
 CC=             @CC@
 DEFS=           @TLSDEFS@
 INSTALL=	@INSTALL@
-CFLAGS=         ${DEFS} ${OPTOPTS} @CFLAGS@ ${INCPATH}
+CFLAGS=         ${DEFS} @OPTOPTS@ @CFLAGS@ ${INCPATH}
 
 
 # use system standard lex.  flex requires "-l" option

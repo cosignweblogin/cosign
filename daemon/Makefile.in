@@ -7,7 +7,7 @@ SBINDIR=@sbindir@
 COSIGNLOG=LOG_LOCAL7
 
 INCPATH=        @CPPFLAGS@ -I../libsnet
-OPTOPTS=        -Wall -Wmissing-prototypes
+OPTOPTS=        @OPTOPTS@
 CC=             @CC@
 DEFS=           @TLSDEFS@
 LIBS=           -lsnet @LIBS@

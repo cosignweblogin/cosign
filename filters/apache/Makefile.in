@@ -10,15 +10,15 @@ APACHECTL=@apachectlpath@
 
 #   additional user defines, includes and libraries
 
-INCPATH=        @CPPFLAGS@ @AINC@ -I../../libsnet
-OPTOPTS=        -Wall -Wmissing-prototypes
+INCPATH=        @CPPFLAGS@ @APXS_INCLUDE@ -I../../libsnet
+OPTOPTS=        @OPTOPTS@
 CC=             @CC@
 DEFS=           @TLSDEFS@
 LIBS=           -lsnet
 LDFLAGS=        -L../../libsnet ${LIBS}
 INSTALL=        @INSTALL@
 
-CFLAGS=         ${DEFS} ${OPTOPTS} @CFLAGS@ ${INCPATH} -DEAPI
+CFLAGS=         ${DEFS} ${OPTOPTS} @CFLAGS@ @APXS_CFLAGS_SHLIB@ ${INCPATH} -DEAPI
 
 
 OBJ=	mod_cosign.o mkcookie.o fbase64.o connect.o cookiefs.o sparse.o \

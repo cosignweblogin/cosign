@@ -791,6 +791,7 @@ Optional Packages:
   --with-ssl=DIR          path to ssl
   --with-krb=DIR          path to krb
   --with-apache=DIR       path to apache
+  --with-apxs=FILE        path to apxs
 
 Some influential environment variables:
   CC          C compiler command
@@ -1166,85 +1167,6 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 
 #AC_CONFIG_HEADER([config.h])
-
-# Extract the first word of "apxs", so it can be a program name with args.
-set dummy apxs; ac_word=$2
-echo "$as_me:$LINENO: checking for $ac_word" >&5
-echo $ECHO_N "checking for $ac_word... $ECHO_C" >&6
-if test "${ac_cv_path_apxspath+set}" = set; then
-  echo $ECHO_N "(cached) $ECHO_C" >&6
-else
-  case $apxspath in
-  [\\/]* | ?:[\\/]*)
-  ac_cv_path_apxspath="$apxspath" # Let the user override the test with a path.
-  ;;
-  *)
-  as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
-for as_dir in $PATH
-do
-  IFS=$as_save_IFS
-  test -z "$as_dir" && as_dir=.
-  for ac_exec_ext in '' $ac_executable_extensions; do
-  if $as_executable_p "$as_dir/$ac_word$ac_exec_ext"; then
-    ac_cv_path_apxspath="$as_dir/$ac_word$ac_exec_ext"
-    echo "$as_me:$LINENO: found $as_dir/$ac_word$ac_exec_ext" >&5
-    break 2
-  fi
-done
-done
-
-  ;;
-esac
-fi
-apxspath=$ac_cv_path_apxspath
-
-if test -n "$apxspath"; then
-  echo "$as_me:$LINENO: result: $apxspath" >&5
-echo "${ECHO_T}$apxspath" >&6
-else
-  echo "$as_me:$LINENO: result: no" >&5
-echo "${ECHO_T}no" >&6
-fi
-
-# Extract the first word of "apachectl", so it can be a program name with args.
-set dummy apachectl; ac_word=$2
-echo "$as_me:$LINENO: checking for $ac_word" >&5
-echo $ECHO_N "checking for $ac_word... $ECHO_C" >&6
-if test "${ac_cv_path_apachectlpath+set}" = set; then
-  echo $ECHO_N "(cached) $ECHO_C" >&6
-else
-  case $apachectlpath in
-  [\\/]* | ?:[\\/]*)
-  ac_cv_path_apachectlpath="$apachectlpath" # Let the user override the test with a path.
-  ;;
-  *)
-  as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
-for as_dir in $PATH
-do
-  IFS=$as_save_IFS
-  test -z "$as_dir" && as_dir=.
-  for ac_exec_ext in '' $ac_executable_extensions; do
-  if $as_executable_p "$as_dir/$ac_word$ac_exec_ext"; then
-    ac_cv_path_apachectlpath="$as_dir/$ac_word$ac_exec_ext"
-    echo "$as_me:$LINENO: found $as_dir/$ac_word$ac_exec_ext" >&5
-    break 2
-  fi
-done
-done
-
-  ;;
-esac
-fi
-apachectlpath=$ac_cv_path_apachectlpath
-
-if test -n "$apachectlpath"; then
-  echo "$as_me:$LINENO: result: $apachectlpath" >&5
-echo "${ECHO_T}$apachectlpath" >&6
-else
-  echo "$as_me:$LINENO: result: no" >&5
-echo "${ECHO_T}no" >&6
-fi
-
 
 # Checks for programs.
 for ac_prog in gawk mawk nawk awk
@@ -2645,6 +2567,8 @@ echo "$as_me: error: cannot find krb libraries" >&2;}
 echo "${ECHO_T}yes" >&6
 
 
+# Checks for Apache SAPI filter.
+
     echo "$as_me:$LINENO: checking for apache" >&5
 echo $ECHO_N "checking for apache... $ECHO_C" >&6
     apachedirs="/usr/local/apache /usr/apache \
@@ -2659,20 +2583,14 @@ fi;
         apachedir="$dir"
         if test -f "$dir/include/httpd/http_core.h"; then
             found_apache="yes";
-            AINC="-I$apachedir/include/httpd";
-
             break
         fi
         if test -f "$dir/include/http_core.h"; then
             found_apache="yes";
-            AINC="-I$apachedir/include";
-
             break
         fi
         if test -f "$dir/include/apache/http_core.h"; then
             found_apache="yes";
-            AINC="-I$apachedir/include/apache";
-
             break
         fi
     done
@@ -2686,6 +2604,87 @@ echo "$as_me: error: cannot find apache " >&2;}
 
     echo "$as_me:$LINENO: result: yes" >&5
 echo "${ECHO_T}yes" >&6
+
+
+    if test x_$HAVE_APACHE = x_yes; then
+        echo "$as_me:$LINENO: checking for apache DSO support" >&5
+echo $ECHO_N "checking for apache DSO support... $ECHO_C" >&6
+
+# Check whether --with-apxs or --without-apxs was given.
+if test "${with_apxs+set}" = set; then
+  withval="$with_apxs"
+  apxspath="$withval"
+fi;
+        if test -n "$apxspath" -a -f "$apxspath"; then
+            found_apxs="yes"
+        else
+            dirs=$apachedir/bin:$PATH:/usr/local/apache/bin
+            saved_ifs=$IFS
+            IFS=:
+            for i in $dirs; do
+                apxspath=$i/apxs
+                if test -f "$apxspath"; then
+                    found_apxs="yes"
+                    break
+                fi
+            done
+            IFS=$saved_ifs
+        fi
+        if test x_$found_apxs != x_yes; then
+            { { echo "$as_me:$LINENO: error: cannot find apxs " >&5
+echo "$as_me: error: cannot find apxs " >&2;}
+   { (exit 1); exit 1; }; }
+        fi
+        APXS_INCLUDE="-I`$apxspath -q INCLUDEDIR`"
+        APXS_CFLAGS_SHLIB="`$apxspath -q CFLAGS_SHLIB`"
+
+
+
+        echo "$as_me:$LINENO: result: $apxspath" >&5
+echo "${ECHO_T}$apxspath" >&6
+    fi
+
+if test x_$HAVE_APACHE = x_yes; then
+    # Extract the first word of "apachectl", so it can be a program name with args.
+set dummy apachectl; ac_word=$2
+echo "$as_me:$LINENO: checking for $ac_word" >&5
+echo $ECHO_N "checking for $ac_word... $ECHO_C" >&6
+if test "${ac_cv_path_apachectlpath+set}" = set; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+  case $apachectlpath in
+  [\\/]* | ?:[\\/]*)
+  ac_cv_path_apachectlpath="$apachectlpath" # Let the user override the test with a path.
+  ;;
+  *)
+  as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
+for as_dir in $PATH
+do
+  IFS=$as_save_IFS
+  test -z "$as_dir" && as_dir=.
+  for ac_exec_ext in '' $ac_executable_extensions; do
+  if $as_executable_p "$as_dir/$ac_word$ac_exec_ext"; then
+    ac_cv_path_apachectlpath="$as_dir/$ac_word$ac_exec_ext"
+    echo "$as_me:$LINENO: found $as_dir/$ac_word$ac_exec_ext" >&5
+    break 2
+  fi
+done
+done
+
+  ;;
+esac
+fi
+apachectlpath=$ac_cv_path_apachectlpath
+
+if test -n "$apachectlpath"; then
+  echo "$as_me:$LINENO: result: $apachectlpath" >&5
+echo "${ECHO_T}$apachectlpath" >&6
+else
+  echo "$as_me:$LINENO: result: no" >&5
+echo "${ECHO_T}no" >&6
+fi
+
+fi
 
 
 # Checks for header files.
@@ -2702,6 +2701,12 @@ echo "${ECHO_T}yes" >&6
 #AC_FUNC_MALLOC
 #AC_FUNC_UTIME_NULL
 #AC_CHECK_FUNCS([bzero dup2 gethostbyaddr gethostbyname gettimeofday inet_ntoa isascii memset select socket strcasecmp strchr strdup strerror strrchr strstr strtol utime])
+
+# Misc.
+if test x_$GCC = x_yes; then
+    OPTOPTS=${OPTOPTS:-"-Wall -Wmissing-prototypes"}
+fi
+
 
 ac_config_files="$ac_config_files Makefile cgi/Makefile html/Makefile daemon/Makefile filters/apache/Makefile libcgi/Makefile libsnet/Makefile"
 
@@ -3289,8 +3294,6 @@ s,@ECHO_C@,$ECHO_C,;t t
 s,@ECHO_N@,$ECHO_N,;t t
 s,@ECHO_T@,$ECHO_T,;t t
 s,@LIBS@,$LIBS,;t t
-s,@apxspath@,$apxspath,;t t
-s,@apachectlpath@,$apachectlpath,;t t
 s,@AWK@,$AWK,;t t
 s,@CC@,$CC,;t t
 s,@CFLAGS@,$CFLAGS,;t t
@@ -3312,8 +3315,12 @@ s,@KINC@,$KINC,;t t
 s,@KLIBS@,$KLIBS,;t t
 s,@KLDFLAGS@,$KLDFLAGS,;t t
 s,@HAVE_KRB@,$HAVE_KRB,;t t
-s,@AINC@,$AINC,;t t
 s,@HAVE_APACHE@,$HAVE_APACHE,;t t
+s,@apxspath@,$apxspath,;t t
+s,@APXS_INCLUDE@,$APXS_INCLUDE,;t t
+s,@APXS_CFLAGS_SHLIB@,$APXS_CFLAGS_SHLIB,;t t
+s,@apachectlpath@,$apachectlpath,;t t
+s,@OPTOPTS@,$OPTOPTS,;t t
 CEOF
 
 _ACEOF

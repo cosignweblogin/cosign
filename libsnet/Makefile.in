@@ -3,8 +3,8 @@ OBJ = snet.o
 
 INCPATH=	@CPPFLAGS@
 DEFS=		@TLSDEFS@
-OPTOPTS=	-Wall # -Wstrict-prototypes
-CFLAGS=		${DEFS} ${OPTOPTS} ${INCPATH}
+OPTOPTS=	@OPTOPTS@
+CFLAGS=		${DEFS} ${OPTOPTS} ${INCPATH} @CFLAGS@
 TAGSFILE=	tags
 CC=		@CC@	
 

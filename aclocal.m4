@@ -78,20 +78,14 @@ AC_DEFUN([CHECK_APACHE],
         apachedir="$dir"
         if test -f "$dir/include/httpd/http_core.h"; then
             found_apache="yes";
-            AINC="-I$apachedir/include/httpd";
-	    AC_SUBST(AINC)
             break
         fi
         if test -f "$dir/include/http_core.h"; then
             found_apache="yes";
-            AINC="-I$apachedir/include";
-	    AC_SUBST(AINC)
             break
         fi
         if test -f "$dir/include/apache/http_core.h"; then
             found_apache="yes";
-            AINC="-I$apachedir/include/apache";
-	    AC_SUBST(AINC)
             break
         fi
     done
@@ -102,5 +96,39 @@ AC_DEFUN([CHECK_APACHE],
     fi
     AC_SUBST(HAVE_APACHE)
     AC_MSG_RESULT(yes)
+])
+
+AC_DEFUN([CHECK_APACHE_APXS],
+[
+    if test x_$HAVE_APACHE = x_yes; then
+        AC_MSG_CHECKING(for apache DSO support)
+        AC_ARG_WITH(apxs,
+                AC_HELP_STRING([--with-apxs=FILE], [path to apxs]),
+                apxspath="$withval")
+        if test -n "$apxspath" -a -f "$apxspath"; then
+            found_apxs="yes"
+        else
+            dirs=$apachedir/bin:$PATH:/usr/local/apache/bin
+            saved_ifs=$IFS
+            IFS=:
+            for i in $dirs; do
+                apxspath=$i/apxs
+                if test -f "$apxspath"; then
+                    found_apxs="yes"
+                    break
+                fi
+            done
+            IFS=$saved_ifs
+        fi
+        if test x_$found_apxs != x_yes; then
+            AC_MSG_ERROR(cannot find apxs )
+        fi
+        APXS_INCLUDE="-I`$apxspath -q INCLUDEDIR`"
+        APXS_CFLAGS_SHLIB="`$apxspath -q CFLAGS_SHLIB`"
+        AC_SUBST(apxspath)
+        AC_SUBST(APXS_INCLUDE)
+        AC_SUBST(APXS_CFLAGS_SHLIB)
+        AC_MSG_RESULT($apxspath)
+    fi
 ])
 
