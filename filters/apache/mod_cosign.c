@@ -341,13 +341,15 @@ cosign_auth( request_rec *r )
      * version of the data, just verify the cookie's still valid.
      * Otherwise, retrieve the auth info from the server.
      */
-    if (( cv = cosign_cookie_valid( cfg, my_cookie, &si,
-	    r->connection->remote_ip, r->server )) < 0 ) {	
-	return( HTTP_SERVICE_UNAVAILABLE );	/* it's all forbidden! */
-    } 
+    cv = cosign_cookie_valid( cfg, my_cookie, &si, r->connection->remote_ip,
+	    r->server );	
+
+    if ( cv == COSIGN_ERROR ) {
+	return( HTTP_SERVICE_UNAVAILABLE );
+    }
 
     /* Everything Shines, let them thru */
-    if ( cv == 0 ) {
+    if ( cv == COSIGN_OK ) {
 	r->connection->user = ap_pstrcat( r->pool, si.si_user, NULL);
 	r->connection->ap_auth_type = "Cosign";
 	ap_table_set( r->subprocess_env, "COSIGN_SERVICE", cfg->service );
@@ -374,6 +376,8 @@ cosign_auth( request_rec *r )
 #endif /* KRB */
 	return( DECLINED );
     }
+
+    /* if we get here, this is also the fall through if cv == COSIGN_RETRY */
 
 set_cookie:
     /* let them thru regardless if this is "public" */

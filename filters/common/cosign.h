@@ -34,6 +34,11 @@ struct connlist {
     struct connlist     *conn_next;
 };
 
+#define COSIGN_ERROR		-1
+#define COSIGN_OK		0
+#define COSIGN_RETRY		1
+#define COSIGN_LOGGED_OUT	2
+
 int cosign_cookie_valid( cosign_host_config *, char *, struct sinfo *, char *,
 	server_rec * );
 int cosign_check_cookie( char *, struct sinfo *, cosign_host_config *, int,
