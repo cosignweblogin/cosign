@@ -155,8 +155,7 @@ f_starttls( SNET *sn, int ac, char *av[], SNET *pushersn )
     if (( ch = chosts_find( buf )) == NULL ) {
 	syslog( LOG_ERR, "f_starttls: No access for %s", buf );
 	X509_free( peer );
-	snet_writef( sn, "%d STARTTLS: no access for %s\r\n", 508, buf );
-	return( 1 );
+	exit( 1 );
     }
 
     X509_free( peer );

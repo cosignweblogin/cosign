@@ -356,7 +356,7 @@ cosign_check_cookie( char *scookie, struct sinfo *si, cosign_host_config *cfg,
 	int tkt )
 {
     struct connlist	**cur, *tmp;
-    int			rc, ret = 0;
+    int			rc = -1;
 
     /* use connection, then shuffle if there is a problem
      * what happens if they are all bad?
@@ -382,7 +382,7 @@ cosign_check_cookie( char *scookie, struct sinfo *si, cosign_host_config *cfg,
 	if ( (*cur)->conn_sn != NULL ) {
 	    continue;
 	}
-	if (( ret = connect_sn( *cur, cfg->ctx, cfg->host )) != 0 ) {
+	if (( rc = connect_sn( *cur, cfg->ctx, cfg->host )) != 0 ) {
 	    continue;
 	}
 	if (( rc = netcheck_cookie( scookie, si, (*cur)->conn_sn )) < 0 ) {
@@ -397,7 +397,7 @@ cosign_check_cookie( char *scookie, struct sinfo *si, cosign_host_config *cfg,
 	}
     }
 
-    if ( ret < 0 ) {
+    if ( rc < 0 ) {
 	return( 2 );
     }
     return( 1 );
