@@ -31,7 +31,7 @@ cosign_cookie_valid( cosign_host_config *cfg, char *cookie, struct sinfo *si,
 	char *ipaddr )
 {
     struct sinfo	lsi;
-    int			rc, rs, fd, tkt = 0;
+    int			rc, rs, fd;
     struct timeval	tv;
     char		path[ MAXPATHLEN ], tmppath[ MAXPATHLEN ];
     FILE		*tmpfile;
@@ -89,17 +89,10 @@ cosign_cookie_valid( cosign_host_config *cfg, char *cookie, struct sinfo *si,
 	return( 0 );
     }
 
-#ifdef KRB
-    if (( rs == 1 ) && ( cfg->krbtkt )) {
-        tkt = 1;
-    }
-#endif /* KRB */
-
-    if (( rc = cosign_check_cookie( cookie, si, cfg, tkt )) < 0 ) {
+    if (( rc = cosign_check_cookie( cookie, si, cfg, rs )) < 0 ) {
         fprintf( stderr, "cosign_cookie_valid: check_cookie failed\n" );
         return( -1 );
     }
-
 
     if ( rc == 2 ) {
 	fprintf( stderr, "Unable to connect to any Cosign server.\n" ); 

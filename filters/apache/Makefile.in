@@ -9,6 +9,7 @@ APXS=           @APXS@
 APACHECTL=      @APACHECTL@
 INSTALL=        @INSTALL@
 FILTERDB=	@filterdb@
+PROXYDB=	@proxydb@
 
 #   additional user defines, includes and libraries
 
@@ -27,6 +28,11 @@ OBJ=	mod_cosign.o connect.o cookiefs.o sparse.o \
 
 #   the default target
 all: mod_cosign.so
+
+connect.o:	connect.c
+	${CC} ${CFLAGS} \
+	-D_PROXY_DB=\"${PROXYDB}\" \
+	-c connect.c
 
 cookiefs.o:	cookiefs.c
 	${CC} ${CFLAGS} \

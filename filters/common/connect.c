@@ -14,6 +14,7 @@
 #include <string.h>
 #include <netdb.h>
 #include <fcntl.h>
+#include <ctype.h>
 
 #define OPENSSL_DISABLE_OLD_DES_SUPPORT
 #include <openssl/ssl.h>
@@ -41,6 +42,7 @@ static int close_sn( struct connlist *);
 static void (*logger)( char * ) = NULL;
 
 static struct timeval		timeout = { 10 * 60, 0 };
+static char			*proxydb = _PROXY_DB;
 
 /*
  * -1 means big error, dump this connection
@@ -111,6 +113,118 @@ netcheck_cookie( char *scookie, struct sinfo *si, SNET *sn )
 	return( -1 );
     }
     strcpy( si->si_realm, av[ 3 ] );
+
+    return( 2 );
+}
+
+    static int
+netretr_proxy( char *scookie, struct sinfo *si, SNET *sn )
+{
+    int			fd;
+    char		*line;
+    char                path[ MAXPATHLEN ], tmppath[ MAXPATHLEN ];
+    struct timeval      tv;
+    FILE                *tmpfile;
+
+
+    /* name our file and open tmp file */
+    if ( snprintf( path, sizeof( path ), "%s/%s", proxydb, scookie ) >=
+            sizeof( path )) {
+        fprintf( stderr, "netretr_proxy: cookie path too long\n");
+        return( -1 );
+    }
+
+    if ( snprintf( tmppath, sizeof( tmppath ), "%s/%x%x.%i", proxydb,
+            tv.tv_sec, tv.tv_usec, (int)getpid()) >= sizeof( tmppath )) {
+        fprintf( stderr, "netretr_proxy: tmppath too long\n" );
+        return( -1 );
+    }
+
+    if (( fd = open( tmppath, O_CREAT|O_EXCL|O_WRONLY, 0644 )) < 0 ) {
+        perror( tmppath );
+        return( -1 );
+    }
+
+    if (( tmpfile = fdopen( fd, "w" )) == NULL ) {
+        if ( unlink( tmppath ) != 0 ) {
+            perror( tmppath );
+        }
+        perror( tmppath );
+        return( -1 );
+    }
+
+    /* RETR service-cookie cookies */
+    if ( snet_writef( sn, "RETR %s cookies\r\n", scookie ) < 0 ) {
+	fprintf( stderr, "netretr_proxy: snet_writef failed\n");
+	return( -1 );
+    }
+
+    do {
+	if (( line = snet_getline( sn, &tv )) == NULL ) {
+	    /* error message */
+	    return ( -1 );
+	}
+
+	switch( *line ) {
+	case '2':
+	    break;
+
+	case '4':
+	    fprintf( stderr, "netretr_proxy: %s\n", line);
+	    return( 1 );
+
+	case '5':
+	    /* choose another connection */
+	    fprintf( stderr, "choose another connection: %s\n", line );
+	    return( 0 );
+
+	default:
+	    fprintf( stderr, "cosignd told me sumthin' wacky: %s\n", line );
+	    return( -1 );
+	}
+
+	if ( strlen( line ) < 3 ) {
+	    /* error message */
+	    return( -1 );
+	}
+        if ( !isdigit( (int)line[ 1 ] ) ||
+                !isdigit( (int)line[ 2 ] )) {
+	    /* error message */
+	    return( -1 );
+        }
+
+	if ( line[ 3 ] != '\0' &&
+		line[ 3 ] != ' ' &&
+		line [ 3 ] != '-' ) {
+	    /* error message */
+	    return( -1 );
+	}
+
+	if ( line[ 3 ] == '-' ) {
+	    fprintf( tmpfile, "x%s\n", &line[ 4 ] );
+	}
+
+    } while ( line[ 3 ] == '-' );
+
+    if ( fclose ( tmpfile ) != 0 ) {
+        if ( unlink( tmppath ) != 0 ) {
+            perror( tmppath );
+        }
+        perror( tmppath );
+        return( -1 );
+    }
+
+    if ( link( tmppath, path ) != 0 ) {
+        if ( unlink( tmppath ) != 0 ) {
+            perror( tmppath );
+        }
+        perror( tmppath );
+        return( -1 );
+    }
+
+    if ( unlink( tmppath ) != 0 ) {
+        perror( tmppath );
+    }
 
     return( 2 );
 }
@@ -353,7 +467,7 @@ teardown_conn( struct connlist *cur )
 
     int
 cosign_check_cookie( char *scookie, struct sinfo *si, cosign_host_config *cfg,
-	int tkt )
+	int first )
 {
     struct connlist	**cur, *tmp;
     int			rc = -1;
@@ -413,8 +527,14 @@ done:
     if ( rc == 1 ) {
 	return( 1 );
     } else {
+	if (( first ) && ( cfg->proxy )) {
+	    if ( netretr_proxy( scookie, si, cfg->cl->conn_sn )
+		    != 2 ) {
+		fprintf( stderr, "Can't retrieve proxy cookies\n" );
+	    }
+	}
 #ifdef KRB
-	if ( tkt ) {
+	if (( first ) && ( cfg->krbtkt )) {
 	    if ( netretr_ticket( scookie, si, cfg->cl->conn_sn, cfg->krb524 )
 		    != 2 ) {
 		fprintf( stderr, "Can't retrieve kerberos ticket\n" );
