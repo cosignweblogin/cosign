@@ -91,8 +91,8 @@ main( ac, av )
     int			dontrun = 0;
     int			reuseaddr = 1;
     char		*prog;
-    char		*cryptofile = "/usr/local/umweb/certs/cosign-test.www.key";
-    char		*certfile = "/usr/local/umweb/certs/cosign-test.www.cert";
+    char		*cryptofile = "/usr/local/umweb/certs/weblogin.key";
+    char		*certfile = "/usr/local/umweb/certs/weblogin.cert";
     char		*cafile = "/usr/local/umweb/certs/umwebCA.pem";
     unsigned short	port = 0;
     extern int		optind;
