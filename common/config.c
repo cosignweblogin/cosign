@@ -13,6 +13,7 @@
 
 #include <snet.h>
 
+#include "wildcard.h"
 #include "config.h"
 #include "argcargv.h"
 
@@ -26,7 +27,7 @@ chosts_find( char *hostname )
     struct chosts	*cur = NULL;
 
     for ( cur = authlist; cur != NULL; cur = cur->ch_next ) {
-	if ( strcmp( cur->ch_hostname, hostname ) == 0 ) {
+	if ( wildcard( cur->ch_hostname, hostname )) {
 	    break;
 	}
     }
