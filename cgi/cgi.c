@@ -25,7 +25,7 @@
 #define MAXNAMELEN	1024
 #define ERROR_HTML	"../templates/error.html"
 #define LOGIN_HTML	"../templates/login.html"
-#define SERVICE_MENU	"../templates/service-menu.html"
+#define SERVICE_MENU	"/services/"
 #define TKT_PREFIX	"/ticket"
 #define SIDEWAYS        1
 
@@ -279,10 +279,8 @@ main( int argc, char *argv[] )
 	    goto loginscreen;
 	}
 
-	title = "Authentication Successful";
-	tmpl = SERVICE_MENU;
-
-	subfile( tmpl );
+	/* authentication successful, show service menu */
+	printf( "Location: http://%s%s\n\n", host, SERVICE_MENU );
 	exit( 0 );
     }
 
@@ -313,7 +311,7 @@ main( int argc, char *argv[] )
     }
 
     if ( strchr( cl[ CL_LOGIN ].cl_data, '@' ) != NULL ) {
-	if ( !mysql_real_connect( &friend_db, "babbler.web.itd.umich.edu", "friend", "(End0!)", "friend", 3306, NULL, 0 )) {
+	if ( !mysql_real_connect( &friend_db, _FRIEND_MYSQL_DB, _FRIEND_MYSQL_LOGIN, _FRIEND_MYSQL_PASSWD, "friend", 3306, NULL, 0 )) {
 	    fprintf( stderr, mysql_error( &friend_db ));
 	    err = "Unable to connect to guest account database.";
 	    title = "Authentication Required ( server problem )";
@@ -334,7 +332,7 @@ main( int argc, char *argv[] )
 */
 
 	/* XXX should check for sql injection in username query */
-	snprintf( sql, sizeof( sql ), "SELECT account_name, passwd, timestamp FROM friends WHERE account_name = '%s'", cl[ CL_LOGIN ].cl_data );
+	snprintf( sql, sizeof( sql ), "SELECT account_name, passwd FROM friends WHERE account_name = '%s'", cl[ CL_LOGIN ].cl_data );
 
 	if( mysql_real_query( &friend_db, sql, sizeof( sql ))) {
 	    fprintf( stderr, mysql_error( &friend_db ));
@@ -394,7 +392,7 @@ main( int argc, char *argv[] )
 	    /* redirecting to service menu because user is logged in */
 	    if (( ref == NULL ) ||
 		    ( ref = strstr( ref, "http" )) == NULL ) {
-		printf( "Location: %s\n\n", host );
+		printf( "Location: http://%s%s\n\n", host, SERVICE_MENU );
 		exit( 0 );
 	    }
 	}
@@ -566,7 +564,7 @@ main( int argc, char *argv[] )
 
 	    /* redirecting to service menu because user is logged in */
 	    if (( ref == NULL ) || ( ref = strstr( ref, "http" )) == NULL ) {
-		printf( "Location: %s\n\n", host );
+		printf( "Location: http://%s%s/\n\n", host, SERVICE_MENU );
 		exit( 0 );
 	    }
 	}
@@ -597,6 +595,12 @@ main( int argc, char *argv[] )
 
     if (( ref != NULL ) && ( ref = strstr( ref, "http" )) != NULL ) {
 	printf( "Location: %s\n\n", ref );
+	exit( 0 );
+    }
+
+    if (( strncmp( tmpl, SERVICE_MENU, sizeof( SERVICE_MENU )) == 0 )) {
+	/* authentication successful, show service menu */
+	printf( "Location: http://%s%s\n\n", host, SERVICE_MENU );
 	exit( 0 );
     }
 

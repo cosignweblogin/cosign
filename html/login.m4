@@ -80,10 +80,8 @@ include(`header.html')
 
 		<li><a href="https://accounts.www.umich.edu/create/alumnirec/">Alumni</a><br /> UM Alumni are eligible to create an account.
 
-		<!--
-		<li><a href="https://weblogin-test.www.umich.edu/friend/">Friends</a><br />
+		<li><a href="/friend/">Friends</a><br />
 		Create a 'Friend' account if you are not otherwise affiliated with the University.<br />
-		-->
 		</ul>
 	    </td>
 
@@ -93,10 +91,8 @@ include(`header.html')
 		<li><a href="https://accounts.www.umich.edu/hint-bin/retrieve">Retrieve your hint</a><br />
 		If you've left yourself a hint you can use it to remind yourself of your password.<br />
 
-		<!--
-		<li><a href="https://weblogin-test.www.umich.edu/friend/passwd/">Reset your Friend password</a><br />
+		<li><a href="/friend/reset/">Reset your Friend password</a><br />
 		If you have a Friend account (not a UM uniqname), you can reset the password online. <br />
-		-->
 		</ul>
 	    </td>
 	</tr>
