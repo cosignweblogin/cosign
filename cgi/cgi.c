@@ -209,6 +209,17 @@ main( int argc, char *argv[] )
     script = getenv( "SCRIPT_NAME" );
     ip_addr = getenv( "REMOTE_ADDR" );
 
+    if ( cookie == NULL ) {
+	if ( strcmp( method, "POST" ) == 0 ) {
+	    title = "Error: Cookies Required";
+	    err = "This service requires that cookies be enabled.";
+	    tmpl = ERROR_HTML;
+	    subfile( tmpl );
+	    exit( 0 );
+	}
+	goto loginscreen;
+    }
+
     if ((( qs = getenv( "QUERY_STRING" )) != NULL ) && ( *qs != '\0' )) {
 	if ((( service = strtok( qs, ";" )) == NULL ) ||
 		( strncmp( service, "cosign-", 7 ) != 0 )) {
@@ -263,17 +274,6 @@ main( int argc, char *argv[] )
 	/* if no referrer, redirect to top of site from conf file */
 	printf( "Location: %s\n\n", ref );
 	exit( 0 );
-    }
-
-    if ( cookie == NULL ) {
-	if ( strcmp( method, "POST" ) == 0 ) {
-	    title = "Error: Cookies Required";
-	    err = "This service requires that cookies be enabled.";
-	    tmpl = ERROR_HTML;
-	    subfile( tmpl );
-	    exit( 0 );
-	}
-	goto loginscreen;
     }
 
     if ( strcmp( method, "POST" ) != 0 ) {
