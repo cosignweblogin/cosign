@@ -7,6 +7,7 @@ COSIGNCADIR=@cosigncadir@
 COSIGNCERT=@cosigncert@
 COSIGNKEY=@cosignkey@
 COSIGNHOST = @cosignhost@
+COSIGNLOGOUTURL = @cosignlogouturl@
 KEYTABPATH = @keytabpath@
 
 INCPATH=        @CPPFLAGS@ @KINC@ -I../libsnet -I../libcgi -I../common
@@ -44,6 +45,7 @@ cosign.cgi: cgi.o $(OBJ)
 logout.o:	logout.c
 	${CC} ${CFLAGS} \
 	-D_COSIGN_HOST=\"${COSIGNHOST}\" \
+	-D_COSIGN_LOGOUT_URL=\"${COSIGNLOGOUTURL}\" \
 	-c logout.c
 
 logout: logout.o $(OBJ)

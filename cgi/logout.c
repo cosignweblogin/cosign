@@ -25,8 +25,8 @@
 extern char	*version;
 char	*err = NULL;
 char	*title = "Logout";
-char	*url = "http://www.umich.edu/";
 char	*host = _COSIGN_HOST;
+char	*url = _COSIGN_LOGOUT_URL;
 int	port = 6663;
 int	nocache = 0;
 

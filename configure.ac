@@ -19,10 +19,10 @@ AC_CHECK_LIB([nsl], [inet_ntoa])
 AC_CHECK_LIB([socket], [socket])
 
 AC_ARG_ENABLE(krb, AC_HELP_STRING([--enable-krb=path_to_krb], [enable kerberos for the cgi and apache filter]), CHECK_LIBKRB, AC_MSG_RESULT( kerberos not enabled))
-AC_ARG_WITH(krb4, AC_HELP_STRING([--with-krb4=arg], [enable apache filter
+AC_ARG_WITH(krb4, AC_HELP_STRING([--with-krb4], [enable apache filter
 to get Kerberos IV tickets]), CHECK_KRB4, AC_MSG_RESULT( kerberos IV not enabled))
 
-AC_ARG_WITH(gss, AC_HELP_STRING([--with-gss=arg], [enable apache filter
+AC_ARG_WITH(gss, AC_HELP_STRING([--with-gss], [enable apache filter
 to set up GSSAPI ]), CHECK_GSS, AC_MSG_RESULT( GSSAPI not enabled))
 
 AC_ARG_WITH(cosigndb, AC_HELP_STRING([--with-cosigndb=DIR], [default cosign database storage]), cosigndb="$withval", cosigndb="/var/cosign/daemon" )
@@ -47,6 +47,9 @@ AC_SUBST(filterdb)
 
 AC_ARG_WITH(cosignhost, AC_HELP_STRING([--with-cosignhost=NAME], [name of host that runs cosignd]), cosignhost="$withval", cosignhost="cosign.example.edu" )
 AC_SUBST(cosignhost)
+
+AC_ARG_WITH(cosignlogouturl, AC_HELP_STRING([--with-cosignlogouturl=URL], [default URL to redirect users to upon logout]), cosignlogouturl="$withval", cosignlogouturl="http://cosign.example.edu" )
+AC_SUBST(cosignlogouturl)
 
 AC_ARG_WITH(keytabpath, AC_HELP_STRING([--with-keytabpath=FILE], [path
 to keytab]), keytabpath="$withval", keytabpath="" )

@@ -798,8 +798,8 @@ Optional Features:
 Optional Packages:
   --with-PACKAGE[=ARG]    use PACKAGE [ARG=yes]
   --without-PACKAGE       do not use PACKAGE (same as --with-PACKAGE=no)
-  --with-krb4=arg         enable apache filter to get Kerberos IV tickets
-  --with-gss=arg          enable apache filter to set up GSSAPI
+  --with-krb4             enable apache filter to get Kerberos IV tickets
+  --with-gss              enable apache filter to set up GSSAPI
   --with-cosigndb=DIR     default cosign database storage
   --with-cosignconf=FILE  default cosign conf file location
   --with-cosigncadir=DIR  default cosign CA dir location
@@ -807,6 +807,8 @@ Optional Packages:
   --with-cosignkey=FILE   default cosign key file location
   --with-filterdb=DIR     default cosign filter database storage
   --with-cosignhost=NAME  name of host that runs cosignd
+  --with-cosignlogouturl=URL
+                          default URL to redirect users to upon logout
   --with-keytabpath=FILE  path to keytab
   --with-ssl=DIR          path to ssl
   --with-apache-apxs=FILE path to Apache apxs program
@@ -2735,6 +2737,16 @@ fi;
 
 
 
+# Check whether --with-cosignlogouturl or --without-cosignlogouturl was given.
+if test "${with_cosignlogouturl+set}" = set; then
+  withval="$with_cosignlogouturl"
+  cosignlogouturl="$withval"
+else
+  cosignlogouturl="http://cosign.example.edu"
+fi;
+
+
+
 # Check whether --with-keytabpath or --without-keytabpath was given.
 if test "${with_keytabpath+set}" = set; then
   withval="$with_keytabpath"
@@ -3525,6 +3537,7 @@ s,@cosigncert@,$cosigncert,;t t
 s,@cosignkey@,$cosignkey,;t t
 s,@filterdb@,$filterdb,;t t
 s,@cosignhost@,$cosignhost,;t t
+s,@cosignlogouturl@,$cosignlogouturl,;t t
 s,@keytabpath@,$keytabpath,;t t
 s,@ADDLIBS@,$ADDLIBS,;t t
 s,@ADDLDFLAGS@,$ADDLDFLAGS,;t t

@@ -1,0 +1,59 @@
+Before you begin:
+
+    Your web server should have SSL enabled.
+
+    You will need OpenSSL 0.9.7a or newer.
+
+    You will need a source of entropy for the OpenSSL libraries to
+    work.  If your system has /dev/*random then you're all set,
+    otherwise you should get something like prngd or egd.  Solaris
+    users should refer to document 27606 "Differing /dev/random
+    support requirements within Solaris [TM] Operating Environments"
+    at <http://sunsolve.sun.com/>.  AIX users will want to get
+    prngd.
+
+    You almost certainly do need Kerberos installed on your
+    machine since you are building the central server.
+    You will need MIT krb5-1.2.7 or later.
+
+    For documentation and information concerning cosign terminology,
+    see: http://weblogin.org/
+
+CGI:
+CA:
+
+
+To set up a central cosign server ( the weblogin server ):
+    Note that you should only need this if you are establishing a new
+    SSO community for which you will be providing the central login
+    server.
+
+	./configure --enable-krb=/path/to/krb5
+	make everything
+	make install-all
+	mkdir -p /var/cosign/daemon
+	chown DAEMON_USER /var/cosign/daemon
+    
+    The daemon (cosignd) requires  /var/cosign/daemon to exist and be
+    writeable by the user the daemon runs as.
+
+    --with-cosigndb=DIR overrides /var/cosign/daemon
+    --with-cosignconf=FILE -> allows you to specify new conf file location
+	    default is /usr/local/etc/cosign.conf
+    --with-cosigncadir=DIR	default=/var/cosign/certs/CA 
+    --with-cosigncert=FILE	default=/var/cosign/certs/cert.pem
+    --with-cosignkey=FILE	default=/var/cosign/certs/key.pem
+    --with-keytabpath=FILE 	default=NULL ( which means use whatever
+					the krb5.conf says to use )
+
+    These 2 are for the login and logout cgi, respectively. They must be
+    set with your localized settings. "cosignhost" is the DNS name of
+    the server running cosignd. "cosignlogouturl" is the default URL a
+    user will be directed to upon logout ( if no URL is specified by
+    another application. )
+
+    --with-cosignhost=NAME  	default=cosign.example.edu
+    --with-cosignlogouturl=URL	default=http://cosign.example.edu
+
+
+Questions? cosign@umich.edu

@@ -17,7 +17,7 @@ Before you begin:
     You almost certainly do not need Kerberos installed on your
     machine unless you are building the central server.  If you
     are building a central server, you will need MIT krb5-1.2.7 or
-    later.
+    later. See README.weblogin for further information.
 
     For documentation and information concerning cosign terminology,
     see: http://weblogin.org/
@@ -38,6 +38,13 @@ Set up a cosign-protected service:
 
 	--with-filterdb=DIR overrides the default of /var/cosign/filter
 
+    To do this by hand, copy mod_cosign.so to apache's libexec
+    directory. Edit httpd.conf to include:
+
+
+	LoadModule cosign_module      libexec/mod_cosign.soA
+	AddModule mod_cosign.c
+
     Finally, create a CA directory to hold your CA certificates.  Copy
     the CAs ( see the CAcerts directory in the root of the cosign
     source distribution ) to your CA dir and issue the c_rehash command
@@ -55,7 +62,7 @@ Set up a cosign-protected service:
 	RSA-SSCA.pem => f73e89fd.0
 	entrust.pem => ed524cf5.0
 
-Configure Apache:
+Configure Apache ( U of M specific example ):
 
     In the U of M environment, you'll want your directives to look like
     this:
@@ -76,27 +83,36 @@ Configure Apache:
     NOTE: trailing slash is required on CosignRedirect! The redirects
     won't work correctly without it.
 
-To set up a central cosign server ( the weblogin server ):
-    Note that you should only need this if you are establishing a new
-    SSO community for which you will be providing the central login
-    server.
+--------
+Configure Apache ( here are your options ):
 
-	./configure --enable-krb=/path/to/krb5
-	make everything
-	make install-all
-	mkdir -p /var/cosign/daemon
-	chown DAEMON_USER /var/cosign/daemon
-    
-    The daemon (cosignd) requires  /var/cosign/daemon to exist and be
-    writeable by the user the daemon runs as.
+	CosignProtected		[ on | off ]
+	    governs whether Cosign is invoked or not
 
-    --with-cosigndb=DIR overrides /var/cosign/daemon
-    --with-cosignconf=FILE -> allows you to specify new conf file location
-	    default is /usr/local/etc/cosign.conf
-    --with-cosigncadir=DIR	default=/var/cosign/certs/CA 
-    --with-cosigncert=FILE	default=/var/cosign/certs/cert.pem
-    --with-cosignkey=FILE	default=/var/cosign/certs/key.pem
+	CosignHostname		[ the name of the host running cosignd ]
+	CosignRedirect		[ the URL of the cosign login cgi ]
+	CosignPostErrorRedirect	[ the URL to redirect to if the user
+				would be redirected to the login cgi
+				during a POST. This screen lets people
+				know we dropped their data. ]
+	CosignService		[ a unique identifier for... ]
+	CosignCrypto		[path to key] [path to cert] [path to CA dir]
 
-Contact webmaster@umich.edu for umich CA signed certs, which are free!
+--------
+To make Kerberos work with the module, you'll need the following options:
 
-Questions? cosign@umich.edu
+    --enable-krb=path_to_krb5	enables Kerberos V
+    --with-krb4			enables Kerberos IV
+    --with-GSS			enables GSSAPI ( see directive below )
+
+
+	CosignGetKerberosTickets	[ on | off ]
+	    module asks for tgt from cosignd
+
+	CosignKerberos524		[ on | off ]	
+	    whether you want K5 tgt converted to K4 tgt
+
+	CosignKerberosSetupGSS		[ on | off ]
+		setup the enviornment so that other apache modules
+		that need GSSAPI/Kerberos work. e.g. Imp running under mod_php
+
