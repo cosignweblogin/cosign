@@ -34,7 +34,7 @@ include(`header.html')
 		</li>
 
 		<li>
-		    <a href="https://cosign-test.www.umich.edu/cgi-bin/logout">logout</a>
+		    <a href="https://weblogin.umich.edu/cgi-bin/logout">logout</a>
 
 		    <blockquote>
 			Initiate the logout process.

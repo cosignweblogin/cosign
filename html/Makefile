@@ -9,7 +9,7 @@ M4 = /usr/ccs/bin/m4
 .m4.html:
 	${M4} $*.m4 >$*.html
 
-default: ${ALL}
+all: ${ALL}
 
 install:
 	/bin/cp -r seal.gif $(HTML)
