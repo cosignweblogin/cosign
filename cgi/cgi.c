@@ -21,12 +21,11 @@
 #include "cosigncgi.h"
 #include "network.h"
 
-#ifdef _FRIEND_MYSQL_DB
+#ifdef SQL_FRIEND
 #include <mysql.h>
 static	MYSQL	friend_db;
 #endif
 
-#define MAXNAMELEN	1024
 #define ERROR_HTML	"../templates/error.html"
 #define LOGIN_HTML	"../templates/login.html"
 #define SERVICE_MENU	"/services/"
@@ -181,7 +180,7 @@ main( int argc, char *argv[] )
     char			*tmpl = LOGIN_HTML;
     struct connlist		*head;
     int				port;
-#ifdef _FRIEND_MYSQL_DB
+#ifdef SQL_FRIEND
     MYSQL_RES			*res;
     MYSQL_ROW			row;
     char			sql[ 225 ]; /* holds sql query + email addr */
@@ -232,7 +231,7 @@ main( int argc, char *argv[] )
 	    subfile( tmpl );
 	    exit( 0 );
 	}
-	if ( strlen( service ) > MAXNAMELEN ) {
+	if ( strlen( service ) > MAXSNAMELEN ) {
 	    tmpl = ERROR_HTML;
 	    title = "Error: Max Length Exceeded";
 	    err = "An error occurred while processing your request:  max length exceeded.";
@@ -328,7 +327,7 @@ main( int argc, char *argv[] )
     }
 
     if ( strchr( cl[ CL_LOGIN ].cl_data, '@' ) != NULL ) {
-#ifdef _FRIEND_MYSQL_DB
+#ifdef SQL_FRIEND
 	if ( !mysql_real_connect( &friend_db, _FRIEND_MYSQL_DB, _FRIEND_MYSQL_LOGIN, _FRIEND_MYSQL_PASSWD, "friend", 3306, NULL, 0 )) {
 	    fprintf( stderr, mysql_error( &friend_db ));
 	    err = "Unable to connect to guest account database.";

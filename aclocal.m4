@@ -227,6 +227,8 @@ AC_DEFUN([CHECK_LIBMYSQL],
     AC_SUBST(MYSQLLIBS)
     MYSQLLDFLAGS="-L$ac_cv_path_mysql/lib/mysql -R$ac_cv_path_mysql/lib/mysql";
     AC_SUBST(MYSQLLDFLAGS)
+    SQLDEFS=-DSQL_FRIEND
+    AC_SUBST(SQLDEFS)
     HAVE_MYSQL=yes
     AC_SUBST(HAVE_MYSQL)
     AC_MSG_RESULT($ac_cv_path_mysql)

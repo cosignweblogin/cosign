@@ -202,7 +202,7 @@ main( int argc, char *argv[] )
 	    subfile( tmpl );
 	    exit( 0 );
 	}
-	if ( strlen( service ) > MAXNAMELEN ) {
+	if ( strlen( service ) > MAXSNAMELEN ) {
 	    tmpl = ERROR_HTML;
 	    title = "Error: Max Length Exceeded";
 	    err = "An error occurred while processing your request:  max length exceeded.";
