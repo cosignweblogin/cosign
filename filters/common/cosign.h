@@ -2,6 +2,7 @@ typedef struct {
     char                *host;
     char                *service;
     char		*siteentry;
+    int			public;
     char                *redirect;
     char                *posterror;
     unsigned short      port;

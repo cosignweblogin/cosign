@@ -45,6 +45,7 @@ cosign_create_dir_config( pool *p, char *path )
     cfg = (cosign_host_config *)ap_pcalloc( p, sizeof( cosign_host_config ));
     cfg->service = NULL;
     cfg->siteentry = NULL;
+    cfg->public = 0;
     cfg->redirect = NULL;
     cfg->posterror = NULL;
     cfg->port = htons( 6663 );
@@ -82,6 +83,7 @@ cosign_create_server_config( pool *p, server_rec *s )
     cfg->host = NULL;
     cfg->service = NULL;
     cfg->siteentry = NULL;
+    cfg->public = 0;
     cfg->redirect = NULL;
     cfg->posterror = NULL;
     cfg->port = htons( 6663 );
@@ -325,6 +327,11 @@ cosign_auth( request_rec *r )
     }
 
 set_cookie:
+    /* let them thru regardless if this is "public" */
+    if ( cfg->public ) {
+fprintf( stderr, "cfg is public\n" );
+	return( DECLINED );
+    }
     if ( set_cookie_and_redirect( r, cfg ) != 0 ) {
 	return( HTTP_SERVICE_UNAVAILABLE );
     }
@@ -349,6 +356,7 @@ set_cosign_protect( cmd_parms *params, void *mconfig, int flag )
 	if ( cfg->siteentry != NULL ) {
 	    cfg->siteentry = ap_pstrdup( params->pool, scfg->siteentry );
 	}
+	cfg->public = scfg->public; 
 	cfg->posterror = ap_pstrdup( params->pool, scfg->posterror );
 	cfg->host = ap_pstrdup( params->pool, scfg->host );
 	cfg->cl = scfg->cl;
@@ -410,6 +418,7 @@ set_cosign_service( cmd_parms *params, void *mconfig, char *arg )
 	if ( cfg->siteentry != NULL ) {
 	    cfg->siteentry = ap_pstrdup( params->pool, scfg->siteentry );
 	}
+	cfg->public = scfg->public; 
 	cfg->redirect = ap_pstrdup( params->pool, scfg->redirect );
 	cfg->filterdb = ap_pstrdup( params->pool, scfg->filterdb );
 	cfg->proxydb = ap_pstrdup( params->pool, scfg->proxydb );
@@ -448,6 +457,7 @@ set_cosign_siteentry( cmd_parms *params, void *mconfig, char *arg )
 	cfg = scfg;
     } else {
 	cfg = (cosign_host_config *)mconfig;
+	cfg->public = scfg->public; 
 	cfg->redirect = ap_pstrdup( params->pool, scfg->redirect );
 	cfg->filterdb = ap_pstrdup( params->pool, scfg->filterdb );
 	cfg->proxydb = ap_pstrdup( params->pool, scfg->proxydb );
@@ -478,6 +488,50 @@ set_cosign_siteentry( cmd_parms *params, void *mconfig, char *arg )
     } else {
 	cfg->siteentry = NULL;
     }
+    cfg->configured = 1;
+    return( NULL );
+}
+
+        static const char *
+set_cosign_public( cmd_parms *params, void *mconfig, int flag )
+{
+    cosign_host_config		*cfg, *scfg;
+
+    scfg = (cosign_host_config *) ap_get_module_config(
+		params->server->module_config, &cosign_module );
+    if ( params->path == NULL ) {
+	cfg = scfg;
+    } else {
+	cfg = (cosign_host_config *)mconfig;
+	if ( cfg->siteentry != NULL ) {
+	    cfg->siteentry = ap_pstrdup( params->pool, scfg->siteentry );
+	}
+	cfg->redirect = ap_pstrdup( params->pool, scfg->redirect );
+	cfg->filterdb = ap_pstrdup( params->pool, scfg->filterdb );
+	cfg->proxydb = ap_pstrdup( params->pool, scfg->proxydb );
+	cfg->tkt_prefix = ap_pstrdup( params->pool, scfg->tkt_prefix );
+	cfg->posterror = ap_pstrdup( params->pool, scfg->posterror );
+	cfg->host = ap_pstrdup( params->pool, scfg->host );
+	cfg->cl = scfg->cl;
+	cfg->port = scfg->port; 
+	cfg->ctx = scfg->ctx;
+	cfg->proxy = scfg->proxy;
+	cfg->http = scfg->http;
+	if ( cfg->service == NULL ) {
+	    cfg->service = ap_pstrdup( params->pool, scfg->service );
+	}
+#ifdef KRB
+	cfg->krbtkt = scfg->krbtkt; 
+#ifdef GSS
+	cfg->gss = scfg->gss;
+#endif /* GSS */
+#ifdef KRB4
+	cfg->krb524 = scfg->krb524;
+#endif /* KRB4 */
+#endif /* KRB */
+    }
+
+    cfg->public = flag;
     cfg->configured = 1;
     return( NULL );
 }
@@ -834,6 +888,10 @@ static command_rec cosign_cmds[ ] =
 	{ "CosignSiteEntry", set_cosign_siteentry,
 	NULL, RSRC_CONF | ACCESS_CONF, TAKE1,
 	"\"none\" or URL to redirect for users who successfully authenticate" },
+
+	{ "CosignAllowPublicAccess", set_cosign_public,
+	NULL, RSRC_CONF | ACCESS_CONF, FLAG,
+	"make authentication optional for protected sites" },
 
         { "CosignHttpOnly", set_cosign_http,
         NULL, RSRC_CONF, FLAG,
