@@ -16,6 +16,9 @@
 #include <fcntl.h>
 #include <errno.h>
 
+#include <httpd.h>
+#include <http_log.h>
+
 #include <openssl/ssl.h>
 
 #include <snet.h>
@@ -26,7 +29,7 @@
 
     int
 cosign_cookie_valid( cosign_host_config *cfg, char *cookie, struct sinfo *si,
-	char *ipaddr )
+	char *ipaddr, server_rec *s )
 {
     struct sinfo	lsi;
     int			rc, rs, fd;
@@ -41,13 +44,16 @@ cosign_cookie_valid( cosign_host_config *cfg, char *cookie, struct sinfo *si,
     }
 
     if ( strchr( cookie, '/' ) != NULL ) {
-	fprintf( stderr, "cosign_cookie_valid: cookie contains '/'\n" );
+	ap_log_error( APLOG_MARK, APLOG_ERR|APLOG_NOERRNO, s,
+	            "mod_cosign: cosign_cookie_valid: cookie contains '/'\n" );
 	return( -1 );
     }
 
     if ( snprintf( path, sizeof( path ), "%s/%s", cfg->filterdb, cookie ) >=
 	    sizeof( path )) {
-	fprintf( stderr, "cosign_cookie_valid: cookie path too long\n" );
+	ap_log_error( APLOG_MARK, APLOG_ERR|APLOG_NOERRNO, s,
+	            "mod_cosign: cosign_cookie_valid: "
+		    "cookie path too long\n" );
 	return( -1 );
     }
 
@@ -63,6 +69,8 @@ cosign_cookie_valid( cosign_host_config *cfg, char *cookie, struct sinfo *si,
      */
     if (( rs = read_scookie( path, &lsi )) < 0 ) {
 	fprintf( stderr, "Something's wrong: read_scookie\n" ); 
+	ap_log_error( APLOG_MARK, APLOG_ERR|APLOG_NOERRNO, s,
+	            "mod_cosign: read_scookie error\n" );
 	return( -1 );
     }
 
@@ -89,11 +97,16 @@ cosign_cookie_valid( cosign_host_config *cfg, char *cookie, struct sinfo *si,
 
     if (( rc = cosign_check_cookie( cookie, si, cfg, rs )) < 0 ) {
         fprintf( stderr, "cosign_cookie_valid: check_cookie failed\n" );
+	ap_log_error( APLOG_MARK, APLOG_ERR|APLOG_NOERRNO, s,
+	            "mod_cosign: cosign_cookie_valid: "
+		    "check_cookie error\n" );
         return( -1 );
     }
 
     if ( rc == 2 ) {
-	fprintf( stderr, "Unable to connect to any Cosign server.\n" ); 
+	ap_log_error( APLOG_MARK, APLOG_ERR|APLOG_NOERRNO, s,
+		"mod_cosign: cosign_cookie_valid: "
+		"Unable to connect to any Cosign server.\n" ); 
 	return( -1 );
     }
 
@@ -112,8 +125,9 @@ cosign_cookie_valid( cosign_host_config *cfg, char *cookie, struct sinfo *si,
 	if (( strcmp( si->si_ipaddr, lsi.si_ipaddr ) != 0 ) ||
 		( strcmp( si->si_user, lsi.si_user ) != 0 ) ||
 		( strcmp( si->si_realm, lsi.si_realm ) != 0 )) {
-	    fprintf( stderr, "network info does not match local info for %s\n",
-		    cookie );
+	    ap_log_error( APLOG_MARK, APLOG_ERR|APLOG_NOERRNO, s,
+		    "mod_cosign: cosign_cookie_valid: "
+		    "network info does not match local info for %s\n", cookie );
 	    return( -1 );
 	}
 
@@ -137,7 +151,9 @@ cosign_cookie_valid( cosign_host_config *cfg, char *cookie, struct sinfo *si,
     /* store local copy of scookie (service cookie) */
     if ( snprintf( tmppath, sizeof( tmppath ), "%s/%x%x.%i", cfg->filterdb,
 	    tv.tv_sec, tv.tv_usec, (int)getpid()) >= sizeof( tmppath )) {
-	fprintf( stderr, "cookiefs: tmppath too long\n" );
+	ap_log_error( APLOG_MARK, APLOG_ERR|APLOG_NOERRNO, s,
+		"mod_cosign: cosign_cookie_valid: "
+		"tmppath too long\n" );
 	return( -1 );
     }
 

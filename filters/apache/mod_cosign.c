@@ -321,7 +321,7 @@ cosign_auth( request_rec *r )
      * Otherwise, retrieve the auth info from the server.
      */
     if (( cv = cosign_cookie_valid( cfg, my_cookie, &si,
-	    r->connection->remote_ip )) < 0 ) {	
+	    r->connection->remote_ip, r->server )) < 0 ) {	
 	return( HTTP_SERVICE_UNAVAILABLE );	/* it's all forbidden! */
     } 
 

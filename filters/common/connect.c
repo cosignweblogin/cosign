@@ -17,6 +17,9 @@
 #include <fcntl.h>
 #include <ctype.h>
 
+#include <httpd.h>
+#include <http_log.h>
+
 #define OPENSSL_DISABLE_OLD_DES_SUPPORT
 #include <openssl/ssl.h>
 #include <openssl/err.h>
@@ -29,13 +32,11 @@
 #include "krb524.h"
 #endif /* KRB4 */
 
-
 #include "sparse.h"
 #include "cosign.h"
 #include "argcargv.h"
 #include "mkcookie.h"
 #include "rate.h"
-
 
 #define MIN(a,b)        ((a)<(b)?(a):(b))
 
