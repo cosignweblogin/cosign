@@ -20,6 +20,7 @@
 #define SIDEWAYS	1
 #define htputs( x ) fputs((x),stdout);
 
+extern char	*version;
 char	*err = NULL;
 char	*title = "Logout";
 char	*url = "http://www.umich.edu/";
@@ -118,10 +119,15 @@ subfile( char *filename )
 
 
     int
-main()
+main( int argc, char *argv[] )
 {
     char	*tmpl = REDIRECT_HTML;
     char	*cookie = NULL, *data, *ip_addr, *script;
+
+    if ( argc == 2 && ( strncmp( argv[ 1 ], "-V", 2 ) == 0 )) {
+	printf( "%s\n", version );
+	exit( 0 );
+    }
 
     if ( cgi_info( CGI_GET, cl ) != 0 ) {
 	fprintf( stderr, "%s: cgi_info broken\n", getenv( "SCRIPT_NAME" ) );

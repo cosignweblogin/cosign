@@ -24,6 +24,7 @@
 #define SPLASH_HTML	"../templates/splash.html"
 #define SIDEWAYS        1
 
+extern char	*version;
 char	*err = NULL;
 char	*url = "http://www.umich.edu/";
 char	*title = "Authentication Required";
@@ -119,7 +120,7 @@ subfile( char *filename )
 
 
     int
-main()
+main( int argc, char *argv[] )
 {
     krb5_error_code		kerror;
     krb5_context		kcontext;
@@ -132,6 +133,11 @@ main()
     char			*data, *ip_addr, *service, *ref;
     char			*cookie = NULL, *method, *script, *qs;
     char			*tmpl = LOGIN_HTML;
+
+    if ( argc == 2 && ( strncmp( argv[ 1 ], "-V", 2 ) == 0 )) {
+	printf( "%s\n", version );
+	exit( 0 );
+    }
 
     if (( data = getenv( "HTTP_COOKIE" )) != NULL ) {
 	cookie = strtok( data, ";" );
