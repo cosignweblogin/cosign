@@ -119,7 +119,7 @@ netcheck_cookie( char *secant, struct sinfo *si, SNET *sn )
 
 #ifdef KRB
     static int
-netretr_ticket( char *secant, struct sinfo *si, SNET *sn )
+netretr_ticket( char *secant, struct sinfo *si, SNET *sn, int convert )
 {
     char		*line;
     char                tmpkrb[ 16 ], krbpath [ 24 ];
@@ -228,6 +228,10 @@ netretr_ticket( char *secant, struct sinfo *si, SNET *sn )
     strcpy( si->si_krb5tkt, krbpath );
 
 #ifdef KRB4
+    if ( !convert ) {
+	fprintf( stderr, "k4 built but not used\n" );
+	return( 2 );
+    }
     if ( mkcookie( sizeof( tmpkrb ), tmpkrb ) != 0 ) {
 	fprintf( stderr, "mkcookie failed in netretr_ticket().\n" );
         returnval = -1;
@@ -368,7 +372,8 @@ check_cookie( char *secant, struct sinfo *si, cosign_host_config *cfg,
 	}
 #ifdef KRB
 	if ( tkt ) {
-	    if (( rc = netretr_ticket( secant, si, (*cur)->conn_sn )) < 0 ) {
+	    if (( rc = netretr_ticket( secant, si, (*cur)->conn_sn,
+		    cfg->krb524)) < 0 ) {
 		if ( snet_close( (*cur)->conn_sn ) != 0 ) {
 		    fprintf( stderr, "choose_conn: snet_close failed\n" );
 		}
@@ -399,7 +404,8 @@ check_cookie( char *secant, struct sinfo *si, cosign_host_config *cfg,
 
 #ifdef KRB
 	if ( tkt ) {
-	    if (( rc = netretr_ticket( secant, si, (*cur)->conn_sn )) < 0 ) {
+	    if (( rc = netretr_ticket( secant, si, (*cur)->conn_sn,
+		    cfg->krb524 )) < 0 ) {
 		if ( snet_close( (*cur)->conn_sn ) != 0 ) {
 		    fprintf( stderr, "choose_conn: snet_close failed\n" );
 		}

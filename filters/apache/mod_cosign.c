@@ -52,6 +52,9 @@ cosign_create_dir_config( pool *p, char *path )
     cfg->cadir = NULL;
 #ifdef KRB
     cfg->krbtkt = 0;
+#ifdef KRB4
+    cfg->krb524 = 0;
+#endif /* KRB4 */
 #endif /* KRB */
     return( cfg );
 
@@ -77,6 +80,9 @@ cosign_create_server_config( pool *p, server_rec *s )
     cfg->cadir = NULL;
 #ifdef KRB
     cfg->krbtkt = 0;
+#ifdef KRB4
+    cfg->krb524 = 0;
+#endif /* KRB4 */
 #endif /* KRB */
     return( cfg );
 }
@@ -241,8 +247,10 @@ cosign_auth( request_rec *r )
 	if ( cfg->krbtkt ) {
 	    ap_table_set( r->subprocess_env, "KRB5CCNAME", si.si_krb5tkt );
 #ifdef KRB4
+	if ( cfg->krb524 ) {
 	    ap_table_set( r->subprocess_env, "KRBTKFILE", si.si_krb4tkt );
 	    krb_set_tkt_string( si.si_krb4tkt );
+	}
 #endif /* KRB4 */
 	}
 #endif /* KRB */
@@ -365,6 +373,24 @@ set_cosign_redirect( cmd_parms *params, void *mconfig, char *arg )
 }
 
 #ifdef KRB
+#ifdef KRB4
+    static const char *
+krb524_cosign_tickets( cmd_parms *params, void *mconfig, int flag )
+{
+    cosign_host_config		*cfg;
+
+    if ( params->path == NULL ) {
+	cfg = (cosign_host_config *) ap_get_module_config(
+		params->server->module_config, &cosign_module );
+    } else {
+	return( "Ticket conversion policy to be set on a per host basis." );
+    }
+
+    cfg->krb524 = flag; 
+    cfg->configured = 1; 
+    return( NULL );
+}
+#endif /* KRB4 */
     static const char *
 set_cosign_tickets( cmd_parms *params, void *mconfig, int flag )
 {
@@ -533,6 +559,11 @@ command_rec cosign_cmds[ ] =
         { "CosignGetKerberosTickets", set_cosign_tickets,
         NULL, RSRC_CONF, FLAG,
         "whether or not to get kerberos tickets" },
+#ifdef KRB4
+        { "CosignKerberos524", krb524_cosign_tickets,
+        NULL, RSRC_CONF, FLAG,
+        "whether or not to convert kerberos 5 tickets to k4" },
+#endif /* KRB4 */
 #endif /* KRB */
 
         { NULL }

@@ -724,7 +724,7 @@ f_retr( sn, ac, av )
     char                buf[8192];
     char		login[ MAXPATHLEN ];
 
-    /* RETR service-cookie TicketType] */
+    /* RETR service-cookie TicketType */
     if ( ch->ch_tkt != 1 ) {
 	syslog( LOG_ERR, "%s not allowed to retrieve tkts", ch->ch_hostname );
 	snet_writef( sn, "%d RETR: %s not allowed to retrieve tkts.\r\n",
