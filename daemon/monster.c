@@ -41,7 +41,7 @@ main( int ac, char **av )
     struct dirent	*de;
     struct timeval	tv, now;
     struct hostent	*he;
-    struct cl		*head = NULL, **tail = NULL, *cur, *new = NULL;
+    struct cl		*head = NULL, **tail = NULL, **cur, *new = NULL, *temp;
     char                login[ MAXPATHLEN ];
     time_t		itime = 0;
     char		*prog, *line;
@@ -133,6 +133,12 @@ main( int ac, char **av )
     }
 
 	if ( cosign_host != NULL ) {
+
+    if ( gethostname( hostname, sizeof( hostname )) < 0 ) {
+	syslog( LOG_ERR, "pusherdaemon: %m" );
+	return;
+    }
+
     if (( he = gethostbyname( cosign_host )) == NULL ) {
 	fprintf( stderr, "%s no wanna give hostnames\n", cosign_host );
 	exit( 1 );
@@ -266,42 +272,71 @@ main( int ac, char **av )
 	exit( -1 );
     }
 
-    for ( cur = head; cur != NULL; cur = cur->cl_next ) {
-	if ( cur->cl_sn == NULL ) {
-	    if ( connect_sn( cur, ctx, cosign_host ) != 0 ) {
-		cur->cl_sn = NULL;
+    for ( cur = &head; *cur != NULL; cur = &(*cur)->cl_next ) {
+oops:
+	if ( (*cur)->cl_sn == NULL ) {
+	    if ( connect_sn( *cur, ctx, cosign_host ) != 0 ) {
+		(*cur)->cl_sn = NULL;
+		continue;
+	    }
+
+	    snet_writef( (*cur)->cl_sn, "DAEMON %s", hostname );
+
+	    tv = timeout;
+	    if (( line = snet_getline_multi( (*cur)->cl_sn, logger, &tv ))
+		    == NULL ) {
+		syslog( LOG_ERR, "monster: %m" );
+		if (( close_sn( *cur )) != 0 ) {
+		    syslog( LOG_ERR, "pusherdaemon: close_sn: %m" );
+		}
+		(*cur)->cl_sn = NULL;
+		continue;
+	    }
+
+	    if ( *line == '4' ) {
+		if (( close_sn( *cur )) != 0 ) {
+		    syslog( LOG_ERR, "pusherdaemon: close_sn: %m" );
+		}
+		temp = *cur;
+		*cur = (*cur)->cl_next;
+		free( temp );
+		goto oops;
+	    } else if ( *line != '2' ) {
+		syslog( LOG_ERR, "pusherdaemon: %s", line );
+		if (( close_sn( *cur )) != 0 ) {
+		    syslog( LOG_ERR, "pusherdaemon: close_sn: %m" );
+		}
+		(*cur)->cl_sn = NULL;
 		continue;
 	    }
 	}
 
-	if ( snet_writef( cur->cl_sn, "TIME\r\n" ) < 0 ) {
+	if ( snet_writef( (*cur)->cl_sn, "TIME\r\n" ) < 0 ) {
 	    syslog( LOG_ERR, "snet_writef failed on TIME\n");
-	    if ( snet_close( cur->cl_sn ) != 0 ) {
+	    if ( snet_close( (*cur)->cl_sn ) != 0 ) {
 		syslog( LOG_ERR, "snet_close: %m\n" );
 	    }
-	    cur->cl_sn = NULL;
-	    continue;
-	}
+	    (*cur)->cl_sn = NULL;
 
 	tv = timeout;
-	if (( line = snet_getline_multi( cur->cl_sn, logger, &tv ))
+	if (( line = snet_getline_multi( (*cur)->cl_sn, logger, &tv ))
 		== NULL ) {
-	    if ( !snet_eof( cur->cl_sn )) {
+	    if ( !snet_eof( (*cur)->cl_sn )) {
 		syslog( LOG_ERR, "snet_getline_multi: %m\n" );
 	    }
-	    if ( snet_close( cur->cl_sn ) != 0 ) {
+	    if ( snet_close( (*cur)->cl_sn ) != 0 ) {
 		syslog( LOG_ERR, "snet_close: %m\n" );
 	    }
-	    cur->cl_sn = NULL;
+	    (*cur)->cl_sn = NULL;
 	    continue;
 	}
 
 	if ( *line != '3' ) {
 	    syslog( LOG_ERR, "snet_getline_multi: %m\n" );
-	    if ( snet_close( cur->cl_sn ) != 0 ) {
+	    if ( snet_close( (*cur)->cl_sn ) != 0 ) {
 		syslog( LOG_ERR, "snet_close: %m\n" );
 	    }
-	    cur->cl_sn = NULL;
+	    (*cur)->cl_sn = NULL;
 	    continue;
 	}
     }
@@ -313,14 +348,14 @@ main( int ac, char **av )
 		syslog( LOG_ERR, "decision failure: %s\n", de->d_name );
 		continue;
 	    }
-	    for ( cur = head; cur != NULL; cur = cur->cl_next ) {
-		if ( itime > cur->cl_last_time ) {
-		    if ( snet_writef( cur->cl_sn, "%s %d %d\r\n",
+	    for ( cur = &head; *cur != NULL; cur = &(*cur)->cl_next ) {
+		if ( itime > (*cur)->cl_last_time ) {
+		    if ( snet_writef( (*cur)->cl_sn, "%s %d %d\r\n",
 			    de->d_name, itime, state ) < 0 ) {
-			if ( snet_close( cur->cl_sn ) != 0 ) {
+			if ( snet_close( (*cur)->cl_sn ) != 0 ) {
 			    syslog( LOG_ERR, "snet_close: %m\n" );
 			}
-			cur->cl_sn = NULL;
+			(*cur)->cl_sn = NULL;
 			continue;
 		    }
 		}
@@ -346,30 +381,30 @@ main( int ac, char **av )
     }
     closedir( dirp );
 
-    for ( cur = head; cur != NULL; cur = cur->cl_next ) {
-	if ( cur->cl_sn != NULL ) {
-	    snet_writef( cur->cl_sn, ".\r\n" );
-	    if (( line = snet_getline_multi( cur->cl_sn, logger, &tv ))
+    for ( cur = &head; *cur != NULL; cur = &(*cur)->cl_next ) {
+	if ( (*cur)->cl_sn != NULL ) {
+	    snet_writef( (*cur)->cl_sn, ".\r\n" );
+	    if (( line = snet_getline_multi( (*cur)->cl_sn, logger, &tv ))
 		     == NULL ) {
-		if ( !snet_eof( cur->cl_sn )) {
+		if ( !snet_eof( (*cur)->cl_sn )) {
 		    syslog( LOG_ERR, "snet_getline_multi: %m\n" );
 		}
-		if ( snet_close( cur->cl_sn ) != 0 ) {
+		if ( snet_close( (*cur)->cl_sn ) != 0 ) {
 		    syslog( LOG_ERR, "snet_close: %m\n" );
 		}
-		cur->cl_sn = NULL;
+		(*cur)->cl_sn = NULL;
 		continue;
 	    }
 
 	    if ( *line != '2' ) {
 		syslog( LOG_ERR, "snet_getline_multi: %m\n" );
-		if ( snet_close( cur->cl_sn ) != 0 ) {
+		if ( snet_close( (*cur)->cl_sn ) != 0 ) {
 		    syslog( LOG_ERR, "snet_close: %m\n" );
 		}
-		cur->cl_sn = NULL;
+		(*cur)->cl_sn = NULL;
 		continue;
 	    }
-	    cur->cl_last_time = now.tv_sec;
+	    (*cur)->cl_last_time = now.tv_sec;
 	}
 
     }

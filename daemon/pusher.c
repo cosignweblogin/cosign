@@ -72,6 +72,7 @@ syslog( LOG_DEBUG, "pusherdaemon: %s", line );
     }
     return;
 }
+
     int
 pusherhosts( char *name, int port)
 {
@@ -130,19 +131,20 @@ pusherchld( sig )
     int			sig;
 {
     int			pid, status;
-    struct cl		*cur;
+    struct cl		**cur, *temp;
     extern int		errno;
 
     while (( pid = waitpid( 0, &status, WNOHANG )) > 0 ) {
 	/* mark in the list that child has exited */
-	for ( cur = replhead; cur != NULL; cur = cur->cl_next ) {
-	    if ( pid == cur->cl_pid ) {
+	for ( cur = &replhead; *cur != NULL; cur = &(*cur)->cl_next ) {
+	    if ( pid == (*cur)->cl_pid ) {
 syslog( LOG_DEBUG, "FOUND IT! %d", pid );
-		cur->cl_pid = 0;
-		if ( cur->cl_psn != NULL ) {
-		    snet_close( cur->cl_psn );
-		    cur->cl_psn = NULL;
+		(*cur)->cl_pid = 0;
+		if ( (*cur)->cl_psn != NULL ) {
+		    snet_close( (*cur)->cl_psn );
+		    (*cur)->cl_psn = NULL;
 		}
+		break;
 	    }
 	}
 	if ( WIFEXITED( status )) {
@@ -157,7 +159,12 @@ syslog( LOG_DEBUG, "FOUND IT! %d", pid );
 
 	    case 3:
 		syslog( LOG_ERR, "CHILD %d talking to itself", pid );
-		/* remove from list? */
+		/* remove from list */
+		if ( *cur != NULL ) {
+		    temp = *cur;
+		    *cur = (*cur)->cl_next;
+		    free( temp );
+		}
 		break;
 
 	    default:
