@@ -9,6 +9,7 @@
 #include <sys/time.h>
 #include <sys/types.h>
 #include <sys/param.h>
+#include <netinet/in.h>
 #include <unistd.h>
 #include <crypt.h>
 #include <time.h>
@@ -179,12 +180,13 @@ main( int argc, char *argv[] )
     char			*data, *ip_addr;
     char			*cookie = NULL, *method, *script, *qs;
     char			*tmpl = LOGIN_HTML;
+    struct connlist		*head;
 #ifdef FRIEND_MYSQL_DB
     MYSQL_RES			*res;
     MYSQL_ROW			row;
-#endif
     char			sql[ 225 ]; /* holds sql query + email addr */
     char			*crypted;
+#endif
 
     if ( argc == 2 && ( strncmp( argv[ 1 ], "-V", 2 ) == 0 )) {
 	printf( "%s\n", cosign_version );
@@ -220,6 +222,17 @@ main( int argc, char *argv[] )
 	goto loginscreen;
     }
 
+    /* setup conn and ssl and hostlist crap */
+    if (( head = connlist_setup( host, port )) == NULL ) {
+	title = "Error: But not your fault";
+	err = "We were unable to contact the authentication server.  Please try again later.";
+	tmpl = ERROR_HTML;
+	subfile( tmpl );
+	exit( 0 );
+    }
+
+    ssl_setup();
+
     if ((( qs = getenv( "QUERY_STRING" )) != NULL ) && ( *qs != '\0' )) {
 	if ((( service = strtok( qs, ";" )) == NULL ) ||
 		( strncmp( service, "cosign-", 7 ) != 0 )) {
@@ -252,8 +265,8 @@ main( int argc, char *argv[] )
 	    goto loginscreen;
 	}
 
-	if (( rc = cosign_register( cookie, ip_addr, service )) < 0 ) {
-	    if ( cosign_check( cookie ) < 0 ) {
+	if (( rc = cosign_register( head, cookie, ip_addr, service )) < 0 ) {
+	    if ( cosign_check( head, cookie ) < 0 ) {
 		err = "You are not logged in. Please log in now.";
 		goto loginscreen;
 	    }
@@ -277,7 +290,7 @@ main( int argc, char *argv[] )
     }
 
     if ( strcmp( method, "POST" ) != 0 ) {
-	if ( cosign_check( cookie ) < 0 ) {
+	if ( cosign_check( head, cookie ) < 0 ) {
 	    err = "You are not logged in. Please log in now.";
 	    goto loginscreen;
 	}
@@ -378,7 +391,7 @@ main( int argc, char *argv[] )
 	mysql_free_result( res );
 	mysql_close( &friend_db );
 
-	if ( cosign_login( cookie, ip_addr, 
+	if ( cosign_login( head, cookie, ip_addr, 
 		cl[ CL_LOGIN ].cl_data, "friend", NULL ) < 0 ) {
 	    fprintf( stderr, "%s: login failed\n", script ) ;
 
@@ -561,7 +574,7 @@ main( int argc, char *argv[] )
 	title = "Choose a Service";
 	tmpl = SERVICE_MENU;
 
-	if ( cosign_login( cookie, ip_addr, 
+	if ( cosign_login( head, cookie, ip_addr, 
 		cl[ CL_LOGIN ].cl_data, realm, krbpath ) < 0 ) {
 	    fprintf( stderr, "%s: login failed\n", script ) ;
 
@@ -578,11 +591,11 @@ main( int argc, char *argv[] )
 
 	/* url decode here the service cookie? */
 
-        if (( rc = cosign_register( cookie, ip_addr,
+        if (( rc = cosign_register( head, cookie, ip_addr,
 		cl[ CL_SERVICE ].cl_data )) < 0 ) {
 
 	    /* this should not be possible... do it anyway? */
-            if ( cosign_check( cookie ) < 0 ) {
+            if ( cosign_check( head, cookie ) < 0 ) {
                 title = "Authentication Required";
                 goto loginscreen;
             }

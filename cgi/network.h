@@ -2,10 +2,9 @@
  * Copyright (c) 2002 Regents of The University of Michigan.
  * All Rights Reserved.  See COPYRIGHT.
  */
-
-SNET * connectsn( char *host, int port );
-int closesn( SNET *sn );
-int cosign_login( char *, char *, char *, char *, char * );
-int cosign_logout( char *, char * );
-int cosign_register( char *, char *, char * );
-int cosign_check( char * );
+int cosign_login( struct connlist *, char *, char *, char *, char *, char * );
+int cosign_logout( struct connlist *, char *, char * );
+int cosign_register( struct connlist *, char *, char *, char * );
+int cosign_check( struct connlist *, char * );
+int connect_sn( struct connlist *, char * );
+int close_sn( struct connlist * );

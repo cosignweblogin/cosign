@@ -348,8 +348,8 @@ syslog( LOG_DEBUG, "snet_getline_multi: B: %s", line );
 	    }
 next:
 	    (*cur)->cl_sn = NULL;
-	    cur = &(*cur)->cl_next;
 	}
+	cur = &(*cur)->cl_next;
     }
 
     while (( de = readdir( dirp )) != NULL ) {

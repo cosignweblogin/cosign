@@ -9,6 +9,7 @@
 #include <sys/time.h>
 #include <sys/types.h>
 #include <sys/param.h>
+#include <netinet/in.h>
 #include <openssl/ssl.h>
 #include <snet.h>
 #include "cgi.h"
@@ -126,6 +127,7 @@ main( int argc, char *argv[] )
 {
     char	*tmpl = VERIFY_LOGOUT;
     char	*cookie = NULL, *data, *ip_addr, *script, *qs;
+    struct connlist	*head;
 
     if ( argc == 2 && ( strncmp( argv[ 1 ], "-V", 2 ) == 0 )) {
 	printf( "%s\n", cosign_version );
@@ -185,9 +187,11 @@ main( int argc, char *argv[] )
         }
     }
 
+    /* ssl and data stuff */
+
     if ( cookie != NULL ) {
 	fprintf( stderr, "LOGOUT %s %s\n", cookie, ip_addr );
-	if ( cosign_logout( cookie, ip_addr ) < 0 ) {
+	if ( cosign_logout( head, cookie, ip_addr ) < 0 ) {
 	    fprintf( stderr, "%s: logout failed\n", script ) ;
 
 	    err = "Logout failed.  Perhaps you were not logged-in?";

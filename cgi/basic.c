@@ -179,6 +179,16 @@ main( int argc, char *argv[] )
 	exit( 0 );
     }
 
+    if (( head = connlist_setup( host, port )) == NULL ) {
+	title = "Error: But not your fault";
+	err = "We were unable to contact the authentication server.  Please try again later.";     
+	tmpl = ERROR_HTML;
+	subfile( tmpl );
+	exit( 0 );
+    }
+
+    ssl_setup();
+
     /* this is a register, and we implicitly log them in if need be */
     if ((( qs = getenv( "QUERY_STRING" )) != NULL ) && ( *qs != '\0' )) {
 	if ((( service = strtok( qs, ";" )) == NULL ) ||
@@ -225,8 +235,7 @@ main( int argc, char *argv[] )
 		exit( 0 );
 	    }
 	}
-fprintf( stderr, "login no cookie succeeds\n" );
-fprintf( stderr, "register no cookie\n" );
+
 	if (( rc = cosign_register( cookie, ip_addr, service )) < 0 ) {
 	    fprintf( stderr, "%s: cosign_register failed\n", script );
 	    title = "Error: Register Failed";
@@ -235,11 +244,9 @@ fprintf( stderr, "register no cookie\n" );
 	    subfile( tmpl );
 	    exit( 0 );
 	}
-fprintf( stderr, "rc: %d\n", rc );
-fprintf( stderr, "register no cookie suceeds\n" );
+
 	if ( rc > 0 ) {
 	    /* log them in */
-fprintf( stderr, "login cookie\n" );
 	    if ( cosign_login( cookie, ip_addr, user, "basic", NULL )
 		    < 0 ) {
 		fprintf( stderr, "%s: login failed\n", script ) ;
@@ -249,8 +256,7 @@ fprintf( stderr, "login cookie\n" );
 		subfile( tmpl );
 		exit( 0 );
 	    }
-fprintf( stderr, "login cookie succeeds\n" );
-fprintf( stderr, "register cookie\n" );
+
 	    if (( rc = cosign_register( cookie, ip_addr, service )) < 0 ) {
 		fprintf( stderr, "%s: cosign_register failed\n", script );
 		title = "Error: Register Failed";
@@ -260,7 +266,7 @@ fprintf( stderr, "register cookie\n" );
 		exit( 0 );
 	    }
 	}
-fprintf( stderr, "register cookie succeeds\n" );
+
 	/* if no referrer, redirect to top of site from conf file */
 	printf( "Location: %s\n\n", ref );
 	exit( 0 );
