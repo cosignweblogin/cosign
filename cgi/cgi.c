@@ -354,7 +354,7 @@ main( int argc, char *argv[] )
 	nocache = 1;
 
 	/* clobber the referrer cookie */
-	fputs( "Set-Cookie: cosign-referrer=; path=/; secure\n", stderr );
+	fputs( "Set-Cookie: cosign-referrer=; path=/; secure\n", stdout );
     }
 
     subfile( tmpl );
