@@ -21,7 +21,7 @@
     int
 do_logout( char *path )
 {
-    if ( chmod( path, S_ISVTX ) < 0 ) {
+    if ( chmod( path, (  S_ISGID | S_IRUSR )) < 0 ) {
 	syslog( LOG_ERR, "do_logout: %s: %m", path  );
 	return( -1 ) ;
     }
@@ -155,7 +155,7 @@ read_cookie( char *path, struct cinfo *ci )
 #endif
 
     /* new logout code */
-    if ( st.st_mode & S_ISVTX ) {
+    if ( st.st_mode & S_ISGID ) {
 	ci->ci_state = 0;
     } else {
 	ci->ci_state = 1;
