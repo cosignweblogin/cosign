@@ -30,7 +30,7 @@ cookie_valid( cosign_host_config *cfg, char *cookie, struct sinfo *si,
 	char *ipaddr )
 {
     struct sinfo	lsi;
-    int			rc, rs, fd;
+    int			rc, rs, fd, tkt = 0;
     struct timeval	tv;
     char		path[ MAXPATHLEN ], tmppath[ MAXPATHLEN ];
     FILE		*tmpfile;
@@ -68,13 +68,28 @@ cookie_valid( cosign_host_config *cfg, char *cookie, struct sinfo *si,
 	strcpy( si->si_ipaddr, lsi.si_ipaddr );
 	strcpy( si->si_user, lsi.si_user );
 	strcpy( si->si_realm, lsi.si_realm );
+#ifdef KRB
+	if ( cfg->krbtkt ) {
+#ifdef KRB4
+	    strcpy( si->si_krb4tkt, lsi.si_krb4tkt );
+#endif /* krb4 */
+	    strcpy( si->si_krb5tkt, lsi.si_krb5tkt );
+	}
+#endif /* KRB */
 	return( 0 );
     }
 
-    if (( rc = check_cookie( cookie, si, cfg )) < 0 ) {
-	fprintf( stderr, "cookie_valid: check_cookie failed\n" );
-	return( -1 );
+#ifdef KRB
+    if (( rs == 1 ) && ( cfg->krbtkt )) {
+        tkt = 1;
     }
+#endif /* KRB */
+
+    if (( rc = check_cookie( cookie, si, cfg, tkt )) < 0 ) {
+        fprintf( stderr, "cookie_valid: check_cookie failed\n" );
+        return( -1 );
+    }
+
 
     if ( rc == 2 ) {
 	fprintf( stderr, "Unable to connect to any Cosign server." ); 
@@ -126,6 +141,15 @@ cookie_valid( cosign_host_config *cfg, char *cookie, struct sinfo *si,
     fprintf( tmpfile, "i%s\n", si->si_ipaddr );
     fprintf( tmpfile, "p%s\n", si->si_user );
     fprintf( tmpfile, "r%s\n", si->si_realm );
+
+#ifdef KRB
+    if ( tkt ) {
+	fprintf( tmpfile, "k%s\n", si->si_krb5tkt );
+#ifdef KRB4
+	fprintf( tmpfile, "K%s\n", si->si_krb4tkt );
+#endif /* KRB4 */
+    }
+#endif /* KRB */
 
     if ( fclose ( tmpfile ) != 0 ) {
 	if ( unlink( tmppath ) != 0 ) {

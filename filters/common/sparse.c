@@ -60,6 +60,16 @@ read_secant( char *path, struct sinfo *si )
 	case 'r':
 	    strcpy( si->si_realm, p );
 	    break;
+#ifdef KRB
+	case 'k':
+	    strcpy( si->si_krb5tkt, p );
+	    break;
+#ifdef KRB4
+	case 'K':
+	    strcpy( si->si_krb4tkt, p );
+	    break;
+#endif /* KRB4 */
+#endif /* KRB */
 
 	default:
 	    fprintf( stderr, "read_secant: unknown keyword %c", *buf );

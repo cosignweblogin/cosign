@@ -11,6 +11,9 @@ typedef struct {
     char		*cert;
     char		*key;
     char		*cadir;
+#ifdef KRB
+    int			krbtkt;
+#endif /* KRB */
 } cosign_host_config;
 
 
@@ -22,5 +25,5 @@ struct connlist {
 
 
 int cookie_valid( cosign_host_config *, char *, struct sinfo *, char * );
-int check_cookie( char *, struct sinfo *, cosign_host_config *);
+int check_cookie( char *, struct sinfo *, cosign_host_config *, int );
 int teardown_conn( struct connlist * );

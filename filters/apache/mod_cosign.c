@@ -12,8 +12,15 @@
 #include <arpa/inet.h>
 #include <string.h>
 
+#ifdef KRB
+#ifdef KRB4
+#include <kerberosIV/krb.h>
+#endif /* KRB4 */
+#endif /* KRB */
+
 #include <openssl/ssl.h>
 #include <openssl/err.h>
+
 
 #include <snet.h>
 
@@ -43,6 +50,9 @@ cosign_create_dir_config( pool *p, char *path )
     cfg->key = NULL;
     cfg->cert = NULL;
     cfg->cadir = NULL;
+#ifdef KRB
+    cfg->krbtkt = 0;
+#endif /* KRB */
     return( cfg );
 
 }
@@ -65,6 +75,9 @@ cosign_create_server_config( pool *p, server_rec *s )
     cfg->key = NULL;
     cfg->cert = NULL;
     cfg->cadir = NULL;
+#ifdef KRB
+    cfg->krbtkt = 0;
+#endif /* KRB */
     return( cfg );
 }
 
@@ -107,6 +120,7 @@ set_cookie_and_redirect( request_rec *r, cosign_host_config *cfg )
      */
 
     ap_table_set( r->err_headers_out, "Set-Cookie", full_cookie );
+    /* insert live dangerously insecure side code here */
     if (( port = ap_get_server_port( r )) == 443 ) {
 	ref = ap_psprintf( r->pool, "https://%s%s", 
 		ap_get_server_name( r ), r->unparsed_uri );
@@ -220,12 +234,18 @@ cosign_auth( request_rec *r )
 
     /* Everything Shines, let them thru */
     if ( cv == 0 ) {
-	ap_table_set( r->subprocess_env, "REMOTE_REALM", si.si_realm );
-	r->connection->ap_auth_type = "Cosign";
 	r->connection->user = ap_pstrcat( r->pool, si.si_user, NULL);
-
-	/* XXX add in Kerberos info here */
-
+	r->connection->ap_auth_type = "Cosign";
+	ap_table_set( r->subprocess_env, "REMOTE_REALM", si.si_realm );
+#ifdef KRB
+	if ( cfg->krbtkt ) {
+	    ap_table_set( r->subprocess_env, "KRB5CCNAME", si.si_krb5tkt );
+#ifdef KRB4
+	    ap_table_set( r->subprocess_env, "KRBTKFILE", si.si_krb4tkt );
+	    krb_set_tkt_string( si.si_krb4tkt );
+#endif /* KRB4 */
+	}
+#endif /* KRB */
 	return( DECLINED );
     }
 
@@ -343,6 +363,25 @@ set_cosign_redirect( cmd_parms *params, void *mconfig, char *arg )
     cfg->redirect = ap_pstrdup( params->pool, arg );
     return( NULL );
 }
+
+#ifdef KRB
+    static const char *
+set_cosign_tickets( cmd_parms *params, void *mconfig, int flag )
+{
+    cosign_host_config		*cfg;
+
+    if ( params->path == NULL ) {
+	cfg = (cosign_host_config *) ap_get_module_config(
+		params->server->module_config, &cosign_module );
+    } else {
+	return( "Kerberos ticket policy needs to be set on a per host basis." );
+    }
+
+    cfg->krbtkt = flag; 
+    cfg->configured = 1; 
+    return( NULL );
+}
+#endif /* KRB */
 
     static const char *
 set_cosign_certs( cmd_parms *params, void *mconfig,
@@ -490,15 +529,20 @@ command_rec cosign_cmds[ ] =
         { "CosignCrypto", set_cosign_certs,
         NULL, RSRC_CONF, TAKE3,
         "crypto for use in talking to cosign host" },
+#ifdef KRB
+        { "CosignGetKerberosTickets", set_cosign_tickets,
+        NULL, RSRC_CONF, FLAG,
+        "whether or not to get kerberos tickets" },
+#endif /* KRB */
 
         { NULL }
 };
 
 module MODULE_VAR_EXPORT cosign_module = {
     STANDARD_MODULE_STUFF, 
-    cosign_init,	    /* module initializer                  */
-    cosign_create_dir_config, /* create per-dir    config structures */
-    NULL,                  /* merge  per-dir    config structures */
+    cosign_init,	    /* module initializer                 */
+    cosign_create_dir_config, /* create per-dir config structures */
+    NULL,                  /* merge per-dir config structures     */
     cosign_create_server_config, /* create per-server config structures */
     NULL,                  /* merge  per-server config structures */
     cosign_cmds,           /* table of config file commands       */
