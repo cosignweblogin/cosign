@@ -55,6 +55,9 @@ cosign_create_dir_config( pool *p, char *path )
     cfg->key = NULL;
     cfg->cert = NULL;
     cfg->cadir = NULL;
+    cfg->filterdb = _FILTER_DB;
+    cfg->proxydb = _PROXY_DB;
+    cfg->tkt_prefix = _COSIGN_TICKET_CACHE;
     cfg->http = 0;
     cfg->proxy = 0;
 #ifdef KRB
@@ -89,6 +92,9 @@ cosign_create_server_config( pool *p, server_rec *s )
     cfg->key = NULL;
     cfg->cert = NULL;
     cfg->cadir = NULL;
+    cfg->filterdb = _FILTER_DB;
+    cfg->proxydb = _PROXY_DB;
+    cfg->tkt_prefix = _COSIGN_TICKET_CACHE;
     cfg->http = 0;
     cfg->proxy = 0;
 #ifdef KRB
@@ -337,6 +343,9 @@ set_cosign_protect( cmd_parms *params, void *mconfig, int flag )
     } else {
 	cfg = (cosign_host_config *)mconfig;
 	cfg->redirect = ap_pstrdup( params->pool, scfg->redirect );
+	cfg->filterdb = ap_pstrdup( params->pool, scfg->filterdb );
+	cfg->proxydb = ap_pstrdup( params->pool, scfg->proxydb );
+	cfg->tkt_prefix = ap_pstrdup( params->pool, scfg->tkt_prefix );
 	if ( cfg->siteentry != NULL ) {
 	    cfg->siteentry = ap_pstrdup( params->pool, scfg->siteentry );
 	}
@@ -402,6 +411,9 @@ set_cosign_service( cmd_parms *params, void *mconfig, char *arg )
 	    cfg->siteentry = ap_pstrdup( params->pool, scfg->siteentry );
 	}
 	cfg->redirect = ap_pstrdup( params->pool, scfg->redirect );
+	cfg->filterdb = ap_pstrdup( params->pool, scfg->filterdb );
+	cfg->proxydb = ap_pstrdup( params->pool, scfg->proxydb );
+	cfg->tkt_prefix = ap_pstrdup( params->pool, scfg->tkt_prefix );
 	cfg->posterror = ap_pstrdup( params->pool, scfg->posterror );
 	cfg->host = ap_pstrdup( params->pool, scfg->host );
 	cfg->cl = scfg->cl;
@@ -437,6 +449,9 @@ set_cosign_siteentry( cmd_parms *params, void *mconfig, char *arg )
     } else {
 	cfg = (cosign_host_config *)mconfig;
 	cfg->redirect = ap_pstrdup( params->pool, scfg->redirect );
+	cfg->filterdb = ap_pstrdup( params->pool, scfg->filterdb );
+	cfg->proxydb = ap_pstrdup( params->pool, scfg->proxydb );
+	cfg->tkt_prefix = ap_pstrdup( params->pool, scfg->tkt_prefix );
 	cfg->posterror = ap_pstrdup( params->pool, scfg->posterror );
 	cfg->host = ap_pstrdup( params->pool, scfg->host );
 	cfg->cl = scfg->cl;
@@ -509,6 +524,54 @@ set_cosign_redirect( cmd_parms *params, void *mconfig, char *arg )
     return( NULL );
 }
 
+    static const char *
+set_cosign_filterdb( cmd_parms *params, void *mconfig, char *arg )
+{
+    cosign_host_config		*cfg;
+
+    if ( params->path == NULL ) {
+	cfg = (cosign_host_config *) ap_get_module_config(
+		params->server->module_config, &cosign_module );
+    } else {
+	return( "CosignFilterDB not valid per dir!" );
+    }
+
+    cfg->filterdb = ap_pstrdup( params->pool, arg );
+    return( NULL );
+}
+
+
+    static const char *
+set_cosign_proxydb( cmd_parms *params, void *mconfig, char *arg )
+{
+    cosign_host_config		*cfg;
+
+    if ( params->path == NULL ) {
+	cfg = (cosign_host_config *) ap_get_module_config(
+		params->server->module_config, &cosign_module );
+    } else {
+	return( "CosignProxyDB not valid per dir!" );
+    }
+
+    cfg->proxydb = ap_pstrdup( params->pool, arg );
+    return( NULL );
+}
+
+    static const char *
+set_cosign_tkt_prefix( cmd_parms *params, void *mconfig, char *arg )
+{
+    cosign_host_config		*cfg;
+
+    if ( params->path == NULL ) {
+	cfg = (cosign_host_config *) ap_get_module_config(
+		params->server->module_config, &cosign_module );
+    } else {
+	return( "CosignTicketPrefix not valid per dir!" );
+    }
+
+    cfg->tkt_prefix = ap_pstrdup( params->pool, arg );
+    return( NULL );
+}
 #ifdef KRB
 #ifdef KRB4
     static const char *
@@ -755,6 +818,18 @@ static command_rec cosign_cmds[ ] =
         { "CosignHostname", set_cosign_host,
         NULL, RSRC_CONF, TAKE1,
         "the name of the cosign hosts(s)" },
+
+        { "CosignFilterDB", set_cosign_filterdb,
+        NULL, RSRC_CONF, TAKE1,
+        "the path to the cosign filter DB" },
+
+        { "CosignProxyDB", set_cosign_proxydb,
+        NULL, RSRC_CONF, TAKE1,
+        "the path to the cosign proxy DB" },
+
+        { "CosignTicketPrefix", set_cosign_tkt_prefix,
+        NULL, RSRC_CONF, TAKE1,
+        "the path to the cosign Kerberos ticket directory" },
 
 	{ "CosignSiteEntry", set_cosign_siteentry,
 	NULL, RSRC_CONF | ACCESS_CONF, TAKE1,

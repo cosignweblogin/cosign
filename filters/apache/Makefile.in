@@ -17,7 +17,7 @@ COSIGNTICKETCACHE=	@ticketcache@
 
 INCPATH=        @CPPFLAGS@ @APXS_INCLUDE@ -I../../libsnet @K4INC@ @GSSINC@ -I../../common/
 OPTOPTS=        @OPTOPTS@
-DEFS=           @TLSDEFS@ @KRBDEFS@ @K4DEFS@ @GSSDEFS@ @filteraddrcheck@ -D_COSIGN_TICKET_CACHE=\"${COSIGNTICKETCACHE}\"
+DEFS=           @TLSDEFS@ @KRBDEFS@ @K4DEFS@ @GSSDEFS@ @filteraddrcheck@ -D_PROXY_DB=\"${PROXYDB}\" -D_FILTER_DB=\"${FILTERDB}\" -D_COSIGN_TICKET_CACHE=\"${COSIGNTICKETCACHE}\"
 LIBS=           -lsnet @K4LIBS@ @GSSLIBS@ @ADDLIBS@
 LDFLAGS=        -L../../libsnet/.libs @K4LDFLAGS@ @GSSLDFLAGS@ @ADDLDFLAGS@ @LDFLAGS@ ${LIBS}
 
@@ -30,16 +30,6 @@ OBJ=	mod_cosign.o connect.o cookiefs.o sparse.o \
 
 #   the default target
 all: mod_cosign.so
-
-connect.o:	connect.c
-	${CC} ${CFLAGS} \
-	-D_PROXY_DB=\"${PROXYDB}\" \
-	-c connect.c
-
-cookiefs.o:	cookiefs.c
-	${CC} ${CFLAGS} \
-	-D_FILTER_DB=\"${FILTERDB}\" \
-	-c cookiefs.c
 
 #   compile the DSO file
 mod_cosign.so: ../../libsnet/libsnet.la ${OBJ}

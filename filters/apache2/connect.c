@@ -35,7 +35,6 @@
 #include "argcargv.h"
 #include "mkcookie.h"
 
-#define TKT_PREFIX	_COSIGN_TICKET_CACHE
 #define MIN(a,b)        ((a)<(b)?(a):(b))
 
 static int connect_sn( struct connlist *, SSL_CTX *, char * );
@@ -43,7 +42,6 @@ static int close_sn( struct connlist *);
 static void (*logger)( char * ) = NULL;
 
 static struct timeval		timeout = { 10 * 60, 0 };
-static char			*proxydb = _PROXY_DB;
 
 /*
  * -1 means big error, dump this connection
@@ -119,7 +117,7 @@ netcheck_cookie( char *scookie, struct sinfo *si, SNET *sn )
 }
 
     static int
-netretr_proxy( char *scookie, struct sinfo *si, SNET *sn )
+netretr_proxy( char *scookie, struct sinfo *si, SNET *sn, char *proxydb )
 {
     int			fd;
     char		*line;
@@ -237,7 +235,8 @@ netretr_proxy( char *scookie, struct sinfo *si, SNET *sn )
 
 #ifdef KRB
     static int
-netretr_ticket( char *scookie, struct sinfo *si, SNET *sn, int convert )
+netretr_ticket( char *scookie, struct sinfo *si, SNET *sn, int convert,
+	char *tkt_prefix )
 {
     char		*line;
     char                tmpkrb[ 16 ], krbpath [ MAXPATHLEN ];
@@ -298,7 +297,7 @@ netretr_ticket( char *scookie, struct sinfo *si, SNET *sn, int convert )
     }
 
     if ( snprintf( krbpath, sizeof( krbpath ), "%s/%s",
-	    TKT_PREFIX, tmpkrb ) >= sizeof( krbpath )) {
+	    tkt_prefix, tmpkrb ) >= sizeof( krbpath )) {
 	fprintf( stderr, "krbpath too long in netretr_ticket().\n" );
 	return( -1 );
     }
@@ -368,7 +367,7 @@ netretr_ticket( char *scookie, struct sinfo *si, SNET *sn, int convert )
     }
 
     if ( snprintf( krb4path, sizeof( krb4path ), "%s/%s",
-	    TKT_PREFIX, tmpkrb ) >= sizeof( krb4path )) {
+	    tkt_prefix, tmpkrb ) >= sizeof( krb4path )) {
 	fprintf( stderr, "krb4path too long in netretr_ticket().\n" );
 	return( -1 );
     }
@@ -554,15 +553,15 @@ done:
 	return( 1 );
     } else {
 	if (( first ) && ( cfg->proxy )) {
-	    if ( netretr_proxy( scookie, si, cfg->cl->conn_sn )
-		    != 2 ) {
+	    if ( netretr_proxy
+		    ( scookie, si, cfg->cl->conn_sn, cfg->proxydb) != 2 ) {
 		fprintf( stderr, "Can't retrieve proxy cookies\n" );
 	    }
 	}
 #ifdef KRB
 	if (( first ) && ( cfg->krbtkt )) {
-	    if ( netretr_ticket( scookie, si, cfg->cl->conn_sn, cfg->krb524 )
-		    != 2 ) {
+	    if ( netretr_ticket( scookie, si, cfg->cl->conn_sn, cfg->krb524,
+		    cfg->tkt_prefix) != 2 ) {
 		fprintf( stderr, "Can't retrieve kerberos ticket\n" );
 	    }
 	}

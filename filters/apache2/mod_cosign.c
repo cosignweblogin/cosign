@@ -49,6 +49,7 @@ cosign_create_dir_config( apr_pool_t *p, char *path )
     
     cfg = (cosign_host_config *)apr_pcalloc( p, sizeof( cosign_host_config ));
     cfg->service = NULL;
+    cfg->siteentry = NULL;
     cfg->redirect = NULL;
     cfg->posterror = NULL;
     cfg->port = htons( 6663 );
@@ -59,6 +60,9 @@ cosign_create_dir_config( apr_pool_t *p, char *path )
     cfg->key = NULL;
     cfg->cert = NULL;
     cfg->cadir = NULL;
+    cfg->filterdb = _FILTER_DB;
+    cfg->proxydb = _PROXY_DB;
+    cfg->tkt_prefix = _COSIGN_TICKET_CACHE;
     cfg->http = 0;
     cfg->proxy = 0;
 #ifdef KRB
@@ -82,6 +86,7 @@ cosign_create_server_config( apr_pool_t *p, server_rec *s )
     cfg = (cosign_host_config *)apr_pcalloc( p, sizeof( cosign_host_config ));
     cfg->host = NULL;
     cfg->service = NULL;
+    cfg->siteentry = NULL;
     cfg->redirect = NULL;
     cfg->posterror = NULL;
     cfg->port = htons( 6663 );
@@ -92,6 +97,9 @@ cosign_create_server_config( apr_pool_t *p, server_rec *s )
     cfg->key = NULL;
     cfg->cert = NULL;
     cfg->cadir = NULL;
+    cfg->filterdb = _FILTER_DB;
+    cfg->proxydb = _PROXY_DB;
+    cfg->tkt_prefix = _COSIGN_TICKET_CACHE;
     cfg->http = 0;
     cfg->proxy = 0;
 #ifdef KRB
@@ -150,24 +158,28 @@ set_cookie_and_redirect( request_rec *r, cosign_host_config *cfg )
 
     apr_table_set( r->err_headers_out, "Set-Cookie", full_cookie );
 
-    /* live dangerously, we're redirecting to http */
-    if ( cfg->http ) {
-        if (( port = ap_get_server_port( r )) == 80 ) {
-            ref = apr_psprintf( r->pool, "http://%s%s",
-                    ap_get_server_name( r ), r->unparsed_uri );
-        } else {
-            ref = apr_psprintf( r->pool, "http://%s:%d%s",
-                    ap_get_server_name( r ), port, r->unparsed_uri );
-        }
-    /* live securely, redirecting to https */
+    if ( cfg->siteentry != NULL ) {
+	ref = cfg->siteentry;
     } else {
-        if (( port = ap_get_server_port( r )) == 443 ) {
-            ref = apr_psprintf( r->pool, "https://%s%s",
-                    ap_get_server_name( r ), r->unparsed_uri );
-        } else {
-            ref = apr_psprintf( r->pool, "https://%s:%d%s",
-                    ap_get_server_name( r ), port, r->unparsed_uri );
-        }
+	/* live dangerously, we're redirecting to http */
+	if ( cfg->http ) {
+	    if (( port = ap_get_server_port( r )) == 80 ) {
+		ref = apr_psprintf( r->pool, "http://%s%s",
+			ap_get_server_name( r ), r->unparsed_uri );
+	    } else {
+		ref = apr_psprintf( r->pool, "http://%s:%d%s",
+			ap_get_server_name( r ), port, r->unparsed_uri );
+	    }
+	/* live securely, redirecting to https */
+	} else {
+	    if (( port = ap_get_server_port( r )) == 443 ) {
+		ref = apr_psprintf( r->pool, "https://%s%s",
+			ap_get_server_name( r ), r->unparsed_uri );
+	    } else {
+		ref = apr_psprintf( r->pool, "https://%s:%d%s",
+			ap_get_server_name( r ), port, r->unparsed_uri );
+	    }
+	}
     }
 
     dest = apr_psprintf( r->pool, "%s?%s&%s", cfg->redirect, my_cookie, ref );
@@ -335,6 +347,12 @@ set_cosign_protect( cmd_parms *params, void *mconfig, int flag )
     } else {
 	cfg = (cosign_host_config *)mconfig;
 	cfg->redirect = apr_pstrdup( params->pool, scfg->redirect );
+	cfg->filterdb = apr_pstrdup( params->pool, scfg->filterdb );
+	cfg->proxydb = apr_pstrdup( params->pool, scfg->proxydb);
+	cfg->tkt_prefix = apr_pstrdup( params->pool, scfg->tkt_prefix );
+	if ( cfg->siteentry != NULL ) {
+	    cfg->siteentry = apr_pstrdup( params->pool, scfg->siteentry );
+	}
 	cfg->posterror = apr_pstrdup( params->pool, scfg->posterror );
 	cfg->host = apr_pstrdup( params->pool, scfg->host );
 	cfg->cl = scfg->cl;
@@ -344,6 +362,7 @@ set_cosign_protect( cmd_parms *params, void *mconfig, int flag )
 	    cfg->service = apr_pstrdup( params->pool, scfg->service );
 	}
 	cfg->proxy = scfg->proxy;
+	cfg->http = scfg->http;
 #ifdef KRB
 	cfg->krbtkt = scfg->krbtkt; 
 #ifdef GSS
@@ -381,7 +400,7 @@ set_cosign_post_error( cmd_parms *params, void *mconfig, char *arg )
     return( NULL );
 }
 
-        static const char *
+    static const char *
 set_cosign_service( cmd_parms *params, void *mconfig, char *arg )
 {
     cosign_host_config		*cfg, *scfg;
@@ -394,11 +413,19 @@ set_cosign_service( cmd_parms *params, void *mconfig, char *arg )
     } else {
 	cfg = (cosign_host_config *)mconfig;
 	cfg->redirect = apr_pstrdup( params->pool, scfg->redirect );
+	cfg->filterdb = apr_pstrdup( params->pool, scfg->filterdb );
+	cfg->proxydb = apr_pstrdup( params->pool, scfg->proxydb);
+	cfg->tkt_prefix = apr_pstrdup( params->pool, scfg->tkt_prefix );
+	if ( cfg->siteentry != NULL ) {
+	    cfg->siteentry = apr_pstrdup( params->pool, scfg->siteentry );
+	}
 	cfg->posterror = apr_pstrdup( params->pool, scfg->posterror );
 	cfg->host = apr_pstrdup( params->pool, scfg->host );
 	cfg->cl = scfg->cl;
 	cfg->port = scfg->port; 
 	cfg->ctx = scfg->ctx;
+	cfg->proxy = scfg->proxy;
+	cfg->http = scfg->http;
 #ifdef KRB
 	cfg->krbtkt = scfg->krbtkt; 
 #ifdef GSS
@@ -411,6 +438,51 @@ set_cosign_service( cmd_parms *params, void *mconfig, char *arg )
     }
 
     cfg->service = apr_psprintf( params->pool,"cosign-%s", arg );
+    cfg->configured = 1;
+    return( NULL );
+}
+
+    static const char *
+set_cosign_siteentry( cmd_parms *params, void *mconfig, char *arg )
+{
+    cosign_host_config          *cfg, *scfg;
+
+    scfg = (cosign_host_config *) ap_get_module_config(
+                params->server->module_config, &cosign_module );
+    if ( params->path == NULL ) {
+        cfg = scfg;
+    } else {
+        cfg = (cosign_host_config *)mconfig;
+        cfg->redirect = apr_pstrdup( params->pool, scfg->redirect );
+        cfg->filterdb = apr_pstrdup( params->pool, scfg->filterdb );
+        cfg->proxydb = apr_pstrdup( params->pool, scfg->proxydb );
+        cfg->tkt_prefix = apr_pstrdup( params->pool, scfg->tkt_prefix );
+        cfg->posterror = apr_pstrdup( params->pool, scfg->posterror );
+        cfg->host = apr_pstrdup( params->pool, scfg->host );
+        cfg->cl = scfg->cl;
+        cfg->port = scfg->port;
+        cfg->ctx = scfg->ctx;
+        cfg->proxy = scfg->proxy;
+        cfg->http = scfg->http;
+        if ( cfg->service == NULL ) {
+            cfg->service = apr_pstrdup( params->pool, scfg->service );
+        }
+#ifdef KRB
+        cfg->krbtkt = scfg->krbtkt;
+#ifdef GSS
+        cfg->gss = scfg->gss;
+#endif /* GSS */
+#ifdef KRB4
+        cfg->krb524 = scfg->krb524;
+#endif /* KRB4 */
+#endif /* KRB */
+    }
+
+    if ( strcasecmp( arg, "none" ) != 0 ) {
+        cfg->siteentry = apr_pstrdup( params->pool, arg );
+    } else {
+        cfg->siteentry = NULL;
+    }
     cfg->configured = 1;
     return( NULL );
 }
@@ -457,6 +529,55 @@ set_cosign_redirect( cmd_parms *params, void *mconfig, char *arg )
     cfg->redirect = apr_pstrdup( params->pool, arg );
     return( NULL );
 }
+
+    static const char *
+set_cosign_filterdb( cmd_parms *params, void *mconfig, char *arg )
+{
+    cosign_host_config          *cfg;
+
+    if ( params->path == NULL ) {
+        cfg = (cosign_host_config *) ap_get_module_config(
+                params->server->module_config, &cosign_module );
+    } else {
+        return( "CosignFilterDB not valid per dir!" );
+    }
+
+    cfg->filterdb = apr_pstrdup( params->pool, arg );
+    return( NULL );
+}
+
+    static const char *
+set_cosign_proxydb( cmd_parms *params, void *mconfig, char *arg )
+{
+    cosign_host_config          *cfg;
+
+    if ( params->path == NULL ) {
+        cfg = (cosign_host_config *) ap_get_module_config(
+                params->server->module_config, &cosign_module );
+    } else {
+        return( "CosignProxyDB not valid per dir!" );
+    }
+
+    cfg->proxydb = apr_pstrdup( params->pool, arg );
+    return( NULL );
+}
+
+    static const char *
+set_cosign_tkt_prefix( cmd_parms *params, void *mconfig, char *arg )
+{
+    cosign_host_config          *cfg;
+
+    if ( params->path == NULL ) {
+        cfg = (cosign_host_config *) ap_get_module_config(
+                params->server->module_config, &cosign_module );
+    } else {
+        return( "CosignTicketPrefix not valid per dir!" );
+    }
+
+    cfg->tkt_prefix = apr_pstrdup( params->pool, arg );
+    return( NULL );
+}
+
 
 #ifdef KRB
 #ifdef KRB4
@@ -690,6 +811,22 @@ static command_rec cosign_cmds[ ] =
         AP_INIT_TAKE1( "CosignHostname", set_cosign_host,
         NULL, RSRC_CONF, 
         "the name of the cosign hosts(s)" ),
+
+        AP_INIT_TAKE1( "CosignFilterDB", set_cosign_filterdb,
+        NULL, RSRC_CONF, 
+        "the path to the cosign filter DB" ),
+
+        AP_INIT_TAKE1( "CosignProxyDB", set_cosign_proxydb,
+        NULL, RSRC_CONF, 
+        "the path to the cosign proxy DB" ),
+
+        AP_INIT_TAKE1( "CosignTicketPrefix", set_cosign_tkt_prefix,
+        NULL, RSRC_CONF, 
+        "the path to the cosign Kerberos ticket directory" ),
+
+        AP_INIT_TAKE1( "CosignSiteEntry", set_cosign_siteentry,
+        NULL, RSRC_CONF | ACCESS_CONF, 
+        "\"none\" or URL to redirect for users who successfully authenticate" ),
 
         AP_INIT_FLAG( "CosignHttpOnly", set_cosign_http,
         NULL, RSRC_CONF, 

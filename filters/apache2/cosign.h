@@ -1,6 +1,7 @@
 typedef struct {
     char                *host;
     char                *service;
+    char		*siteentry;
     char                *redirect;
     char                *posterror;
     unsigned short      port;
@@ -11,8 +12,11 @@ typedef struct {
     char		*cert;
     char		*key;
     char		*cadir;
-    int			http;
-    int                 proxy;
+    char		*filterdb;
+    char		*proxydb;
+    char		*tkt_prefix;
+    int                 http;
+    int			proxy;
 #ifdef KRB
 #ifdef GSS
     int			gss;

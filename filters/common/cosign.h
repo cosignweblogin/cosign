@@ -12,6 +12,9 @@ typedef struct {
     char		*cert;
     char		*key;
     char		*cadir;
+    char		*filterdb;
+    char		*proxydb;
+    char		*tkt_prefix;
     int                 http;
     int			proxy;
 #ifdef KRB
