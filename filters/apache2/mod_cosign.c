@@ -185,7 +185,7 @@ cosign_authn( request_rec *r )
 	return( DECLINED );
     }
 
-    if ( strcmp( authn, "Cosign" ) != 0 ) {
+    if ( strcasecmp( authn, "Cosign" ) != 0 ) {
 	return( DECLINED );
     } 
     return( OK );

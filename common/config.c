@@ -27,7 +27,8 @@ chosts_find( char *hostname )
     struct chosts	*cur = NULL;
 
     for ( cur = authlist; cur != NULL; cur = cur->ch_next ) {
-	if ( wildcard( cur->ch_hostname, hostname )) {
+	/* 0 makes this match case insensitive */
+	if ( wildcard( cur->ch_hostname, hostname, 0 )) {
 	    break;
 	}
     }

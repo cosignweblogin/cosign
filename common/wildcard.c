@@ -4,7 +4,7 @@
 #include "wildcard.h"
 
     int
-wildcard( char *wild, char *p )
+wildcard( char *wild, char *p, int sensitive )
 {
     int		min, max;
     int		i;
@@ -18,7 +18,7 @@ wildcard( char *wild, char *p )
 		return( 1 );
 	    }
 	    for ( i = 0; p[ i ] != '\0'; i++ ) {
-		if ( wildcard( wild, &p[ i ] )) {
+		if ( wildcard( wild, &p[ i ], sensitive )) {
 		    return( 1 );
 		}
 	    }
@@ -61,8 +61,14 @@ wildcard( char *wild, char *p )
 	case '\\' :
 	    wild++;
 	default :
-	    if ( *wild != *p ) {
-		return( 0 );
+	    if ( sensitive ) {
+		if ( *wild != *p ) {
+		    return( 0 );
+		}
+	    } else {
+		if ( tolower(*wild) != tolower(*p) ) {
+		    return( 0 );
+		}
 	    }
 	    if ( *wild == '\0' ) {
 		return( 1 );

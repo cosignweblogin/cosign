@@ -585,7 +585,7 @@ connect_sn( struct connlist *conn )
     X509_NAME_get_text_by_NID( X509_get_subject_name( peer ), NID_commonName,
 	    buf, sizeof( buf ));
     /* cn and host must match */
-    if ( strcmp( buf, cosign_host ) != 0 ) {
+    if ( strcasecmp( buf, cosign_host ) != 0 ) {
 	fprintf( stderr, "cn=%s & host=%s don't match!\n", buf, cosign_host );
 	X509_free( peer );
 	err = -2;

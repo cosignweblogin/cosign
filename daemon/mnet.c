@@ -93,15 +93,13 @@ connect_sn( struct cl *cl, SSL_CTX *ctx, char *host )
 
     X509_NAME_get_text_by_NID( X509_get_subject_name( peer ), NID_commonName,
 	    buf, sizeof( buf ));
-#ifdef notdef
     /* cn and host must match */
-    if ( strcmp( buf, host ) != 0 ) {
+    if ( strcasecmp( buf, host ) != 0 ) {
 	syslog( LOG_ERR, "cn=%s & host=%s don't match!", buf, host );
 	X509_free( peer );
 	err = -2;
 	goto done;
     }
-#endif 
     X509_free( peer );
     return( 0 );
 done:

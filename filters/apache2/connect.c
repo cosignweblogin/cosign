@@ -635,7 +635,7 @@ connect_sn( struct connlist *cl, SSL_CTX *ctx, char *host )
 	    buf, sizeof( buf ));
 
     /* cn and host must match */
-    if ( strcmp( buf, host ) != 0 ) {
+    if ( strcasecmp( buf, host ) != 0 ) {
 	fprintf( stderr, "cn=%s & host=%s don't match!\n", buf, host );
 	X509_free( peer );
 	goto done;
