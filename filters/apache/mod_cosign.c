@@ -237,7 +237,15 @@ cosign_auth( request_rec *r )
 	while ( *data == ' ' ) { data++; }
     }
 
-    if (( cookiename == NULL ) || ( strcmp( pair, "null" ) == 0 )) {
+    /* the length of the cookie payload is determined by our call to
+     * mkcookie() in set_cookie_and_redirect(). technically
+     * unecessary since invalid short cookies won't be registered
+     * anyway, however, adding this check prevents an unknown
+     * cookie failover condition if the browser doesn't honor expiration
+     * dates on cookies.
+     */
+     
+    if (( cookiename == NULL ) || ( strlen( pair ) < 120 )) {
 	goto set_cookie;
     }
 
