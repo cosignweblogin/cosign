@@ -221,6 +221,7 @@ cosign_auth( request_rec *r )
     /* Everything Shines, let them thru */
     if ( cv == 0 ) {
 	ap_table_set( r->subprocess_env, "REMOTE_REALM", si.si_realm );
+	r->connection->ap_auth_type = "Cosign";
 	r->connection->user = ap_pstrcat( r->pool, si.si_user, NULL);
 
 	/* XXX add in Kerberos info here */
