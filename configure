@@ -314,7 +314,7 @@ ac_includes_default="\
 #endif"
 
 ac_subdirs_all="$ac_subdirs_all libsnet"
-ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS AWK CC CFLAGS LDFLAGS CPPFLAGS ac_ct_CC EXEEXT OBJEXT INSTALL_PROGRAM INSTALL_SCRIPT INSTALL_DATA LEX LEXLIB LEX_OUTPUT_ROOT YACC build build_cpu build_vendor build_os host host_cpu host_vendor host_os APXS2 APXS2_INCLUDE APXS2_CFLAGS APXS2_CFLAGS_SHLIB APACHECTL2 HAVE_APACHE2 KRBCGI KRBDEFS KINC KLIBS KLDFLAGS HAVE_KRB BASICCGI filteraddrcheck MYSQLINC MYSQLLIBS MYSQLLDFLAGS SQLDEFS HAVE_MYSQL K4DEFS K4INC K4LIBS K4LDFLAGS HAVE_KRB4 GSSDEFS GSSINC GSSLIBS GSSLDFLAGS HAVE_GSS cosigndb cosignconf cosigncadir cosigncert cosignkey frienddbhost frienddblogin frienddbpasswd filterdb cosignhost cosignlogouturl keytabpath ADDLIBS ADDLDFLAGS TLSDEFS HAVE_SSL CPP EGREP APXS APXS_INCLUDE APXS_CFLAGS APXS_CFLAGS_SHLIB APACHECTL FILTERS OPTOPTS subdirs LIBOBJS LTLIBOBJS'
+ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS AWK CC CFLAGS LDFLAGS CPPFLAGS ac_ct_CC EXEEXT OBJEXT INSTALL_PROGRAM INSTALL_SCRIPT INSTALL_DATA LEX LEXLIB LEX_OUTPUT_ROOT YACC build build_cpu build_vendor build_os host host_cpu host_vendor host_os APXS2 APXS2_INCLUDE APXS2_CFLAGS APXS2_CFLAGS_SHLIB APACHECTL2 HAVE_APACHE2 KRBCGI KRBDEFS KINC KLIBS KLDFLAGS HAVE_KRB BASICCGI filteraddrcheck MYSQLINC MYSQLLIBS MYSQLLDFLAGS SQLDEFS HAVE_MYSQL K4DEFS K4INC K4LIBS K4LDFLAGS HAVE_KRB4 GSSDEFS GSSINC GSSLIBS GSSLDFLAGS HAVE_GSS cosigndb cosignconf cosigncadir cosigncert cosignkey frienddbhost frienddblogin frienddbpasswd filterdb proxydb cosignhost cosignlogouturl keytabpath ADDLIBS ADDLDFLAGS TLSDEFS HAVE_SSL CPP EGREP APXS APXS_INCLUDE APXS_CFLAGS APXS_CFLAGS_SHLIB APACHECTL FILTERS OPTOPTS subdirs LIBOBJS LTLIBOBJS'
 ac_subst_files=''
 
 # Initialize some variables set by options.
@@ -878,6 +878,7 @@ Optional Packages:
   --with-frienddbpasswd=PASSWD
                           password of friend mysql db account
   --with-filterdb=DIR     default cosign filter database storage
+  --with-proxydb=DIR      default cosign proxy authentication database storage
   --with-cosignhost=NAME  name of host that runs cosignd
   --with-cosignlogouturl=URL
                           default URL to redirect users to upon logout
@@ -3262,6 +3263,16 @@ fi;
 
 
 
+# Check whether --with-proxydb or --without-proxydb was given.
+if test "${with_proxydb+set}" = set; then
+  withval="$with_proxydb"
+  proxydb="$withval"
+else
+  proxydb="/var/cosign/proxy"
+fi;
+
+
+
 # Check whether --with-cosignhost or --without-cosignhost was given.
 if test "${with_cosignhost+set}" = set; then
   withval="$with_cosignhost"
@@ -4783,6 +4794,7 @@ s,@frienddbhost@,$frienddbhost,;t t
 s,@frienddblogin@,$frienddblogin,;t t
 s,@frienddbpasswd@,$frienddbpasswd,;t t
 s,@filterdb@,$filterdb,;t t
+s,@proxydb@,$proxydb,;t t
 s,@cosignhost@,$cosignhost,;t t
 s,@cosignlogouturl@,$cosignlogouturl,;t t
 s,@keytabpath@,$keytabpath,;t t

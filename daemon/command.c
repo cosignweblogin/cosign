@@ -894,7 +894,7 @@ f_retr( SNET *sn, int ac, char *av[], SNET *pushersn )
 
     if ( strcmp( av[ 2 ], "tgt") == 0 ) {
 	return( retr_ticket( sn, &ci ));
-    } else if ( strcmp( av[ 2 ], "proxy") == 0 ) {
+    } else if ( strcmp( av[ 2 ], "cookies") == 0 ) {
 	return( retr_proxy( sn, login, pushersn ));
     }
 

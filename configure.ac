@@ -65,6 +65,9 @@ AC_SUBST(frienddbpasswd)
 AC_ARG_WITH(filterdb, AC_HELP_STRING([--with-filterdb=DIR], [default cosign filter database storage]), filterdb="$withval", filterdb="/var/cosign/filter" )
 AC_SUBST(filterdb)
 
+AC_ARG_WITH(proxydb, AC_HELP_STRING([--with-proxydb=DIR], [default cosign proxy authentication database storage]), proxydb="$withval", proxydb="/var/cosign/proxy" )
+AC_SUBST(proxydb)
+
 AC_ARG_WITH(cosignhost, AC_HELP_STRING([--with-cosignhost=NAME], [name of host that runs cosignd]), cosignhost="$withval", cosignhost="cosign.example.edu" )
 AC_SUBST(cosignhost)
 
