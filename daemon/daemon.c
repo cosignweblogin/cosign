@@ -93,7 +93,7 @@ main( ac, av )
     char		*prog;
     char		*cryptofile = "/usr/local/umweb/certs/weblogin.key";
     char		*certfile = "/usr/local/umweb/certs/weblogin.cert";
-    char		*cafile = "/usr/local/umweb/certs/umwebCA.pem";
+    char		*cadir = "/usr/local/umweb/certs/CA";
     unsigned short	port = 0;
     extern int		optind;
     extern char		*optarg;
@@ -169,7 +169,7 @@ main( ac, av )
 	    exit( 1 );
 	}
 
-	if ( SSL_CTX_load_verify_locations( ctx, cafile, NULL ) != 1 ) {
+	if ( SSL_CTX_load_verify_locations( ctx, NULL, cadir ) != 1 ) {
 	    fprintf( stderr, "SSL_CTX_load_verify_locations: %s: %s\n",
 		    cryptofile, ERR_error_string( ERR_get_error(), NULL));
 	    exit( 1 );
