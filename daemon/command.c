@@ -638,8 +638,8 @@ f_check( sn, ac, av )
     /* CHECK (service/login)cookie */
 
     if (( ch->ch_key != CGI ) && ( ch->ch_key != SERVICE )) {
-	syslog( LOG_ERR, "%s not allowed to register", ch->ch_hostname );
-	snet_writef( sn, "%d REGISTER: %s not allowed to register.\r\n",
+	syslog( LOG_ERR, "%s not allowed to check", ch->ch_hostname );
+	snet_writef( sn, "%d CHECK: %s not allowed to check.\r\n",
 		430, ch->ch_hostname );
 	return( 1 );
     }
@@ -724,8 +724,12 @@ f_retr( sn, ac, av )
     char		login[ MAXPATHLEN ];
 
     /* RETR service-cookie TicketType] */
-
-    /* XXX check if you are allowed to get tickets */
+    if ( ch->ch_tkt != 1 ) {
+	syslog( LOG_ERR, "%s not allowed to retrieve tkts", ch->ch_hostname );
+	snet_writef( sn, "%d RETR: %s not allowed to retrieve tkts.\r\n",
+		441, ch->ch_hostname );
+	return( 1 );
+    }
 
     if ( ac != 3 ) {
 	snet_writef( sn, "%d RETR: Wrong number of args.\r\n", 540 );

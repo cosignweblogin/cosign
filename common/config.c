@@ -106,7 +106,7 @@ chosts_read( char *path )
 
 	new->ch_hostname = strdup( av[ 1 ] );
 
-	if ( ac == 3 ) {
+	if (( ac == 3 ) && ( new->ch_key == SERVICE )) {
 	    new->ch_tkt = atoi( av[ 2 ] );
 	} else {
 	    new->ch_tkt = 0;
