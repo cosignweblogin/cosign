@@ -17,7 +17,6 @@
 
 #define LOGIN_HTML	"../templates/login.html"
 #define ERROR_HTML	"../templates/error.html"
-#define SPLASH_HTML	"../templates/splash.html"
 #define SIDEWAYS        1               /* we neglected to tell the
 					   user what was happening.  we
 					   should fix all of these.
@@ -122,6 +121,8 @@ main()
 
     if (( data = getenv( "HTTP_COOKIE" )) != NULL ) {
 	cookie = strtok( data, ";" );
+
+	/* nibble away the cookie string until we see the cosign= cookie */
 	if ( strncmp( cookie, "cosign=", 7 ) != 0 ) {
 	    while (( cookie = strtok( NULL, ";" )) != NULL ) {
 		if ( *cookie == ' ' ) ++cookie;
@@ -137,13 +138,19 @@ main()
     ip_addr = getenv( "REMOTE_ADDR" );
 
     if ((( qs = getenv( "QUERY_STRING" )) != NULL ) && ( *qs != '\0' )) {
-	if ( cookie == NULL ) {
-	    tmpl = SPLASH_HTML;
+	service = strtok( qs, ";" );
+	ref = strtok( NULL, "&" );
+
+	printf( "Set-Cookie: cosign-referer=%s; path=/; secure\n", ref );
+
+	if ( cookie == NULL || strlen( cookie ) == 7 ) {
+	    tmpl = ERROR_HTML;
+	    err = "<p>Welcome to the University of Michigan's central web authentication service. You will need to <a href='/cgi-bin/cosign'>visit the login screen</a> and login before continuing.</p><a class='important' href='/cgi-bin/cosign'>login now</a>";
+
 	    subfile( tmpl );
 	    exit( 0 );
 	}
 
-	service = strtok( qs, ";" );
 	if ( strncmp( service, "cosign-", 7 ) != 0 ) {
 	    tmpl = ERROR_HTML;
 	    err = "You mock me with your query string.";
@@ -172,7 +179,6 @@ main()
 	    goto loginscreen;
 	}
 
-	ref = strtok( NULL, "&" );
 	printf( "Location: %s\n\n", ref );
 	exit( 0 );
 
@@ -294,7 +300,30 @@ main()
 	exit( 2 );
     }
 
-    subfile ( tmpl );
+fprintf( stderr, "DEBUG: login succeeded and everything\n" );
+
+    if (( data = getenv( "HTTP_COOKIE" )) != NULL ) {
+	ref = strtok( data, ";" );
+
+	/* nibble away the cookie string until we see the referer cookie */
+	if ( strncmp( ref, "cosign-referer=", 15 ) != 0 ) {
+	    while (( ref = strtok( NULL, ";" )) != NULL ) {
+		if ( *ref == ' ' ) ++ref;
+		if ( strncmp( ref, "cosign-referer=", 15 ) == 0 ) {
+		    fprintf( stderr, "discarding: %s\n", strtok( ref, "=" ));
+		    break;
+		}
+	    }
+	}
+    }
+
+    if (( ref = strstr( ref, "http" )) != NULL ) {
+fprintf( stderr, "DEBUG: redirecting to %s\n", ref );
+	printf( "Location: %s\n\n", ref );
+	exit( 0 );
+    }
+
+    subfile( tmpl );
     exit( 0 );
 
 loginscreen:

@@ -150,7 +150,7 @@ main()
     }
 
     /* clobber the cosign cookie and display logout screen */
-    fputs( "Set-Cookie: cosign=logout; path=/; expires=Wednesday, 16-Apr-73 02:10:00 GMT; secure\n", stdout );
+    fputs( "Set-Cookie: cosign=; path=/; expires=Wednesday, 16-Apr-73 02:10:00 GMT; secure\n", stdout );
 
     if (( cl[ CL_LINK ].cl_data != NULL ) &&
 	    ( *cl[ CL_LINK ].cl_data != '\0' )) {
