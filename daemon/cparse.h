@@ -8,4 +8,6 @@ struct cinfo {
     time_t	ci_itime;
 };
 
+int do_logout( char * );
+int service_to_login( char *, char * );
 int read_a_cookie( char *, struct cinfo * );

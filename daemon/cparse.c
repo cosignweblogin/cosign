@@ -3,15 +3,92 @@
  * All Rights Reserved.  See COPYRIGHT.
  */
 
-#include <sys/stat.h>
 #include <sys/types.h>
+#include <sys/stat.h>
+#include <sys/param.h>
+#include <unistd.h>
 #include <syslog.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <fcntl.h>
 
 #include "cparse.h"
 
 #define MAXLEN 256
+
+    int
+do_logout( char *path )
+{
+    int		fd;
+
+    if (( fd = open( path, O_WRONLY, 0644 )) < 0 ) {
+        syslog( LOG_ERR, "do_logout: %s: %m", path );
+        return( -1 );
+    }
+
+    if ( lseek( fd, 4, SEEK_SET ) == -1 ) {
+        (void)close( fd );
+        syslog( LOG_ERR, "do_logout: %s: %m", path );
+        return( -1 );
+    }
+
+    if ( write( fd, "0", 1 ) == -1 ) {
+        (void)close( fd );
+        syslog( LOG_ERR, "do_logout: %s: %m", path );
+        return( -1 );
+    }
+
+    if ( close( fd ) != 0 ) {
+        syslog( LOG_ERR, "do_logout: %s: %m", path );
+        return( -1 );
+    }
+
+    return( 0 );
+}
+
+    int
+service_to_login( char *service, char *login )
+{
+    FILE	*scf;
+    char	buf[ MAXPATHLEN ];
+    char	*p;
+    int		len;
+
+    if (( scf = fopen( service, "r" )) == NULL ) {
+	syslog( LOG_ERR, "service_to_login: %s: %m", service  );
+	return( -1 );
+    }
+
+    if ( fgets( buf, sizeof( buf ), scf ) == NULL ) {
+	(void)fclose( scf );
+	syslog( LOG_ERR, "service_to_login: fgets: %m"  );
+	return( -1 );
+    }
+
+    len = strlen( buf );
+    if ( buf[ len - 1 ] != '\n' ) {
+	(void)fclose( scf );
+	syslog( LOG_ERR, "service_to_login: line too long" );
+	return( -1 );
+    }
+    buf[ len -1 ] = '\0';
+
+    if ( *buf != 'l' ) {
+	(void)fclose( scf );
+	syslog( LOG_ERR,
+		"service_to_login: file format error in %s", service );
+	return( -1 );
+    }
+    p = buf + 1;
+
+    strcpy( login, p );
+
+    if ( fclose( scf ) != 0 ) {
+	syslog( LOG_ERR, "service_to_login: %s: %m", service );
+	return( -1 );
+    }
+    return( 0 );
+}
 
     int
 read_a_cookie( char *path, struct cinfo *ci )

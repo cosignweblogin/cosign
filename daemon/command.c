@@ -42,6 +42,7 @@ static int	f_help ___P(( SNET *, int, char *[] ));
 static int	f_login ___P(( SNET *, int, char *[] ));
 static int	f_logout ___P(( SNET *, int, char *[] ));
 static int	f_register ___P(( SNET *, int, char *[] ));
+static int	f_check ___P(( SNET *, int, char *[] ));
 
     int
 f_quit( sn, ac, av )
@@ -198,7 +199,6 @@ f_logout( sn, ac, av )
     char        *av[];
 {
     struct cinfo	ci;
-    int			fd;
 
     /*LOGOUT login_cookie ip */
 
@@ -238,28 +238,8 @@ f_logout( sn, ac, av )
 	return( 1 );
     }
 
-    if (( fd = open( av[ 1 ], O_WRONLY, 0644 )) < 0 ) {
+    if ( do_logout( av[ 1 ] ) < 0 ) {
 	syslog( LOG_ERR, "f_logout: %s: %m" );
-	snet_writef( sn, "%d LOGOUT error: Sorry!\r\n", 514 );
-	return( -1 );
-    }
-
-    if ( lseek( fd, 4, SEEK_SET ) == -1 ) {
-	(void)close( fd );
-	syslog( LOG_ERR, "f_logout: %s: %m", av[ 1 ] );
-	snet_writef( sn, "%d LOGOUT error: Sorry!\r\n", 514 );
-	return( -1 );
-    }
-
-    if ( write( fd, "0", 1 ) == -1 ) {
-	(void)close( fd );
-	syslog( LOG_ERR, "f_logout: %s: %m", av[ 1 ] );
-	snet_writef( sn, "%d LOGOUT error: Sorry!\r\n", 514 );
-	return( -1 );
-    }
-
-    if ( close( fd ) != 0 ) {
-	syslog( LOG_ERR, "f_logout: %s: %m", av[ 1 ] );
 	snet_writef( sn, "%d LOGOUT error: Sorry!\r\n", 514 );
 	return( -1 );
     }
@@ -308,7 +288,7 @@ f_register( sn, ac, av )
     }
 
     if ( ci.ci_state == 0 ) {
-	syslog( LOG_INFO,
+	syslog( LOG_ERR,
 		"f_register: %s already logged out, can't register", av[ 1 ] );
 	snet_writef( sn, "%d REGISTER: Already logged out\r\n", 420 );
 	return( 1 );
@@ -353,6 +333,14 @@ f_register( sn, ac, av )
     /* the service cookie file contains the login cookie only */
     fprintf( tmpfile, "l%s\n", av[ 1 ] );
 
+    if ( fclose ( tmpfile ) != 0 ) {
+	if ( unlink( tmppath ) != 0 ) {
+	    syslog( LOG_ERR, "f_register: unlink: %m" );
+	}
+	snet_writef( sn, "%d REGISTER Error: Sorry!\r\n", 524 );
+	return( -1 );
+    }
+
     if ( link( tmppath, av[ 3 ] ) != 0 ) {
 	if ( unlink( tmppath ) != 0 ) {
 	    syslog( LOG_ERR, "f_register: unlink: %m" );
@@ -379,6 +367,57 @@ f_register( sn, ac, av )
     return( 0 );
 }
 
+    int
+f_check( sn, ac, av )
+    SNET			*sn;
+    int				ac;
+    char			*av[];
+{
+    struct cinfo 	ci;
+    char		login[ MAXPATHLEN ];
+
+    /* CHECK service_cookie */
+
+    if ( ac != 2 ) {
+	snet_writef( sn, "%d CHECK: Wrong number of args.\r\n", 530 );
+	return( 1 );
+    }
+
+    if ( strchr( av[ 1 ], '/' ) != NULL ) {
+	syslog( LOG_ERR, "f_check: cookie name contains '/'" );
+	snet_writef( sn, "%d CHECK: Invalid cookie name.\r\n", 531 );
+	return( 1 );
+    }
+
+    if ( strlen( av[ 1 ] ) >= MAXPATHLEN ) {
+	snet_writef( sn, "%d CHECK: Service Cookie too long\r\n", 532 );
+	return( 1 );
+    }
+
+    if ( service_to_login( av[ 1 ], login ) != 0 ) {
+	syslog( LOG_ERR, "f_check: ask someone else about it!"  );
+	snet_writef( sn, "%d CHECK: Raisins in your cookie!\r\n", 533 );
+	return( 1 );
+    }
+
+    if ( read_a_cookie( login, &ci ) != 0 ) {
+	syslog( LOG_ERR, "f_check: read_a_cookie: XXX" );
+	snet_writef( sn, "%d CHECK: Who me? Dunno.\r\n", 534 );
+	return( 1 );
+    }
+
+    if ( ci.ci_state == 0 ) {
+	syslog( LOG_ERR,
+		"f_check: %s logged out", login );
+	snet_writef( sn, "%d CHECK: Already logged out\r\n", 430 );
+	return( 1 );
+    }
+    /* check for idle timeout, and if so, log'em out */
+
+    snet_writef( sn,
+	    "%d %s %s %s\r\n", 230, ci.ci_ipaddr, ci.ci_user, ci.ci_realm );
+    return( 0 );
+}
 
 struct command	commands[] = {
     { "NOOP",		f_noop },
@@ -387,6 +426,7 @@ struct command	commands[] = {
     { "LOGIN",		f_login },
     { "LOGOUT",		f_logout },
     { "REGISTER",	f_register },
+    { "CHECK",		f_check },
 };
 int		ncommands = sizeof( commands ) / sizeof( commands[ 0 ] );
 
