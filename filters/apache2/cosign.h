@@ -12,6 +12,7 @@ typedef struct {
     char		*key;
     char		*cadir;
     int			http;
+    int                 proxy;
 #ifdef KRB
 #ifdef GSS
     int			gss;

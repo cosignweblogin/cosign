@@ -60,6 +60,7 @@ cosign_create_dir_config( apr_pool_t *p, char *path )
     cfg->cert = NULL;
     cfg->cadir = NULL;
     cfg->http = 0;
+    cfg->proxy = 0;
 #ifdef KRB
     cfg->krbtkt = 0;
 #ifdef GSS
@@ -92,6 +93,7 @@ cosign_create_server_config( apr_pool_t *p, server_rec *s )
     cfg->cert = NULL;
     cfg->cadir = NULL;
     cfg->http = 0;
+    cfg->proxy = 0;
 #ifdef KRB
     cfg->krbtkt = 0;
 #ifdef GSS
@@ -343,6 +345,7 @@ set_cosign_protect( cmd_parms *params, void *mconfig, int flag )
 	if ( cfg->service == NULL ) {
 	    cfg->service = apr_pstrdup( params->pool, scfg->service );
 	}
+	cfg->proxy = scfg->proxy;
 #ifdef KRB
 	cfg->krbtkt = scfg->krbtkt; 
 #ifdef GSS
@@ -515,6 +518,23 @@ set_cosign_tickets( cmd_parms *params, void *mconfig, int flag )
 #endif /* KRB */
 
     static const char *
+set_cosign_proxy_cookies( cmd_parms *params, void *mconfig, int flag )
+{
+    cosign_host_config          *cfg;
+
+    if ( params->path == NULL ) {
+        cfg = (cosign_host_config *) ap_get_module_config(
+                params->server->module_config, &cosign_module );
+    } else {
+        return( "Proxy cookie policy needs to be set on a per host basis." );
+    }
+
+    cfg->proxy = flag;
+    cfg->configured = 1;
+    return( NULL );
+}
+
+    static const char *
 set_cosign_certs( cmd_parms *params, void *mconfig,
 	char *one, char *two, char *three)
 {
@@ -680,6 +700,10 @@ static command_rec cosign_cmds[ ] =
         AP_INIT_TAKE3( "CosignCrypto", set_cosign_certs,
         NULL, RSRC_CONF, 
         "crypto for use in talking to cosign host" ),
+
+        AP_INIT_FLAG( "CosignGetProxyCookies", set_cosign_proxy_cookies,
+        NULL, RSRC_CONF, 
+        "whether or not to get proxy cookies" ),
 #ifdef KRB
         AP_INIT_FLAG( "CosignGetKerberosTickets", set_cosign_tickets,
         NULL, RSRC_CONF, 
