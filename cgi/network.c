@@ -196,7 +196,7 @@ cosign_logout( char *cookie, char *ip )
 
 
     int
-cosign_register( char *cookie, char *ip, char *secant )
+cosign_register( char *cookie, char *ip, char *scookie )
 {
     char		*line;
     struct timeval	 tv;
@@ -207,7 +207,7 @@ cosign_register( char *cookie, char *ip, char *secant )
 	return( -2 );
     }
 
-    if ( snet_writef( sn, "REGISTER %s %s %s\r\n", cookie, ip, secant ) < 0 ) {
+    if ( snet_writef( sn, "REGISTER %s %s %s\r\n", cookie, ip, scookie ) < 0 ) {
 	fprintf( stderr, "cosign_register: register failed\n" );
 	if (( closesn( sn )) != 0 ) {
 	    fprintf( stderr, "cosign_register: closesn failed\n" );

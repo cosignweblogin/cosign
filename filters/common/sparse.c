@@ -16,7 +16,7 @@
 #define MAXLEN 256
 
     int
-read_secant( char *path, struct sinfo *si )
+read_scookie( char *path, struct sinfo *si )
 {
     FILE	*sf;
     struct stat	st;
@@ -41,7 +41,7 @@ read_secant( char *path, struct sinfo *si )
 	len = strlen( buf );
 	if ( buf[ len - 1 ] != '\n' ) {
 	    (void)fclose( sf );
-	    fprintf( stderr, "read_secant: line too long");
+	    fprintf( stderr, "read_scookie: line too long");
 	    return( -1 );
 	}
 	buf[ len -1 ] = '\0';
@@ -72,14 +72,14 @@ read_secant( char *path, struct sinfo *si )
 #endif /* KRB */
 
 	default:
-	    fprintf( stderr, "read_secant: unknown keyword %c", *buf );
+	    fprintf( stderr, "read_scookie: unknown keyword %c", *buf );
 	    (void)fclose( sf );
 	    return( -1 );
 	}
     }
 
     if ( fclose( sf ) != 0 ) {
-	fprintf( stderr, "read_secant: %s:\n", path );
+	fprintf( stderr, "read_scookie: %s:\n", path );
 	return( -1 );
     }
     return( 0 );

@@ -56,8 +56,8 @@ cookie_valid( cosign_host_config *cfg, char *cookie, struct sinfo *si,
      * 0 ok
      * 1 not in fs
      */
-    if (( rs = read_secant( path, &lsi )) < 0 ) {
-	fprintf( stderr, "Something's wrong: read_secant\n" ); 
+    if (( rs = read_scookie( path, &lsi )) < 0 ) {
+	fprintf( stderr, "Something's wrong: read_scookie\n" ); 
 	return( -1 );
     }
 
@@ -132,7 +132,7 @@ cookie_valid( cosign_host_config *cfg, char *cookie, struct sinfo *si,
 	return( 0 );
     }
 
-    /* store local copy of secant */
+    /* store local copy of scookie (service cookie) */
     if ( snprintf( tmppath, MAXPATHLEN, "%s/%x%x.%i", CPATH,
 	    tv.tv_sec, tv.tv_usec, (int)getpid()) >= MAXPATHLEN ) {
 	fprintf( stderr, "cookiefs: tmppath too long\n" );

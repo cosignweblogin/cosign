@@ -52,7 +52,7 @@ struct timeval		timeout = { 10 * 60, 0 };
  * 2 means everything's peachy
  */
     static int
-netcheck_cookie( char *secant, struct sinfo *si, SNET *sn )
+netcheck_cookie( char *scookie, struct sinfo *si, SNET *sn )
 {
     int			ac;
     char		*line;
@@ -61,7 +61,7 @@ netcheck_cookie( char *secant, struct sinfo *si, SNET *sn )
     extern int		errno;
 
     /* CHECK service-cookie */
-    if ( snet_writef( sn, "CHECK %s\r\n", secant ) < 0 ) {
+    if ( snet_writef( sn, "CHECK %s\r\n", scookie ) < 0 ) {
 	fprintf( stderr, "netcheck_cookie: snet_writef failed\n");
 	return( -1 );
     }
@@ -118,7 +118,7 @@ netcheck_cookie( char *secant, struct sinfo *si, SNET *sn )
 
 #ifdef KRB
     static int
-netretr_ticket( char *secant, struct sinfo *si, SNET *sn, int convert )
+netretr_ticket( char *scookie, struct sinfo *si, SNET *sn, int convert )
 {
     char		*line;
     char                tmpkrb[ 16 ], krbpath [ 24 ];
@@ -140,7 +140,7 @@ netretr_ticket( char *secant, struct sinfo *si, SNET *sn, int convert )
 #endif /* KRB4 */
 
     /* RETR service-cookie TicketType */
-    if ( snet_writef( sn, "RETR %s tgt\r\n", secant ) < 0 ) {
+    if ( snet_writef( sn, "RETR %s tgt\r\n", scookie ) < 0 ) {
 	fprintf( stderr, "netretr_ticket: snet_writef failed\n");
 	return( -1 );
     }
@@ -178,7 +178,7 @@ netretr_ticket( char *secant, struct sinfo *si, SNET *sn, int convert )
 
     tv = timeout;
     if (( line = snet_getline( sn, &tv )) == NULL ) {
-        fprintf( stderr, "netretr_ticket for %s failed\n", secant);
+        fprintf( stderr, "netretr_ticket for %s failed\n", scookie);
         return( -1 );
     }
     size = atoi( line );
@@ -211,7 +211,7 @@ netretr_ticket( char *secant, struct sinfo *si, SNET *sn, int convert )
 
     tv = timeout;
     if (( line = snet_getline( sn, &tv )) == NULL ) {
-        fprintf( stderr, "retr for %s failed: %s\n", secant,
+        fprintf( stderr, "retr for %s failed: %s\n", scookie,
             strerror( errno ));
         returnval = -1;
         goto error1;
@@ -348,7 +348,7 @@ teardown_conn( struct connlist *cur )
 }
 
     int
-check_cookie( char *secant, struct sinfo *si, cosign_host_config *cfg,
+check_cookie( char *scookie, struct sinfo *si, cosign_host_config *cfg,
 	int tkt )
 {
     struct connlist	**cur, *tmp;
@@ -361,7 +361,7 @@ check_cookie( char *secant, struct sinfo *si, cosign_host_config *cfg,
 	if ( (*cur)->conn_sn == NULL ) {
 	    continue;
 	}
-	if (( rc = netcheck_cookie( secant, si, (*cur)->conn_sn )) < 0 ) {
+	if (( rc = netcheck_cookie( scookie, si, (*cur)->conn_sn )) < 0 ) {
 	    if ( snet_close( (*cur)->conn_sn ) != 0 ) {
 		fprintf( stderr, "choose_conn: snet_close failed\n" );
 	    }
@@ -369,7 +369,7 @@ check_cookie( char *secant, struct sinfo *si, cosign_host_config *cfg,
 	}
 #ifdef KRB
 	if ( tkt ) {
-	    if (( rc = netretr_ticket( secant, si, (*cur)->conn_sn,
+	    if (( rc = netretr_ticket( scookie, si, (*cur)->conn_sn,
 		    cfg->krb524)) < 0 ) {
 		if ( snet_close( (*cur)->conn_sn ) != 0 ) {
 		    fprintf( stderr, "choose_conn: snet_close failed\n" );
@@ -392,7 +392,7 @@ check_cookie( char *secant, struct sinfo *si, cosign_host_config *cfg,
 	if (( ret = connect_sn( *cur, cfg->ctx, cfg->host )) != 0 ) {
 	    continue;
 	}
-	if (( rc = netcheck_cookie( secant, si, (*cur)->conn_sn )) < 0 ) {
+	if (( rc = netcheck_cookie( scookie, si, (*cur)->conn_sn )) < 0 ) {
 	    if ( snet_close( (*cur)->conn_sn ) != 0 ) {
 		fprintf( stderr, "choose_conn: snet_close failed\n" );
 	    }
@@ -401,7 +401,7 @@ check_cookie( char *secant, struct sinfo *si, cosign_host_config *cfg,
 
 #ifdef KRB
 	if ( tkt ) {
-	    if (( rc = netretr_ticket( secant, si, (*cur)->conn_sn,
+	    if (( rc = netretr_ticket( scookie, si, (*cur)->conn_sn,
 		    cfg->krb524 )) < 0 ) {
 		if ( snet_close( (*cur)->conn_sn ) != 0 ) {
 		    fprintf( stderr, "choose_conn: snet_close failed\n" );

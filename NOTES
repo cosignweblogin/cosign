@@ -1,7 +1,7 @@
 MODULE:
 
     unhappy with cookieparsing in cosign_auth().
-    unhappy with cookie_valid/read_secant division. 
+    unhappy with cookie_valid/read_scookie division. 
 
     TODO:
     cookie obscuring - post 1.0
