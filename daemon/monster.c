@@ -23,7 +23,7 @@
 
 /* 120 minutes */
 int		idle = 14400;
-int		interval = 20;
+int		interval = 120;
 int		hard_timeout = 43200;
 int		logged_out = 7200;
 int             debug = 0;
@@ -434,7 +434,7 @@ decision( char *name, struct timeval *now, time_t *itime, int *state )
 	return( -1 );
     }
 
-    /* login cookie gave us an ENOENT do we think it's gone */
+    /* login cookie gave us an ENOENT so we think it's gone */
     if ( rc == 1 ) {
 	return( 0 );
     }
