@@ -252,6 +252,7 @@ snet_writef( sn, format, va_alist )
 		    *dbufoff = hexalpha[ d & 0x0f ];
 		    d = d >> 4;
 		} while ( d );
+		len = p - dbufoff;
 		SNET_WBUFGROW( len );
 		strncpy( cur, dbufoff, len );
 		cur += len;
@@ -416,7 +417,7 @@ snet_getline( sn, tv )
 	    /* pullup */
 	    if ( sn->sn_rcur > sn->sn_rbuf ) {
 		if ( sn->sn_rcur < sn->sn_rend ) {
-		    memcpy( sn->sn_rbuf, sn->sn_rcur,
+		    memmove( sn->sn_rbuf, sn->sn_rcur,
 			    (unsigned)( sn->sn_rend - sn->sn_rcur ));
 		}
 		eol = sn->sn_rend = sn->sn_rbuf + ( sn->sn_rend - sn->sn_rcur );
@@ -444,6 +445,14 @@ snet_getline( sn, tv )
 		return( NULL );
 	    }
 	    if ( rc == 0 ) {	/* EOF */
+		/*
+		 * When we did the read, we made sure we had space to
+		 * read, so when we place the '\0' below, we have space
+		 * for that.
+		 */
+		if ( sn->sn_rcur < sn->sn_rend ) {
+		    break;
+		}
 		return( NULL );
 	    }
 	    sn->sn_rend += rc;
