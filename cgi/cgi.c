@@ -14,13 +14,16 @@
 #include <time.h>
 #include <krb5.h>
 
-#include <mysql.h>
-
 #include <openssl/ssl.h>
 #include <snet.h>
 #include "cgi.h"
 #include "cosigncgi.h"
 #include "network.h"
+
+#ifdef FRIEND_MYSQL_DB
+#include <mysql.h>
+static	MYSQL	friend_db;
+#endif
 
 #define MAXNAMELEN	1024
 #define ERROR_HTML	"../templates/error.html"
@@ -49,8 +52,6 @@ struct cgi_list cl[] = {
 };
 
 void            subfile( char * );
-
-static	MYSQL	friend_db;
 
     void
 subfile( char *filename )
@@ -178,8 +179,10 @@ main( int argc, char *argv[] )
     char			*data, *ip_addr;
     char			*cookie = NULL, *method, *script, *qs;
     char			*tmpl = LOGIN_HTML;
+#ifdef FRIEND_MYSQL_DB
     MYSQL_RES			*res;
     MYSQL_ROW			row;
+#endif
     char			sql[ 225 ]; /* holds sql query + email addr */
     char			*crypted;
 
@@ -311,6 +314,7 @@ main( int argc, char *argv[] )
     }
 
     if ( strchr( cl[ CL_LOGIN ].cl_data, '@' ) != NULL ) {
+#ifdef FRIEND_MYSQL_DB
 	if ( !mysql_real_connect( &friend_db, _FRIEND_MYSQL_DB, _FRIEND_MYSQL_LOGIN, _FRIEND_MYSQL_PASSWD, "friend", 3306, NULL, 0 )) {
 	    fprintf( stderr, mysql_error( &friend_db ));
 	    err = "Unable to connect to guest account database.";
@@ -319,17 +323,6 @@ main( int argc, char *argv[] )
 	    subfile ( tmpl );
 	    exit( 0 );
 	}
-
-/*
-	if( mysql_select_db( &friend_db, "friend" )) {
-	    fprintf( stderr, mysql_error( &friend_db ));
-	    err = "Unable to select guest account database.";
-	    title = "Authentication Required ( server problem )";
-
-	    subfile ( tmpl );
-	    exit( 0 );
-	}
-*/
 
 	/* XXX should check for sql injection in username query */
 	snprintf( sql, sizeof( sql ), "SELECT account_name, passwd FROM friends WHERE account_name = '%s'", cl[ CL_LOGIN ].cl_data );
@@ -396,6 +389,16 @@ main( int argc, char *argv[] )
 		exit( 0 );
 	    }
 	}
+#else
+	/* no @ unless we're friendly. */
+
+	err = (char *)error_message( kerror );
+	title = "Your login id may not contain an '@'";
+
+	tmpl = ERROR_HTML;
+	subfile ( tmpl );
+	exit( 0 );
+#endif
     } else {
 	/* not a friend, must be kerberos */
 	if (( kerror = krb5_init_context( &kcontext ))) {
