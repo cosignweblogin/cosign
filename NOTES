@@ -16,11 +16,11 @@ COSIGND:
 	idle time out race condition
 	-grace period which returns 5xx ( allows for repl skew )
 	-dynamic grace period times?
+    actual load prob is number of cookies
     more conf file
 
 post 1.0
 	not doing much with cosign-[name]
-	linux 524 bug
 
 Protocol:
 
