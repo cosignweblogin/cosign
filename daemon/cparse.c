@@ -13,6 +13,7 @@
 #include <string.h>
 #include <fcntl.h>
 #include <errno.h>
+#include <utime.h>
 
 #include "cparse.h"
 
@@ -25,6 +26,7 @@ do_logout( char *path )
 	syslog( LOG_ERR, "do_logout: %s: %m", path  );
 	return( -1 ) ;
     }
+    utime( path, NULL );
 
     return( 0 );
 }
