@@ -143,6 +143,8 @@ configuration files:
 FILE FORMAT:
 
 v1.0
+s<0/1>
 i141.211.164.2
 pcanna
 rUMICH.EDU
+t<secondssince1970>
