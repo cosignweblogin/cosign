@@ -161,7 +161,7 @@ cosign_cookie_valid( cosign_host_config *cfg, char *cookie, struct sinfo *si,
     fprintf( tmpfile, "r%s\n", si->si_realm );
 
 #ifdef KRB
-    if ( tkt ) {
+    if ( rs ) {
 	fprintf( tmpfile, "k%s\n", si->si_krb5tkt );
 #ifdef KRB4
 	fprintf( tmpfile, "K%s\n", si->si_krb4tkt );
