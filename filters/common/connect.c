@@ -33,9 +33,6 @@
 #include "argcargv.h"
 #include "mkcookie.h"
 
-#define IP_SZ		254
-#define USER_SZ 	30
-#define RREALM_SZ 	254
 #define TKT_PREFIX	"/ticket"
 #define MIN(a,b)        ((a)<(b)?(a):(b))
 
@@ -99,17 +96,17 @@ netcheck_cookie( char *scookie, struct sinfo *si, SNET *sn )
     }
 
     /* I guess we check some sizing here :) */
-    if ( strlen( av[ 1 ] ) >= IP_SZ ) {
+    if ( strlen( av[ 1 ] ) >= sizeof( si->si_ipaddr )) {
 	fprintf( stderr, "netcheck_cookie: IP address too long\n" );
 	return( -1 );
     }
     strcpy( si->si_ipaddr, av[ 1 ] );
-    if ( strlen( av[ 2 ] ) >= USER_SZ ) {
+    if ( strlen( av[ 2 ] ) >= sizeof( si->si_user )) {
 	fprintf( stderr, "netcheck_cookie: username too long\n" );
 	return( -1 );
     }
     strcpy( si->si_user, av[ 2 ] );
-    if ( strlen( av[ 3 ] ) >= RREALM_SZ ) {
+    if ( strlen( av[ 3 ] ) >= sizeof( si->si_realm )) {
 	fprintf( stderr, "netcheck_cookie: realm too long\n" );
 	return( -1 );
     }

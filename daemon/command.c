@@ -18,7 +18,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <time.h>
+#include <utime.h>
 
 #include <openssl/ssl.h>
 #include <openssl/err.h>
@@ -35,9 +35,6 @@
 
 #define TKT_PREFIX	"/ticket"
 
-#define IP_SZ		 254
-#define USER_SZ		 30
-#define REALM_SZ	 254
 #define IDLE_OUT	 7200
 
 static int	f_noop ___P(( SNET *, int, char *[] ));
@@ -266,15 +263,15 @@ f_login( sn, ac, av )
 
     fprintf( tmpfile, "v0\n" );
     fprintf( tmpfile, "s1\n" );	 /* 1 is logged in, 0 is logged out */
-    if ( strlen( av[ 2 ] ) >= IP_SZ ) {
+    if ( strlen( av[ 2 ] ) >= sizeof( ci.ci_ipaddr )) {
 	goto file_err;
     }
     fprintf( tmpfile, "i%s\n", av[ 2 ] );
-    if ( strlen( av[ 3 ] ) >= USER_SZ ) {
+    if ( strlen( av[ 3 ] ) >= sizeof( ci.ci_user )) {
 	goto file_err;
     }
     fprintf( tmpfile, "p%s\n", av[ 3 ] );
-    if ( strlen( av[ 4 ] ) >= REALM_SZ ) {
+    if ( strlen( av[ 4 ] ) >= sizeof( ci.ci_realm )) {
 	goto file_err;
     }
     fprintf( tmpfile, "r%s\n", av[ 4 ] );
