@@ -1,4 +1,4 @@
-ALL	= error.html login.html login_error.html redirect.html verify-logout.html post_error.html
+ALL	= error.html login.html login_error.html redirect.html verify-logout.html post_error.html services/index.html
 prefix=@prefix@
 exec_prefix=@exec_prefix@
 TMPLDIR  = @prefix@/templates
@@ -17,7 +17,7 @@ install : all
 	-mkdir -p ${TMPLDIR}
 	for i in ${ALL}; do \
 	    ${INSTALL} -m 0644 -c $$i ${TMPLDIR}/; \
-	    cp -r images/ cosign.css post_error.html ${HTMLDIR}/; \
+	    cp -r images/ services/ cosign.css post_error.html ${HTMLDIR}/; \
 	done
 
 clean:
