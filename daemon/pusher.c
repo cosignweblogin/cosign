@@ -98,7 +98,7 @@ pusherparent( int ppipe )
     SNET	*sn;
     char	*line;
     int		fds[ 2 ];
-    struct cl	**cur;
+    struct cl	*cur;
 
     if (( sn = snet_attach( ppipe, 1024 * 1024 ) ) == NULL ) {
         syslog( LOG_ERR, "pusherparent: snet_attach failed\n" );
@@ -110,41 +110,41 @@ pusherparent( int ppipe )
 	    syslog( LOG_ERR, "pusherparent: snet_getline failed\n" );
 	    exit( 1 );
 	}
-#ifdef notdef
-	for ( cur = &replhead; cur != NULL; cur = &(*cur)->cl_next ) {
-	    if ( (*cur)->cl_pid == 0 ) {
-		if ( pipe( fds ) < 0 ) {
-		    syslog( LOG_ERR, "pusherparent: %m" );
+
+	for ( cur = replhead; cur != NULL; cur = cur->cl_next ) {
+	    if ( cur->cl_pid != 0 ) {
+		continue;
+	    }
+	    if ( pipe( fds ) < 0 ) {
+		syslog( LOG_ERR, "pusherparent: %m" );
+		exit( 1 );
+	    }
+
+	    switch ( cur->cl_pid = fork() ) {
+	    case 0 :
+		if ( close( fds[ 0 ] ) != 0 ) {
+		    syslog( LOG_ERR, "pusher parent pipe: %m" );
 		    exit( 1 );
 		}
+		pusher( fds[ 1 ] );
+		exit( 0 );
 
-		switch ( (*cur)->cl_pid = fork() ) {
-		case 0 :
-		    if ( close( fds[ 0 ] ) != 0 ) {
-			syslog( LOG_ERR, "pusher parent pipe: %m" );
-			exit( 1 );
-		    }
-		    //pusher( fds[ 1 ] );
-		    exit( 0 );
+	    case -1 :
+		syslog( LOG_ERR, "pusherparent fork: %m" );
+		exit( 1 );
+	    }
 
-		case -1 :
-		    syslog( LOG_ERR, "pusherparent fork: %m" );
-		    exit( 1 );
-		}
+	    if ( close( fds[ 1 ] ) != 0 ) {
+		syslog( LOG_ERR, "pusher main pipe: %m" );
+		exit( 1 );
+	    }
 
-		if ( close( fds[ 1 ] ) != 0 ) {
-		    syslog( LOG_ERR, "pusher main pipe: %m" );
-		    exit( 1 );
-		}
-
-		if (( (*cur)->cl_psn = snet_attach( fds[ 0 ], 1024 * 1024 ))
-			== NULL ) {
-		    syslog( LOG_ERR, "pusherparent fork: snet_attach fail\n" );
-		    exit( 1 );
-		}
+	    if (( cur->cl_psn = snet_attach( fds[ 0 ], 1024 * 1024 ))
+		    == NULL ) {
+		syslog( LOG_ERR, "pusherparent fork: snet_attach fail\n" );
+		exit( 1 );
 	    }
 	}
-#endif
 
 	/* select */
 	/* zeroed out tv for not wait */
