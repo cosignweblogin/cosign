@@ -1,7 +1,7 @@
-/*
- * Copyright (c) 1999 Regents of The University of Michigan.
- * All Rights Reserved.  See LICENSE.
- */
+ /*
+  * Copyright (c) 1999 Regents of The University of Michigan.
+  * All Rights Reserved.  See LICENSE.
+  */
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -24,18 +24,20 @@
 #include <openssl/err.h>
 #include <openssl/ssl.h>
 #include <snet.h>
+
+#include "logname.h"
 #include "command.h"
 #include "config.h"
-
-#define COSIGN_DIR "/var/cosign/daemon"
-#define COSIGN_CONF "/usr/local/etc/cosign.conf"
 
 
 int		debug = 0;
 int		backlog = 5;
 
 extern char	*version;
+char		*cosign_dir = _COSIGN_DIR;
+char		*cosign_conf = _COSIGN_CONF;
 
+SSL_CTX		*ctx = NULL;
 void		hup ___P(( int ));
 void		chld ___P(( int ));
 int		main ___P(( int, char *av[] ));
@@ -75,7 +77,6 @@ chld( sig )
     return;
 }
 
-SSL_CTX		*ctx = NULL;
 
 
     int
@@ -93,6 +94,7 @@ main( ac, av )
     char		*cryptofile = "/usr/local/umweb/certs/weblogin.key";
     char		*certfile = "/usr/local/umweb/certs/weblogin.cert";
     char		*cadir = "/usr/local/umweb/certs/CA";
+    int                 facility = _COSIGN_LOG;
     unsigned short	port = 0;
     extern int		optind;
     extern char		*optarg;
@@ -103,37 +105,63 @@ main( ac, av )
 	prog++;
     }
 
-    while (( c = getopt( ac, av, "Vcdp:b:" )) != -1 ) {
+    while (( c = getopt( ac, av, "b:c:dD:L:p:Vx:y:z:" )) != -1 ) {
 	switch ( c ) {
-	case 'V' :		/* version */
-	    printf( "%s\n", version );
-	    exit( 0 );
+	case 'b' :		/* listen backlog */
+	    backlog = atoi( optarg );
+	    break;
 
-	case 'c' :		/* check config files */
-	    dontrun++;
+	case 'c' :		/* config file */
+	    cosign_conf = optarg;
 	    break;
 
 	case 'd' :		/* debug */
 	    debug++;
 	    break;
 
+	case 'D' :		/* directory to store cookies*/
+	    cosign_dir = optarg;
+	    break;
+
+	case 'L' :              /* syslog facility */
+	    if (( facility = syslogname( optarg )) == -1 ) {
+		fprintf( stderr, "%s: %s: unknown syslog facility\n",
+			prog, optarg );
+		exit( 1 );
+	    }
+	    break;
+
 	case 'p' :		/* TCP port */
 	    port = htons( atoi( optarg ));
 	    break;
 
-	case 'b' :		/* listen backlog */
-	    backlog = atoi( optarg );
-	    break;
+	case 'V' :		/* version */
+	    printf( "%s\n", version );
+	    exit( 0 );
 
+	case 'x' :		/* ca dir */
+	    cadir = optarg;
+	    break;
+	
+	case 'y' :		/* cert */
+	    certfile = optarg;
+	    break;
+	
+	case 'z' :		/* private key file */
+	    cryptofile = optarg;
+	    break;
+	
 	default :
 	    err++;
 	}
     }
 
     if ( err || optind != ac ) {
-	fprintf( stderr,
-		"Usage:\t%s [ -d ] [ -p port ] [ -b backlog ]\n",
-		prog );
+	fprintf( stderr, "Usage: cosignd [ -dV ] [ -b backlog ] ");
+	fprintf( stderr, "[ -c conf file ] [ -D database dir ] " );
+	fprintf( stderr, "[ -L syslog facility] " );
+	fprintf( stderr, "[ -p port ] [ -x ca dir ] " );
+	fprintf( stderr, "[ -y cert file] [ -z private key file ]\n" );
 	exit( 1 );
     }
 
@@ -141,7 +169,7 @@ main( ac, av )
      * Read config file before chdir(), in case config file is relative path.
      */
 
-    if ( chosts_read( COSIGN_CONF ) < 0 ) {
+    if ( chosts_read( cosign_conf ) < 0 ) {
 	exit( 1 );
     }
 
@@ -224,8 +252,8 @@ main( ac, av )
 	exit( 1 );
     }
 
-    if ( chdir( COSIGN_DIR ) < 0 ) {
-	perror( COSIGN_DIR );
+    if ( chdir( cosign_dir ) < 0 ) {
+	perror( cosign_dir );
 	exit( 1 );
     }
 

@@ -9,8 +9,7 @@
 # This configure script is free software; the Free Software Foundation
 # gives unlimited permission to copy, distribute and modify it.
 #
-# Copyright (c) 2001-2002 Regents of The University of Michigan.  All Rig
-# hts Reserved.
+# Copyright (c) 2001-2002 Regents of The University of Michigan.  All Rights Reserved.
 
 if expr a : '\(a\)' >/dev/null 2>&1; then
   as_expr=expr
@@ -796,6 +795,8 @@ Optional Packages:
   --with-PACKAGE[=ARG]    use PACKAGE [ARG=yes]
   --without-PACKAGE       do not use PACKAGE (same as --with-PACKAGE=no)
   --with-krb4=arg         enable apache filter to get Kerberos IV tickets
+  --with-cosign-db=DIR    default cosign database storage
+  --with-cosign-conf=FILE default cosign conf file location
   --with-ssl=DIR          path to ssl
   --with-apache-apxs=FILE path to Apache apxs program
 
@@ -881,8 +882,7 @@ Free Software Foundation, Inc.
 This configure script is free software; the Free Software Foundation
 gives unlimited permission to copy, distribute and modify it.
 
-Copyright (c) 2001-2002 Regents of The University of Michigan.  All Rig
-hts Reserved.
+Copyright (c) 2001-2002 Regents of The University of Michigan.  All Rights Reserved.
 _ACEOF
   exit 0
 fi
@@ -2569,6 +2569,27 @@ echo "${ECHO_T}kerberos IV not enabled" >&6
 fi;
 
 
+# Check whether --with-cosigndir or --without-cosigndir was given.
+if test "${with_cosigndir+set}" = set; then
+  withval="$with_cosigndir"
+  cosigndir="$withval"
+else
+  cosigndir="/var/cosign/daemon"
+fi;
+
+
+
+
+# Check whether --with-cosignconf or --without-cosignconf was given.
+if test "${with_cosignconf+set}" = set; then
+  withval="$with_cosignconf"
+  cosignconf="$withval"
+else
+  cosignconf="/usr/local/etc/cosign.conf"
+fi;
+
+
+
     echo "$as_me:$LINENO: checking for ssl" >&5
 echo $ECHO_N "checking for ssl... $ECHO_C" >&6
     ssldirs="/usr/local/openssl /usr/lib/openssl /usr/openssl \
@@ -3318,6 +3339,8 @@ s,@K4INC@,$K4INC,;t t
 s,@K4LIBS@,$K4LIBS,;t t
 s,@K4LDFLAGS@,$K4LDFLAGS,;t t
 s,@HAVE_KRB4@,$HAVE_KRB4,;t t
+s,@cosigndir@,$cosigndir,;t t
+s,@cosignconf@,$cosignconf,;t t
 s,@TLSDEFS@,$TLSDEFS,;t t
 s,@HAVE_SSL@,$HAVE_SSL,;t t
 s,@APXS@,$APXS,;t t

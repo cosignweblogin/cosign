@@ -4,7 +4,9 @@ prefix=@prefix@
 exec_prefix=@exec_prefix@
 SBINDIR=@sbindir@
 
-COSIGNLOG=LOG_LOCAL7
+COSIGNCONF=@cosignconf@
+COSIGNDIR=@cosigndir@
+COSIGNSYSLOG=LOG_LOCAL7
 
 INCPATH=        @CPPFLAGS@ -I../libsnet
 OPTOPTS=        @OPTOPTS@
@@ -18,12 +20,19 @@ CFLAGS=         ${DEFS} ${OPTOPTS} @CFLAGS@ ${INCPATH}
 
 ################ Nothing below should need editing ###################
 
-SRC= daemon.c command.c argcargv.c cparse.c config.c fbase64.c mkcookie.c wildcard.c
-COSIGNOBJ= daemon.o command.o argcargv.o cparse.o config.o fbase64.o mkcookie.o wildcard.o ../version.o
+SRC= daemon.c command.c argcargv.c cparse.c config.c fbase64.c mkcookie.c wildcard.c logname.c
+COSIGNOBJ= daemon.o command.o argcargv.o cparse.o config.o fbase64.o mkcookie.o wildcard.o logname.o ../version.o
 
 TARGETS=	cosignd
 
 all : ${TARGETS}
+
+daemon.o : daemon.c
+	${CC} ${CFLAGS} \
+	-D_COSIGN_CONF=\"${COSIGNCONF}\" \
+	-D_COSIGN_DIR=\"${COSIGNDIR}\" \
+	-D_COSIGN_LOG=${COSIGNSYSLOG} \
+	-c daemon.c
 
 cosignd : ../libsnet/libsnet.la ${COSIGNOBJ} Makefile
 	${CC} ${CFLAGS} ${LDFLAGS} -o cosignd ${COSIGNOBJ} ${LIBPATH} ${LIBS}

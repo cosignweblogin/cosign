@@ -1,8 +1,7 @@
 # Process this file with autoconf to produce a configure script.
 AC_INIT(cosign,VERSION,cosign@umich.edu) 
 AC_PREREQ(2.53)
-AC_COPYRIGHT([Copyright (c) 2001-2002 Regents of The University of Michigan.  All Rig
-hts Reserved.])
+AC_COPYRIGHT([Copyright (c) 2001-2002 Regents of The University of Michigan.  All Rights Reserved.])
 AC_CONFIG_SRCDIR([version.c])
 #AC_CONFIG_HEADER([config.h])
 
@@ -20,6 +19,13 @@ AC_CHECK_LIB([socket], [socket])
 AC_ARG_ENABLE(krb, AC_HELP_STRING([--enable-krb=path_to_krb], [enable kerberos for the cgi and apache filter]), CHECK_LIBKRB, AC_MSG_RESULT( kerberos not enabled))
 AC_ARG_WITH(krb4, AC_HELP_STRING([--with-krb4=arg], [enable apache filter
 to get Kerberos IV tickets]), CHECK_KRB4, AC_MSG_RESULT( kerberos IV not enabled))
+
+AC_ARG_WITH(cosigndir, AC_HELP_STRING([--with-cosign-db=DIR], [default cosign database storage]), cosigndir="$withval", cosigndir="/var/cosign/daemon" )
+AC_SUBST(cosigndir)
+
+
+AC_ARG_WITH(cosignconf, AC_HELP_STRING([--with-cosign-conf=FILE], [default cosign conf file location]), cosignconf="$withval", cosignconf="/usr/local/etc/cosign.conf" )
+AC_SUBST(cosignconf)
 
 CHECK_SSL
 #CHECK_LIBKRB
