@@ -49,7 +49,7 @@ pusherdaemon( struct cl *cur )
 	return;
     }
 
-    snet_writef( cur->cl_sn, "DAEMON %s", hostname );
+    snet_writef( cur->cl_sn, "DAEMON %s\r\n", hostname );
 
     tv = timeout;
     if (( line = snet_getline_multi( cur->cl_sn, logger, &tv )) == NULL ) {
@@ -244,7 +244,6 @@ pusherparent( int ppipe )
 	    syslog( LOG_ERR, "pusherparent: snet_getline: %m" );
 	    exit( 1 );
 	}
-syslog( LOG_INFO, "pusher line in parent: %s", line );
 
 	sigprocmask( SIG_BLOCK, &signalset, NULL );
 	for ( cur = replhead; cur != NULL; cur = cur->cl_next ) {
@@ -289,7 +288,6 @@ syslog ( LOG_DEBUG, "pusher pid XXX for IP: %s", inet_ntoa(cur->cl_sin.sin_addr)
 			}
 		    }
 		}
-syslog( LOG_DEBUG, "XXX calling pusher()" );
 		pusher( fds[ 0 ], cur );
 		exit( 0 );
 
@@ -297,8 +295,6 @@ syslog( LOG_DEBUG, "XXX calling pusher()" );
 		syslog( LOG_ERR, "pusherparent fork: %m" );
 		exit( 1 );
 	    }
-
-syslog( LOG_DEBUG, "started pusher %d", cur->cl_pid );
 
 	    if ( close( fds[ 0 ] ) != 0 ) {
 		syslog( LOG_ERR, "pusher main pipe: %m" );
@@ -371,7 +367,6 @@ pusher( int cpipe, struct cl *cur )
     }
     
     pusherdaemon( cur );
-
 
 	for ( ;; ) {
     if (( line = snet_getline( csn, NULL )) == NULL ) {

@@ -443,7 +443,7 @@ f_daemon( SNET *sn, int ac, char *av[], SNET *pushersn )
 	return( 1 );
     }
 
-    if ( strcmp( hostname, av[ 1 ] ) == 0 ) {
+    if ( strcasecmp( hostname, av[ 1 ] ) == 0 ) {
 	snet_writef( sn, "%d Schizophrenia!\r\n", 471 );
 	return( 1 );
     }
