@@ -18,6 +18,9 @@ COSIGND:
 ISSUES:
 *1) use of cookie to store referer - should we do qs instead?
 
+post 1.0
+	not doing much with cosign-[name]
+
 Protocol:
 
 cosign.cgi:
@@ -71,4 +74,4 @@ cosign-service=
 l<path_to_login_cookie>
 
 conf file:
-keyword[ cgi, daemon, service ], hostname[ subject dn ], get_tickets[ 0/1 ]
+keyword[ cgi, daemon, service ], hostname[ subject cn ], get_tickets[ 0/1 ]
