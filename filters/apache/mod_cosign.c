@@ -100,10 +100,10 @@ cosign_create_server_config( pool *p, server_rec *s )
     static void
 cosign_init( server_rec *s, pool *p )
 {
-    extern char	*version;
+    extern char	*cosign_version;
 
     ap_log_error( APLOG_MARK, APLOG_INFO|APLOG_NOERRNO, s,
-	    "mod_cosign: version %s initialized.", version );
+	    "mod_cosign: version %s initialized.", cosign_version );
 
     return;
 }
