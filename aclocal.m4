@@ -78,14 +78,21 @@ AC_DEFUN([CHECK_APACHE2_APXS],
     AC_MSG_CHECKING(for apache 2)
     apxs2dirs="/usr/local/apache2/bin /usr/apache2/bin /usr/pkg/bin \
     /usr/local/bin /usr/local/httpd/bin"
-    AC_CACHE_VAL(ac_cv_path_apxs2,[
-        for i in $apxs2dirs; do
-	    if test -f "$i/apxs"; then
-		ac_cv_path_apxs2="$i/apxs"
-                break;
-            fi
-        done
-    ])
+ 
+    if test -f "$enableval"; then
+	echo "using apxs2 as '$enableval"
+	ac_cv_path_apxs2="$enableval"
+    else
+     	AC_CACHE_VAL(ac_cv_path_apxs2,[
+	    for i in $apxs2dirs; do
+ 	    	if test -f "$i/apxs"; then
+ 			ac_cv_path_apxs2="$i/apxs"
+                 	break;
+             	fi
+         	done
+     	])
+    fi
+
     APXS2="$ac_cv_path_apxs2"
 
     if test ! -e "$ac_cv_path_apxs2" ; then

@@ -2954,18 +2954,25 @@ if test "${enable_apache2+set}" = set; then
 echo $ECHO_N "checking for apache 2... $ECHO_C" >&6
     apxs2dirs="/usr/local/apache2/bin /usr/apache2/bin /usr/pkg/bin \
     /usr/local/bin /usr/local/httpd/bin"
-    if test "${ac_cv_path_apxs2+set}" = set; then
+
+    if test -f "$enableval"; then
+	echo "using apxs2 as '$enableval"
+	ac_cv_path_apxs2="$enableval"
+    else
+     	if test "${ac_cv_path_apxs2+set}" = set; then
   echo $ECHO_N "(cached) $ECHO_C" >&6
 else
 
-        for i in $apxs2dirs; do
-	    if test -f "$i/apxs"; then
-		ac_cv_path_apxs2="$i/apxs"
-                break;
-            fi
-        done
+	    for i in $apxs2dirs; do
+ 	    	if test -f "$i/apxs"; then
+ 			ac_cv_path_apxs2="$i/apxs"
+                 	break;
+             	fi
+         	done
 
 fi
+
+    fi
 
     APXS2="$ac_cv_path_apxs2"
 
