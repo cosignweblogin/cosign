@@ -1,7 +1,8 @@
 SRC = snet.c
 OBJ = snet.o
 
-INCPATH=
+INCPATH=	-I/usr/local/openssl/include
+DEFS=		-DTLS
 OPTOPTS=	-Wall # -Wstrict-prototypes
 CFLAGS=	${DEFS} ${OPTOPTS} ${INCPATH}
 TAGSFILE=	tags
