@@ -1,0 +1,1 @@
+int mkcookie( int, char * );
