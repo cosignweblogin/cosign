@@ -13,11 +13,9 @@ CGI:
 
 COSIGND:
     replication (suspenders)
-	-grace period which returns 5xx ( allows for repl skew )
 	-dynamic grace period times?
     actual load prob is number of cookies
     more conf file
-    2) our hostname
     4) cert matching
 
 post 1.0

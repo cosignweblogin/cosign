@@ -782,7 +782,7 @@ f_check( SNET *sn, int ac, char *av[], SNET *pushersn )
     if ( strncmp( av[ 1 ], "cosign-", 7 ) == 0 ) {
 	status = 231;
 	if ( service_to_login( av[ 1 ], login ) != 0 ) {
-	    syslog( LOG_ERR, "f_check: ask someone else about it!"  );
+	    syslog( LOG_DEBUG, "f_check: ask someone else about it!"  );
 	    snet_writef( sn, "%d CHECK: cookie not in db!\r\n", 533 );
 	    return( 1 );
 	}
@@ -876,7 +876,7 @@ f_retr( SNET *sn, int ac, char *av[], SNET *pushersn )
     }
 
     if ( service_to_login( av[ 1 ], login ) != 0 ) {
-	syslog( LOG_ERR, "f_retr: ask someone else about it!"  );
+	syslog( LOG_DEBUG, "f_retr: ask someone else about it!"  );
 	snet_writef( sn, "%d RETR: cookie not in db!\r\n", 543 );
 	return( 1 );
     }
