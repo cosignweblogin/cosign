@@ -7,6 +7,7 @@
 #include <http_core.h>
 #include <http_log.h>
 #include <http_protocol.h>
+#include <http_request.h>
 #include <ap_config.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
@@ -200,16 +201,35 @@ set_cookie_and_redirect( request_rec *r, cosign_host_config *cfg )
     static int
 cosign_authn( request_rec *r )
 {
-    const char *authn;
+    const char	*authn;
+    cosign_host_config	*cfg;
 
-    if ((( authn = ap_auth_type( r )) == NULL ) || 
-	    ( r->connection->user == NULL )) {
+    cfg = (cosign_host_config *)ap_get_module_config(
+	    r->per_dir_config, &cosign_module);
+    if ( !cfg->configured ) {
+	cfg = (cosign_host_config *)ap_get_module_config(
+		r->server->module_config, &cosign_module);
+    }
+
+    if (( authn = ap_auth_type( r )) == NULL ) {
 	return( DECLINED );
     }
 
     if ( strcasecmp( authn, "Cosign" ) != 0 ) {
 	return( DECLINED );
     } 
+
+    if ( ap_table_get( r->notes, "cosign-redirect" ) != NULL ) {
+	if ( set_cookie_and_redirect( r, cfg ) != 0 ) {
+	    return( HTTP_SERVICE_UNAVAILABLE );
+	}
+	return( HTTP_MOVED_TEMPORARILY );
+    }
+
+    if ( r->connection->user == NULL ) {
+	return( DECLINED );
+    }
+
     /* we OK here to claim this as our AuthZ call.
      * otherwise, we'll get a 503 as basic auth will
      * try and nab it, but things won't be set up
@@ -217,7 +237,6 @@ cosign_authn( request_rec *r )
      */
     return( OK );
 }
-
 
     static int
 cosign_auth( request_rec *r )
@@ -364,7 +383,15 @@ set_cookie:
     if ( set_cookie_and_redirect( r, cfg ) != 0 ) {
 	return( HTTP_SERVICE_UNAVAILABLE );
     }
-    return( HTTP_MOVED_TEMPORARILY );
+    if ( ap_some_auth_required( r )) {
+	ap_table_setn( r->notes, "cosign-redirect", "true" );
+	return( DECLINED );
+    } else {
+	if ( set_cookie_and_redirect( r, cfg ) != 0 ) {
+	    return( HTTP_SERVICE_UNAVAILABLE );
+	}
+	return( HTTP_MOVED_TEMPORARILY );
+    }
 }
 
     static const char *
@@ -568,6 +595,7 @@ set_cosign_public( cmd_parms *params, void *mconfig, int flag )
     cfg->configured = 1;
     return( NULL );
 }
+
     static const char *
 set_cosign_port( cmd_parms *params, void *mconfig, char *arg )
 {
@@ -627,7 +655,6 @@ set_cosign_filterdb( cmd_parms *params, void *mconfig, char *arg )
     return( NULL );
 }
 
-
     static const char *
 set_cosign_proxydb( cmd_parms *params, void *mconfig, char *arg )
 {
@@ -659,6 +686,7 @@ set_cosign_tkt_prefix( cmd_parms *params, void *mconfig, char *arg )
     cfg->tkt_prefix = ap_pstrdup( params->pool, arg );
     return( NULL );
 }
+
 #ifdef KRB
 #ifdef KRB4
     static const char *
@@ -803,6 +831,7 @@ set_cosign_certs( cmd_parms *params, void *mconfig,
 
     return( NULL );
 }
+
     static const char *
 set_cosign_host( cmd_parms *params, void *mconfig, char *arg )
 {

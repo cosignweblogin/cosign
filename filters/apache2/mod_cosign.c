@@ -206,15 +206,34 @@ set_cookie_and_redirect( request_rec *r, cosign_host_config *cfg )
 cosign_authn( request_rec *r )
 {
     const char *authn;
+    cosign_host_config  *cfg;
 
-    if ((( authn = ap_auth_type( r )) == NULL ) || 
-	    ( r->user == NULL )) {
-	return( DECLINED );
+    cfg = (cosign_host_config *)ap_get_module_config(
+            r->per_dir_config, &cosign_module);
+    if ( !cfg->configured ) {
+        cfg = (cosign_host_config *)ap_get_module_config(
+                r->server->module_config, &cosign_module);
+    }
+
+    if (( authn = ap_auth_type( r )) == NULL ) {
+        return( DECLINED );
     }
 
     if ( strcasecmp( authn, "Cosign" ) != 0 ) {
-	return( DECLINED );
-    } 
+        return( DECLINED );
+    }
+
+    if ( apr_table_get( r->notes, "cosign-redirect" ) != NULL ) {
+        if ( set_cookie_and_redirect( r, cfg ) != 0 ) {
+            return( HTTP_SERVICE_UNAVAILABLE );
+        }
+        return( HTTP_MOVED_TEMPORARILY );
+    }
+
+    if ( r->user == NULL ) {
+        return( DECLINED );
+    }
+
     /* we OK here to claim this as our AuthZ call.
      * otherwise, we'll get a 503 as basic auth will
      * try and nab it, but things won't be set up
@@ -362,14 +381,23 @@ cosign_auth( request_rec *r )
     }
 
 set_cookie:
-     /* let them thru regardless if this is "public" */
+    /* let them thru regardless if this is "public" */
     if ( cfg->public ) {
-	return( DECLINED );
+        return( DECLINED );
     }
     if ( set_cookie_and_redirect( r, cfg ) != 0 ) {
-	return( HTTP_SERVICE_UNAVAILABLE );
+        return( HTTP_SERVICE_UNAVAILABLE );
     }
-    return( HTTP_MOVED_TEMPORARILY );
+    if ( ap_some_auth_required( r )) {
+        apr_table_setn( r->notes, "cosign-redirect", "true" );
+        return( DECLINED );
+    } else {
+        if ( set_cookie_and_redirect( r, cfg ) != 0 ) {
+            return( HTTP_SERVICE_UNAVAILABLE );
+        }
+        return( HTTP_MOVED_TEMPORARILY );
+    }
+
 }
 
     static const char *
@@ -974,8 +1002,10 @@ static command_rec cosign_cmds[ ] =
     static void 
 cosign_register_hooks( apr_pool_t *p )
 {
+    static const char * const other_mods[] = { "mod_access.c", NULL };
+
     ap_hook_post_config( cosign_init, NULL, NULL, APR_HOOK_MIDDLE );
-    ap_hook_access_checker( cosign_auth, NULL, NULL, APR_HOOK_MIDDLE );
+    ap_hook_access_checker( cosign_auth, NULL, other_mods, APR_HOOK_MIDDLE );
     ap_hook_check_user_id( cosign_authn, NULL, NULL, APR_HOOK_MIDDLE );
 }
 
