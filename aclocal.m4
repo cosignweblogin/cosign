@@ -38,10 +38,6 @@ AC_DEFUN([CHECK_LIBKRB],
     krbdirs="/usr/local/kerberos /usr/lib/kerberos /usr/kerberos \
             /usr/local/krb5 /usr/lib/krb /usr/krb \
             /usr/pkg /usr/local /usr"
-    AC_ARG_WITH(krb,
-        AC_HELP_STRING([--with-krb=DIR],
-            [directory under which Kerberos V in installed]),
-        krbdirs="$withval")
     AC_CACHE_VAL(ac_cv_path_krb,[
         for krbdir in $krbdirs; do
             if test -f "$krbdir/include/krb5.h"; then
@@ -53,6 +49,8 @@ AC_DEFUN([CHECK_LIBKRB],
     if test ! -e "$ac_cv_path_krb" ; then
         AC_MSG_ERROR(cannot find krb libraries)
     fi
+    KRBDEFS=-DKRB;
+    AC_SUBST(KRBDEFS)
     KINC="-I$ac_cv_path_krb/include";
     AC_SUBST(KINC)
     KLIBS="-lkrb5 -lk5crypto -lcom_err";
@@ -64,6 +62,24 @@ AC_DEFUN([CHECK_LIBKRB],
     AC_MSG_RESULT($ac_cv_path_krb)
 ])
 
+AC_DEFUN([CHECK_KRB4],
+[
+    AC_MSG_CHECKING(for krb4)
+    if test ! -e "$ac_cv_path_krb" ; then
+        AC_MSG_ERROR(krb4 require krb5 libraries)
+    fi
+    K4DEFS=-DKRB4;
+    AC_SUBST(K4DEFS)
+    K4INC="-I$ac_cv_path_krb/include";
+    AC_SUBST(K4INC)
+    K4LIBS="-lkrb4 -lkrb524 -lkrb5 -lk5crypto -lcom_err";
+    AC_SUBST(K4LIBS)
+    K4LDFLAGS="-L$ac_cv_path_krb/lib";
+    AC_SUBST(K4LDFLAGS)
+    HAVE_KRB4=yes
+    AC_SUBST(HAVE_KRB4)
+    AC_MSG_RESULT($ac_cv_path_krb)
+])
 AC_DEFUN([CHECK_APACHE_APXS],
 [
     AC_MSG_CHECKING([for Apache DSO support / apxs])

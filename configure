@@ -786,11 +786,17 @@ if test -n "$ac_init_help"; then
    esac
   cat <<\_ACEOF
 
+Optional Features:
+  --disable-FEATURE       do not include FEATURE (same as --enable-FEATURE=no)
+  --enable-FEATURE[=ARG]  include FEATURE [ARG=yes]
+  --enable-krb=path_to_krb
+                          enable kerberos for the cgi and apache filter
+
 Optional Packages:
   --with-PACKAGE[=ARG]    use PACKAGE [ARG=yes]
   --without-PACKAGE       do not use PACKAGE (same as --with-PACKAGE=no)
+  --with-krb4=arg         enable apache filter to get Kerberos IV tickets
   --with-ssl=DIR          path to ssl
-  --with-krb=DIR          directory under which Kerberos V in installed
   --with-apache-apxs=FILE path to Apache apxs program
 
 Some influential environment variables:
@@ -2488,6 +2494,80 @@ _ACEOF
 fi
 
 
+# Check whether --enable-krb or --disable-krb was given.
+if test "${enable_krb+set}" = set; then
+  enableval="$enable_krb"
+
+    echo "$as_me:$LINENO: checking for krb" >&5
+echo $ECHO_N "checking for krb... $ECHO_C" >&6
+    krbdirs="/usr/local/kerberos /usr/lib/kerberos /usr/kerberos \
+            /usr/local/krb5 /usr/lib/krb /usr/krb \
+            /usr/pkg /usr/local /usr"
+    if test "${ac_cv_path_krb+set}" = set; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+
+        for krbdir in $krbdirs; do
+            if test -f "$krbdir/include/krb5.h"; then
+                ac_cv_path_krb=$krbdir
+                break;
+            fi
+        done
+
+fi
+
+    if test ! -e "$ac_cv_path_krb" ; then
+        { { echo "$as_me:$LINENO: error: cannot find krb libraries" >&5
+echo "$as_me: error: cannot find krb libraries" >&2;}
+   { (exit 1); exit 1; }; }
+    fi
+    KRBDEFS=-DKRB;
+
+    KINC="-I$ac_cv_path_krb/include";
+
+    KLIBS="-lkrb5 -lk5crypto -lcom_err";
+
+    KLDFLAGS="-L$ac_cv_path_krb/lib";
+
+    HAVE_KRB=yes
+
+    echo "$as_me:$LINENO: result: $ac_cv_path_krb" >&5
+echo "${ECHO_T}$ac_cv_path_krb" >&6
+
+else
+  echo "$as_me:$LINENO: result: kerberos not enabled" >&5
+echo "${ECHO_T}kerberos not enabled" >&6
+fi;
+
+# Check whether --with-krb4 or --without-krb4 was given.
+if test "${with_krb4+set}" = set; then
+  withval="$with_krb4"
+
+    echo "$as_me:$LINENO: checking for krb4" >&5
+echo $ECHO_N "checking for krb4... $ECHO_C" >&6
+    if test ! -e "$ac_cv_path_krb" ; then
+        { { echo "$as_me:$LINENO: error: krb4 require krb5 libraries" >&5
+echo "$as_me: error: krb4 require krb5 libraries" >&2;}
+   { (exit 1); exit 1; }; }
+    fi
+    K4DEFS=-DKRB4;
+
+    K4INC="-I$ac_cv_path_krb/include";
+
+    K4LIBS="-lkrb4 -lkrb524 -lkrb5 -lk5crypto -lcom_err";
+
+    K4LDFLAGS="-L$ac_cv_path_krb/lib";
+
+    HAVE_KRB4=yes
+
+    echo "$as_me:$LINENO: result: $ac_cv_path_krb" >&5
+echo "${ECHO_T}$ac_cv_path_krb" >&6
+
+else
+  echo "$as_me:$LINENO: result: kerberos IV not enabled" >&5
+echo "${ECHO_T}kerberos IV not enabled" >&6
+fi;
+
 
     echo "$as_me:$LINENO: checking for ssl" >&5
 echo $ECHO_N "checking for ssl... $ECHO_C" >&6
@@ -2532,47 +2612,7 @@ echo "$as_me: error: cannot find ssl libraries" >&2;}
     echo "$as_me:$LINENO: result: $ac_cv_path_ssl" >&5
 echo "${ECHO_T}$ac_cv_path_ssl" >&6
 
-
-    echo "$as_me:$LINENO: checking for krb" >&5
-echo $ECHO_N "checking for krb... $ECHO_C" >&6
-    krbdirs="/usr/local/kerberos /usr/lib/kerberos /usr/kerberos \
-            /usr/local/krb5 /usr/lib/krb /usr/krb \
-            /usr/pkg /usr/local /usr"
-
-# Check whether --with-krb or --without-krb was given.
-if test "${with_krb+set}" = set; then
-  withval="$with_krb"
-  krbdirs="$withval"
-fi;
-    if test "${ac_cv_path_krb+set}" = set; then
-  echo $ECHO_N "(cached) $ECHO_C" >&6
-else
-
-        for krbdir in $krbdirs; do
-            if test -f "$krbdir/include/krb5.h"; then
-                ac_cv_path_krb=$krbdir
-                break;
-            fi
-        done
-
-fi
-
-    if test ! -e "$ac_cv_path_krb" ; then
-        { { echo "$as_me:$LINENO: error: cannot find krb libraries" >&5
-echo "$as_me: error: cannot find krb libraries" >&2;}
-   { (exit 1); exit 1; }; }
-    fi
-    KINC="-I$ac_cv_path_krb/include";
-
-    KLIBS="-lkrb5 -lk5crypto -lcom_err";
-
-    KLDFLAGS="-L$ac_cv_path_krb/lib";
-
-    HAVE_KRB=yes
-
-    echo "$as_me:$LINENO: result: $ac_cv_path_krb" >&5
-echo "${ECHO_T}$ac_cv_path_krb" >&6
-
+#CHECK_LIBKRB
 
 # Checks for filters:
 
@@ -3268,12 +3308,18 @@ s,@LEX@,$LEX,;t t
 s,@LEXLIB@,$LEXLIB,;t t
 s,@LEX_OUTPUT_ROOT@,$LEX_OUTPUT_ROOT,;t t
 s,@YACC@,$YACC,;t t
-s,@TLSDEFS@,$TLSDEFS,;t t
-s,@HAVE_SSL@,$HAVE_SSL,;t t
+s,@KRBDEFS@,$KRBDEFS,;t t
 s,@KINC@,$KINC,;t t
 s,@KLIBS@,$KLIBS,;t t
 s,@KLDFLAGS@,$KLDFLAGS,;t t
 s,@HAVE_KRB@,$HAVE_KRB,;t t
+s,@K4DEFS@,$K4DEFS,;t t
+s,@K4INC@,$K4INC,;t t
+s,@K4LIBS@,$K4LIBS,;t t
+s,@K4LDFLAGS@,$K4LDFLAGS,;t t
+s,@HAVE_KRB4@,$HAVE_KRB4,;t t
+s,@TLSDEFS@,$TLSDEFS,;t t
+s,@HAVE_SSL@,$HAVE_SSL,;t t
 s,@APXS@,$APXS,;t t
 s,@APXS_INCLUDE@,$APXS_INCLUDE,;t t
 s,@APXS_CFLAGS_SHLIB@,$APXS_CFLAGS_SHLIB,;t t

@@ -17,8 +17,12 @@ AC_PROG_YACC
 AC_CHECK_LIB([nsl], [inet_ntoa])
 AC_CHECK_LIB([socket], [socket])
 
+AC_ARG_ENABLE(krb, AC_HELP_STRING([--enable-krb=path_to_krb], [enable kerberos for the cgi and apache filter]), CHECK_LIBKRB, AC_MSG_RESULT( kerberos not enabled))
+AC_ARG_WITH(krb4, AC_HELP_STRING([--with-krb4=arg], [enable apache filter
+to get Kerberos IV tickets]), CHECK_KRB4, AC_MSG_RESULT( kerberos IV not enabled))
+
 CHECK_SSL
-CHECK_LIBKRB
+#CHECK_LIBKRB
 
 # Checks for filters:
 CHECK_APACHE_APXS
