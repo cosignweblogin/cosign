@@ -941,8 +941,6 @@ f_retr( SNET *sn, int ac, char *av[], SNET *pushersn )
         return( -1 );
     }
 
-    syslog( LOG_DEBUG, "f_retr: krbtkt %s retrieved", ci.ci_krbtkt );
-
     return( 0 );
 }
 
