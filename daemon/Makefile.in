@@ -12,7 +12,7 @@ COSIGNCERT=@cosigncert@
 COSIGNKEY=@cosignkey@
 COSIGNSYSLOG=LOG_LOCAL7
 
-INCPATH=        @CPPFLAGS@ -I../libsnet
+INCPATH=        @CPPFLAGS@ -I../libsnet -I../common
 OPTOPTS=        @OPTOPTS@
 CC=             @CC@
 DEFS=           @TLSDEFS@
@@ -24,8 +24,10 @@ CFLAGS=         ${DEFS} ${OPTOPTS} @CFLAGS@ ${INCPATH}
 
 ################ Nothing below should need editing ###################
 
-SRC= daemon.c command.c argcargv.c cparse.c config.c fbase64.c mkcookie.c wildcard.c logname.c
-COSIGNOBJ= daemon.o command.o argcargv.o cparse.o config.o fbase64.o mkcookie.o wildcard.o logname.o ../version.o
+SRC= daemon.c command.c cparse.c config.c wildcard.c logname.c
+COSIGNOBJ= daemon.o command.o cparse.o config.o wildcard.o logname.o \
+	../common/argcargv.o ../common/fbase64.o \
+	../common/mkcookie.o ../version.o
 
 TARGETS=	cosignd
 MANTARGETS=	cosignd.8

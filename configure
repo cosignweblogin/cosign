@@ -2790,7 +2790,7 @@ fi
 subdirs="$subdirs libsnet"
 
 
-ac_config_files="$ac_config_files Makefile cgi/Makefile html/Makefile daemon/Makefile $FILTER_CONFIG_FILES libcgi/Makefile"
+ac_config_files="$ac_config_files Makefile cgi/Makefile common/Makefile html/Makefile daemon/Makefile $FILTER_CONFIG_FILES libcgi/Makefile"
 
 
 cat >confcache <<\_ACEOF
@@ -3292,6 +3292,7 @@ do
   # Handling of arguments.
   "Makefile" ) CONFIG_FILES="$CONFIG_FILES Makefile" ;;
   "cgi/Makefile" ) CONFIG_FILES="$CONFIG_FILES cgi/Makefile" ;;
+  "common/Makefile" ) CONFIG_FILES="$CONFIG_FILES common/Makefile" ;;
   "html/Makefile" ) CONFIG_FILES="$CONFIG_FILES html/Makefile" ;;
   "daemon/Makefile" ) CONFIG_FILES="$CONFIG_FILES daemon/Makefile" ;;
   "$FILTER_CONFIG_FILES" ) CONFIG_FILES="$CONFIG_FILES $FILTER_CONFIG_FILES" ;;

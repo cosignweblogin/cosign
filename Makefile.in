@@ -1,5 +1,5 @@
 CC=	@CC@
-ALL=	libcgi libsnet cgi html daemon @FILTERS@
+ALL=	common libsnet @FILTERS@ libcgi cgi html daemon 
 TARGETS= cgi html daemon @FILTERS@
 CFLAGS=
 
@@ -7,7 +7,7 @@ filters:	@FILTERS@
 all:		filters
 everything:	${ALL}
 
-cgi daemon filters/apache:	version.o libsnet
+cgi daemon filters/apache:	version.o common libsnet
 cgi:	libcgi
 
 ${ALL}:	version.o FRC

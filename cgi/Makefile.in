@@ -4,7 +4,7 @@ SBINDIR=@sbindir@
 CGIDIR  = @prefix@/cgi-ssl
 DOCROOTDIR  = @prefix@/html
 
-INCPATH=        @CPPFLAGS@ @KINC@ -I../libsnet -I../libcgi
+INCPATH=        @CPPFLAGS@ @KINC@ -I../libsnet -I../libcgi -I../common
 OPTOPTS=        @OPTOPTS@
 CC=             @CC@
 DEFS=           @TLSDEFS@
@@ -15,7 +15,7 @@ INSTALL=        @INSTALL@
 CFLAGS=         ${DEFS} ${OPTOPTS} @CFLAGS@ ${INCPATH}
 
 
-OBJ     = mkcookie.o fbase64.o network.o ../version.o
+OBJ     = network.o ../common/mkcookie.o ../common/fbase64.o ../version.o
 TARGETS = cosign.cgi logout
 
 all: ${TARGETS}

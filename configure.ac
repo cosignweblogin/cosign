@@ -79,6 +79,7 @@ AC_CONFIG_SUBDIRS(libsnet)
 
 AC_CONFIG_FILES([Makefile
                  cgi/Makefile
+		 common/Makefile
                  html/Makefile
                  daemon/Makefile
                  $FILTER_CONFIG_FILES
