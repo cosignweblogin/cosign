@@ -12,6 +12,8 @@ OPTOPTS=	@OPTOPTS@
 CFLAGS=		${DEFS} ${OPTOPTS} ${INCPATH}
 PROFILED=	@PROFILED@
 CC=		@CC@	
+LIBS=		@LIBS@
+LDFLAGS=	@LDFLAGS@ ${LIBS}
 
 INSTALL=	@INSTALL@
 AWK=		@AWK@
@@ -43,10 +45,10 @@ all:		libsnet.la
 
 libsnet.la:	$(OBJ) $(LOBJ)
 	$(LIBTOOL) --mode=link \
-	  $(CC) -o libsnet.la $(LOBJ) -rpath $(libdir) -version-info 0:0:0
+	  $(CC) $(LDFLAGS) -o libsnet.la $(LOBJ) -rpath $(libdir) -version-info 0:0:0
 	@if test x_$(PROFILED) = x_true ; then echo "building profiled $@" ; \
 	  ( cd profiled ; ../$(LIBTOOL) --mode=link \
-	  $(CC) -o libsnet_p.la $(LOBJ) -rpath $(libdir) \
+	  $(CC) $(LDFLAGS) -o libsnet_p.la $(LOBJ) -rpath $(libdir) \
 	  -version-info 0:0:0 >/dev/null 2>&1 ) ; fi
 
 install:	all

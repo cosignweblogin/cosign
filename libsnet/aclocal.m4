@@ -27,7 +27,9 @@ AC_DEFUN([CHECK_SSL],
 	TLSDEFS=-DTLS;
 	AC_SUBST(TLSDEFS)
 	LIBS="$LIBS -lssl -lcrypto";
+	AC_SUBST(LIBS)
 	LDFLAGS="$LDFLAGS -L$ac_cv_path_ssl/lib";
+	AC_SUBST(LDFLAGS)
 	HAVE_SSL=yes
 	AC_SUBST(HAVE_SSL)
 	AC_MSG_RESULT($ac_cv_path_ssl)
