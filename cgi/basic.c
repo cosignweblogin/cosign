@@ -7,7 +7,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/param.h>
-
+#include <netinet/in.h>
 #include <openssl/ssl.h>
 #include <snet.h>
 #include "cosigncgi.h"
@@ -20,7 +20,7 @@
 extern char	*cosign_version;
 char	*err = NULL, *ref = NULL, *service = NULL;
 char	*title = "Authentication Required";
-char	*host = _COSIGN_HOST;
+char	*cosign_host = _COSIGN_HOST;
 int	port = 6663;
 
 
@@ -82,7 +82,7 @@ subfile( char *filename )
 		break;
 
 	    case 'h':
-		printf( "%s", host );
+		printf( "%s", cosign_host );
 		break;
 
             case 'k':
@@ -138,6 +138,8 @@ main( int argc, char *argv[] )
     char			*data, *ip_addr;
     char			*cookie = NULL, *method, *script, *qs;
     char			*tmpl = ERROR_HTML;
+    struct connlist             *head;
+
 
     if ( argc == 2 && ( strncmp( argv[ 1 ], "-V", 2 ) == 0 )) {
 	printf( "%s\n", cosign_version );
@@ -179,7 +181,7 @@ main( int argc, char *argv[] )
 	exit( 0 );
     }
 
-    if (( head = connlist_setup( host, port )) == NULL ) {
+    if (( head = connlist_setup( cosign_host, port )) == NULL ) {
 	title = "Error: But not your fault";
 	err = "We were unable to contact the authentication server.  Please try again later.";     
 	tmpl = ERROR_HTML;
@@ -225,7 +227,7 @@ main( int argc, char *argv[] )
 		    "cosign=%s", new_cookiebuf );
 	    printf( "Set-Cookie: %s; path=/; secure\n", new_cookie );
 	    cookie = new_cookie;
-	    if ( cosign_login( cookie, ip_addr, user, "basic", NULL )
+	    if ( cosign_login( head, cookie, ip_addr, user, "basic", NULL )
 		    < 0 ) {
 		fprintf( stderr, "%s: login failed\n", script ) ;
 		title = "Error: Login Failed";
@@ -236,7 +238,7 @@ main( int argc, char *argv[] )
 	    }
 	}
 
-	if (( rc = cosign_register( cookie, ip_addr, service )) < 0 ) {
+	if (( rc = cosign_register( head, cookie, ip_addr, service )) < 0 ) {
 	    fprintf( stderr, "%s: cosign_register failed\n", script );
 	    title = "Error: Register Failed";
 	    tmpl = ERROR_HTML;
@@ -247,7 +249,7 @@ main( int argc, char *argv[] )
 
 	if ( rc > 0 ) {
 	    /* log them in */
-	    if ( cosign_login( cookie, ip_addr, user, "basic", NULL )
+	    if ( cosign_login( head, cookie, ip_addr, user, "basic", NULL )
 		    < 0 ) {
 		fprintf( stderr, "%s: login failed\n", script ) ;
 		title = "Error: Login Failed";
@@ -257,7 +259,7 @@ main( int argc, char *argv[] )
 		exit( 0 );
 	    }
 
-	    if (( rc = cosign_register( cookie, ip_addr, service )) < 0 ) {
+	    if (( rc = cosign_register( head, cookie, ip_addr, service )) < 0 ) {
 		fprintf( stderr, "%s: cosign_register failed\n", script );
 		title = "Error: Register Failed";
 		tmpl = ERROR_HTML;
@@ -280,7 +282,8 @@ main( int argc, char *argv[] )
 	snprintf( new_cookie, sizeof( new_cookie ),
 		"cosign=%s", new_cookiebuf );
 	printf( "Set-Cookie: %s; path=/; secure\n", new_cookie );
-	if ( cosign_login( new_cookie, ip_addr, user, "basic", NULL ) < 0 ) {
+	if ( cosign_login( head, new_cookie, ip_addr, user, "basic", NULL )
+		< 0 ) {
 	    fprintf( stderr, "%s: login failed\n", script ) ;
 	    title = "Error: Login Failed";
 	    tmpl = ERROR_HTML;
@@ -295,8 +298,9 @@ main( int argc, char *argv[] )
 	exit( 0 );
     }
 
-    if ( cosign_check( cookie ) < 0 ) {
-	if ( cosign_login( new_cookie, ip_addr, user, "basic", NULL ) < 0 ) {
+    if ( cosign_check( head, cookie ) < 0 ) {
+	if ( cosign_login( head, new_cookie, ip_addr, user, "basic", NULL )
+		< 0 ) {
 	    fprintf( stderr, "%s: login failed\n", script ) ;
 	    title = "Error: Login Failed";
 	    tmpl = ERROR_HTML;
