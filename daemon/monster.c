@@ -135,7 +135,7 @@ main( int ac, char **av )
 	if ( cosign_host != NULL ) {
 
     if ( gethostname( hostname, sizeof( hostname )) < 0 ) {
-	syslog( LOG_ERR, "pusherdaemon: %m" );
+	syslog( LOG_ERR, "monster: %m" );
 	return;
     }
 
@@ -272,11 +272,17 @@ main( int ac, char **av )
 	exit( -1 );
     }
 
-    for ( cur = &head; *cur != NULL; cur = &(*cur)->cl_next ) {
-oops:
+    /*
+     * Usually, we'd write this as a nice neat for loop.  In this case,
+     * since we have the ugly combination of a traversal and a possible
+     * deletion, we use a while loop so we can better control the increment.
+     */
+    cur = &head;
+    while ( *cur != NULL ) {
 	if ( (*cur)->cl_sn == NULL ) {
 	    if ( connect_sn( *cur, ctx, cosign_host ) != 0 ) {
 		(*cur)->cl_sn = NULL;
+		cur = &(*cur)->cl_next;
 		continue;
 	    }
 
@@ -287,27 +293,32 @@ oops:
 		    == NULL ) {
 		syslog( LOG_ERR, "monster: %m" );
 		if (( close_sn( *cur )) != 0 ) {
-		    syslog( LOG_ERR, "pusherdaemon: close_sn: %m" );
+		    syslog( LOG_ERR, "monster: close_sn: %m" );
 		}
 		(*cur)->cl_sn = NULL;
+		cur = &(*cur)->cl_next;
 		continue;
 	    }
 
 	    if ( *line == '4' ) {
 		if (( close_sn( *cur )) != 0 ) {
-		    syslog( LOG_ERR, "pusherdaemon: close_sn: %m" );
+		    syslog( LOG_ERR, "monster: close_sn: %m" );
 		}
 		temp = *cur;
 		*cur = (*cur)->cl_next;
 		free( temp );
-		goto oops;
+		/*
+		 * we don't need to increment the loop in this case
+		 * because the delete implicitly does.
+		 */
+
 	    } else if ( *line != '2' ) {
-		syslog( LOG_ERR, "pusherdaemon: %s", line );
+		syslog( LOG_ERR, "monster: %s", line );
 		if (( close_sn( *cur )) != 0 ) {
-		    syslog( LOG_ERR, "pusherdaemon: close_sn: %m" );
+		    syslog( LOG_ERR, "monster: close_sn: %m" );
 		}
 		(*cur)->cl_sn = NULL;
-		continue;
+		cur = &(*cur)->cl_next;
 	    }
 	}
 
