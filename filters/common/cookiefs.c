@@ -47,8 +47,9 @@ cosign_cookie_valid( cosign_host_config *cfg, char *cookie, struct sinfo *si,
 	return( -1 );
     }
 
-    if ( snprintf( path, MAXPATHLEN, "%s/%s", filterdb, cookie ) >= MAXPATHLEN ) {
-	fprintf( stderr, "cosign_cookie_valid: cookie too long\n" );
+    if ( snprintf( path, sizeof( path ), "%s/%s", filterdb, cookie ) >=
+	    sizeof( path )) {
+	fprintf( stderr, "cosign_cookie_valid: cookie path too long\n" );
 	return( -1 );
     }
 
@@ -143,8 +144,8 @@ cosign_cookie_valid( cosign_host_config *cfg, char *cookie, struct sinfo *si,
     }
 
     /* store local copy of scookie (service cookie) */
-    if ( snprintf( tmppath, MAXPATHLEN, "%s/%x%x.%i", filterdb,
-	    tv.tv_sec, tv.tv_usec, (int)getpid()) >= MAXPATHLEN ) {
+    if ( snprintf( tmppath, sizeof( tmppath ), "%s/%x%x.%i", filterdb,
+	    tv.tv_sec, tv.tv_usec, (int)getpid()) >= sizeof( tmppath )) {
 	fprintf( stderr, "cookiefs: tmppath too long\n" );
 	return( -1 );
     }
