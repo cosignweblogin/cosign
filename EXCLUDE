@@ -1,0 +1,13 @@
+./CVS
+./cgi/CVS
+./cgi/html/CVS
+./cgi/libcgi/CVS
+./cgi/libcgi/profiled/CVS
+./libsnet/CVS
+./libsnet/profiled/CVS
+./mod/CVS
+./mod/libsnet/CVS
+./mod/libsnet/profiled/CVS
+./mod/bprint.c
+./EXCLUDE
+./NOTES
