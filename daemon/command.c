@@ -1168,13 +1168,11 @@ command( int fd, SNET *pushersn )
 
     if ( line != NULL ) {
 	snet_writef( snet,
-		"421 Service not available, closing transmission channel\r\n" );
+		"491 Service not available, closing transmission channel\r\n" );
     } else {
 	if ( snet_eof( snet )) {
 	    exit( 0 );
 	} else if ( errno == ETIMEDOUT ) {
-	    snet_writef( snet,
-		"421 Service timeout, closing transmission channel\r\n" );
 	    exit( 0 );
 	} else {
 	    syslog( LOG_ERR, "snet_getline: %m" );
