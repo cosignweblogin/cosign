@@ -24,6 +24,7 @@
 
 extern char		*cosign_version;
 extern char		*replhost;
+extern unsigned int	port;
 extern SSL_CTX		*ctx;
 static struct cl	*replhead;
 
@@ -34,7 +35,7 @@ static void	pusherhup ( int );
 static void	pusherchld ( int );
 int		pusherparent( int );
 int		pusher( int, struct cl * );
-int		pusherhosts( char *, int );
+int		pusherhosts( );
 void		pusherdaemon( struct cl * );
 
     void
@@ -60,7 +61,6 @@ pusherdaemon( struct cl *cur )
     }
 
     if ( *line == '4' ) {
-syslog( LOG_DEBUG, "pusherdaemon: %s", line );
 	if (( close_sn( cur )) != 0 ) {
 	    syslog( LOG_ERR, "pusherdaemon: close_sn: %m" );
 	}
@@ -76,17 +76,17 @@ syslog( LOG_DEBUG, "pusherdaemon: %s", line );
 }
 
     int
-pusherhosts( char *name, int port)
+pusherhosts( )
 {
     int			i;
     struct hostent	*he;
     struct cl		**tail = NULL, *new = NULL;
 
-    if (( he = gethostbyname( name )) == NULL ) {
+    if (( he = gethostbyname( replhost )) == NULL ) {
 	return( 1 );
     }
     tail = &replhead;
-    for ( i = 1; he->h_addr_list[ i ] != NULL; i++ ) {
+    for ( i = 0; he->h_addr_list[ i ] != NULL; i++ ) {
 	if (( new = ( struct cl * ) malloc( sizeof( struct cl ))) == NULL ) {
 	    return( 1 );
 	}
@@ -115,7 +115,7 @@ pusherhup( sig )
 
     /* hup all the children */
     for ( cur = replhead; cur != NULL; cur = cur->cl_next ) {
-	if ( cur->cl_pid < 0 ) {
+	if ( cur->cl_pid <= 0 ) {
 	    continue;
 	}
 	if ( kill( cur->cl_pid, sig ) < 0 ) {
@@ -123,7 +123,12 @@ pusherhup( sig )
 	}
     }
 
-    syslog( LOG_INFO, "reload %s", cosign_version );
+    if ( pusherhosts( ) != 0 ) {
+	syslog( LOG_ERR, "unhappy with lookup of %s", replhost );
+	exit( 1 );
+    }
+
+    syslog( LOG_INFO, "reload pusher %s", cosign_version );
 
     return;
 }
@@ -239,7 +244,7 @@ pusherparent( int ppipe )
 	    syslog( LOG_ERR, "pusherparent: snet_getline: %m" );
 	    exit( 1 );
 	}
-syslog( LOG_INFO, "pusher line: %s", line );
+syslog( LOG_INFO, "pusher line in parent: %s", line );
 
 	sigprocmask( SIG_BLOCK, &signalset, NULL );
 	for ( cur = replhead; cur != NULL; cur = cur->cl_next ) {
@@ -254,6 +259,21 @@ syslog( LOG_INFO, "pusher line: %s", line );
 	    switch ( cur->cl_pid = fork() ) {
 	    case 0 :
 syslog ( LOG_DEBUG, "pusher pid XXX for IP: %s", inet_ntoa(cur->cl_sin.sin_addr));
+		/* reset SIGCHLD & SIGHUP */
+		memset( &sa, 0, sizeof( struct sigaction ));
+		sa.sa_handler = SIG_DFL;
+		if ( sigaction( SIGCHLD, &sa, NULL ) < 0 ) {
+		    syslog( LOG_ERR, "sigaction: %m" );
+		    exit( 1 );
+		}
+
+		memset( &sa, 0, sizeof( struct sigaction ));
+		sa.sa_handler = SIG_DFL;
+		if ( sigaction( SIGHUP, &sa, NULL ) < 0 ) {
+		    syslog( LOG_ERR, "sigaction: %m" );
+		    exit( 1 );
+		}
+
 		if ( close( fds[ 1 ] ) != 0 ) {
 		    syslog( LOG_ERR, "pusher parent pipe: %m" );
 		    exit( 1 );
@@ -352,13 +372,14 @@ pusher( int cpipe, struct cl *cur )
     
     pusherdaemon( cur );
 
+
 	for ( ;; ) {
     if (( line = snet_getline( csn, NULL )) == NULL ) {
 	syslog( LOG_ERR, "pusherchild: snet_getline: %m" );
 	exit( 1 );
     }
 
-syslog( LOG_INFO, "pusherchild: %s", line );
+syslog( LOG_DEBUG, "pusherchild: %s", line );
 
     if (( ac = argcargv( line, &av )) < 0 ) {
 	syslog( LOG_ERR, "argcargv: %m" );

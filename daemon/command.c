@@ -548,7 +548,7 @@ f_time( sn, ac, av, pushersn )
 	}
 
 	if ( stat( av[ 0 ], &st ) != 0 ) {
-	    syslog( LOG_DEBUG, "f_time: %s: %m" );
+	    syslog( LOG_DEBUG, "f_time: %s: %m", av[ 0 ] );
 	    continue;
 	}
 
@@ -625,7 +625,7 @@ f_logout( sn, ac, av, pushersn )
     }
 
     if ( do_logout( av[ 1 ] ) < 0 ) {
-	syslog( LOG_ERR, "f_logout: %s: %m" );
+	syslog( LOG_ERR, "f_logout: %s: %m", av[ 1 ] );
 	snet_writef( sn, "%d LOGOUT error: Sorry!\r\n", 514 );
 	return( -1 );
     }

@@ -41,6 +41,7 @@ int		tlsopt = 0;
 char		*cosign_dir = _COSIGN_DIR;
 char		*cosign_conf = _COSIGN_CONF;
 char		*replhost = NULL;
+unsigned short	port = 0;
 SSL_CTX		*ctx = NULL;
 
 void		hup ___P(( int ));
@@ -116,7 +117,6 @@ main( ac, av )
     char		*certfile = _COSIGN_TLS_CERT;
     char		*cadir = _COSIGN_TLS_CADIR;
     int                 facility = _COSIGN_LOG;
-    unsigned short	port = 0;
     extern int		optind;
     extern char		*optarg;
 
@@ -301,7 +301,7 @@ main( ac, av )
     }
 
     if ( replhost != NULL ) {
-	if ( pusherhosts( replhost, port ) != 0 ) {
+	if ( pusherhosts( ) != 0 ) {
 	    fprintf( stderr, "unhappy with lookup of %s\n", replhost );
 	    exit( 1 );
 	}
