@@ -11,5 +11,5 @@
 
 extern int	tlsopt;
 
-int		command ___P(( int ));
+int		command ___P(( int, SNET * ));
 int		argcargv ___P(( char *, char **[] ));

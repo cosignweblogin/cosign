@@ -37,21 +37,21 @@
 
 #define IDLE_OUT	 7200
 
-static int	f_noop ___P(( SNET *, int, char *[] ));
-static int	f_quit ___P(( SNET *, int, char *[] ));
-static int	f_help ___P(( SNET *, int, char *[] ));
-static int	f_notauth ___P(( SNET *, int, char *[] ));
-static int	f_login ___P(( SNET *, int, char *[] ));
-static int	f_logout ___P(( SNET *, int, char *[] ));
-static int	f_register ___P(( SNET *, int, char *[] ));
-static int	f_check ___P(( SNET *, int, char *[] ));
-static int	f_retr ___P(( SNET *, int, char *[] ));
-static int	f_time ___P(( SNET *, int, char *[] ));
-static int	f_starttls ___P(( SNET *, int, char *[] ));
+static int	f_noop ___P(( SNET *, int, char *[], SNET * ));
+static int	f_quit ___P(( SNET *, int, char *[], SNET * ));
+static int	f_help ___P(( SNET *, int, char *[], SNET * ));
+static int	f_notauth ___P(( SNET *, int, char *[], SNET * ));
+static int	f_login ___P(( SNET *, int, char *[], SNET * ));
+static int	f_logout ___P(( SNET *, int, char *[], SNET * ));
+static int	f_register ___P(( SNET *, int, char *[], SNET * ));
+static int	f_check ___P(( SNET *, int, char *[], SNET * ));
+static int	f_retr ___P(( SNET *, int, char *[], SNET * ));
+static int	f_time ___P(( SNET *, int, char *[], SNET * ));
+static int	f_starttls ___P(( SNET *, int, char *[], SNET * ));
 
 struct command {
     char	*c_name;
-    int		(*c_func) ___P(( SNET *, int, char *[] ));
+    int		(*c_func) ___P(( SNET *, int, char *[], SNET * ));
 };
 
 struct command	unauth_commands[] = {
@@ -87,10 +87,11 @@ struct chosts	*ch = NULL;
 int	ncommands = sizeof( unauth_commands ) / sizeof(unauth_commands[ 0 ] );
 
     int
-f_quit( sn, ac, av )
-    SNET			*sn;
-    int				ac;
-    char			*av[];
+f_quit( sn, ac, av, pushersn )
+    SNET	*sn;
+    int		ac;
+    char	*av[];
+    SNET	*pushersn;
 {
     snet_writef( sn, "%d Service closing transmission channel\r\n", 221 );
     syslog( LOG_INFO, "done" );
@@ -98,40 +99,44 @@ f_quit( sn, ac, av )
 }
 
     int
-f_noop( sn, ac, av )
-    SNET			*sn;
-    int				ac;
-    char			*av[];
+f_noop( sn, ac, av, pushersn )
+    SNET	*sn;
+    int		ac;
+    char	*av[];
+    SNET	*pushersn;
 {
     snet_writef( sn, "%d cosign v%s\r\n", 250, cosign_version );
     return( 0 );
 }
 
     int
-f_help( sn, ac, av )
+f_help( sn, ac, av, pushersn )
     SNET        *sn;
     int         ac;
     char        *av[];
+    SNET	*pushersn;
 {
     snet_writef( sn, "%d Slainte Mhath!\r\n", 203 );
     return( 0 );
 }
 
     int
-f_notauth( sn, ac, av )
+f_notauth( sn, ac, av, pushersn )
     SNET        *sn;
     int         ac;
     char        *av[];
+    SNET	*pushersn;
 {
     snet_writef( sn, "%d You must call STARTTLS first!\r\n", 550 );
     return( 0 );
 }
 
     int
-f_starttls( sn, ac, av )
-    SNET			*sn;
-    int				ac;
-    char			*av[];
+f_starttls( sn, ac, av, pushersn )
+    SNET	*sn;
+    int		ac;
+    char	*av[];
+    SNET	*pushersn;
 {
 
     int				rc;
@@ -178,10 +183,11 @@ f_starttls( sn, ac, av )
 
 
     int
-f_login( sn, ac, av )
+f_login( sn, ac, av, pushersn )
     SNET        *sn;
     int         ac;
     char        *av[];
+    SNET	*pushersn;
 {
     FILE		*tmpfile;
     char		tmppath[ MAXPATHLEN ];
@@ -338,6 +344,8 @@ f_login( sn, ac, av )
 
     if ( !krb ) {
 	snet_writef( sn, "%d LOGIN successful: Cookie Stored.\r\n", 200 );
+	snet_writef( pushersn, "LOGIN %s %s %s %s\r\n",
+		av[ 1 ], av[ 2 ], av[ 3 ], av[ 4 ]);
 	return( 0 );
     }
 
@@ -412,6 +420,8 @@ f_login( sn, ac, av )
     }
 
     snet_writef( sn, "%d LOGIN successful: Cookie & Ticket Stored.\r\n", 201 );
+    snet_writef( pushersn, "LOGIN %s %s %s %s %s\r\n",
+	    av[ 1 ], av[ 2 ], av[ 3 ], av[ 4 ], av[ 5 ]);
     return( 0 );
 
 file_err:
@@ -425,10 +435,11 @@ file_err:
 }
 
     int
-f_time( sn, ac, av )
+f_time( sn, ac, av, pushersn )
     SNET        *sn;
     int         ac;
     char        *av[];
+    SNET	*pushersn;
 {
     struct utimbuf	new_time;
     struct stat		st;
@@ -515,10 +526,11 @@ f_time( sn, ac, av )
 
 }
     int
-f_logout( sn, ac, av )
+f_logout( sn, ac, av, pushersn )
     SNET        *sn;
     int         ac;
     char        *av[];
+    SNET	*pushersn;
 {
     struct cinfo	ci;
 
@@ -574,15 +586,17 @@ f_logout( sn, ac, av )
     }
 
     snet_writef( sn, "%d LOGOUT successful: cookie no longer valid\r\n", 210 );
+    snet_writef( pushersn, "LOGOUT %s %s\r\n", av[ 1 ], av [ 2 ] );
     return( 0 );
 
 }
 
     int
-f_register( sn, ac, av )
-    SNET			*sn;
-    int				ac;
-    char			*av[];
+f_register( sn, ac, av, pushersn )
+    SNET	*sn;
+    int		ac;
+    char	*av[];
+    SNET	*pushersn;
 {
     struct cinfo	ci;
     struct timeval	tv;
@@ -720,14 +734,17 @@ f_register( sn, ac, av )
     utime( av[ 1 ], NULL );
 
     snet_writef( sn, "%d REGISTER successful: Cookie Stored \r\n", 220 );
+    snet_writef( pushersn, "REGISTER %s %s %s\r\n",
+	    av[ 1 ], av[ 2 ], av [ 3 ] );
     return( 0 );
 }
 
     int
-f_check( sn, ac, av )
-    SNET			*sn;
-    int				ac;
-    char			*av[];
+f_check( sn, ac, av, pushersn )
+    SNET	*sn;
+    int		ac;
+    char	*av[];
+    SNET	*pushersn;
 {
     struct cinfo 	ci;
     struct timeval	tv;
@@ -815,10 +832,11 @@ f_check( sn, ac, av )
 }
 
     int
-f_retr( sn, ac, av )
-    SNET                        *sn;
-    int                         ac;
-    char                        *av[];
+f_retr( sn, ac, av, pushersn )
+    SNET	*sn;
+    int		ac;
+    char	*av[];
+    SNET	*pushersn;
 {
     struct cinfo        ci;
     struct timeval      tv;
@@ -948,8 +966,9 @@ f_retr( sn, ac, av )
 
 
     int
-command( fd )
+command( fd, pushersn )
     int			fd;
+    SNET		*pushersn;
 {
     SNET				*snet;
     int					ac, i;
@@ -1004,7 +1023,7 @@ command( fd )
 	    continue;
 	}
 
-	if ( (*(commands[ i ].c_func))( snet, ac, av ) < 0 ) {
+	if ( (*(commands[ i ].c_func))( snet, ac, av, pushersn ) < 0 ) {
 	    break;
 	}
     }

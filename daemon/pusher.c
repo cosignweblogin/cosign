@@ -2,14 +2,53 @@
 #include <sys/types.h>
 #include <signal.h>
 #include <syslog.h>
+#include <netdb.h>
 #include <errno.h>
 
-extern char	*cosign_version;
+#include <openssl/err.h>
+#include <openssl/ssl.h>
+#include <snet.h>
 
-void	 pusherhup ( int );
-void	 pusherchld ( int );
-int	 pusherparent( int );
+#include "monster.h"
 
+extern char		*cosign_version;
+static struct cl	*replhead;
+
+static void	pusherhup ( int );
+static void	pusherchld ( int );
+int		pusherparent( int );
+int		pusherhosts( char *, int );
+
+    int
+pusherhosts( char *name, int port)
+{
+    int			i;
+    struct hostent	*he;
+    struct cl		**tail = NULL, *new = NULL;
+
+    if (( he = gethostbyname( name )) == NULL ) {
+	return( 1 );
+    }
+    tail = &replhead;
+    for ( i = 1; he->h_addr_list[ i ] != NULL; i++ ) {
+	if (( new = ( struct cl * ) malloc( sizeof( struct cl ))) == NULL ) {
+	    return( 1 );
+	}
+
+        memset( &new->cl_sin, 0, sizeof( struct sockaddr_in ));
+        new->cl_sin.sin_family = AF_INET;
+        new->cl_sin.sin_port = port;
+        memcpy( &new->cl_sin.sin_addr.s_addr,
+                he->h_addr_list[ i ], (unsigned int)he->h_length );
+        new->cl_sn = NULL;
+	new->cl_pid = 0;
+        *tail = new;
+        tail = &new->cl_next;
+    }
+    *tail = NULL;
+
+    return( 0 );
+}
 
     void
 pusherhup( sig )
@@ -54,7 +93,30 @@ pusherchld( sig )
     int
 pusherparent( int pipe )
 {
+    SNET	*sn;
+    char	*line;
 
-return( 0 );
+    if (( sn = snet_attach( pipe, 1024 * 1024 ) ) == NULL ) {
+        syslog( LOG_ERR, "pusherparent: snet_attach failed\n" );
+        return( -1 );
+    }
+
+    for ( ;; ) {
+	if (( line = snet_getline( sn, NULL )) == NULL ) {
+	    syslog( LOG_ERR, "pusherparent: snet_getline failed\n" );
+	    exit( 1 );
+	}
+	/* loop thru hosts */
+	    /* check for pid? */
+	    /* if no pid, fork and crap i don't get */
+	/* select */
+	/* zeroed out tv for not wait */
+	/* for any fds that are set we write the line */
+
+	syslog( LOG_INFO, "pusher line: %s", line );
+
+    }
+
+    return( 0 );
 
 }

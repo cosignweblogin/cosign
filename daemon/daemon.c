@@ -29,6 +29,7 @@
 #include "command.h"
 #include "config.h"
 #include "monster.h"
+#include "pusher.h"
 
 
 int		debug = 0;
@@ -39,7 +40,6 @@ extern char	*cosign_version;
 int		tlsopt = 0;
 char		*cosign_dir = _COSIGN_DIR;
 char		*cosign_conf = _COSIGN_CONF;
-struct cl	*head = NULL;
 SSL_CTX		*ctx = NULL;
 
 
@@ -107,10 +107,9 @@ main( ac, av )
     struct sigaction	sa, osahup, osachld;
     struct sockaddr_in	sin;
     struct servent	*se;
-    struct hostent	*he;
-    struct cl		*new, **tail;
-    int			c, s, i, err = 0, fd, sinlen;
-    int			dontrun = 0, fds[ 2 ], pusherfd;
+    SNET		*pushersn;
+    int			c, s, err = 0, fd, sinlen;
+    int			dontrun = 0, fds[ 2 ];
     int			reuseaddr = 1;
     char		*prog;
     char		*replhost = _COSIGN_REPL_HOST;
@@ -302,28 +301,10 @@ main( ac, av )
 	exit( 1 );
     }
 
-    if (( he = gethostbyname( replhost )) == NULL ) {
-	fprintf( stderr, "%s no wanna give hostnames\n", replhost );
+    if ( pusherhosts( replhost, port ) != 0 ) {
+	fprintf( stderr, "unhappy with lookup of %s\n", replhost );
 	exit( 1 );
     }
-    tail = &head;
-    for ( i = 1; he->h_addr_list[ i ] != NULL; i++ ) {
-	if (( new = ( struct cl * ) malloc( sizeof( struct cl ))) == NULL ) {
-	    perror( "cl build" );
-	    exit( 1 );
-	}
-
-        memset( &new->cl_sin, 0, sizeof( struct sockaddr_in ));
-        new->cl_sin.sin_family = AF_INET;
-        new->cl_sin.sin_port = port;
-        memcpy( &new->cl_sin.sin_addr.s_addr,
-                he->h_addr_list[ i ], (unsigned int)he->h_length );
-        new->cl_sn = NULL;
-	new->cl_pid = 0;
-        *tail = new;
-        tail = &new->cl_next;
-    }
-    *tail = NULL;
 
     /*
      * Disassociate from controlling tty.
@@ -376,7 +357,7 @@ main( ac, av )
 	    syslog( LOG_ERR, "pusher parent pipe: %m" );
 	    exit( 1 );
 	}
-	//pusherparent( fds[ 1 ] );
+	pusherparent( fds[ 1 ] );
 	exit( 0 );
 
     case -1 :
@@ -388,7 +369,10 @@ main( ac, av )
 	    syslog( LOG_ERR, "pusher main pipe: %m" );
 	    exit( 1 );
 	}
-	pusherfd = fds[ 0 ];
+	if (( pushersn = snet_attach( fds[ 0 ], 1024 * 1024 ) ) == NULL ) {
+	    syslog( LOG_ERR, "pusherfork: snet_attach failed\n" );
+	    exit( 1 );
+	}
 	break;
     }
 
@@ -444,7 +428,7 @@ main( ac, av )
 		exit( 1 );
 	    }
 
-	    exit( command( fd ));
+	    exit( command( fd, pushersn ));
 
 	case -1 :
 	    close( fd );
