@@ -1,0 +1,20 @@
+#!/bin/sh
+# combine html parts into whole files
+
+cd $1
+
+for i in `/bin/ls *.html`; do
+    if [ $i = "header.html" ]; then
+	continue
+    fi
+
+    if [ $i = "footer.html" ]; then
+	continue
+    fi
+
+    echo copying $i to $2/$i
+    /usr/bin/cat header.html $i footer.html > $2/$i
+done
+
+exit;
+

@@ -1,6 +1,6 @@
 CGIBIN	= /usr/local/projects/cosign/cgi-ssl
-TMPL	= /usr/local/projects/cosign/templates/
-HTML	= /usr/local/projects/cosign/html/
+TMPL	= /usr/local/projects/cosign/templates
+HTML	= /usr/local/projects/cosign/html
 
 CC	= gcc
 TARGETS	= cosign logout
@@ -40,5 +40,5 @@ clean:
 
 install: all
 		/bin/cp $(TARGETS) $(CGIBIN)
-		/bin/cp -r html/*.html $(TMPL)
+		./install-html html $(TMPL)
 		/bin/cp -r html/seal.gif $(HTML)

@@ -1,63 +1,8 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
-
-<!--
-    Copyright (c) 2002 Regents of The University of Michigan.
-    All Rights Reserved.  See http://www.umich.edu/~umweb/license.html
---> 
-
-<html lang="en">
-    <head>
-	<title>University of Michigan: Login $t</title>
-
-	<script language="javascript" type="text/javascript">
-	    <!--
-	    function setfocus() { document.login.uniqname.focus(); }
-	   //  -->
-	</script>
-
-	<style type="text/css"> <!--
-	    a { text-decoration: none }
-	    a:link { color: #cc0000 }
-	    a:visited { color: #cc0000 }
-	    a:active { color: #cccc33; text-decoration: underline }
-	    a:hover { color: #333399; text-decoration: underline }
-
-	    body { margin-top: 15% }
-
-	    p { font-family: arial, non-serif; color: black; font-size: 100% }
-	    p.titlebar { color: white; font-size: 120% }
-	    p.error { color: red }
-
-	    .main { color: #999999; border-style: ridge; border-width: 2px; }
-	    -->
-	</style>
-    </head>
-
-    <body bgcolor="#cccccc" vlink="#cc0000" link="#cc0000"
-	    text="#000000" alink="#cccc33" onLoad="setfocus()">
-
-    <form name="login" action="$s" method="post">
-
-    <table class="main" summary="entirely decorative, this table provides a
-	    frame around the login form." bgcolor="#FFFFFF" border="0"
-	    cellpadding="5" cellspacing="0" width="55%" align="center">
-
-    <tr>
-	<td colspan="2" bgcolor="#11375E" align="left">
-	    <p class="titlebar">
-		<b>U-M Login Required</b>
-	    </p>
-	</td>
-    </tr>
-
-    <tr>
-	<td>
-            <img src="/seal.gif" width="140" height="140"
-                    border="0" hspace="0" vspace="0" alt="The Seal
-                    of the University of Michigan">
-	</td>
-	
 	<td valign="top">
+	    <form name="login" action="$s"
+		    enctype="application/x-www-form-urlencoded"
+		    method="post" autocomplete="off">
+
 	    <p>
 		By using this service you agree to adhere to <a
 		href="http://www.umich.edu/~policies/">
@@ -66,45 +11,42 @@
 		the &#8220;Log in&#8221; button to continue.
 	    </p> 
 
-		<table align="center" summary="used to separate
-			uniqname and password fields from one
-			another" border="0" bgcolor="#FFFFFF">
+	    <table align="center" summary="used to separate uniqname and password fields from one another" border="0" bgcolor="#FFFFFF">
 
-		<tr>
-		    <td bgcolor="#FFFFFF">
-			<p>
-			    <b><label for="uniqname">uniqname</label>:</b>
-			</p>
-		    </td>
+	    <tr>
+		<td bgcolor="#FFFFFF">
+		    <p>
+			<b><label for="uniqname">uniqname</label>:</b>
+		    </p>
+		</td>
 
-		    <td bgcolor="#FFFFFF">
-			<input id="uniqname" name="uniqname" size="24" maxlength="8" value="$u">
-		    </td>
-		</tr>
+		<td bgcolor="#FFFFFF">
+		    <input id="uniqname" name="uniqname" size="24" maxlength="8" value="$u">
+		</td>
+	    </tr>
 
-		<tr>
-		    <td bgcolor="#FFFFFF">
-			<p>
-			    <b><label for="password">password</label>:</b>
-			</p>
-		    </td>
+	    <tr>
+		<td bgcolor="#FFFFFF">
+		    <p>
+			<b><label for="password">password</label>:</b>
+		    </p>
+		</td>
 
-		    <td bgcolor="#FFFFFF">
-			<input value="" size="24" id="password" name="password" type="password">
-		    </td>
-		</tr>
+		<td bgcolor="#FFFFFF">
+		    <input value="" size="24" id="password"
+			    name="password" type="password"
+			    autocomplete="off">
+		</td>
+	    </tr>
 
-		<tr>
-		    <td colspan="2" align="right" bgcolor="#FFFFFF">
-			<input type="submit" value="Log in">
-			<p class="error" align="center">$e</p>
-		    </td>
-		</tr>
-		</table>
-	</td>
-    </tr>
-    </table>
-    </form>
+	    <tr>
+		<td colspan="2" align="right" bgcolor="#FFFFFF">
+		    <input type="submit" value="Log in">
+		    <p class="error" align="center">$e</p>
+		</td>
+	    </tr>
+	    </table>
 
-    </body>
-</html>
+	    </form>
+    </td>
+

@@ -15,14 +15,16 @@
 #include "network.h"
 
 #define ERROR_HTML	"../templates/error.html"
-#define LOGOUT_HTML	"../templates/logout.html"
+#define REDIRECT_HTML	"../templates/redirect.html"
+#define SIDEWAYS	1
 #define htputs( x ) fputs((x),stdout);
 
-char			*err = NULL;
-char			*title = NULL;
-char                    *url = "http://www.umich.edu/";
-char                    *host = "cosign-test.www.umich.edu";
-int                     port = 6663;
+char	*err = NULL;
+char	*title = "Logout";
+char	*url = "http://www.umich.edu/";
+char	*host = "cosign-test.www.umich.edu";
+int	port = 6663;
+int	nocache = 0;
 
 struct cgi_list cl[] = {
 #define CL_UNIQNAME	0
@@ -34,7 +36,7 @@ struct cgi_list cl[] = {
         { NULL, NULL },
 };
 
-void            (*logger)( char * ) = NULL;
+void	(*logger)( char * ) = NULL;
 
 
     void
@@ -43,11 +45,17 @@ subfile( char *filename )
     FILE	*fs;
     int 	c;
 
+    if ( nocache ) {
+	fputs( "Cache-Control: private, must-revalidate, no-cache\n"
+	       "Expires: Mon, 16 Apr 1973 02:10:00 GMT\n"
+	       "Pragma: no cache\n", stdout );
+    }
+
     fputs( "Content-type: text/html\n\n", stdout );
 
     if (( fs = fopen( filename, "r" )) == NULL ) {
 	perror( filename );
-	exit( 1 );
+	exit( SIDEWAYS );
     }
 
     while (( c = getc( fs )) != EOF ) {
@@ -74,14 +82,14 @@ subfile( char *filename )
 		break;
 
 	    case 's':
-		printf( "%s", getenv( "SCRIPT_NAME" ) );
+		printf( "%s", getenv( "SCRIPT_NAME" ));
 		break;
 
-	    case 'l':
-		if ( url != NULL ) {
-		    printf( "%s", url );
-		}
-		break;
+            case 'l':
+                if ( url != NULL ) {
+                    printf( "%s", url );
+                }
+                break;
 
 	    case EOF:
 		putchar( '$' );
@@ -111,7 +119,7 @@ subfile( char *filename )
     int
 main()
 {
-    char	*tmpl = LOGOUT_HTML;
+    char	*tmpl = REDIRECT_HTML;
     char	*cookie = NULL, *data, *ip_addr, *script;
 
     if ( cgi_info( CGI_GET, cl ) != 0 ) {
@@ -140,8 +148,8 @@ main()
 	if ( cosign_logout( cookie, ip_addr ) < 0 ) {
 	    fprintf( stderr, "%s: logout failed\n", script ) ;
 
-	    err = "Logout failed: No Idea Why!";
-	    title = "Failed";
+	    err = "Logout failed.  Perhaps you were not logged-in?";
+	    title = "Error:  Logout Failed";
 	    tmpl = ERROR_HTML;
 
 	    subfile( tmpl );
@@ -162,6 +170,9 @@ main()
             "Expires: Mon, 16 Apr 1973 02:10:00 GMT\n"
             "Pragma: no cache\n" );
 
+    title = "Logout Successful";
+    err = "You have successfully logged out.  In a moment your browser will be redirected to:";
+    nocache = 1;
     subfile ( tmpl );
 
     exit( 0 );

@@ -18,18 +18,15 @@
 #define LOGIN_HTML	"../templates/login.html"
 #define ERROR_HTML	"../templates/error.html"
 #define SERVICE_MENU	"../templates/service-menu.html"
-#define FORWARDING_HTML	"../templates/forwarding.html"
-#define SIDEWAYS        1               /* we neglected to tell the
-					   user what was happening.  we
-					   should fix all of these.
-					 */
+#define REDIRECT_HTML	"../templates/redirect.html"
+#define SIDEWAYS        1
 
-char			*err = NULL;
-char			*url = "http://www.umich.edu/";
-char			*title = NULL;
-char			*host = "cosign-test.www.umich.edu";
-int			nocache = 0;
-int			port = 6663;
+char	*err = NULL;
+char	*url = "http://www.umich.edu/";
+char	*title = "Authentication Required";
+char	*host = "cosign-test.www.umich.edu";
+int	nocache = 0;
+int	port = 6663;
 
 struct cgi_list cl[] = {
 #define CL_UNIQNAME	0
@@ -158,33 +155,34 @@ main()
 	printf( "Set-Cookie: cosign-referrer=%s; path=/; secure\n", ref );
 
 	if ( cookie == NULL || strlen( cookie ) == 7 ) {
+	    title = "Authentication Required";
 	    tmpl = ERROR_HTML;
-	    err = "<p>Welcome to the University of Michigan's central web authentication service. You will need to <a href='/cgi-bin/cosign'>visit the login screen</a> and login before continuing.</p><a class='important' href='/cgi-bin/cosign'>login now</a>";
+	    err = "<p>Welcome to the University of Michigan's central web authentication service. You will need to <a href='/cgi-bin/cosign'>visit the login screen</a> and login before continuing.</p><p class='important'><a href='/cgi-bin/cosign'>login now</a></p>";
 
 	    subfile( tmpl );
 	    exit( 0 );
 	}
 
 	if ( strncmp( service, "cosign-", 7 ) != 0 ) {
+	    title = "Error: Unrecognized Service";
 	    tmpl = ERROR_HTML;
-	    err = "You mock me with your query string.";
+	    err = "Unable to determine referring service from query string.";
 	    subfile( tmpl );
 	    exit( 0 );
 	}
 
 	if ( strlen( service ) > MAXPATHLEN ) {
-	    fprintf( stderr, "Query String too big\n" );
 	    tmpl = ERROR_HTML;
-	    title = "Max Length Exceeded";
-	    err = "An error occurred processing your request:  max length exceeded.";
+	    title = "Error: Max Length Exceeded";
+	    err = "An error occurred while processing your request:  max length exceeded.";
 	    subfile( tmpl );
 	    exit( 0 );
 	}
 
 	if (( rc = cosign_register( cookie, ip_addr, service )) < 0 ) {
 	    fprintf( stderr, "%s: cosign_register failed\n", script );
+	    title = "Error: Register Failed";
 	    tmpl = ERROR_HTML;
-	    title = "Register Failed";
 	    err = "We were unable to contact the authentication server.  Please try again later.";
 	    subfile( tmpl );
 	    exit( 0 );
@@ -204,9 +202,9 @@ main()
 
     if ( cookie == NULL ) {
 	if ( strcmp( method, "POST" ) == 0 ) {
-	    /* turn on cookies */
-	    tmpl = ERROR_HTML;
+	    title = "Error: Cookies Required";
 	    err = "This service requires that cookies be enabled.";
+	    tmpl = ERROR_HTML;
 	    subfile( tmpl );
 	    exit( 0 );
 	}
@@ -238,6 +236,7 @@ main()
 
     if (( cl[ CL_UNIQNAME ].cl_data == NULL ) ||
 	    ( *cl[ CL_UNIQNAME ].cl_data == '\0' )) {
+	title = "Authentication Required";
 	err = "Please enter your uniqname and password.";
         subfile ( tmpl );
 	exit( 0 );
@@ -246,7 +245,7 @@ main()
     if (( cl[ CL_PASSWORD ].cl_data == NULL ) ||
 	    ( *cl[ CL_PASSWORD ].cl_data == '\0' )) {
 	err = "Unable to login because password is a required field.";
-	title = "( missing password )";
+	title = "Authentication Required ( missing password )";
 
         subfile ( tmpl );
 	exit( 0 );
@@ -254,7 +253,7 @@ main()
 
     if (( kerror = krb5_init_context( &kcontext ))) {
 	err = (char *)error_message( kerror );
-	title = "( kerberos error )";
+	title = "Authentication Required ( kerberos error )";
 
 	tmpl = ERROR_HTML;
 	subfile ( tmpl );
@@ -264,7 +263,7 @@ main()
     if (( kerror = krb5_parse_name( kcontext, cl[ CL_UNIQNAME ].cl_data,
 	    &kprinc ))) {
 	err = (char *)error_message( kerror );
-	title = "( kerberos error )";
+	title = "Authentication Required ( kerberos error )";
 
 	tmpl = ERROR_HTML;
 	subfile ( tmpl );
@@ -284,7 +283,7 @@ main()
 	if ( kerror == KRB5KRB_AP_ERR_BAD_INTEGRITY ) {
 
 	    err = "Password incorrect.  Is [caps lock] on?";
-	    title = "( Password Incorrect )";
+	    title = "Authentication Required ( Password Incorrect )";
 
 	    subfile ( tmpl );
 	    exit( 0 );
@@ -308,7 +307,7 @@ main()
 	    cl[ CL_UNIQNAME ].cl_data, "UMICH.EDU" ) < 0 ) {
 	fprintf( stderr, "%s: login failed\n", script ) ;
 	err = "Login failed: Sorry!";
-	title = "Failed";
+	title = "Error: Authentication Failed";
 	tmpl = ERROR_HTML;
 	subfile( tmpl );
 	exit( 2 );
@@ -330,7 +329,9 @@ main()
 
     if (( ref != NULL ) && ( ref = strstr( ref, "http" )) != NULL ) {
 	url = strdup( ref );
-	tmpl = FORWARDING_HTML;
+	title = "Authentication Successful";
+	err = "Authentication succeeded.  In a moment your browser will be redirected to:";
+	tmpl = REDIRECT_HTML;
 	nocache = 1;
 
 	/* clobber the referrer cookie */
