@@ -298,11 +298,10 @@ main( ac, av )
 
 	sinlen = sizeof( struct sockaddr_in );
 	if (( fd = accept( s, (struct sockaddr *)&sin, &sinlen )) < 0 ) {
-	    if ( errno == EINTR ) {	/* other errors? */
-		continue;
+	    if ( errno != EINTR ) {	/* other errors? */
+		syslog( LOG_ERR, "accept: %m" );
 	    }
-	    syslog( LOG_ERR, "accept: %m" );
-	    exit( 1 );
+	    continue;
 	}
 
 	/* start child */
