@@ -52,6 +52,13 @@ hup( sig )
 	syslog( LOG_ERR, "%s: re-read failed", cosign_conf );
 	exit( 1 );
     }
+
+    if ( kill( pusherpid, sig ) < 0 ) {
+	syslog( LOG_CRIT, "kill pusherpid: %m" );
+	exit( 1 );
+    }
+
+    return;
 }
 
     void
@@ -73,6 +80,10 @@ chld( sig )
 	} else {
 	    syslog( LOG_ERR, "child %d died", pid );
 	}
+	if ( pid == pusherpid ) {
+	    syslog( LOG_CRIT, "pusherpid %d died!", pusherpid );
+	    exit( 1 );
+	}
     }
 
     if ( pid < 0 && errno != ECHILD ) {
@@ -93,7 +104,7 @@ main( ac, av )
     struct sockaddr_in	sin;
     struct servent	*se;
     int			c, s, err = 0, fd, sinlen;
-    int			dontrun = 0;
+    int			dontrun = 0, fds[ 2 ];
     int			reuseaddr = 1;
     char		*prog;
     char		*cryptofile = _COSIGN_TLS_KEY;
@@ -321,6 +332,34 @@ main( ac, av )
     openlog( prog, LOG_NOWAIT|LOG_PID, LOG_DAEMON );
 #endif /* ultrix */
 
+    if ( pipe( fds ) < 0 ) {
+	syslog( LOG_ERR, "pusher pipe: %m" );
+	exit( 1 );
+    }
+
+    switch ( pusherpid = fork()) {
+    case 0 :
+	if ( close( fds[ 0 ] ) != 0 ) {
+	    syslog( LOG_ERR, "pusher parent pipe: %m" );
+	    exit( 1 );
+	}
+	pusher_parent( fds[ 1 ] );
+	exit( 0 );
+
+    case -1 :
+	syslog( LOG_ERR, "pusher fork: %m" );
+	exit( 1 );
+
+    default :
+	if ( close( fds[ 1 ] ) != 0 ) {
+	    syslog( LOG_ERR, "pusher main pipe: %m" );
+	    exit( 1 );
+	}
+	pusher_fd = fds[ 0 ];
+	break;
+    }
+
+
     /* catch SIGHUP */
     memset( &sa, 0, sizeof( struct sigaction ));
     sa.sa_handler = hup;
@@ -338,6 +377,8 @@ main( ac, av )
     }
 
     syslog( LOG_INFO, "restart %s", cosign_version );
+
+
 
     /*
      * Begin accepting connections.
