@@ -38,6 +38,10 @@ To build the central cosign server ( the weblogin server ):
     add cosignd to /etc/services on port 6663 ( the default ) or
     whatever port you are running it on.
 
+    If you are going to be using Kerberos, make sure you create a
+    /ticket and change the permissions so the webserver and the daemon
+    can write there.
+
 Testing your certificates:
 
     You want to make sure that the certs you have are able to be used as
@@ -84,20 +88,20 @@ Things to know about the CGI:
     the filter on a single server. To test a cosign filter installation
     on the cosign server, you'll need some special configuration
     options, like so:
-    in your server root, turn Cosign Protected On:
+    in your server root, turn Cosign protection on:
 	CosignProtected On
 
     in your document root, turn Cosign Protected Off:
 
 	<Directory /usr/local/projects/cosign/html>
 	    Options ExecCGI
-	    Cosign Protected Off
+	    CosignProtected Off
 	</Directory>
 
     Then turn a specific location, like test.html, on
 
 	<Location /test.html>
-	    Cosign Protected Off
+	    CosignProtected Off
 	</Location>
 
     This will make it so the cgi can run when you are not logged in,
