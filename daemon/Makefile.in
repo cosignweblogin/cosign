@@ -33,7 +33,7 @@ COSIGNOBJ= daemon.o command.o cparse.o config.o wildcard.o logname.o \
 	../common/mkcookie.o ../version.o
 
 TARGETS=	cosignd monster
-MANTARGETS=	cosignd.8
+MANTARGETS=	cosignd.8 monster.8
 
 all : ${TARGETS}
 
@@ -86,6 +86,7 @@ install : all man
 	-mkdir -p ${MANDIR}
 	-mkdir ${MANDIR}/man8
 	${INSTALL} -m 0644 -c tmp/man/cosignd.8 ${MANDIR}/man8/
+	${INSTALL} -m 0644 -c tmp/man/monster.8 ${MANDIR}/man8/
 
 clean :
 	rm -f a.out core* *.o *.bak *[Ee]rrs tags
