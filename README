@@ -3,7 +3,7 @@ Some things to know:
 make will build the apache filter only
 make install will install the filter using apxs
 
-make all will build the filter, the daemon and the cgi
+make everything will build the filter, the daemon and the cgi
 make install-all installs all :)
 
 In order for the filter to work, you'll need a directory called 
