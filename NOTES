@@ -3,27 +3,15 @@ MODULE:
 unhappy with cookieparsing in cosign_auth().
 unhappy with cookie_valid/read_secant division. 
 
-upon cookie_ok, module sets up cgi env ( remote user etc )
-    /* aka "/ticket/kerb.canna" in current system */
-    krb_set_tkt_string( tfname );
-    ap_table_set( r->subprocess_env, "KRBTKFILE", tfname );
-    ap_table_set( r->subprocess_env, "REMOTE_REALM", realm );
-    r->connection->user is REMOTE_USER, i believe
-
 TODO in MOD:
-    kerberos
     cookie obscuring - post 1.0
 
 CGI:
     initial info and ticket propogation (belt)
-    kerberos
     conf file
 
 COSIGND:
-    kerberos
     replication (suspenders)
-    conf file
-    where does it live?
 
 
 1) you would have needed to login, but you don't now!
@@ -68,7 +56,7 @@ configuration files:
 	    audience (for service list)
 
 
-    cosign.cgi: uses same conf file as cosignd.
+    cosign.cgi: service menu
 
 FILE FORMAT:
 
