@@ -38,7 +38,9 @@
 #include "mkcookie.h"
 #include "rate.h"
 
+#ifndef MIN
 #define MIN(a,b)        ((a)<(b)?(a):(b))
+#endif
 
 static int connect_sn( struct connlist *, SSL_CTX *, char * );
 static int close_sn( struct connlist *);

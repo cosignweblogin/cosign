@@ -29,15 +29,15 @@
 #include "krb524.h"
 #endif /* KRB4 */
 
-
 #include "sparse.h"
 #include "cosign.h"
 #include "argcargv.h"
 #include "mkcookie.h"
 #include "rate.h"
 
-
+#ifndef MIN
 #define MIN(a,b)        ((a)<(b)?(a):(b))
+#endif 
 
 static int connect_sn( struct connlist *, SSL_CTX *, char * );
 static int close_sn( struct connlist *);

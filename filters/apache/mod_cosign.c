@@ -190,6 +190,7 @@ set_cookie_and_redirect( request_rec *r, cosign_host_config *cfg )
 	}
     }
 
+    /* we need to remove this semi-colon eventually */
     dest = ap_psprintf( r->pool, "%s?%s;&%s", cfg->redirect, my_cookie, ref );
     ap_table_set( r->headers_out, "Location", dest );
     return( 0 );
