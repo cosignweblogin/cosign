@@ -141,6 +141,9 @@ netretr_ticket( char *scookie, struct sinfo *si, SNET *sn, int convert )
 
 #endif /* KRB4 */
 
+    /* clear it, in case we can't get it later */
+    *si->si_krb5tkt = '\0';
+
     /* RETR service-cookie TicketType */
     if ( snet_writef( sn, "RETR %s tgt\r\n", scookie ) < 0 ) {
 	fprintf( stderr, "netretr_ticket: snet_writef failed\n");
