@@ -34,7 +34,7 @@ To build the Apache authentication filter:
     default, configure may not find it. So if you need to use
     kerberos ticket transfers, you will need to do the following.
     
-    Add "env CPPFLAGS=-I/usr/kerberos/include" before  you run configure. So in
+    Add "env CPPFLAGS=-I/usr/kerberos/include" before you run configure. So in
     csh your configure line will look  like this:
 
 	env CPPFLAGS=-I/usr/kerberos/include ./configure
