@@ -185,7 +185,7 @@ netretr_ticket( char *secant, struct sinfo *si, SNET *sn )
     }
     size = atoi( line );
 
-    if (( fd = open( krbpath, O_WRONLY | O_CREAT | O_EXCL, 0400 )) < 0 ) {
+    if (( fd = open( krbpath, O_WRONLY | O_CREAT | O_EXCL, 0600 )) < 0 ) {
         perror( krbpath );
         return( -1 );
     }
@@ -305,6 +305,17 @@ netretr_ticket( char *secant, struct sinfo *si, SNET *sn )
     }
 
     strcpy( si->si_krb4tkt, krb4path );
+
+    memset( &v4creds, 0, sizeof( v4creds ));
+    if ( v5creds ) {
+	krb5_free_creds( kcontext, v5creds );
+    }
+    increds.client = 0;
+    krb5_free_cred_contents( kcontext, &increds );
+    krb5_free_principal( kcontext, kserver );
+    krb5_cc_close( kcontext, kccache );
+    krb5_free_context( kcontext );
+
 #endif /* KRB4 */
 
     return( 2 );
