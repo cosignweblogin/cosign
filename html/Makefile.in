@@ -2,6 +2,7 @@ ALL	= error.html login.html redirect.html service-menu.html splash.html verify-l
 prefix=@prefix@
 exec_prefix=@exec_prefix@
 TMPLDIR  = @prefix@/templates
+HTMLDIR  = @prefix@/html
 INSTALL	=	@INSTALL@
 
 M4 = /usr/ccs/bin/m4
@@ -18,6 +19,7 @@ install : all
 	-mkdir -p ${TMPLDIR}
 	for i in ${ALL}; do \
 	    ${INSTALL} -m 0644 -c $$i ${TMPLDIR}/; \
+	    /usr/bin/cp -r images/ cosign.css post_error.html ${HTMLDIR}/; \
 	done
 
 clean:

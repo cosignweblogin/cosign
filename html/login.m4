@@ -76,7 +76,7 @@ include(`header.html')
 		A valid UM login is required to use this
 		service;  find out how to get yours.<br />
 
-		<li><a href="">Alumni: Create an Account</a><br />
+		<li><a href="https://login.www.umich.edu/cgi-bin/new_account">Alumni: Create an Account</a><br />
 		UM Alumni are eligible to create an account to
 		stay in touch with the University.
 		</ul>
