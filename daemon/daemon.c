@@ -59,8 +59,6 @@ chld( sig )
 	    if ( WEXITSTATUS( status )) {
 		syslog( LOG_ERR, "child %d exited with %d", pid,
 			WEXITSTATUS( status ));
-	    } else {
-		syslog( LOG_INFO, "child %d done", pid );
 	    }
 	} else if ( WIFSIGNALED( status )) {
 	    syslog( LOG_ERR, "child %d died on signal %d", pid,
@@ -307,7 +305,9 @@ main( ac, av )
 	/* start child */
 	switch ( c = fork()) {
 	case 0 :
-	    close( s );
+	    syslog( LOG_INFO, "connect: %s", inet_ntoa( sin.sin_addr ));
+
+	    (void)close( s );
 
 	    /* reset CHLD and HUP */
 	    if ( sigaction( SIGCHLD, &osachld, 0 ) < 0 ) {
@@ -319,8 +319,6 @@ main( ac, av )
 		exit( 1 );
 	    }
 
-	    syslog( LOG_INFO, "connect: %s", inet_ntoa( sin.sin_addr ));
-
 	    exit( command( fd ));
 
 	case -1 :
@@ -330,7 +328,6 @@ main( ac, av )
 
 	default :
 	    close( fd );
-	    syslog( LOG_INFO, "child %d for %s", c, inet_ntoa( sin.sin_addr ));
 	    break;
 	}
     }

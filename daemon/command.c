@@ -93,6 +93,7 @@ f_quit( sn, ac, av )
     char			*av[];
 {
     snet_writef( sn, "%d Service closing transmission channel\r\n", 221 );
+    syslog( LOG_INFO, "done" );
     exit( 0 );
 }
 
