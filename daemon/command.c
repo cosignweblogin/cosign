@@ -95,7 +95,7 @@ extern char	*cosign_version;
 extern int	debug;
 extern SSL_CTX	*ctx;
 struct command 	*commands = unauth_commands;
-struct chosts	*ch = NULL;
+struct authlist	*al = NULL;
 struct rate	checkpass = { 0 };
 struct rate	checkfail = { 0 };
 struct rate	checkunknown = { 0 };
@@ -163,7 +163,7 @@ f_starttls( SNET *sn, int ac, char *av[], SNET *pushersn )
 
     X509_NAME_get_text_by_NID( X509_get_subject_name( peer ),
 		NID_commonName, buf, sizeof( buf ));
-    if (( ch = chosts_find( buf )) == NULL ) {
+    if (( al = authlist_find( buf )) == NULL ) {
 	syslog( LOG_ERR, "f_starttls: No access for %s", buf );
 	X509_free( peer );
 	exit( 1 );
@@ -193,10 +193,10 @@ f_login( SNET *sn, int ac, char *av[], SNET *pushersn )
 
     /* LOGIN login_cookie ip principal realm [tgt] */
 
-    if ( ch->ch_key != CGI ) {
-	syslog( LOG_ERR, "%s not allowed to login", ch->ch_hostname );
+    if ( al->al_key != CGI ) {
+	syslog( LOG_ERR, "%s not allowed to login", al->al_hostname );
 	snet_writef( sn, "%d LOGIN: %s not allowed to login.\r\n",
-		400, ch->ch_hostname );
+		400, al->al_hostname );
 	return( 1 );
     }
 
@@ -431,10 +431,10 @@ f_daemon( SNET *sn, int ac, char *av[], SNET *pushersn )
 
     char	hostname[ MAXHOSTNAMELEN ];
 
-    if ( ch->ch_key != CGI ) {
-	syslog( LOG_ERR, "%s is not a daemon", ch->ch_hostname );
+    if ( al->al_key != CGI ) {
+	syslog( LOG_ERR, "%s is not a daemon", al->al_hostname );
 	snet_writef( sn, "%d DAEMON: %s not a daemon.\r\n",
-		460, ch->ch_hostname );
+		460, al->al_hostname );
 	return( 1 );
     }
 
@@ -474,10 +474,10 @@ f_time( SNET *sn, int ac, char *av[], SNET *pushersn )
     /* login_cookie timestamp state */
     /* . */
 
-    if ( ch->ch_key != CGI ) {
-	syslog( LOG_ERR, "%s not allowed to tell time", ch->ch_hostname );
+    if ( al->al_key != CGI ) {
+	syslog( LOG_ERR, "%s not allowed to tell time", al->al_hostname );
 	snet_writef( sn, "%d TIME: %s not allowed to propogate time.\r\n",
-		460, ch->ch_hostname );
+		460, al->al_hostname );
 	return( 1 );
     }
 
@@ -545,7 +545,7 @@ f_time( SNET *sn, int ac, char *av[], SNET *pushersn )
 
     if ( total != 0 ) {
 	syslog( LOG_NOTICE, "STATS TIME %s: %d tried, %d%% success",
-		ch->ch_hostname, total, 100 * ( total - fail ) / total );
+		al->al_hostname, total, 100 * ( total - fail ) / total );
     }
     snet_writef( sn, "%d TIME successful: we are now up-to-date\r\n", 260 );
     return( 0 );
@@ -558,15 +558,15 @@ f_logout( SNET *sn, int ac, char *av[], SNET *pushersn )
 
     /*LOGOUT login_cookie ip */
 
-    if ( ch->ch_key != CGI ) {
-	syslog( LOG_ERR, "f_logout: %s not allowed", ch->ch_hostname );
+    if ( al->al_key != CGI ) {
+	syslog( LOG_ERR, "f_logout: %s not allowed", al->al_hostname );
 	snet_writef( sn, "%d LOGOUT: %s not allowed to logout.\r\n",
-		410, ch->ch_hostname );
+		410, al->al_hostname );
 	return( 1 );
     }
 
     if ( ac != 3 ) {
-	syslog( LOG_ERR, "f_logout: %s wrong number of args", ch->ch_hostname );
+	syslog( LOG_ERR, "f_logout: %s wrong number of args", al->al_hostname );
 	snet_writef( sn, "%d LOGOUT: Wrong number of args.\r\n", 510 );
 	return( 1 );
     }
@@ -578,7 +578,7 @@ f_logout( SNET *sn, int ac, char *av[], SNET *pushersn )
     }
 
     if ( strlen( av[ 1 ] ) >= MAXCOOKIELEN ) {
-	syslog( LOG_ERR, "f_logout: %s cookie too long", ch->ch_hostname );
+	syslog( LOG_ERR, "f_logout: %s cookie too long", al->al_hostname );
 	snet_writef( sn, "%d LOGOUT: Cookie too long\r\n", 512 );
 	return( 1 );
     }
@@ -692,15 +692,15 @@ f_register( SNET *sn, int ac, char *av[], SNET *pushersn )
 
     /* REGISTER login_cookie ip service_cookie */
 
-    if ( ch->ch_key != CGI ) {
-	syslog( LOG_ERR, "f_register: %s not allowed", ch->ch_hostname );
+    if ( al->al_key != CGI ) {
+	syslog( LOG_ERR, "f_register: %s not allowed", al->al_hostname );
 	snet_writef( sn, "%d REGISTER: %s not allowed to register.\r\n",
-		420, ch->ch_hostname );
+		420, al->al_hostname );
 	return( 1 );
     }
 
     if ( ac != 4 ) {
-	syslog( LOG_ERR, "f_register: %s wrong number of args.", ch->ch_hostname );
+	syslog( LOG_ERR, "f_register: %s wrong number of args.", al->al_hostname );
 	snet_writef( sn, "%d REGISTER: Wrong number of args.\r\n", 520 );
 	return( 1 );
     }
@@ -785,15 +785,15 @@ f_check( SNET *sn, int ac, char *av[], SNET *pushersn )
 
     /* CHECK (service/login)cookie */
 
-    if (( ch->ch_key != CGI ) && ( ch->ch_key != SERVICE )) {
-	syslog( LOG_ERR, "f_check: %s not allowed", ch->ch_hostname );
+    if (( al->al_key != CGI ) && ( al->al_key != SERVICE )) {
+	syslog( LOG_ERR, "f_check: %s not allowed", al->al_hostname );
 	snet_writef( sn, "%d CHECK: %s not allowed to check.\r\n",
-		430, ch->ch_hostname );
+		430, al->al_hostname );
 	return( 1 );
     }
 
     if ( ac != 2 ) {
-	syslog( LOG_ERR, "f_check: %s Wrong number of args.", ch->ch_hostname );
+	syslog( LOG_ERR, "f_check: %s Wrong number of args.", al->al_hostname );
 	snet_writef( sn, "%d CHECK: Wrong number of args.\r\n", 530 );
 	return( 1 );
     }
@@ -890,15 +890,15 @@ f_retr( SNET *sn, int ac, char *av[], SNET *pushersn )
     struct timeval      tv;
     char		login[ MAXCOOKIELEN ];
 
-    if (( ch->ch_key != SERVICE ) || ( ch->ch_key == CGI )) {
-	syslog( LOG_ERR, "f_retr: %s not allowed", ch->ch_hostname );
+    if (( al->al_key != SERVICE ) || ( al->al_key == CGI )) {
+	syslog( LOG_ERR, "f_retr: %s not allowed", al->al_hostname );
 	snet_writef( sn, "%d RETR: %s not allowed to retreive.\r\n",
-		442, ch->ch_hostname );
+		442, al->al_hostname );
 	return( 1 );
     }
 
     if ( ac != 3 ) {
-	syslog( LOG_ERR, "f_retr: %s Wrong number of args.", ch->ch_hostname );
+	syslog( LOG_ERR, "f_retr: %s Wrong number of args.", al->al_hostname );
 	snet_writef( sn, "%d RETR: Wrong number of args.\r\n", 540 );
 	return( 1 );
     }
@@ -968,14 +968,14 @@ retr_proxy( SNET *sn, char *login, SNET *pushersn )
     struct proxies	*proxy;
     int			rc;
 
-    if (( ch->ch_flag & CH_PROXY ) == 0 ) {
-	syslog( LOG_ERR, "%s cannot retrieve cookies", ch->ch_hostname );
+    if (( al->al_flag & AL_PROXY ) == 0 ) {
+	syslog( LOG_ERR, "%s cannot retrieve cookies", al->al_hostname );
 	snet_writef( sn, "%d RETR: %s cannot retrieve cookies.\r\n",
-		443, ch->ch_hostname );
+		443, al->al_hostname );
 	return( 1 );
     }
 
-    for ( proxy = ch->ch_proxies; proxy != NULL; proxy = proxy->pr_next ) {
+    for ( proxy = al->al_proxies; proxy != NULL; proxy = proxy->pr_next ) {
 	if ( mkcookie( sizeof( cookiebuf ), cookiebuf ) != 0 ) {
 	    return( -1 );
 	}
@@ -1011,10 +1011,10 @@ retr_ticket( SNET *sn, struct cinfo *ci )
     struct timeval      tv;
 
     /* RETR service-cookie TicketType */
-    if (( ch->ch_flag & CH_TICKET ) == 0 ) {
-	syslog( LOG_ERR, "%s not allowed to retrieve tkts", ch->ch_hostname );
+    if (( al->al_flag & AL_TICKET ) == 0 ) {
+	syslog( LOG_ERR, "%s not allowed to retrieve tkts", al->al_hostname );
 	snet_writef( sn, "%d RETR: %s not allowed to retrieve tkts.\r\n",
-		441, ch->ch_hostname );
+		441, al->al_hostname );
 	return( 1 );
     }
 
@@ -1091,7 +1091,7 @@ command( int fd, SNET *pushersn )
     if ( tlsopt ) {
 	commands = auth_commands;
 	ncommands = sizeof( auth_commands ) / sizeof( auth_commands[ 0 ] );
-	if (( ch = chosts_find( "DEBUG" )) == NULL ) {
+	if (( al = authlist_find( "DEBUG" )) == NULL ) {
 	    syslog( LOG_ERR, "No debugging access" );
 	    snet_writef( snet, "%d No DEBUG access\r\n", 508 );
 	    exit( 1 );

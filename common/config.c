@@ -17,42 +17,14 @@
 #include "config.h"
 #include "argcargv.h"
 
-struct chosts		*authlist = NULL;
+struct authlist		*authlist = NULL;
 struct cosigncfg 	*cfg = NULL;
 
-static void chosts_free();
-struct chosts *chosts_read( int ac, char **av, char *path, int linenum );
+static void authlist_free();
+
 
     static void
-addchost( struct chosts *ch )
-{
-    struct chosts *ptr = authlist;
-
-    if ( authlist) {
-	for ( ; ptr->ch_next; ptr = ptr->ch_next ) {
-	    ptr->ch_next = ch;
-	}
-    } else {
-	authlist = ch;
-    }
-}
-
-    static void
-addConfig( struct cosigncfg *cfgin )
-{
-    struct cosigncfg 	*ptr = cfg;
-
-    if ( cfg ) {
-	for ( ; ptr->cc_next; ptr = ptr->cc_next ) {
-	    ptr->cc_next = cfgin;
-	}
-    } else {
-	cfg = cfgin;
-    }
-}
-
-    static void
-freeConfig()
+free_config()
 {
     struct cosigncfg *ptr;
 
@@ -67,7 +39,7 @@ freeConfig()
 }
 
     char **
-getAllConfigValues( char *key, int *nVals )
+cosign_config_get_all( char *key, int *nVals )
 {
     struct cosigncfg *ptr;
 
@@ -83,7 +55,7 @@ getAllConfigValues( char *key, int *nVals )
 }
 
     char *
-getConfigValue( char *key )
+cosign_config_get( char *key )
 {
     struct cosigncfg *ptr;
 
@@ -95,14 +67,14 @@ getConfigValue( char *key )
     return( NULL );
 }
 
-    struct chosts *
-chosts_find( char *hostname )
+    struct authlist *
+authlist_find( char *hostname )
 {
-    struct chosts	*cur = NULL;
+    struct authlist	*cur = NULL;
 
-    for ( cur = authlist; cur != NULL; cur = cur->ch_next ) {
+    for ( cur = authlist; cur != NULL; cur = cur->al_next ) {
 	/* 0 makes this match case insensitive */
-	if ( wildcard( cur->ch_hostname, hostname, 0 )) {
+	if ( wildcard( cur->al_hostname, hostname, 0 )) {
 	    break;
 	}
     }
@@ -110,20 +82,20 @@ chosts_find( char *hostname )
 }
 
     static void
-chosts_free()
+authlist_free()
 {
-    struct chosts 	*cur, *next;
+    struct authlist 	*cur, *next;
     struct proxies	*pcur, *pnext;
 
     for ( cur = authlist; cur != NULL; cur = next ) {
-	free( cur->ch_hostname );
-	for ( pcur = cur->ch_proxies; pcur != NULL; pcur = pnext ) {
+	free( cur->al_hostname );
+	for ( pcur = cur->al_proxies; pcur != NULL; pcur = pnext ) {
 	    free( pcur->pr_hostname );
 	    free( pcur->pr_cookie );
 	    pnext = pcur;
 	    free( pcur );
 	}
-	next = cur->ch_next;
+	next = cur->al_next;
 	free( cur );
     }
     authlist = NULL;
@@ -135,7 +107,7 @@ chosts_free()
  *	host cookie
  */
     static int
-proxy_read( struct chosts *chost,char *path )
+proxy_read( struct authlist *authlist, char *path )
 {
     SNET		*sn;
     struct proxies	*new;
@@ -178,100 +150,23 @@ proxy_read( struct chosts *chost,char *path )
 	    return( -1 );
 	}
 
-	new->pr_next = chost->ch_proxies;
-	chost->ch_proxies = new;
+	new->pr_next = authlist->al_proxies;
+	authlist->al_proxies = new;
     }
 
     /* check for net_error */
     return( snet_close( sn ));
 }
 
-    struct chosts *
-chosts_read( int ac, char **av, char *path, int linenum )
-{
-    struct chosts *new = NULL;
-
-    if (( new = (struct chosts *)malloc( sizeof( struct chosts )))
-	    == NULL ) {
-	perror( "malloc" );
-	return NULL;
-    }
-    new->ch_next=NULL;
-
-    if ( strcmp( av[ 0 ], "cgi" ) == 0 ) {
-	new->ch_key = CGI;
-    } else if ( strcmp( av[ 0 ], "service" ) == 0 ) {
-	new->ch_key = SERVICE;
-    } else {
-	new->ch_key = NOTAUTH;
-    }
-
-    new->ch_hostname = strdup( av[ 1 ] );
-    new->ch_flag = 0;
-    new->ch_proxies = NULL;
-
-    if (( ac >= 3 ) && (( new->ch_key == SERVICE || new->ch_key == CGI ))) {
-	if ( strchr( av[ 2 ], 'T' ) != 0 ) {
-	    new->ch_flag |= CH_TICKET;
-	}
-	if ( strchr( av[ 2 ], 'P' ) != 0 ) {
-	    if ( ac != 4 ) {
-		fprintf( stderr, "%s: line %d, wrong number of args\n",
-			path, linenum );
-		return NULL;
-	    }
-	    if ( proxy_read( new, av[ 3 ] ) < 0 ) {
-		return NULL;
-	    }
-	    new->ch_flag |= CH_PROXY;
-	}
-    }
-    return( new );
-}
-
-/*
- * parse a config line which is of form:
- *	config key value
- *
- * return the config structure or null on failure
- */
-    static struct cosigncfg *
-processConfigLine( int ac, char **av )
-{
-    int 		i;
-    struct cosigncfg 	*new = NULL;
-
-    if (( new = malloc( sizeof( struct cosigncfg ))) == NULL ) {
-	perror( "malloc for config line" );
-	return( NULL );
-    }
-
-    new->cc_key = strdup( av[ 1 ] );
-    new->cc_numval = ac - 2;
-
-    if (( new->cc_value = (char **)calloc( new->cc_numval, sizeof( char * )))
-	    == NULL ) {
-	perror( "malloc for config line" );
-	return( NULL );
-    }
-
-    for ( i = 2; i < ac; i++ ) {
-	new->cc_value[ i - 2 ] = strdup( av[ i ] );
-	new->cc_next = NULL;
-    }
-
-    return( new );
-}
-
     static int
-parseConfig_( char *path )
+read_config( char *path )
 {
     SNET		*sn;
     char		**av, *line;
-    int			ac;
+    int			ac, i;
     int			linenum = 0;
-    struct cosigncfg	*cc_new;
-    struct chosts 	*ch_new;
+    struct cosigncfg	*cc_new, **cc_cur;
+    struct authlist 	*al_new, **al_cur;
 
     if (( sn = snet_open( path, O_RDONLY, 0, 0 )) == NULL ) {
 	perror( path );
@@ -288,17 +183,40 @@ parseConfig_( char *path )
 	    continue;
 	}
 	
-	if ( strcmp( av[ 0 ],"config" ) == 0 ) {
+	if ( strcmp( av[ 0 ], "set" ) == 0 ) {
 	    if ( ac < 3 ) {
 		fprintf( stderr, "%s: line %d, "
 			"wrong number of args for config keyword\n",
 			path, linenum );
 		return( -1 );
 	    }
-	    cc_new = processConfigLine( ac, av );
-	    if ( cc_new ) {
-		addConfig( cc_new );
+	    if (( cc_new = malloc( sizeof( struct cosigncfg ))) == NULL ) {
+		perror( "malloc for config line" );
+		return( -1 );
 	    }
+
+	    cc_new->cc_key = strdup( av[ 1 ] );
+	    cc_new->cc_numval = ac - 2;
+	    cc_new->cc_next = NULL;
+
+	    if (( cc_new->cc_value =
+		    (char **)calloc( cc_new->cc_numval, sizeof( char * )))
+		    == NULL ) {
+		perror( "malloc for config line" );
+		return( -1 );
+	    }
+
+	    for ( i = 0; i < cc_new->cc_numval; i++ ) {
+		cc_new->cc_value[ i ] = strdup( av[ i + 2 ] );
+
+	    }
+	    for ( cc_cur = &cfg; (*cc_cur) != NULL;
+		    cc_cur = &(*cc_cur)->cc_next )
+		;
+
+	    cc_new->cc_next = *cc_cur;
+	    *cc_cur = cc_new;
+
 	} else if ( strcmp( av[ 0 ],"include" ) == 0 ) {
 	    if ( ac != 2 ) {
 		fprintf( stderr, "%s: line %d, "
@@ -306,47 +224,125 @@ parseConfig_( char *path )
 			path, linenum );
 		continue;
 	    }
-	    if ( parseConfig_( av[1] )) {
-		fprintf(stderr,"\tincluded from %s line %d\n", path, linenum);
+	    if ( read_config( av[ 1 ] )) {
+		fprintf( stderr,"%s line %d\n", path, linenum );
 		return( -1 );
 	    }
 	} else {
-	    /* Normal ACL like command */
-	    ch_new = chosts_read( ac, av, path, linenum );
-	    if ( ch_new ) {
-		addchost( ch_new );
+	    if ( strcmp( av[ 0 ], "cgi" ) == 0 ) {
+		if ( ac != 2 ) {
+		    fprintf( stderr, "line %d: keyword cgi takes 2 args\n",
+			    linenum );
+		    return( -1 );
+		}
+
+		if (( al_new =
+			(struct authlist *)malloc( sizeof( struct authlist )))
+			== NULL ) {
+		    perror( "malloc" );
+		    return( -1 );
+		}
+		al_new->al_next = NULL;
+
+		al_new->al_key = CGI;
+		al_new->al_hostname = strdup( av[ 1 ] );
+		al_new->al_flag = 0;
+		al_new->al_proxies = NULL;
+
+	    } else if ( strcmp( av[ 0 ], "service" ) == 0 ) {
+		if (( ac != 3 ) || ( ac != 4 )) {
+		    fprintf( stderr,
+			"line %d: keyword service takes 3 or 4 args\n",
+			linenum );
+		    return( -1 );
+		}
+		if (( al_new =
+			(struct authlist *)malloc( sizeof( struct authlist )))
+			== NULL ) {
+		    perror( "malloc" );
+		    return( -1 );
+		}
+		al_new->al_next = NULL;
+		al_new->al_key = SERVICE;
+		al_new->al_hostname = strdup( av[ 1 ] );
+		al_new->al_flag = 0;
+
+		if ( strchr( av[ 2 ], 'T' ) != 0 ) {
+		    al_new->al_flag |= AL_TICKET;
+		} 
+
+		if ( strchr( av[ 2 ], 'P' ) != 0 ) {
+		    if ( ac != 4 ) {
+			fprintf( stderr, "%s: line %d: proxy\n",
+				path, linenum );
+			return( -1 );
+		    }
+		    if ( proxy_read( al_new, av[ 3 ] ) < 0 ) {
+			fprintf( stderr, "proxy read failed line %d\n",
+			    linenum );
+			return( -1 ); 
+		    }
+		    al_new->al_flag |= AL_PROXY;
+		}
+
+	    } else if ( strcmp( av[ 0 ], "notauth" ) == 0 ) {
+		if ( ac != 2 ) {
+		    fprintf( stderr, "line %d: keyword notauth takes 2 args\n",
+			    linenum );
+		    return( -1 );
+		}
+		if (( al_new =
+			(struct authlist *)malloc( sizeof( struct authlist )))
+			== NULL ) {
+		    perror( "malloc" );
+		    return( -1 );
+		}
+		al_new->al_next = NULL;
+		al_new->al_key = NOTAUTH;
+		al_new->al_hostname = strdup( av[ 1 ] );
+		al_new->al_flag = 0;
+
+	    } else {
+		fprintf( stderr, "invalid keyword line %d: %s\n",
+			linenum, av[ 0 ] );
+		return( -1 );
 	    }
+
+	    for ( al_cur = &authlist; (*al_cur) != NULL;
+		    al_cur = &(*al_cur)->al_next )
+		;
+
+	    al_new->al_next = *al_cur;
+	    *al_cur = al_new;
+
 	}
     }
-    /* check for net_error */
+
     return( snet_close( sn ));
 }
 
+
 /*
  * File format is
- *	keyword hostname
- *	keyword hostname T
- *	keyword hostname P path
- *	keyword hostname TP path
- *	config key value
+ *	cgi hostname
+ *	service hostname 0
+ *	service hostname T
+ *	service hostname P path
+ *	service hostname TP path
+ *	notauth hostname
+ *	set key value
  *	include configfilepath
  */
     int
-parseConfig( char *path )
+cosign_config( char *path )
 {
-    struct chosts	**cur_ch;
-    struct cosigncfg 	**cur_cc;
-
     if ( authlist != NULL ) {
-	chosts_free( );
+	authlist_free( );
     }
 
     if ( cfg != NULL ) {
-	freeConfig();
+	free_config();
     }
 
-    cur_ch = &authlist;
-    cur_cc = &cfg;
-
-    return parseConfig_( path );
+    return read_config( path );
 }

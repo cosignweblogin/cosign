@@ -3,15 +3,15 @@
 #define SERVICE	2
 #define DAEMON	3
 
-#define CH_TICKET	(1<<0)
-#define CH_PROXY	(1<<1)
+#define AL_TICKET	(1<<0)
+#define AL_PROXY	(1<<1)
 
-struct chosts {
-    char		*ch_hostname;
-    int			ch_key;
-    int			ch_flag;
-    struct proxies	*ch_proxies;
-    struct chosts	*ch_next;
+struct authlist {
+    char		*al_hostname;
+    int			al_key;
+    int			al_flag;
+    struct proxies	*al_proxies;
+    struct authlist	*al_next;
 };
 
 struct proxies {
@@ -43,7 +43,7 @@ struct cosigncfg {
 #define MYSQLPASSWDKEY	"mysqlpasswd"
 #endif
 
-struct chosts * chosts_find( char *host );
-int parseConfig( char *path );
-char * getConfigValue( char *key );
-char ** getAllConfigValues( char *key, int *nVals );
+struct authlist * authlist_find( char *host );
+int cosign_config( char *path );
+char * cosign_config_get( char *key );
+char ** cosign_config_get_all( char *key, int *nVals );

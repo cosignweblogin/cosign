@@ -60,25 +60,25 @@ daemon_configure()
 {
     char	 *val;
 
-    if (( val = getConfigValue( COSIGNDBKEY )) != NULL ) {
+    if (( val = cosign_config_get( COSIGNDBKEY )) != NULL ) {
 	syslog( LOG_INFO, "config: overriding default DB location(%s)"
 		" to config value of '%s'", cosign_dir, val );
 	cosign_dir = val;
     }
 
-    if (( val = getConfigValue( COSIGNCADIRKEY )) != NULL ) {
+    if (( val = cosign_config_get( COSIGNCADIRKEY )) != NULL ) {
 	syslog( LOG_INFO, "config: overriding default CA dir(%s)"
 		" to config value of '%s'", cadir, val );
 	cadir = val;
     }
 
-    if (( val = getConfigValue( COSIGNCERTKEY )) != NULL ) {
+    if (( val = cosign_config_get( COSIGNCERTKEY )) != NULL ) {
 	syslog( LOG_INFO, "config: overriding default ssl cert location(%s)"
 		" to config value of '%s'",	certfile, val );
 	certfile = val;
     }
 
-    if (( val = getConfigValue( COSIGNKEYKEY )) != NULL ) {
+    if (( val = cosign_config_get( COSIGNKEYKEY )) != NULL ) {
 	syslog( LOG_INFO, "config: overriding default ssl key location(%s)"
 		" to config value of '%s'",cryptofile, val );
 	cryptofile = val;
@@ -89,7 +89,7 @@ daemon_configure()
 hup( int sig )
 {
     syslog( LOG_INFO, "reload %s", cosign_version );
-    if ( parseConfig( cosign_conf ) < 0 ) {
+    if ( cosign_config( cosign_conf ) < 0 ) {
 	syslog( LOG_ERR, "%s: re-read failed", cosign_conf );
 	exit( 1 );
     }
@@ -165,7 +165,7 @@ main( int ac, char *av[] )
      * any configuration in the conf file.
      */
 
-    if ( parseConfig( cosign_conf ) < 0 ) {
+    if ( cosign_config( cosign_conf ) < 0 ) {
 	exit( 1 );
     }
 
@@ -181,7 +181,7 @@ main( int ac, char *av[] )
 	case 'c' :		/* config file */
 	    cosign_conf = optarg;
 	    /* Must now re-configure :( */
-	    if ( parseConfig( cosign_conf ) < 0 ) {
+	    if ( cosign_config( cosign_conf ) < 0 ) {
 		exit( 1 );
 	    }
 	    daemon_configure();
