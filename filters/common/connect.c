@@ -34,7 +34,7 @@
 #include "argcargv.h"
 #include "mkcookie.h"
 
-#define TKT_PREFIX	"/ticket"
+#define TKT_PREFIX	_COSIGN_TICKET_CACHE
 #define MIN(a,b)        ((a)<(b)?(a):(b))
 
 static int connect_sn( struct connlist *, SSL_CTX *, char * );
