@@ -50,6 +50,8 @@ reload: install restart
 #   the general Apache start/restart/stop procedures
 start:
 	$(APACHECTL) start
+startssl:
+	$(APACHECTL) startssl
 restart:
 	$(APACHECTL) restart
 stop:
