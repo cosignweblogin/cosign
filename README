@@ -36,6 +36,8 @@ Set up a cosign-protected service:
     sure to change APACHE_USER to the username defined in your
     httpd.conf file.
 
+	--with-filterdb=DIR overrides the default of /var/cosign/filter
+
     Finally, create a CA directory to hold your CA certificates.  Copy
     the CAs ( see the CAcerts directory in the root of the cosign
     source distribution ) to your CA dir and issue the c_rehash command
