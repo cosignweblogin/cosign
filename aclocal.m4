@@ -127,6 +127,7 @@ AC_DEFUN([CHECK_APACHE_APXS],
         HAVE_APACHE=yes
         FILTERS="$FILTERS filters/apache"
         APXS_INCLUDE="-I`$APXS -q INCLUDEDIR`"
+        APXS_CFLAGS="`$APXS -q CFLAGS`"
         APXS_CFLAGS_SHLIB="`$APXS -q CFLAGS_SHLIB`"
         APXS_SBINDIR="`$APXS -q SBINDIR`"
         APXS_TARGET="`$APXS -q TARGET`"
