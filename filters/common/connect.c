@@ -41,7 +41,7 @@
 
 static int connect_sn( struct connlist *, SSL_CTX *, char * );
 static int close_sn( struct connlist *);
-void (*logger)( char * ) = NULL;
+static void (*logger)( char * ) = NULL;
 
 static struct timeval		timeout = { 10 * 60, 0 };
 

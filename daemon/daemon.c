@@ -33,7 +33,7 @@
 int		debug = 0;
 int		backlog = 5;
 
-extern char	*version;
+extern char	*cosign_version;
 int		tlsopt = 0;
 char		*cosign_dir = _COSIGN_DIR;
 char		*cosign_conf = _COSIGN_CONF;
@@ -47,7 +47,7 @@ int		main ___P(( int, char *av[] ));
 hup( sig )
     int			sig;
 {
-    syslog( LOG_INFO, "reload %s", version );
+    syslog( LOG_INFO, "reload %s", cosign_version );
     if ( chosts_read( cosign_conf ) < 0 ) {
 	syslog( LOG_ERR, "%s: re-read failed", cosign_conf );
 	exit( 1 );
@@ -141,7 +141,7 @@ main( ac, av )
 	    break;
 
 	case 'V' :		/* version */
-	    printf( "%s\n", version );
+	    printf( "%s\n", cosign_version );
 	    exit( 0 );
 
 	case 'X' :		/* no required tls/ssl for debugging */
@@ -323,7 +323,7 @@ main( ac, av )
 	exit( 1 );
     }
 
-    syslog( LOG_INFO, "restart %s", version );
+    syslog( LOG_INFO, "restart %s", cosign_version );
 
     /*
      * Begin accepting connections.

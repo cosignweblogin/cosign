@@ -17,6 +17,8 @@ COSIGND:
 
 post 1.0
 	not doing much with cosign-[name]
+	linux 524 bug
+	psu realm bug
 
 Protocol:
 

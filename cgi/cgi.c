@@ -24,7 +24,7 @@
 #define TKT_PREFIX	"/ticket/"
 #define SIDEWAYS        1
 
-extern char	*version;
+extern char	*cosign_version;
 char	*err = NULL, *ref = NULL, *service = NULL;
 char	*title = "Authentication Required";
 char	*host = _COSIGN_HOST;
@@ -43,7 +43,6 @@ struct cgi_list cl[] = {
         { NULL, NULL },
 };
 
-void            (*logger)( char * ) = NULL;
 void            subfile( char * );
 
     void
@@ -173,7 +172,7 @@ main( int argc, char *argv[] )
     char			*tmpl = LOGIN_HTML;
 
     if ( argc == 2 && ( strncmp( argv[ 1 ], "-V", 2 ) == 0 )) {
-	printf( "%s\n", version );
+	printf( "%s\n", cosign_version );
 	exit( 0 );
     }
 

@@ -22,7 +22,7 @@
 #include "network.h"
 
 static struct timeval	timeout = { 10 * 60, 0 };
-extern void	(*logger)( char * );
+static void	(*logger)( char * ) = NULL;
 extern int	errno;
 extern int	port;
 extern char	*host;
@@ -54,7 +54,7 @@ cosign_login( char *cookie, char *ip, char *user, char *realm, char *krb)
     }
 
     tv = timeout;
-    if (( line = snet_getline_multi( sn, logger, &tv) ) == NULL ) {
+    if (( line = snet_getline_multi( sn, logger, &tv )) == NULL ) {
 	fprintf( stderr, "cosign_login: %s\n", strerror( errno ));
 	goto done;
     }
@@ -169,7 +169,7 @@ cosign_logout( char *cookie, char *ip )
     }
 
     tv = timeout;
-    if (( line = snet_getline_multi( sn, logger, &tv) ) == NULL ) {
+    if (( line = snet_getline_multi( sn, logger, &tv )) == NULL ) {
 	fprintf( stderr, "cosign_logout: %s\n", strerror( errno ));
 	if (( closesn( sn )) != 0 ) {
 	    fprintf( stderr, "cosign_logout: closesn failed\n" );
@@ -215,7 +215,7 @@ cosign_register( char *cookie, char *ip, char *scookie )
     }
 
     tv = timeout;
-    if (( line = snet_getline_multi( sn, logger, &tv) ) == NULL ) {
+    if (( line = snet_getline_multi( sn, logger, &tv )) == NULL ) {
 	fprintf( stderr, "cosign_register: %s\n", strerror( errno ));
 	if (( closesn( sn )) != 0 ) {
 	    fprintf( stderr, "cosign_register: closesn failed\n" );
@@ -263,7 +263,7 @@ cosign_check( char *cookie )
     }
 
     tv = timeout;
-    if (( line = snet_getline_multi( sn, logger, &tv) ) == NULL ) {
+    if (( line = snet_getline_multi( sn, logger, &tv )) == NULL ) {
 	fprintf( stderr, "cosign_check: %s\n", strerror( errno ));
 	if (( closesn( sn )) != 0 ) {
 	    fprintf( stderr, "cosign_check: closesn failed\n" );
@@ -452,7 +452,7 @@ closesn( SNET *sn )
 	exit( 2 );
     }
     tv = timeout;
-    if ( ( line = snet_getline_multi( sn, logger, &tv ) ) == NULL ) {
+    if (( line = snet_getline_multi( sn, logger, &tv )) == NULL ) {
 	fprintf( stderr, "close failed: %s\n", strerror( errno ));
 	exit( 2 );
     }

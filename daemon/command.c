@@ -80,7 +80,7 @@ struct command	auth_commands[] = {
     { "RETR",		f_retr },
 };
 
-extern char	*version;
+extern char	*cosign_version;
 extern SSL_CTX	*ctx;
 struct command 	*commands = unauth_commands;
 struct chosts	*ch = NULL;
@@ -103,7 +103,7 @@ f_noop( sn, ac, av )
     int				ac;
     char			*av[];
 {
-    snet_writef( sn, "%d cosign v%s\r\n", 250, version );
+    snet_writef( sn, "%d cosign v%s\r\n", 250, cosign_version );
     return( 0 );
 }
 

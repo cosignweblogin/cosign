@@ -22,7 +22,7 @@
 #define SIDEWAYS	1
 #define htputs( x ) fputs((x),stdout);
 
-extern char	*version;
+extern char	*cosign_version;
 char	*err = NULL;
 char	*title = "Logout";
 char	*host = _COSIGN_HOST;
@@ -38,7 +38,6 @@ struct cgi_list cl[] = {
         { NULL, NULL },
 };
 
-void	(*logger)( char * ) = NULL;
 void	subfile( char * );
 
 
@@ -130,7 +129,7 @@ main( int argc, char *argv[] )
     char	*cookie = NULL, *data, *ip_addr, *script, *qs;
 
     if ( argc == 2 && ( strncmp( argv[ 1 ], "-V", 2 ) == 0 )) {
-	printf( "%s\n", version );
+	printf( "%s\n", cosign_version );
 	exit( 0 );
     }
 
