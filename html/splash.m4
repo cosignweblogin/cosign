@@ -2,10 +2,10 @@ include(`header.html')
 
 	<td valign="top">
             <p>
-                Welcome to the University of Michigan's central web
-                authentication service. You will need to <a
-                href='/'>visit the login screen</a> and
-                login before continuing.  Login now:
+		Welcome to the University of Michigan's central web
+		authentication service. It is necessary to to <a
+		href='/'>visit the login screen</a> and authenticate
+		before accessing protected resources.  Login now:
             </p>
 
             <p class='important'>
