@@ -258,8 +258,12 @@ main()
     /* what happens when we get an already logged in back? tri-val? */
     if ( cosign_login( cookie, ip_addr, 
 	    cl[ CL_UNIQNAME ].cl_data, "UMICH.EDU" ) < 0 ) {
-	    fprintf( stderr, "%s: login failed\n", script ) ;
-	    exit( 2 );
+	fprintf( stderr, "%s: login failed\n", script ) ;
+	err = "Login failed: Sorry!";
+	title = "Failed";
+	tmpl = ERROR_HTML;
+	subfile( tmpl );
+	exit( 2 );
     }
 
     subfile ( tmpl );
