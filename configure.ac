@@ -18,6 +18,8 @@ AC_CANONICAL_HOST
 AC_CHECK_LIB([nsl], [inet_ntoa])
 AC_CHECK_LIB([socket], [socket])
 
+AC_ARG_ENABLE(apache2, AC_HELP_STRING([--enable-apache2=path_to_apache2-apxs], [enable apache 2 filter]), CHECK_APACHE2_APXS, AC_MSG_RESULT( apache 2 not enabled))
+
 AC_ARG_ENABLE(krb, AC_HELP_STRING([--enable-krb=path_to_krb], [enable kerberos for the cgi and apache filter]), CHECK_LIBKRB, AC_MSG_RESULT( kerberos not enabled))
 
 AC_ARG_ENABLE(basicauth, AC_HELP_STRING([--enable-basicauth], [build
@@ -77,7 +79,6 @@ CHECK_SSL
 
 # Checks for filters:
 CHECK_APACHE_APXS
-CHECK_APACHE_APXS2
 
 if test "x_$FILTERS" = "x_" ; then
   AC_MSG_ERROR([No web server found])

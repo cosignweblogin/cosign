@@ -277,7 +277,7 @@ PACKAGE_BUGREPORT='cosign@umich.edu'
 
 ac_unique_file="version.c"
 ac_subdirs_all="$ac_subdirs_all libsnet"
-ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS AWK CC CFLAGS LDFLAGS CPPFLAGS ac_ct_CC EXEEXT OBJEXT INSTALL_PROGRAM INSTALL_SCRIPT INSTALL_DATA LEX LEXLIB LEX_OUTPUT_ROOT YACC build build_cpu build_vendor build_os host host_cpu host_vendor host_os KRBCGI KRBDEFS KINC KLIBS KLDFLAGS HAVE_KRB BASICCGI filteraddrcheck MYSQLINC MYSQLLIBS MYSQLLDFLAGS HAVE_MYSQL K4DEFS K4INC K4LIBS K4LDFLAGS HAVE_KRB4 GSSDEFS GSSINC GSSLIBS GSSLDFLAGS HAVE_GSS cosigndb cosignconf cosigncadir cosigncert cosignkey frienddbhost frienddblogin frienddbpasswd filterdb cosignhost cosignlogouturl keytabpath ADDLIBS ADDLDFLAGS TLSDEFS HAVE_SSL APXS APXS_INCLUDE APXS_CFLAGS APXS_CFLAGS_SHLIB APACHECTL APXS2 APXS2_INCLUDE APXS2_CFLAGS APXS2_CFLAGS_SHLIB APACHECTL2 FILTERS OPTOPTS subdirs LIBOBJS LTLIBOBJS'
+ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS AWK CC CFLAGS LDFLAGS CPPFLAGS ac_ct_CC EXEEXT OBJEXT INSTALL_PROGRAM INSTALL_SCRIPT INSTALL_DATA LEX LEXLIB LEX_OUTPUT_ROOT YACC build build_cpu build_vendor build_os host host_cpu host_vendor host_os APXS2 APXS2_INCLUDE APXS2_CFLAGS APXS2_CFLAGS_SHLIB APACHECTL2 HAVE_APACHE2 KRBCGI KRBDEFS KINC KLIBS KLDFLAGS HAVE_KRB BASICCGI filteraddrcheck MYSQLINC MYSQLLIBS MYSQLLDFLAGS HAVE_MYSQL K4DEFS K4INC K4LIBS K4LDFLAGS HAVE_KRB4 GSSDEFS GSSINC GSSLIBS GSSLDFLAGS HAVE_GSS cosigndb cosignconf cosigncadir cosigncert cosignkey frienddbhost frienddblogin frienddbpasswd filterdb cosignhost cosignlogouturl keytabpath ADDLIBS ADDLDFLAGS TLSDEFS HAVE_SSL APXS APXS_INCLUDE APXS_CFLAGS APXS_CFLAGS_SHLIB APACHECTL FILTERS OPTOPTS subdirs LIBOBJS LTLIBOBJS'
 ac_subst_files=''
 
 # Initialize some variables set by options.
@@ -810,6 +810,8 @@ if test -n "$ac_init_help"; then
 Optional Features:
   --disable-FEATURE       do not include FEATURE (same as --enable-FEATURE=no)
   --enable-FEATURE[=ARG]  include FEATURE [ARG=yes]
+  --enable-apache2=path_to_apache2-apxs
+                          enable apache 2 filter
   --enable-krb=path_to_krb
                           enable kerberos for the cgi and apache filter
   --enable-basicauth      build the basicauth version of the cgi
@@ -841,8 +843,6 @@ Optional Packages:
   --with-keytabpath=FILE  path to keytab
   --with-ssl=DIR          path to ssl
   --with-apache-apxs=FILE path to Apache apxs program
-  --with-apache2-apxs=FILE
-                          path to Apache 2 apxs program
 
 Some influential environment variables:
   CC          C compiler command
@@ -2902,6 +2902,61 @@ _ACEOF
 fi
 
 
+# Check whether --enable-apache2 or --disable-apache2 was given.
+if test "${enable_apache2+set}" = set; then
+  enableval="$enable_apache2"
+
+    echo "$as_me:$LINENO: checking for apache 2" >&5
+echo $ECHO_N "checking for apache 2... $ECHO_C" >&6
+    apxs2dirs="/usr/local/apache2/bin /usr/apache2/bin /usr/pkg/bin \
+    /usr/local/bin /usr/local/httpd/bin"
+    if test "${ac_cv_path_apxs2+set}" = set; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+
+        for i in $apxs2dirs; do
+	    if test -f "$i/apxs"; then
+		ac_cv_path_apxs2="$i/apxs"
+                break;
+            fi
+        done
+
+fi
+
+    APXS2="$ac_cv_path_apxs2"
+
+    if test ! -e "$ac_cv_path_apxs2" ; then
+        { { echo "$as_me:$LINENO: error: cannot find apache 2" >&5
+echo "$as_me: error: cannot find apache 2" >&2;}
+   { (exit 1); exit 1; }; }
+    fi
+
+    FILTERS="$FILTERS filters/apache2"
+    APXS2_INCLUDE="-I`$APXS2 -q INCLUDEDIR`"
+    APXS2_CFLAGS="`$APXS2 -q CFLAGS`"
+    APXS2_CFLAGS_SHLIB="`$APXS2 -q CFLAGS_SHLIB`"
+    APXS2_SBINDIR="`$APXS2 -q SBINDIR`"
+    APXS2_TARGET="`$APXS2 -q TARGET`"
+    if test x_$APXS2_TARGET = x_httpd ; then
+	APACHECTL2="${APXS2_SBINDIR}/apachectl"
+    else
+	APACHECTL2="${APXS2_SBINDIR}/${APXS2_TARGET}ctl"
+    fi
+
+
+
+
+
+    HAVE_APACHE2=yes
+
+    echo "$as_me:$LINENO: result: $ac_cv_path_apxs2" >&5
+echo "${ECHO_T}$ac_cv_path_apxs2" >&6
+
+else
+  echo "$as_me:$LINENO: result: apache 2 not enabled" >&5
+echo "${ECHO_T}apache 2 not enabled" >&6
+fi;
+
 # Check whether --enable-krb or --disable-krb was given.
 if test "${enable_krb+set}" = set; then
   enableval="$enable_krb"
@@ -3301,64 +3356,6 @@ echo "${ECHO_T}$APXS" >&6
     else
         echo "$as_me:$LINENO: result: not found - Apache filter support disabled" >&5
 echo "${ECHO_T}not found - Apache filter support disabled" >&6
-    fi
-
-
-    echo "$as_me:$LINENO: checking for Apache 2 DSO support / apxs" >&5
-echo $ECHO_N "checking for Apache 2 DSO support / apxs... $ECHO_C" >&6
-
-# Check whether --with-apache-apxs2 or --without-apache-apxs2 was given.
-if test "${with_apache_apxs2+set}" = set; then
-  withval="$with_apache_apxs2"
-  APXS2=$withval
-fi;
-
-    if test -f "$APXS2" ; then
-        ac_cv_path_apxs2=$APXS2   # put it into the cache
-    else
-	apxs2dirs="/usr/local/apache2/bin:/usr/apache2/bin:/usr/pkg/bin:/usr/local/bin:/usr/local/httpd/bin:$PATH"
-        if test "${ac_cv_path_apxs2+set}" = set; then
-  echo $ECHO_N "(cached) $ECHO_C" >&6
-else
-
-            saved_ifs=$IFS
-            IFS=:
-            for i in $apxs2dirs; do
-                if test -f "$i/apxs"; then
-                    ac_cv_path_apxs2="$i/apxs"
-                    break
-                fi
-            done
-            IFS=$saved_ifs
-
-fi
-
-        APXS2="$ac_cv_path_apxs2"
-    fi
-
-    if test -f "$APXS2" ; then
-        HAVE_APACHE2=yes
-        FILTERS="$FILTERS filters/apache2"
-        APXS2_INCLUDE="-I`$APXS2 -q INCLUDEDIR`"
-        APXS2_CFLAGS="`$APXS2 -q CFLAGS`"
-        APXS2_CFLAGS_SHLIB="`$APXS2 -q CFLAGS_SHLIB`"
-        APXS2_SBINDIR="`$APXS2 -q SBINDIR`"
-        APXS2_TARGET="`$APXS2 -q TARGET`"
-        if test x_$APXS2_TARGET = x_httpd ; then
-            APACHECTL2="${APXS2_SBINDIR}/apachectl"
-        else
-            APACHECTL="${APXS2_SBINDIR}/${APXS2_TARGET}ctl"
-        fi
-
-
-
-
-
-        echo "$as_me:$LINENO: result: $APXS2" >&5
-echo "${ECHO_T}$APXS2" >&6
-    else
-        echo "$as_me:$LINENO: result: not found - Apache 2 filter support disabled" >&5
-echo "${ECHO_T}not found - Apache 2 filter support disabled" >&6
     fi
 
 
@@ -4066,6 +4063,12 @@ s,@host@,$host,;t t
 s,@host_cpu@,$host_cpu,;t t
 s,@host_vendor@,$host_vendor,;t t
 s,@host_os@,$host_os,;t t
+s,@APXS2@,$APXS2,;t t
+s,@APXS2_INCLUDE@,$APXS2_INCLUDE,;t t
+s,@APXS2_CFLAGS@,$APXS2_CFLAGS,;t t
+s,@APXS2_CFLAGS_SHLIB@,$APXS2_CFLAGS_SHLIB,;t t
+s,@APACHECTL2@,$APACHECTL2,;t t
+s,@HAVE_APACHE2@,$HAVE_APACHE2,;t t
 s,@KRBCGI@,$KRBCGI,;t t
 s,@KRBDEFS@,$KRBDEFS,;t t
 s,@KINC@,$KINC,;t t
@@ -4109,11 +4112,6 @@ s,@APXS_INCLUDE@,$APXS_INCLUDE,;t t
 s,@APXS_CFLAGS@,$APXS_CFLAGS,;t t
 s,@APXS_CFLAGS_SHLIB@,$APXS_CFLAGS_SHLIB,;t t
 s,@APACHECTL@,$APACHECTL,;t t
-s,@APXS2@,$APXS2,;t t
-s,@APXS2_INCLUDE@,$APXS2_INCLUDE,;t t
-s,@APXS2_CFLAGS@,$APXS2_CFLAGS,;t t
-s,@APXS2_CFLAGS_SHLIB@,$APXS2_CFLAGS_SHLIB,;t t
-s,@APACHECTL2@,$APACHECTL2,;t t
 s,@FILTERS@,$FILTERS,;t t
 s,@OPTOPTS@,$OPTOPTS,;t t
 s,@subdirs@,$subdirs,;t t

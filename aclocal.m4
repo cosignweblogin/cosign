@@ -73,6 +73,45 @@ AC_DEFUN([CHECK_LIBKRB],
     AC_MSG_RESULT($ac_cv_path_krb)
 ])
 
+AC_DEFUN([CHECK_APACHE2_APXS],
+[
+    AC_MSG_CHECKING(for apache 2)
+    apxs2dirs="/usr/local/apache2/bin /usr/apache2/bin /usr/pkg/bin \
+    /usr/local/bin /usr/local/httpd/bin"
+    AC_CACHE_VAL(ac_cv_path_apxs2,[
+        for i in $apxs2dirs; do
+	    if test -f "$i/apxs"; then
+		ac_cv_path_apxs2="$i/apxs"
+                break;
+            fi
+        done
+    ])
+    APXS2="$ac_cv_path_apxs2"
+
+    if test ! -e "$ac_cv_path_apxs2" ; then
+        AC_MSG_ERROR(cannot find apache 2)
+    fi
+
+    FILTERS="$FILTERS filters/apache2"
+    APXS2_INCLUDE="-I`$APXS2 -q INCLUDEDIR`"
+    APXS2_CFLAGS="`$APXS2 -q CFLAGS`"
+    APXS2_CFLAGS_SHLIB="`$APXS2 -q CFLAGS_SHLIB`"
+    APXS2_SBINDIR="`$APXS2 -q SBINDIR`"
+    APXS2_TARGET="`$APXS2 -q TARGET`"
+    if test x_$APXS2_TARGET = x_httpd ; then
+	APACHECTL2="${APXS2_SBINDIR}/apachectl"
+    else
+	APACHECTL2="${APXS2_SBINDIR}/${APXS2_TARGET}ctl"
+    fi
+    AC_SUBST(APXS2)
+    AC_SUBST(APXS2_INCLUDE)
+    AC_SUBST(APXS2_CFLAGS)
+    AC_SUBST(APXS2_CFLAGS_SHLIB)
+    AC_SUBST(APACHECTL2)
+    HAVE_APACHE2=yes
+    AC_SUBST(HAVE_APACHE2)
+    AC_MSG_RESULT($ac_cv_path_apxs2)
+])
 AC_DEFUN([CHECK_KRB4],
 [
     AC_MSG_CHECKING(for krb4)
@@ -158,54 +197,6 @@ AC_DEFUN([CHECK_APACHE_APXS],
     fi
 ])
 
-AC_DEFUN([CHECK_APACHE_APXS2],
-[
-    AC_MSG_CHECKING([for Apache 2 DSO support / apxs])
-    AC_ARG_WITH(apache-apxs2,
-        AC_HELP_STRING([--with-apache2-apxs=FILE], [path to Apache 2 apxs program]),
-        APXS2=$withval)
-
-    if test -f "$APXS2" ; then
-        ac_cv_path_apxs2=$APXS2   # put it into the cache
-    else
-	apxs2dirs="/usr/local/apache2/bin:/usr/apache2/bin:/usr/pkg/bin:/usr/local/bin:/usr/local/httpd/bin:$PATH"
-        AC_CACHE_VAL(ac_cv_path_apxs2,[
-            saved_ifs=$IFS
-            IFS=:
-            for i in $apxs2dirs; do
-                if test -f "$i/apxs"; then
-                    ac_cv_path_apxs2="$i/apxs"
-                    break
-                fi
-            done
-            IFS=$saved_ifs
-        ])
-        APXS2="$ac_cv_path_apxs2"
-    fi
-
-    if test -f "$APXS2" ; then
-        HAVE_APACHE2=yes
-        FILTERS="$FILTERS filters/apache2"
-        APXS2_INCLUDE="-I`$APXS2 -q INCLUDEDIR`"
-        APXS2_CFLAGS="`$APXS2 -q CFLAGS`"
-        APXS2_CFLAGS_SHLIB="`$APXS2 -q CFLAGS_SHLIB`"
-        APXS2_SBINDIR="`$APXS2 -q SBINDIR`"
-        APXS2_TARGET="`$APXS2 -q TARGET`"
-        if test x_$APXS2_TARGET = x_httpd ; then
-            APACHECTL2="${APXS2_SBINDIR}/apachectl"
-        else
-            APACHECTL="${APXS2_SBINDIR}/${APXS2_TARGET}ctl"
-        fi
-        AC_SUBST(APXS2)
-        AC_SUBST(APXS2_INCLUDE)
-        AC_SUBST(APXS2_CFLAGS)
-        AC_SUBST(APXS2_CFLAGS_SHLIB)
-        AC_SUBST(APACHECTL2)
-        AC_MSG_RESULT($APXS2)
-    else
-        AC_MSG_RESULT([not found - Apache 2 filter support disabled])
-    fi
-])
 
 AC_DEFUN([CGI_BASICAUTH],
 [
