@@ -317,6 +317,16 @@ set_cosign_protect( cmd_parms *params, void *mconfig, int flag )
 	if ( cfg->service == NULL ) {
 	    cfg->service = ap_pstrdup( params->pool, scfg->service );
 	}
+#ifdef KRB
+	cfg->krbtkt = scfg->krbtkt; 
+#ifdef GSS
+	cfg->gss = scfg->gss;
+#endif /* GSS */
+#ifdef KRB4
+	cfg->krb524 = scfg->krb524;
+#endif /* KRB4 */
+#endif /* KRB */
+
     }
 
     cfg->protect = flag; 
@@ -361,6 +371,15 @@ set_cosign_service( cmd_parms *params, void *mconfig, char *arg )
 	cfg->cl = scfg->cl;
 	cfg->port = scfg->port; 
 	cfg->ctx = scfg->ctx;
+#ifdef KRB
+	cfg->krbtkt = scfg->krbtkt; 
+#ifdef GSS
+	cfg->gss = scfg->gss;
+#endif /* GSS */
+#ifdef KRB4
+	cfg->krb524 = scfg->krb524;
+#endif /* KRB4 */
+#endif /* KRB */
     }
 
     if ( cfg->service != NULL ) {
