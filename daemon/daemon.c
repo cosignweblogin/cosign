@@ -86,7 +86,6 @@ main( ac, av )
     struct sigaction	sa, osahup, osachld;
     struct sockaddr_in	sin;
     struct servent	*se;
-    struct hostent	*hp;
     int			c, s, err = 0, fd, sinlen;
     int			dontrun = 0;
     int			reuseaddr = 1;
@@ -314,13 +313,7 @@ main( ac, av )
 		exit( 1 );
 	    }
 
-	    if (( hp = gethostbyaddr( (char *)&sin.sin_addr,
-                    sizeof( struct in_addr ), AF_INET )) == NULL ) {
-                syslog( LOG_INFO, "connect: %s", inet_ntoa( sin.sin_addr ));
-            } else {
-		syslog( LOG_INFO, "connect: %s %s", inet_ntoa (sin.sin_addr),
-			 hp->h_name );
-	    }
+	    syslog( LOG_INFO, "connect: %s", inet_ntoa( sin.sin_addr ));
 
 	    exit( command( fd ));
 
