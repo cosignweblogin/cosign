@@ -1,57 +1,94 @@
-Some things to know:
+Before you begin:
 
-'make' will build the apache filter only
-'make install' will install the filter using apxs
+    You will need a source of entropy.  If your system has /dev/*random
+    then you're all set, otherwise you should get something like prngd
+    or egd.  Solaris users prior to version 9 can use the andirand
+    package to add /dev/random.  AIX users will want to get prngd.
 
-'make everything' will build the filter, the daemon and the cgi
-'make install-all' installs all :)
+    You need OpenSSL 0.9.7a or newer.
 
-In order for the filter to work, you'll need a directory called 
-	/var/cosign/filter
+    Finally, to build the Apache filter you need Apache 1.3.X.  Support
+    for Apache 2.0 will be available in a later release.
 
-It must be permitted so the user that runs the webserver has write
-permission to it.
+    You almost certainly do not need Kerberos installed on your machine
+    unless you are building the central server.
 
-In the U of M environment, you'll want your directives to look like
-this:
+    For documentation and information concerning cosign terminology,
+    see: http://weblogin.org/
 
-on your insecure side, and any dirs or locations you want exempt:
+Set up a cosign-protected service:
 
-CosignProtected		Off
+    To build the Apache authentication filter:
 
-in :443 ( or otherwise https ) vhost
+	./configure
+	make
+	make install
+	mkdir -p /var/cosign/filter
+	chown APACHE_USER /var/cosign/filter
 
-CosignProtected		On
-CosignHostname		weblogin.umich.edu
-CosignRedirect		https://weblogin.umich.edu/
-( NOTE: trailing slash is required! The redirects won't work correctly
-without it! )
-CosignPostErrorRedirect https://weblogin.umich.edu/post_error.html
-CosignService		<send e-mail to cosign@umich.edu and we will assign>
-CosignCrypto		<path to key> <path to cert> <path to CA directory>
+    'make install' will install the filter using your copy of apxs.  Be
+    sure to change APACHE_USER to the username defined in your
+    httpd.conf file.
 
-[new in 0.9.x]
-You'll now need a CA directory instead of just a CA. this is so we can
-use umweb, verisign or entrust signed certs. Copy the CAs to your cadir
-and issue the c_rehash command:
-    % c_rehash /usr/local/etc/apache/certs
-you should see something similar to:
-    Doing /usr/local/etc/apache/certs
-    umwebCA.pem => 4700e8dd.0
-    RSA-SSCA.pem => f73e89fd.0
-    entrust.pem => ed524cf5.0
+    Finally, create a CA directory to hold your CA certificates.  Copy
+    the CAs ( see the CAcerts directory in the root of the cosign
+    source distribution ) to your CA dir and issue the c_rehash command
+    ( c_rehash is a perl script that ships with openssl ).  If you
+    choose to store your certs in '/usr/local/etc/apache/certs' then
+    the commands would be:
 
-Contact webmaster@umich.edu for umich CA certs, which are free!
+	mkdir -p /usr/local/etc/apache/certs
+	cp CAcerts/* /usr/local/etc/apache/certs
+	c_rehash /usr/local/etc/apache/certs
 
-The daemon (cosignd) requires  /var/cosign/daemon to exist and be
-writeable by the user the daemon runs as.
+    output should look like:
+	Doing /usr/local/etc/apache/certs
+	umwebCA.pem => 4700e8dd.0
+	RSA-SSCA.pem => f73e89fd.0
+	entrust.pem => ed524cf5.0
 
---with-cosigndb=DIR overrides this default
---with-cosignconf=FILE -> allows you to specify new conf file location
-default is /usr/local/etc/cosign.conf
+Configure Apache:
 
---with-cosigncadir=DIR	default=/var/cosign/certs/CA 
---with-cosigncert=FILE	default=/var/cosign/certs/cert.pem
---with-cosignkey=FILE	default=/var/cosign/certs/key.pem
+    In the U of M environment, you'll want your directives to look like
+    this:
+
+    On your http ( port 80 ) side, and any dirs or locations you want exempt:
+
+	CosignProtected		Off
+
+    in :443 ( or otherwise https ) vhost
+
+	CosignProtected		On
+	CosignHostname		weblogin.umich.edu
+	CosignRedirect		https://weblogin.umich.edu/
+	CosignPostErrorRedirect https://weblogin.umich.edu/post_error.html
+	CosignService		<e-mail to cosign@umich.edu and we will assign>
+	CosignCrypto		<path to key> <path to cert> <path to CA dir>
+
+    NOTE: trailing slash is required on CosignRedirect! The redirects
+    won't work correctly without it.
+
+To set up a central cosign server ( the weblogin server ):
+    Note that you should only need this if you are establishing a new
+    SSO community for which you will be providing the central login
+    server.
+
+	./configure --enable-krb=/path/to/krb5
+	make everything
+	make install-all
+	mkdir -p /var/cosign/daemon
+	chown DAEMON_USER /var/cosign/daemon
+    
+    The daemon (cosignd) requires  /var/cosign/daemon to exist and be
+    writeable by the user the daemon runs as.
+
+    --with-cosigndb=DIR overrides /var/cosign/daemon
+    --with-cosignconf=FILE -> allows you to specify new conf file location
+	    default is /usr/local/etc/cosign.conf
+    --with-cosigncadir=DIR	default=/var/cosign/certs/CA 
+    --with-cosigncert=FILE	default=/var/cosign/certs/cert.pem
+    --with-cosignkey=FILE	default=/var/cosign/certs/key.pem
+
+Contact webmaster@umich.edu for umich CA signed certs, which are free!
 
 Questions? cosign@umich.edu
