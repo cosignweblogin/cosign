@@ -192,6 +192,10 @@ read_cookie( char *path, struct cinfo *ci )
 	    strcpy( ci->ci_ctime, p );
 	    break;
 
+	case 'k':
+	    strcpy( ci->ci_krbtkt, p );
+	    break;
+
 	default:
 	    syslog( LOG_ERR, "read_cooke: unknown keyword %c", *buf );
 	    (void)fclose( cf );

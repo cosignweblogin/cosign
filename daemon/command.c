@@ -20,22 +20,25 @@
 #include <unistd.h>
 #include <time.h>
 
-#ifdef TLS
 #include <openssl/ssl.h>
 #include <openssl/err.h>
-
-extern SSL_CTX	*ctx;
-#endif TLS
 
 #include <snet.h>
 
 #include "command.h"
+#include "config.h"
 #include "cparse.h"
+#include "mkcookie.h"
 
-#define IP_SZ 254
-#define USER_SZ 30
-#define REALM_SZ 254
-#define IDLE_OUT 1800
+#define MIN(a,b)        ((a)<(b)?(a):(b))
+#define MAX(a,b)        ((a)>(b)?(a):(b))
+
+#define TKT_PREFIX	"/ticket"
+
+#define IP_SZ		 254
+#define USER_SZ		 30
+#define REALM_SZ	 254
+#define IDLE_OUT	 7200
 
 static int	f_noop ___P(( SNET *, int, char *[] ));
 static int	f_quit ___P(( SNET *, int, char *[] ));
@@ -45,9 +48,8 @@ static int	f_login ___P(( SNET *, int, char *[] ));
 static int	f_logout ___P(( SNET *, int, char *[] ));
 static int	f_register ___P(( SNET *, int, char *[] ));
 static int	f_check ___P(( SNET *, int, char *[] ));
-#ifdef TLS
+static int	f_retr ___P(( SNET *, int, char *[] ));
 static int	f_starttls ___P(( SNET *, int, char *[] ));
-#endif TLS
 
 struct command {
     char	*c_name;
@@ -63,6 +65,7 @@ struct command	unauth_commands[] = {
     { "LOGOUT",		f_notauth },
     { "REGISTER",	f_notauth },
     { "CHECK",		f_notauth },
+    { "RETR",		f_notauth },
 };
 
 struct command	auth_commands[] = {
@@ -74,10 +77,13 @@ struct command	auth_commands[] = {
     { "LOGOUT",		f_logout },
     { "REGISTER",	f_register },
     { "CHECK",		f_check },
+    { "RETR",		f_retr },
 };
 
 extern char	*version;
+extern SSL_CTX	*ctx;
 struct command 	*commands = unauth_commands;
+struct chosts	*ch = NULL;
 int	ncommands = sizeof( unauth_commands ) / sizeof(unauth_commands[ 0 ] );
 
     int
@@ -153,8 +159,15 @@ f_starttls( sn, ac, av )
 	return( -1 );
     }
 
-    syslog( LOG_INFO, "CERT Subject: %s\n", X509_NAME_oneline(
-    X509_get_subject_name( peer ), buf, sizeof( buf )));
+    X509_NAME_get_text_by_NID( X509_get_subject_name( peer ),
+		NID_commonName, buf, sizeof( buf ));
+    if (( ch = chosts_find( buf )) == NULL ) {
+	syslog( LOG_ERR, "f_starttls: No access for %s", buf );
+	X509_free( peer );
+	snet_writef( sn, "%d STARTTLS: no access for %s\r\n", 508, buf );
+	return( 1 );
+    }
+
     X509_free( peer );
 
     commands = auth_commands;
@@ -169,18 +182,44 @@ f_login( sn, ac, av )
     int         ac;
     char        *av[];
 {
-    char		tmppath[ MAXPATHLEN ];
     FILE		*tmpfile;
+    char		tmppath[ MAXPATHLEN ];
+    char		tmpkrb[ 16 ], krbpath [ 24 ];
+    char                *sizebuf, *line;
+    char                buf[ 8192 ];
+    int			fd, krb = 0;
     struct timeval	tv;
     struct cinfo	ci;
-    int			fd;
+    unsigned int        len, rc;
     extern int		errno;
 
     /* LOGIN login_cookie ip principal realm [tgt] */
 
-    if ( ac != 5 ) {
+    if ( ch->ch_key != CGI ) {
+	syslog( LOG_ERR, "%s not allowed to login", ch->ch_hostname );
+	snet_writef( sn, "%d LOGIN: %s not allowed to login.\r\n",
+		400, ch->ch_hostname );
+	return( 1 );
+    }
+
+    if (( ac != 5 ) && ( ac != 6 )) {
 	snet_writef( sn, "%d LOGIN: Wrong number of args.\r\n", 500 );
 	return( 1 );
+    }
+
+    if ( ac == 6 ) {
+	if ( strcmp( av[ 5 ], "kerberos" ) == 0 ) {
+	    krb = 1;
+	    if ( mkcookie( sizeof( tmpkrb ), tmpkrb ) != 0 ) {
+		syslog( LOG_ERR, "f_login: mkcookie error." );
+		snet_writef( sn, "%d LOGIN: Server Error .\r\n", 506 );
+		return( -1 );
+	    }
+	    sprintf( krbpath, "%s/%s", TKT_PREFIX, tmpkrb );
+	} else {
+	    snet_writef( sn, "%d LOGIN: Ticket type not supported.\r\n", 507 );
+	    return( 1 );
+	}
     }
 
     if ( strchr( av[ 1 ], '/' ) != NULL ) {
@@ -239,6 +278,9 @@ f_login( sn, ac, av )
     }
     fprintf( tmpfile, "r%s\n", av[ 4 ] );
     fprintf( tmpfile, "t%lu\n", tv.tv_sec );
+    if ( krb ) {
+	fprintf( tmpfile, "k%s\n", krbpath );
+    }
 
     if ( fclose ( tmpfile ) != 0 ) {
 	if ( unlink( tmppath ) != 0 ) {
@@ -292,8 +334,83 @@ f_login( sn, ac, av )
     if ( unlink( tmppath ) != 0 ) {
 	syslog( LOG_ERR, "f_login: unlink: %m" );
     }
-    snet_writef( sn, "%d LOGIN successful: Cookie Stored \r\n", 200 );
 
+    if ( !krb ) {
+	snet_writef( sn, "%d LOGIN successful: Cookie Stored.\r\n", 200 );
+	return( 0 );
+    }
+
+    snet_writef( sn, "%d LOGIN: Send length then file.\r\n", 300 );
+
+    if (( fd = open( krbpath, O_CREAT|O_EXCL|O_WRONLY, 0644 )) < 0 ) {
+	syslog( LOG_ERR, "f_login: open: %s: %m", krbpath );
+	snet_writef( sn, "%d %s: %s\r\n", 507, krbpath, strerror( errno ));
+	return( -1 );
+    }
+
+    tv.tv_sec = 60 * 2;
+    tv.tv_usec = 0;
+    if (( sizebuf = snet_getline( sn, &tv )) == NULL ) {
+        syslog( LOG_ERR, "f_login: snet_getline: %m" );
+        return( -1 );
+    }
+    /* Will there be a limit? */
+    len = atoi( sizebuf );
+
+    for ( ; len > 0; len -= rc ) {
+        tv.tv_sec = 60 * 2;
+        tv.tv_usec = 0;
+        if (( rc = snet_read(
+                sn, buf, (int)MIN( len, sizeof( buf )), &tv )) <= 0 ) {
+            syslog( LOG_ERR, "f_login: snet_read: %m" );
+            return( -1 );
+        }
+
+        if ( write( fd, buf, rc ) != rc ) {
+            snet_writef( sn, "%d %s: %s\r\n", 504, krbpath, strerror( errno ));
+            return( 1 );
+        }
+    }
+
+    if ( close( fd ) < 0 ) {
+        snet_writef( sn, "%d %s: %s\r\n", 504, krbpath, strerror( errno ));
+        return( 1 );
+    }
+
+
+    tv.tv_sec = 60 * 2;
+    tv.tv_usec = 0;
+    if (( line = snet_getline( sn, &tv )) == NULL ) {
+        syslog( LOG_ERR, "f_login: snet_getline: %m" );
+        return( -1 );
+    }
+
+    /* make sure client agrees we're at the end */
+    if ( strcmp( line, "." ) != 0 ) {
+        snet_writef( sn, "%d Length doesn't match sent data\r\n", 505 );
+        (void)unlink( krbpath );
+
+	if ( unlink( av[ 1 ] ) != 0 ) {
+	    syslog( LOG_ERR, "f_login: unlink: %m" );
+	}
+
+	/* if the krb tkt didn't store, unlink the cookie as well */
+
+        tv.tv_sec = 60 * 2;
+        tv.tv_usec = 0;
+        for (;;) {
+            if (( line = snet_getline( sn, &tv )) == NULL ) {
+                syslog( LOG_ERR, "f_login: snet_getline: %m" );
+                return( -1 );
+            }
+            if ( strcmp( line, "." ) == 0 ) {
+                break;
+            }
+        }
+        return( -1 );
+    }
+
+    snet_writef( sn, "%d LOGIN successful: Cookie & Ticket Stored.\r\n", 201 );
     return( 0 );
 
 file_err:
@@ -315,6 +432,13 @@ f_logout( sn, ac, av )
     struct cinfo	ci;
 
     /*LOGOUT login_cookie ip */
+
+    if ( ch->ch_key != CGI ) {
+	syslog( LOG_ERR, "%s not allowed to logout", ch->ch_hostname );
+	snet_writef( sn, "%d LOGOUT: %s not allowed to logout.\r\n",
+		410, ch->ch_hostname );
+	return( 1 );
+    }
 
     if ( ac != 3 ) {
 	snet_writef( sn, "%d LOGOUT: Wrong number of args.\r\n", 510 );
@@ -378,6 +502,13 @@ f_register( sn, ac, av )
 
     /* REGISTER login_cookie ip service_cookie */
 
+    if ( ch->ch_key != CGI ) {
+	syslog( LOG_ERR, "%s not allowed to register", ch->ch_hostname );
+	snet_writef( sn, "%d REGISTER: %s not allowed to register.\r\n",
+		420, ch->ch_hostname );
+	return( 1 );
+    }
+
     if ( ac != 4 ) {
 	snet_writef( sn, "%d REGISTER: Wrong number of args.\r\n", 520 );
 	return( 1 );
@@ -424,13 +555,13 @@ f_register( sn, ac, av )
 
     /* check for idle timeout, and if so, log'em out */
     if ( tv.tv_sec - ci.ci_itime > IDLE_OUT ) {
-	syslog( LOG_INFO, "f_check: idle time out!\n" );
+	syslog( LOG_INFO, "f_register: idle time out!\n" );
 	if ( do_logout( av[ 1 ] ) < 0 ) {
-	    syslog( LOG_ERR, "f_logout: %s: %m" );
-	    snet_writef( sn, "%d LOGOUT error: Sorry!\r\n", 514 );
+	    syslog( LOG_ERR, "f_register: %s: %m", av[ 1 ] );
+	    snet_writef( sn, "%d REGISTER error: Sorry!\r\n", 524 );
 	    return( -1 );
 	}
-	snet_writef( sn, "%d CHECK: Idle logged out\r\n", 431 );
+	snet_writef( sn, "%d REGISTER: Idle logged out\r\n", 421 );
 	return( 1 );
     }
 
@@ -504,7 +635,14 @@ f_check( sn, ac, av )
     char		login[ MAXPATHLEN ];
     int			status;
 
-    /* CHECK service/login cookie */
+    /* CHECK (service/login)cookie */
+
+    if (( ch->ch_key != CGI ) && ( ch->ch_key != SERVICE )) {
+	syslog( LOG_ERR, "%s not allowed to register", ch->ch_hostname );
+	snet_writef( sn, "%d REGISTER: %s not allowed to register.\r\n",
+		430, ch->ch_hostname );
+	return( 1 );
+    }
 
     if ( ac != 2 ) {
 	snet_writef( sn, "%d CHECK: Wrong number of args.\r\n", 530 );
@@ -559,8 +697,8 @@ f_check( sn, ac, av )
 	syslog( LOG_INFO, "f_check: idle time out!\n" );
 	snet_writef( sn, "%d CHECK: Idle logged out\r\n", 431 );
 	if ( do_logout( login ) < 0 ) {
-	    syslog( LOG_ERR, "f_logout: %s: %m" );
-	    snet_writef( sn, "%d LOGOUT error: Sorry!\r\n", 514 );
+	    syslog( LOG_ERR, "f_check: %s: %m", login );
+	    snet_writef( sn, "%d CHECK error: Sorry!\r\n", 534 );
 	    return( -1 );
 	}
 	return( 1 );
@@ -570,6 +708,134 @@ f_check( sn, ac, av )
 	    "%d %s %s %s\r\n", status, ci.ci_ipaddr, ci.ci_user, ci.ci_realm );
     return( 0 );
 }
+
+    int
+f_retr( sn, ac, av )
+    SNET                        *sn;
+    int                         ac;
+    char                        *av[];
+{
+    struct cinfo        ci;
+    struct timeval      tv;
+    struct stat		st;
+    int			fd;
+    ssize_t             readlen;
+    char                buf[8192];
+    char		login[ MAXPATHLEN ];
+
+    /* RETR service-cookie TicketType] */
+
+    /* XXX check if you are allowed to get tickets */
+
+    if ( ac != 3 ) {
+	snet_writef( sn, "%d RETR: Wrong number of args.\r\n", 540 );
+	return( 1 );
+    }
+
+    if ( strchr( av[ 1 ], '/' ) != NULL ) {
+	syslog( LOG_ERR, "f_retr: cookie name contains '/'" );
+	snet_writef( sn, "%d RETR: Invalid cookie name.\r\n", 541 );
+	return( 1 );
+    }
+
+    if ( strlen( av[ 1 ] ) >= MAXPATHLEN ) {
+	snet_writef( sn, "%d RETR: Service Cookie too long\r\n", 542 );
+	return( 1 );
+    }
+
+    if ( strcmp( av[ 2 ], "tgt") != 0 ) {
+	syslog( LOG_ERR, "f_retr: no such ticket type: %s", av[ 1 ] );
+	snet_writef( sn, "%d RETR: No such ticket type.\r\n", 441 );
+    }
+
+    if ( service_to_login( av[ 1 ], login ) != 0 ) {
+	syslog( LOG_ERR, "f_retr: ask someone else about it!"  );
+	snet_writef( sn, "%d RETR: cookie not in db!\r\n", 543 );
+	return( 1 );
+    }
+
+    if ( read_cookie( login, &ci ) != 0 ) {
+	syslog( LOG_ERR, "f_retr: read_cookie: XXX" );
+	snet_writef( sn, "%d RETR: Who me? Dunno.\r\n", 544 );
+	return( 1 );
+    }
+
+    if ( ci.ci_state == 0 ) {
+	syslog( LOG_ERR,
+		"f_retr: %s logged out", login );
+	snet_writef( sn, "%d RETR: Already logged out\r\n", 440 );
+	return( 1 );
+    }
+
+    /* check for idle timeout, and if so, log'em out */
+    if ( gettimeofday( &tv, NULL ) != 0 ){
+	syslog( LOG_ERR, "f_retr: gettimeofday: %m" );
+	snet_writef( sn, "%d RETR Error: Sorry!\r\n", 545 );
+	return( -1 );
+    }
+
+    if ( tv.tv_sec - ci.ci_itime > IDLE_OUT ) {
+	syslog( LOG_INFO, "f_retr: idle time out!\n" );
+	snet_writef( sn, "%d RETR: Idle logged out\r\n", 441 );
+	if ( do_logout( login ) < 0 ) {
+	    syslog( LOG_ERR, "f_retr: %s: %m", login );
+	    snet_writef( sn, "%d RETR error: Sorry!\r\n", 546 );
+	    return( -1 );
+	}
+	return( 1 );
+    }
+
+    /* if we get here, we can give them the data pointed to by k */
+
+    if (( fd = open( ci.ci_krbtkt, O_RDONLY, 0 )) < 0 ) {
+        syslog( LOG_ERR, "open: %s: %m", ci.ci_krbtkt );
+        snet_writef( sn, "%d Unable to access %s.\r\n", 547, ci.ci_krbtkt );
+        return( 1 );
+    }
+   
+    /* dump file info */
+
+    if ( fstat( fd, &st ) < 0 ) {
+        syslog( LOG_ERR, "f_retr: fstat: %m" );
+        snet_writef( sn, "%d Access Error: %s\r\n", 548, ci.ci_krbtkt );
+        if ( close( fd ) < 0 ) {
+            syslog( LOG_ERR, "close: %m" );
+            return( -1 );
+        }
+        return( 1 );
+    }
+
+    snet_writef( sn, "%d Retrieving file\r\n", 240 );
+    snet_writef( sn, "%d\r\n", (int)st.st_size );
+
+    /* dump file */
+
+    while (( readlen = read( fd, buf, sizeof( buf ))) > 0 ) {
+        tv.tv_sec = 60 * 60 ;
+        tv.tv_usec = 0;
+        if ( snet_write( sn, buf, (int)readlen, &tv ) != readlen ) {
+            syslog( LOG_ERR, "snet_write: %m" );
+            return( -1 );
+        }
+    }
+
+    if ( readlen < 0 ) {
+        syslog( LOG_ERR, "read: %m" );
+        return( -1 );
+    }
+
+    snet_writef( sn, ".\r\n" );
+
+    if ( close( fd ) < 0 ) {
+        syslog( LOG_ERR, "close: %m" );
+        return( -1 );
+    }
+
+    syslog( LOG_DEBUG, "f_retr: krbtkt %s retrieved", ci.ci_krbtkt );
+
+    return( 0 );
+}
+
 
     int
 command( fd )

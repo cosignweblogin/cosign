@@ -18,8 +18,8 @@ CFLAGS=         ${DEFS} ${OPTOPTS} @CFLAGS@ ${INCPATH}
 
 ################ Nothing below should need editing ###################
 
-SRC=    daemon.c command.c argcargv.c cparse.c
-COSIGNOBJ=	daemon.o command.o argcargv.o cparse.o ../version.o
+SRC= daemon.c command.c argcargv.c cparse.c config.c fbase64.c mkcookie.c
+COSIGNOBJ= daemon.o command.o argcargv.o cparse.o config.o fbase64.o mkcookie.o ../version.o
 
 TARGETS=	cosignd
 

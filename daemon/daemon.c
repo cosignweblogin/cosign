@@ -25,8 +25,10 @@
 #include <openssl/ssl.h>
 #include <snet.h>
 #include "command.h"
+#include "config.h"
 
 #define COSIGN_DIR "/var/cosign/daemon"
+#define COSIGN_CONF "/usr/local/etc/cosign.conf"
 
 
 int		debug = 0;
@@ -90,8 +92,8 @@ main( ac, av )
     int			dontrun = 0;
     int			reuseaddr = 1;
     char		*prog;
-    char		*cryptofile = "/usr/local/umweb/certs/weblogin.key";
-    char		*certfile = "/usr/local/umweb/certs/weblogin.cert";
+    char		*cryptofile = "/usr/local/umweb/certs/cosign-test.www.key";
+    char		*certfile = "/usr/local/umweb/certs/cosign-test.www.cert";
     char		*cadir = "/usr/local/umweb/certs/CA";
     unsigned short	port = 0;
     extern int		optind;
@@ -140,6 +142,11 @@ main( ac, av )
     /*
      * Read config file before chdir(), in case config file is relative path.
      */
+
+    if ( chosts_read( COSIGN_CONF ) < 0 ) {
+	exit( 1 );
+    }
+
 
     if ( cryptofile != NULL ) {
 	SSL_load_error_strings();

@@ -5,6 +5,7 @@ struct cinfo {
     char	ci_user[ 32 ];
     char	ci_realm[ 256 ];
     char	ci_ctime[ 12 ];
+    char	ci_krbtkt[ 24 ];
     time_t	ci_itime;
 };
 
