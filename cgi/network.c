@@ -297,6 +297,20 @@ connectsn2( struct sockaddr_in *sin, char *host )
     struct timeval      tv;
     SNET                *sn = NULL; 
 
+    if ( access( keyfile, R_OK ) != 0 ) {
+	perror( keyfile );
+	exit( 1 );
+    }
+
+    if ( access( certfile, R_OK ) != 0 ) {
+	perror( certfile );
+	exit( 1 );
+    }
+
+    if ( access( cadir, R_OK ) != 0 ) {
+	perror( cadir );
+	exit( 1 );
+    }
 
     SSL_load_error_strings();
     SSL_library_init();

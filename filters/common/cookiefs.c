@@ -24,7 +24,7 @@
 
 #define IDLETIME	60
 
-char	*filterdb = _FILTER_DB;
+static char	*filterdb = _FILTER_DB;
 
     int
 cosign_cookie_valid( cosign_host_config *cfg, char *cookie, struct sinfo *si,

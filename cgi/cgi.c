@@ -314,6 +314,9 @@ main( int argc, char *argv[] )
 	exit( 0 );
     }
 
+    /* need to get realm out of kprinc */
+    //krb5_princ_realm
+
     if ( mkcookie( sizeof( tmpkrb ), tmpkrb ) != 0 ) {
 	err = "An unknown error occurred.";
 	title = "Authentication Required ( kerberos error )";

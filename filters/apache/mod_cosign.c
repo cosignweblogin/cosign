@@ -11,6 +11,7 @@
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <string.h>
+#include <unistd.h>
 
 #ifdef KRB
 #ifdef GSS
@@ -465,6 +466,7 @@ set_cosign_certs( cmd_parms *params, void *mconfig,
 	char *one, char *two, char *three)
 {
     cosign_host_config		*cfg;
+
     if ( params->path == NULL ) {
 	cfg = (cosign_host_config *) ap_get_module_config(
 		params->server->module_config, &cosign_module );
@@ -479,6 +481,18 @@ set_cosign_certs( cmd_parms *params, void *mconfig,
     if (( cfg->key == NULL ) || ( cfg->cert == NULL ) ||
 	    ( cfg->cadir == NULL)) {
 	return( "You know you want the crypto!" );
+    }
+
+    if ( access( cfg->key, R_OK ) != 0 ) {
+	return( "An error occured reading the Keyfile." );
+    }
+
+    if ( access( cfg->cert, R_OK ) != 0 ) {
+	return( "An error occured reading the Certfile." );
+    }
+
+    if ( access( cfg->cadir, R_OK ) != 0 ) {
+	return( "An error occured reading the CADir." );
     }
 
     SSL_load_error_strings();
