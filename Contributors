@@ -1,13 +1,14 @@
-Johanna Bromberg Craig
-Mark Montague
-Kevin Coffman -- patch to avoid bug in krb5_verify_init_creds()
-Paul Saxman
 Tony Chan
-Larry Greenfield
-Chris Drummonds
+Kevin Coffman -- patch to avoid bug in krb5_verify_init_creds()
+Johanna Craig
+Wes Craig
 Bill Doster
-Hugh C Kennedy
+Chris Drummonds
+Larry Greenfield
 Dan Hyde
+Hugh C Kennedy
+Brett Lomas
 Jarod Malestein
 Kevin B. McGowan
-Wes Craig
+Mark Montague
+Paul Saxman
