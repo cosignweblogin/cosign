@@ -1,0 +1,5 @@
+# this command will delete cosign files ( filter or daemon ) that are
+# older than a day
+
+/usr/bin/find /var/cosign -type f -mtime +1 | /usr/bin/xargs /usr/bin/rm -f
+

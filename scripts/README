@@ -1,0 +1,17 @@
+The scripts directory contains scripts that might be useful when
+running a cosign weblogin server or authentication filter.
+
+The scripts in 'logout' do not replace the central logout cgi ( that
+runs on the weblogin server ) but are intended to run on authentication
+filter hosts ( clients of the central weblogin server ).  These scripts
+expire and nullify the service's cosign cookie, provide an opportunity
+for local session cleanup, and redirect the user to the central logout
+cgi ( where he or she may choose to terminate the cosign session ).
+This eliminates the problem of logged out users backing up to an
+authenticated site before the site's local cookie cache has expired.
+
+These logout scripts are not intended to present any html to the user.
+You should, however, make allowances for appropriate error screens if
+your session cleanup is somehow destructive ( e.g. there are unsaved
+changes pending ).
+
