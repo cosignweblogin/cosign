@@ -75,7 +75,6 @@ netcheck_cookie( char *secant, struct sinfo *si, SNET *sn )
 
     switch( *line ) {
     case '2':
-	fprintf( stderr, "We like 200!\n" );
 	break;
 
     case '4':
@@ -155,7 +154,6 @@ netretr_ticket( char *secant, struct sinfo *si, SNET *sn, int convert )
 
     switch( *line ) {
     case '2':
-	fprintf( stderr, "200 in netretr_ticket!\n" );
 	break;
 
     case '4':
@@ -229,7 +227,6 @@ netretr_ticket( char *secant, struct sinfo *si, SNET *sn, int convert )
 
 #ifdef KRB4
     if ( !convert ) {
-	fprintf( stderr, "k4 built but not used\n" );
 	return( 2 );
     }
     if ( mkcookie( sizeof( tmpkrb ), tmpkrb ) != 0 ) {
