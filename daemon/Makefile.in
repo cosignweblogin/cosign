@@ -1,0 +1,38 @@
+################## Some of this may need to be edited ##################
+
+prefix=@prefix@
+exec_prefix=@exec_prefix@
+SBINDIR=@sbindir@
+
+COSIGNLOG=LOG_LOCAL7
+
+INCPATH=        @CPPFLAGS@ -I../libsnet
+OPTOPTS=        -Wall -Wmissing-prototypes
+CC=             @CC@
+DEFS=           @TLSDEFS@
+LIBS=           -lsnet @LIBS@
+LDFLAGS=        -L../libsnet @LDFLAGS@ ${LIBS}
+INSTALL=        @INSTALL@
+
+CFLAGS=         ${DEFS} ${OPTOPTS} @CFLAGS@ ${INCPATH}
+
+################ Nothing below should need editing ###################
+
+SRC=    daemon.c command.c argcargv.c cparse.c
+COSIGNOBJ=	daemon.o command.o argcargv.o cparse.o ../version.o
+
+TARGETS=	cosignd
+
+all : ${TARGETS}
+
+cosignd : ../libsnet/libsnet.a ${COSIGNOBJ} Makefile
+	${CC} ${CFLAGS} ${LDFLAGS} -o cosignd ${COSIGNOBJ} ${LIBPATH} ${LIBS}
+
+install : all
+	-mkdir -p ${exec_prefix}
+	-mkdir -p ${SBINDIR}
+	${INSTALL} -m 0755 -c cosignd ${SBINDIR}/
+
+clean :
+	rm -f a.out core* *.o *.bak *[Ee]rrs tags
+	rm -f ${TARGETS}

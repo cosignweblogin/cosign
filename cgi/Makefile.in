@@ -1,0 +1,38 @@
+prefix=@prefix@
+exec_prefix=@exec_prefix@
+SBINDIR=@sbindir@
+CGIDIR  = @prefix@/cgi-ssl
+DOCROOTDIR  = @prefix@/html
+
+INCPATH=        @CPPFLAGS@ @KINC@ -I../libsnet -I../libcgi
+OPTOPTS=        -Wall -Wmissing-prototypes
+CC=             @CC@
+DEFS=           @TLSDEFS@
+LIBS=           -lsnet -lcgi @LIBS@ @KLIBS@
+LDFLAGS=        -L../libsnet -L../libcgi @LDFLAGS@ @KLDFLAGS@ ${LIBS}
+INSTALL=        @INSTALL@
+
+CFLAGS=         ${DEFS} ${OPTOPTS} @CFLAGS@ ${INCPATH}
+
+
+OBJ     = mkcookie.o fbase64.o network.o ../version.o
+TARGETS = cosign.cgi logout
+
+all: ${TARGETS}
+
+cosign.cgi: cgi.o $(OBJ)
+	${CC} -o cosign.cgi cgi.o $(OBJ) $(LDFLAGS)
+
+logout: logout.o $(OBJ)
+	${CC} -o logout logout.o $(OBJ) $(LDFLAGS)
+
+clean:
+	/bin/rm -rf *.o ${TARGETS}
+
+install : all
+	-mkdir -p ${exec_prefix}
+	-mkdir -p ${DOCROOTDIR}
+	-mkdir -p ${CGIDIR}
+	${INSTALL} -m 0755 -c cosign.cgi ${DOCROOTDIR}/
+	${INSTALL} -m 0755 -c logout ${CGIDIR}/
+
