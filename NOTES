@@ -5,7 +5,7 @@ MODULE:
 
     TODO:
     cookie obscuring - post 1.0
-    k5 needs ironing out
+    *k5 needs ironing out
 
 CGI:
     initial info and ticket propogation (belt)
@@ -18,12 +18,7 @@ COSIGND:
     more conf file
 
 ISSUES:
-1) use of qs for redirect back URL ( consistency ).
-2) use of cookie to store referer - should we do qs instead?
-3) service first experience
-	a) show the service menu with source service highlighted
-	b) redirect the user straight away ( no meta-refresh )
-4) logout needs to post
+*1) use of cookie to store referer - should we do qs instead?
 
 Protocol:
 
