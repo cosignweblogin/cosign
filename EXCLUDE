@@ -9,6 +9,7 @@
 ./friend/CVS
 ./friend/php/CVS
 ./friend/php/create/CVS
+./friend/php/lookup/CVS
 ./friend/php/passwd/CVS
 ./friend/php/reset/CVS
 ./friend/php/reset/passwd/CVS
@@ -18,6 +19,7 @@
 ./friend/smarty/templates/CVS
 ./html/CVS
 ./html/images/CVS
+./html/services/CVS
 ./libcgi/CVS
 ./libcgi/profiled/CVS
 ./libsnet/CVS
