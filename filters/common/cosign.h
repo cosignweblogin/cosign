@@ -8,6 +8,9 @@ typedef struct {
     int                 configured;
     struct connlist     *cl;
     SSL_CTX		*ctx;
+    char		*cert;
+    char		*key;
+    char		*ca;
 } cosign_host_config;
 
 

@@ -152,9 +152,6 @@ check_cookie( char *secant, struct sinfo *si, cosign_host_config *cfg )
 	if ( (*cur)->conn_sn != NULL ) {
 	    continue;
 	}
-	if ( cfg->ctx == NULL ) {
-	    fprintf( stderr, "ctx is NULL in connect\n" );
-	}
 	if ( connect_sn( *cur, cfg->ctx, cfg->host ) != 0 ) {
 	    continue;
 	}
@@ -247,7 +244,6 @@ connect_sn( struct connlist *cl, SSL_CTX *ctx, char *host )
 
     X509_NAME_get_text_by_NID( X509_get_subject_name( peer ), NID_commonName,
 	    buf, sizeof( buf ));
-    fprintf( stderr, "CERT Subject: %s\nHost:%s\n", buf, host );
     X509_free( peer );
 
     return( 0 );

@@ -36,6 +36,9 @@ cosign_create_dir_config( pool *p, char *path )
     cfg->configured = 0;
     cfg->cl = NULL;
     cfg->ctx = NULL;
+    cfg->key = NULL;
+    cfg->cert = NULL;
+    cfg->ca = NULL;
     return( cfg );
 
 }
@@ -55,6 +58,9 @@ cosign_create_server_config( pool *p, server_rec *s )
     cfg->configured = 0;
     cfg->cl = NULL;
     cfg->ctx = NULL;
+    cfg->key = NULL;
+    cfg->cert = NULL;
+    cfg->ca = NULL;
     return( cfg );
 }
 
@@ -210,10 +216,6 @@ cosign_auth( request_rec *r )
 	return( FORBIDDEN );	/* it's all forbidden! */
     } 
 
-    if ( cfg->ctx == NULL ) {
-	fprintf( stderr, "ctx is NULL in cosign_auth\n" );
-    }
-
     /* Everything Shines, let them thru */
     if ( cv == 0 ) {
 	ap_table_set( r->subprocess_env, "REMOTE_REALM", si.si_realm );
@@ -340,6 +342,62 @@ set_cosign_redirect( cmd_parms *params, void *mconfig, char *arg )
 }
 
     static const char *
+set_cosign_certs( cmd_parms *params, void *mconfig,
+	char *one, char *two, char *three)
+{
+    cosign_host_config		*cfg;
+    if ( params->path == NULL ) {
+	cfg = (cosign_host_config *) ap_get_module_config(
+		params->server->module_config, &cosign_module );
+    } else {
+	return( "Certificates need to be set on a per host basis." );
+    }
+
+    cfg->key = ap_pstrdup( params->pool, one );
+    cfg->cert = ap_pstrdup( params->pool, two );
+    cfg->ca = ap_pstrdup( params->pool, three );
+
+    if (( cfg->key == NULL ) || ( cfg->cert == NULL ) || ( cfg->ca == NULL)) {
+	return( "you know you want the crypto!" );
+    }
+
+    SSL_load_error_strings();
+    SSL_library_init();
+    if (( cfg->ctx = SSL_CTX_new( SSLv23_client_method())) == NULL ) {
+	ap_log_error( APLOG_MARK, APLOG_ERR|APLOG_NOERRNO, params->server,
+		"SSL_CTX_new: %s\n", ERR_error_string( ERR_get_error(), NULL ));
+	exit( 1 );
+    }
+    if ( SSL_CTX_use_PrivateKey_file( cfg->ctx,
+	    cfg->key, SSL_FILETYPE_PEM ) != 1 ) {
+	ap_log_error( APLOG_MARK, APLOG_ERR|APLOG_NOERRNO, params->server,
+		"SSL_CTX_use_PrivateKey_file: %s: %s\n",
+		cfg->key, ERR_error_string( ERR_get_error(), NULL ));
+	exit( 1 );
+    }
+    if ( SSL_CTX_use_certificate_chain_file( cfg->ctx, cfg->cert ) != 1 ) {
+	ap_log_error( APLOG_MARK, APLOG_ERR|APLOG_NOERRNO, params->server,
+		"SSL_CTX_use_certificate_chain_file: %s: %s\n",
+		cfg->cert, ERR_error_string( ERR_get_error(), NULL ));
+	exit( 1 );
+    }
+    if ( SSL_CTX_check_private_key( cfg->ctx ) != 1 ) {
+	ap_log_error( APLOG_MARK, APLOG_ERR|APLOG_NOERRNO, params->server,
+		"SSL_CTX_check_private_key: %s\n",
+		ERR_error_string( ERR_get_error(), NULL ));
+	exit( 1 );
+    }
+    if ( SSL_CTX_load_verify_locations( cfg->ctx, cfg->ca, NULL ) != 1 ) {
+	ap_log_error( APLOG_MARK, APLOG_ERR|APLOG_NOERRNO, params->server,
+		"SSL_CTX_load_verify_locations: %s: %s\n",
+		cfg->key, ERR_error_string( ERR_get_error(), NULL ));
+	exit( 1 );
+    }
+    SSL_CTX_set_verify( cfg->ctx, SSL_VERIFY_PEER, NULL );
+
+    return( NULL );
+}
+    static const char *
 set_cosign_host( cmd_parms *params, void *mconfig, char *arg )
 {
     struct hostent		*he;
@@ -347,9 +405,6 @@ set_cosign_host( cmd_parms *params, void *mconfig, char *arg )
     struct connlist		*new, **cur;
     char			*err;
     cosign_host_config		*cfg;
-    char	*cryptofile = "/usr/local/etc/apache/certs/beothuk.key";
-    char	*certfile = "/usr/local/etc/apache/certs/beothuk.cert";
-    char	*cafile = "/usr/local/etc/apache/certs/umwebCA.pem";
 
     if ( params->path == NULL ) {
 	cfg = (cosign_host_config *) ap_get_module_config(
@@ -357,38 +412,6 @@ set_cosign_host( cmd_parms *params, void *mconfig, char *arg )
     } else {
 	return( "CosignHostname not valid per dir!" );
     }
-
-    /* why not ? */
-
-    SSL_load_error_strings();
-    SSL_library_init();
-    if (( cfg->ctx = SSL_CTX_new( SSLv23_client_method())) == NULL ) {
-	fprintf( stderr, "SSL_CTX_new: %s\n",
-		ERR_error_string( ERR_get_error(), NULL ));
-	exit( 1 );
-    }
-    if ( SSL_CTX_use_PrivateKey_file( cfg->ctx,
-	    cryptofile, SSL_FILETYPE_PEM ) != 1 ) {
-	fprintf( stderr, "SSL_CTX_use_PrivateKey_file: %s: %s\n",
-		cryptofile, ERR_error_string( ERR_get_error(), NULL ));
-	exit( 1 );
-    }
-    if ( SSL_CTX_use_certificate_chain_file( cfg->ctx, certfile ) != 1 ) {
-	fprintf( stderr, "SSL_CTX_use_certificate_chain_file: %s: %s\n",
-		certfile, ERR_error_string( ERR_get_error(), NULL ));
-	exit( 1 );
-    }
-    if ( SSL_CTX_check_private_key( cfg->ctx ) != 1 ) {
-	fprintf( stderr, "SSL_CTX_check_private_key: %s\n",
-		ERR_error_string( ERR_get_error(), NULL ));
-	exit( 1 );
-    }
-    if ( SSL_CTX_load_verify_locations( cfg->ctx, cafile, NULL ) != 1 ) {
-	fprintf( stderr, "SSL_CTX_load_verify_locations: %s: %s\n",
-		cryptofile, ERR_error_string( ERR_get_error(), NULL ));
-	exit( 1 );
-    }
-    SSL_CTX_set_verify( cfg->ctx, SSL_VERIFY_PEER, NULL );
 
     if ( cfg->host != NULL ) {
 	return( "There can be only one host per configuration!" );
@@ -459,6 +482,10 @@ command_rec cosign_cmds[ ] =
         { "CosignHostname", set_cosign_host,
         NULL, RSRC_CONF, TAKE1,
         "the name of the cosign hosts(s)" },
+
+        { "CosignCrypto", set_cosign_certs,
+        NULL, RSRC_CONF, TAKE3,
+        "crypto for use in talking to cosign host" },
 
         { NULL }
 };
