@@ -1,22 +1,16 @@
 Some things to know:
 
-make will build the apache filter only
-make install will install the filter using apxs
+'make' will build the apache filter only
+'make install' will install the filter using apxs
 
-make everything will build the filter, the daemon and the cgi
-make install-all installs all :)
+'make everything' will build the filter, the daemon and the cgi
+'make install-all' installs all :)
 
 In order for the filter to work, you'll need a directory called 
 	/var/cosign/filter
 
 It must be permitted so the user that runs the webserver has write
 permission to it.
-
-you'll want to run something like this out of cron daily:
-
-find /var/cosign -type f -mtime +1 -exec rm {} \;
-
-It'll get rid of any files that have not been modified in the last day.
 
 In the U of M environment, you'll want your directives to look like
 this:
@@ -59,8 +53,5 @@ default is /usr/local/etc/cosign.conf
 --with-cosigncadir=DIR	default=/var/cosign/certs/CA 
 --with-cosigncert=FILE	default=/var/cosign/certs/cert.pem
 --with-cosignkey=FILE	default=/var/cosign/certs/key.pem
-
-
-An init script will be included next time :)
 
 Questions? cosign@umich.edu
