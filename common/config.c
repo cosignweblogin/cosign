@@ -116,7 +116,7 @@ chosts_read( char *path )
 	new->ch_flag = 0;
 	new->ch_proxies = NULL;
 
-	if (( ac >= 3 ) && ( new->ch_key == SERVICE )) {
+	if (( ac >= 3 ) && (( new->ch_key == SERVICE || new->ch_key == CGI ))) {
 	    if ( strchr( av[ 2 ], 'T' ) != 0 ) {
 		new->ch_flag |= CH_TICKET;
 	    }

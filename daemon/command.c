@@ -831,7 +831,7 @@ f_retr( SNET *sn, int ac, char *av[], SNET *pushersn )
     struct timeval      tv;
     char		login[ MAXCOOKIELEN ];
 
-    if (( ch->ch_key != SERVICE )) {
+    if (( ch->ch_key != SERVICE ) || ( ch->ch_key == CGI )) {
 	syslog( LOG_ERR, "%s not allowed to retreive", ch->ch_hostname );
 	snet_writef( sn, "%d RETR: %s not allowed to retreive.\r\n",
 		442, ch->ch_hostname );
