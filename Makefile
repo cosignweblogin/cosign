@@ -1,10 +1,12 @@
 CC=	gcc
-ALL=	libcgi libsnet cgi cgi/html daemon filters/apache
+ALL=	libcgi libsnet cgi html daemon filters/apache
+TARGETS= cgi html daemon filters/apache
 CFLAGS=
 
-all:	version.o ${ALL}
+first:	filters/apache
+all:	${ALL}
 
-cgi daemon filters/apache:	libsnet
+cgi daemon filters/apache:	version.o libsnet
 cgi:	libcgi
 
 ${ALL}:	version.o FRC
@@ -15,12 +17,15 @@ FRC:
 clean:
 	rm -f version.o
 	for i in ${ALL}; \
-	    do (cd $$i; ${MAKE} ${MFLAGS} $@); \
+	    do (cd $$i; ${MAKE} ${MFLAGS} clean); \
 	done
 
-install :
-	for i in ${ALL}; \
-	    do (cd $$i; ${MAKE} ${MFLAGS} $@); \
+install: filters/apache
+	cd filters/apache; ${MAKE} ${MFLAGS} install
+
+install-all : all
+	for i in ${TARGETS}; \
+	    do (cd $$i; ${MAKE} ${MFLAGS} install); \
 	done
 
 version.o : version.c
