@@ -158,10 +158,10 @@ set_cookie_and_redirect( request_rec *r, cosign_host_config *cfg )
 
     gettimeofday( &now, NULL );
     if ( cfg->http ) { /* living dangerously */
-	full_cookie = apr_psprintf( r->pool, "%s/%d;;path=/",
+	full_cookie = apr_psprintf( r->pool, "%s/%lu;;path=/",
 		my_cookie, now.tv_sec );
     } else {
-	full_cookie = apr_psprintf( r->pool, "%s/%d;;path=/;secure", 
+	full_cookie = apr_psprintf( r->pool, "%s/%lu;;path=/;secure", 
 		my_cookie, now.tv_sec );
     }
 
