@@ -6,7 +6,7 @@
 #include <sys/stat.h>
 #include <sys/param.h>
 #include <sys/types.h>
-#include <syslog.h>
+#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -25,7 +25,9 @@ read_scookie( char *path, struct sinfo *si )
     int		len;
 
     if (( sf = fopen( path, "r" )) == NULL ) {
-	perror( path );
+	if ( errno != ENOENT ) {
+	    perror( path );
+	}
 	return( 1 );
     }
 
