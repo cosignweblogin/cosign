@@ -5,5 +5,4 @@ struct connlist {
 };
 
 int	mkcookie( int, char * );
-void	ssl_setup( void );
 struct connlist * connlist_setup( char *, unsigned short );

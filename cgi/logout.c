@@ -15,6 +15,7 @@
 #include "cgi.h"
 #include "cosigncgi.h"
 #include "network.h"
+#include "../daemon/config.h"
 
 #define ERROR_HTML	"../templates/error.html"
 #define REDIRECT_HTML	"../templates/redirect.html"
@@ -23,11 +24,15 @@
 #define SIDEWAYS	1
 
 extern char	*cosign_version;
-char	*err = NULL;
-char	*title = "Logout";
-char	*cosign_host =_COSIGN_HOST;
-char	*url = _COSIGN_LOGOUT_URL;
-int	nocache = 0;
+char		*err = NULL;
+char		*title = "Logout";
+char		*cosign_host =_COSIGN_HOST;
+char		*url = _COSIGN_LOGOUT_URL;
+char    	*certfile = _COSIGN_TLS_CERT;
+char		*cryptofile = _COSIGN_TLS_KEY;
+char		*cadir =_COSIGN_TLS_CADIR;
+char		*cosign_conf = _COSIGN_CONF;
+int		nocache = 0;
 
 struct cgi_list cl[] = {
 #define CL_VERIFY	0
@@ -121,11 +126,33 @@ subfile( char *filename )
 }
 
 
+    static void
+logout_configure()
+{
+    char	 *val;
+
+    if (( val = getConfigValue( COSIGNHOSTKEY )) != NULL ) {
+        cosign_host = val;
+    }
+    if (( val = getConfigValue( COSIGNLOGOUTURLKEY)) != NULL ) {
+	url = val;
+    }
+    if (( val = getConfigValue( COSIGNKEYKEY )) != NULL ) {
+        cryptofile = val;
+    }
+    if (( val = getConfigValue( COSIGNCERTKEY )) != NULL ) {
+        certfile = val;
+    }
+    if (( val = getConfigValue( COSIGNCADIRKEY )) != NULL ) {
+        cadir = val;
+    }
+}
+
     int
 main( int argc, char *argv[] )
 {
-    char	*tmpl = VERIFY_LOGOUT;
-    char	*cookie = NULL, *data, *ip_addr, *script, *qs;
+    char		*tmpl = VERIFY_LOGOUT;
+    char		*cookie = NULL, *data, *ip_addr, *script, *qs;
     unsigned short	port;
     struct connlist	*head;
 
@@ -133,6 +160,15 @@ main( int argc, char *argv[] )
 	printf( "%s\n", cosign_version );
 	exit( 0 );
     }
+
+    if ( parseConfig( cosign_conf ) < 0 ) {
+        title = "Error: But not your fault";
+        err = "We were unable to parse the configuration file";
+        tmpl = ERROR_HTML;
+        subfile( tmpl );
+        exit( 0 );
+    }
+    logout_configure();
 
     if ( cgi_info( CGI_GET, cl ) == 0 ) {
 	if ((( qs = getenv( "QUERY_STRING" )) != NULL ) &&
@@ -199,7 +235,15 @@ main( int argc, char *argv[] )
         exit( 0 );
     }
 
-    ssl_setup(); 
+    if(ssl_setup(certfile,cryptofile,cadir))
+    {
+        title = "Error: But not your fault";
+        err = "Failed to initialise connections to the authentication server. Please try again later";
+        tmpl = ERROR_HTML;
+        subfile( tmpl );
+        exit( 0 );
+    }
+
 
 
     if ( cookie != NULL ) {

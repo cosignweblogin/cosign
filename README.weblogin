@@ -179,7 +179,7 @@ Configure Options:
 
 Rate Logging:
 
-	Starting with 1.7, we've simplified the loggin paradigm. There's
+	Starting with 1.7, we've simplified the logging paradigm. There's
 	a file in common/ called rate.h and a #define of RATE_INTERVAL.
 	This means that every RATE_INTERVAL number of events, cosignd
 	will write out a summary log line that shows the rate for that

@@ -20,6 +20,7 @@
 #include "cgi.h"
 #include "cosigncgi.h"
 #include "network.h"
+#include "../daemon/config.h"
 
 #ifdef SQL_FRIEND
 #include <crypt.h>
@@ -32,7 +33,6 @@ static	MYSQL	friend_db;
 #define LOGIN_HTML	"../templates/login.html"
 #define SERVICE_MENU	"/services/"
 #define LOOP_PAGE	"https://weblogin.umich.edu/looping.html"
-#define TKT_PREFIX      _COSIGN_TICKET_CACHE
 #define SIDEWAYS        1
 #define LOOPWINDOW      30 
 #define MAXREDIRECTS	10	
@@ -43,6 +43,16 @@ char	*cosign_host = _COSIGN_HOST;
 char	*err = NULL, *ref = NULL, *service = NULL;
 char	*title = "Authentication Required";
 char	*keytab_path = _KEYTAB_PATH;
+char	*ticket_path = _COSIGN_TICKET_CACHE;
+char	*certfile = _COSIGN_TLS_CERT;
+char	*cryptofile = _COSIGN_TLS_KEY;
+char	*cadir = _COSIGN_TLS_CADIR;
+
+#ifdef SQL_FRIEND
+char	*friend_db_name = _FRIEND_MYSQL_DB;
+char	*friend_login = _FRIEND_MYSQL_LOGIN;
+char	*friend_passwd = _FRIEND_MYSQL_PASSWD;
+#endif
 
 struct cgi_list cl[] = {
 #define CL_LOGIN	0
@@ -222,7 +232,43 @@ subfile( char *filename )
 }
 
 
-    int
+    static void
+kcgi_configure()
+{
+    char 	*val;
+
+    if (( val = getConfigValue( COSIGNHOSTKEY )) != NULL ) {
+	cosign_host = val;
+    }
+    if (( val = getConfigValue( COSIGNKEYTABKEY )) != NULL ) {
+	keytab_path = val;
+    }
+    if (( val = getConfigValue( COSIGNTICKKEY )) != NULL ) {
+	ticket_path = val;
+    }
+    if (( val = getConfigValue( COSIGNKEYKEY )) != NULL ) {
+	cryptofile = val;
+    }
+    if (( val = getConfigValue( COSIGNCERTKEY )) != NULL ) {
+	certfile = val;
+    }
+    if (( val = getConfigValue( COSIGNCADIRKEY )) != NULL ) {
+	cadir = val;
+    }
+#ifdef SQL_FRIEND
+    if (( val = getConfigValue( MYSQLDBKEY )) != NULL ) {
+	friend_db_name = val;
+    }
+    if (( val = getConfigValue( MYSQLUSERKEY )) != NULL ) {
+	friend_login = val;
+    }
+    if (( val = getConfigValue( MYSQLPASSWDKEY )) != NULL ) {
+	friend_passwd = val;
+    }
+#endif	
+}
+
+int
 main( int argc, char *argv[] )
 {
     krb5_error_code		kerror = 0;
@@ -243,9 +289,11 @@ main( int argc, char *argv[] )
     char			*cookie = NULL, *method, *script, *qs;
     char			*misc = NULL;
     char			*tmpl = LOGIN_HTML;
+    char 			*cosign_conf = _COSIGN_CONF;
     struct timeval		tv;
     struct connlist		*head;
     unsigned short		port;
+
 #ifdef SQL_FRIEND
     MYSQL_RES			*res;
     MYSQL_ROW			row;
@@ -257,6 +305,15 @@ main( int argc, char *argv[] )
 	printf( "%s\n", cosign_version );
 	exit( 0 );
     }
+
+    if ( parseConfig( cosign_conf ) < 0 ) {
+	title = "Error: But not your fault";
+	err = "We were unable to parse the configuration file";
+	tmpl = ERROR_HTML;
+	subfile( tmpl );
+	exit( 0 );
+    }
+    kcgi_configure();
 
     if (( data = getenv( "HTTP_COOKIE" )) != NULL ) {
 	cookie = strtok( data, ";" );
@@ -290,12 +347,18 @@ main( int argc, char *argv[] )
     if (( head = connlist_setup( cosign_host, port )) == NULL ) {
 	title = "Error: But not your fault";
 	err = "We were unable to contact the authentication server.  Please try again later.";
-	tmpl = LOGIN_ERROR_HTML;
+	tmpl = ERROR_HTML;
 	subfile( tmpl );
 	exit( 0 );
     }
 
-    ssl_setup();
+    if ( ssl_setup( certfile, cryptofile, cadir ) != 0 ) {
+	title = "Error: But not your fault";
+	err = "Failed to initialise connections to the authentication server. Please try again later";
+	tmpl = ERROR_HTML;
+	subfile( tmpl );
+	exit( 0 );
+    }
 
     if ((( qs = getenv( "QUERY_STRING" )) != NULL ) && ( *qs != '\0' )) {
 	if ((( service = strtok( qs, ";" )) == NULL ) ||
@@ -410,7 +473,7 @@ main( int argc, char *argv[] )
 
     if ( strchr( cl[ CL_LOGIN ].cl_data, '@' ) != NULL ) {
 #ifdef SQL_FRIEND
-	if ( !mysql_real_connect( &friend_db, _FRIEND_MYSQL_DB, _FRIEND_MYSQL_LOGIN, _FRIEND_MYSQL_PASSWD, "friend", 3306, NULL, 0 )) {
+	if ( !mysql_real_connect( &friend_db, friend_db_name, friend_login, friend_passwd, "friend", 3306, NULL, 0 )) {
 	    fprintf( stderr, mysql_error( &friend_db ));
 	    err = "Unable to connect to guest account database.";
 	    title = "Database Problem";
@@ -500,7 +563,7 @@ main( int argc, char *argv[] )
 	    err = "We were unable to contact the authentication server."
 		    "  Please try again later.";
 	    title = "Error: Please try later";
-	    tmpl = LOGIN_ERROR_HTML;
+	    tmpl = ERROR_HTML;
 	    subfile ( tmpl );
 	    exit( 0 );
 	}
@@ -555,7 +618,7 @@ main( int argc, char *argv[] )
 	}
 
 	if ( snprintf( krbpath, sizeof( krbpath ), "%s/%s",
-		TKT_PREFIX, tmpkrb ) >= sizeof( krbpath )) {
+		ticket_path, tmpkrb ) >= sizeof( krbpath )) {
 	    err = "An unknown error occurred.";
 	    title = "Authentication Required ( kerberos error: krbpath )";
 
@@ -666,10 +729,10 @@ main( int argc, char *argv[] )
 	    exit( 0 );
 	}
 
-	if (( kerror = krb5_cc_store_cred( kcontext, kccache, &kcreds )) != 0 ) {
+	if (( kerror = krb5_cc_store_cred( kcontext, kccache, &kcreds ))
+		!= 0 ) {
 	    err = (char *)error_message( kerror );
 	    title = "CC Storing Error";
-	    
 	    tmpl = LOGIN_ERROR_HTML;
 	    subfile ( tmpl );
 	    exit( 0 );
@@ -684,7 +747,6 @@ main( int argc, char *argv[] )
 	if ( cosign_login( head, cookie, ip_addr, 
 		cl[ CL_LOGIN ].cl_data, realm, krbpath ) < 0 ) {
 	    fprintf( stderr, "%s: login failed\n", script ) ;
-
 	    err = "We were unable to contact the authentication server."
 		    "  Please try again later.";
 	    title = "Error: Please try later";

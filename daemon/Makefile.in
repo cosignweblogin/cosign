@@ -30,7 +30,7 @@ CFLAGS=         ${DEFS} ${OPTOPTS} @CFLAGS@ ${INCPATH}
 SRC= daemon.c command.c cparse.c config.c wildcard.c logname.c pusher.c \
     mnet.c
 MONSTER = monster.c cparse.c logname.c mnet.c
-MOBJ = monster.o cparse.o logname.o mnet.o ../version.o
+MOBJ = monster.o cparse.o config.o wildcard.o logname.o mnet.o ../common/argcargv.o ../version.o
 COSIGNOBJ= daemon.o command.o cparse.o config.o wildcard.o logname.o \
 	pusher.o mnet.o ../common/argcargv.o ../common/fbase64.o \
 	../common/mkcookie.o ../common/rate.o ../version.o
@@ -44,6 +44,7 @@ FRC :
 
 monster.o : monster.c
 	${CC} ${CFLAGS} \
+	-D_COSIGN_CONF=\"${COSIGNCONF}\" \
 	-D_COSIGN_DIR=\"${COSIGNDB}\" \
 	-D_COSIGN_LOG=${COSIGNSYSLOG} \
 	-D_COSIGN_TLS_CADIR=\"${COSIGNCADIR}\" \

@@ -9,6 +9,7 @@ COSIGNKEY=@cosignkey@
 COSIGNHOST = @cosignhost@
 COSIGNLOGOUTURL = @cosignlogouturl@
 COSIGNTICKETCACHE = @ticketcache@
+COSIGNCONF= @cosignconf@
 KEYTABPATH = @keytabpath@
 FRIEND_MYSQL_DB = @frienddbhost@
 FRIEND_MYSQL_LOGIN = @frienddblogin@
@@ -25,7 +26,7 @@ INSTALL=     @INSTALL@
 CFLAGS=      ${DEFS} ${OPTOPTS} @CFLAGS@ ${INCPATH}
 
 
-OBJ     = network.o ../common/mkcookie.o ../common/fbase64.o ../version.o
+OBJ     = network.o ../common/mkcookie.o ../common/fbase64.o ../version.o ../daemon/config.o ../daemon/wildcard.o ../common/argcargv.o
 CGITARGETS = @BASICCGI@ @KRBCGI@
 TARGETS = logout ${CGITARGETS}
 
@@ -33,9 +34,6 @@ all: ${TARGETS}
 
 network.o:	network.c
 	${CC} ${CFLAGS} \
-	-D_COSIGN_TLS_CADIR=\"${COSIGNCADIR}\" \
-	-D_COSIGN_TLS_CERT=\"${COSIGNCERT}\" \
-	-D_COSIGN_TLS_KEY=\"${COSIGNKEY}\" \
 	-c network.c
 
 cgi.o:	cgi.c
@@ -46,11 +44,19 @@ cgi.o:	cgi.c
 	-D_FRIEND_MYSQL_LOGIN=\"${FRIEND_MYSQL_LOGIN}\" \
 	-D_FRIEND_MYSQL_PASSWD=\"${FRIEND_MYSQL_PASSWD}\" \
 	-D_COSIGN_TICKET_CACHE=\"${COSIGNTICKETCACHE}\" \
+    -D_COSIGN_TLS_CADIR=\"${COSIGNCADIR}\" \
+    -D_COSIGN_TLS_CERT=\"${COSIGNCERT}\" \
+    -D_COSIGN_TLS_KEY=\"${COSIGNKEY}\" \
+	-D_COSIGN_CONF=\"${COSIGNCONF}\" \
 	-c cgi.c
 
 basic.o:	basic.c
 	${CC} ${CFLAGS} \
 	-D_COSIGN_HOST=\"${COSIGNHOST}\" \
+    -D_COSIGN_TLS_CADIR=\"${COSIGNCADIR}\" \
+    -D_COSIGN_TLS_CERT=\"${COSIGNCERT}\" \
+    -D_COSIGN_TLS_KEY=\"${COSIGNKEY}\" \
+	-D_COSIGN_CONF=\"${COSIGNCONF}\" \
 	-c basic.c
 
 cosign.cgi: cgi.o $(OBJ)
@@ -63,6 +69,10 @@ logout.o:	logout.c
 	${CC} ${CFLAGS} \
 	-D_COSIGN_HOST=\"${COSIGNHOST}\" \
 	-D_COSIGN_LOGOUT_URL=\"${COSIGNLOGOUTURL}\" \
+	-D_COSIGN_CONF=\"${COSIGNCONF}\" \
+    -D_COSIGN_TLS_CADIR=\"${COSIGNCADIR}\" \
+    -D_COSIGN_TLS_CERT=\"${COSIGNCERT}\" \
+    -D_COSIGN_TLS_KEY=\"${COSIGNKEY}\" \
 	-c logout.c
 
 logout: logout.o $(OBJ)

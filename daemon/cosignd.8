@@ -34,7 +34,8 @@
 .sp
 .SH DESCRIPTION
 Cosign clients use an smtp style protocol to communicate with cosignd.
-On startup, cosignd changes directory to _COSIGN_DIR
+On startup, cosignd changes directory to _COSIGN_DIR (unless overridden by
+command line option or config file) 
 and begins listening on the cosignd port ( by default 6663 ) for
 incoming connections.
 With the
@@ -205,6 +206,29 @@ Server's public certificate, by default _COSIGN_TLS_CERT.
 .BI \-z\  private-key-file
 Server's private key, by default _COSIGN_TLS_KEY.
 .sp
+.SH CONFIG FILE OPTIONS
+The follow configuration file options are recognised. Configuration file options override the default compile time settings, but are in turn overridden by any command line options as specified. For the default values see the appropriate command line option which can override it.
+.TP 19
+.BI cosigncadir
+The location where CA certificates in hashed form after expected to reside for validating client ceriticates. This is overridden by the
+.B \-x
+command line option
+.TP 19
+.BI cosigncert
+The location of the SSL server certificate for use by this program. This is overridden by the
+.B \-y
+command line option
+.TP 19
+.BI cosignkey
+The location of the SSL key file for use by this program. This is overridden by the
+.B \-z
+command line option
+.TP 19
+.BI cosigndb
+The cosign daemon directory, where all tickets (cosign= and cosign-serv=) will be stored. This is overridden by the
+.B \-D
+command line option
+.sp
 .SH EXAMPLES
 The following example of _COSIGN_CONF defines 2 cgis and several services.
 .sp
@@ -221,6 +245,9 @@ service		portaltest.web.umich.edu	PT	/etc/cosign/portal.conf
 service		campusmail.umich.edu		T	
 service		alumni.web.mgoblue.com		0
 service		*.web.umich.edu			0
+include		/etc/cosign/another.conf
+config		cosignticketcache	/some/place
+config		cosignkey		/some/key
 .fi
 .RE
 .sp

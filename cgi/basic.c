@@ -12,19 +12,24 @@
 #include <snet.h>
 #include "cosigncgi.h"
 #include "network.h"
+#include "../daemon/config.h"
 
 #define ERROR_HTML	"../templates/error.html"
 #define SERVICE_MENU	"../templates/service-menu.html"
 #define SIDEWAYS        1
 
 extern char	*cosign_version;
-char	*err = NULL, *ref = NULL, *service = NULL;
-char	*title = "Authentication Required";
-char	*cosign_host = _COSIGN_HOST;
+char		*err = NULL, *ref = NULL, *service = NULL;
+char		*title = "Authentication Required";
+char		*cosign_host = _COSIGN_HOST;
 unsigned short	port;
 
+char	*certfile = _COSIGN_TLS_CERT;
+char	*cryptofile = _COSIGN_TLS_KEY;
+char	*cadir = _COSIGN_TLS_CADIR;
+char	*cosign_conf = _COSIGN_CONF;
 
-void            subfile( char * );
+void	subfile( char * );
 
     void
 subfile( char *filename )
@@ -127,6 +132,21 @@ subfile( char *filename )
     return;
 }
 
+    void
+bcgi_configure()
+{
+    char	 *val;
+
+    if (( val = getConfigValue( COSIGNKEYKEY )) != NULL ) {
+        cryptofile = val;
+    }
+    if (( val = getConfigValue( COSIGNCERTKEY )) != NULL ) {
+        certfile = val;
+    }
+    if (( val = getConfigValue( COSIGNCADIRKEY )) != NULL ) {
+        cadir = val;
+    }
+}
 
     int
 main( int argc, char *argv[] )
@@ -145,6 +165,15 @@ main( int argc, char *argv[] )
 	printf( "%s\n", cosign_version );
 	exit( 0 );
     }
+
+    if ( cosign_parse_config( cosign_conf ) < 0 ) {
+        title = "Error: But not your fault";
+        err = "We were unable to parse the configuration file";
+        tmpl = ERROR_HTML;
+        subfile( tmpl );
+        exit( 0 );
+    }
+    bcgi_configure();
 
     if (( user = getenv( "REMOTE_USER" )) == NULL ) {
 	title = "Error: No Remote User";
@@ -190,7 +219,14 @@ main( int argc, char *argv[] )
 	exit( 0 );
     }
 
-    ssl_setup();
+    if ( ssl_setup( certfile, cryptofile, cadir ) != 0 ) {
+        title = "Error: But not your fault";
+        err = "Failed to initialise connections to the authentication server. Please try again later";
+        tmpl = LOGIN_ERROR_HTML;
+        subfile( tmpl );
+        exit( 0 );
+    }
+
 
     /* this is a register, and we implicitly log them in if need be */
     if ((( qs = getenv( "QUERY_STRING" )) != NULL ) && ( *qs != '\0' )) {

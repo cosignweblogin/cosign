@@ -43,6 +43,9 @@ int		idle_out = 7200;
 int		grey = 1800;
 char		*cosign_dir = _COSIGN_DIR;
 char		*cosign_conf = _COSIGN_CONF;
+char		*cryptofile = _COSIGN_TLS_KEY;
+char		*certfile = _COSIGN_TLS_CERT;
+char		*cadir = _COSIGN_TLS_CADIR;
 char		*replhost = NULL;
 unsigned short	port = 0;
 SSL_CTX		*ctx = NULL;
@@ -52,14 +55,47 @@ void		hup( int );
 void		chld( int );
 int		main( int, char *av[] );
 
+    static void
+daemon_configure()
+{
+    char	 *val;
+
+    if (( val = getConfigValue( COSIGNDBKEY )) != NULL ) {
+	syslog( LOG_INFO, "config: overriding default DB location(%s)"
+		" to config value of '%s'", cosign_dir, val );
+	cosign_dir = val;
+    }
+
+    if (( val = getConfigValue( COSIGNCADIRKEY )) != NULL ) {
+	syslog( LOG_INFO, "config: overriding default CA dir(%s)"
+		" to config value of '%s'", cadir, val );
+	cadir = val;
+    }
+
+    if (( val = getConfigValue( COSIGNCERTKEY )) != NULL ) {
+	syslog( LOG_INFO, "config: overriding default ssl cert location(%s)"
+		" to config value of '%s'",	certfile, val );
+	certfile = val;
+    }
+
+    if (( val = getConfigValue( COSIGNKEYKEY )) != NULL ) {
+	syslog( LOG_INFO, "config: overriding default ssl key location(%s)"
+		" to config value of '%s'",cryptofile, val );
+	cryptofile = val;
+    }
+}
+
     void
 hup( int sig )
 {
     syslog( LOG_INFO, "reload %s", cosign_version );
-    if ( chosts_read( cosign_conf ) < 0 ) {
+    if ( parseConfig( cosign_conf ) < 0 ) {
 	syslog( LOG_ERR, "%s: re-read failed", cosign_conf );
 	exit( 1 );
     }
+
+    /* We do not re-call configure() because it is not possbible to */
+    /* re-configure the SSL and daemon dir etc while the code is running */
 
     if ( kill( pusherpid, sig ) < 0 ) {
 	syslog( LOG_CRIT, "kill pusherpid: %m" );
@@ -101,7 +137,6 @@ chld( int sig )
 }
 
 
-
     int
 main( int ac, char *av[] )
 {
@@ -113,9 +148,6 @@ main( int ac, char *av[] )
     int			dontrun = 0, fds[ 2 ];
     int			reuseaddr = 1;
     char		*prog;
-    char		*cryptofile = _COSIGN_TLS_KEY;
-    char		*certfile = _COSIGN_TLS_CERT;
-    char		*cadir = _COSIGN_TLS_CADIR;
     int                 facility = _COSIGN_LOG;
     int			level = LOG_INFO;
     extern int		optind;
@@ -127,6 +159,19 @@ main( int ac, char *av[] )
 	prog++;
     }
 
+    /*
+     * Read config file before chdir(), in case config file is relative path.
+     * We read configuration this early so command line options can override
+     * any configuration in the conf file.
+     */
+
+    if ( parseConfig( cosign_conf ) < 0 ) {
+	exit( 1 );
+    }
+
+    /* Configure ourself based on the config file */
+    daemon_configure();
+
     while (( c = getopt( ac, av, "b:c:dD:F:g:h:i:L:np:VXx:y:z:" )) != -1 ) {
 	switch ( c ) {
 	case 'b' :		/* listen backlog */
@@ -135,6 +180,11 @@ main( int ac, char *av[] )
 
 	case 'c' :		/* config file */
 	    cosign_conf = optarg;
+	    /* Must now re-configure :( */
+	    if ( parseConfig( cosign_conf ) < 0 ) {
+		exit( 1 );
+	    }
+	    daemon_configure();
 	    break;
 
 	case 'd' :		/* debug */
@@ -213,14 +263,6 @@ main( int ac, char *av[] )
 	fprintf( stderr, "[ -i idletimeinsecs] [ -L syslog facility] " );
 	fprintf( stderr, "[ -p port ] [ -x ca dir ] " );
 	fprintf( stderr, "[ -y cert file] [ -z private key file ]\n" );
-	exit( 1 );
-    }
-
-    /*
-     * Read config file before chdir(), in case config file is relative path.
-     */
-
-    if ( chosts_read( cosign_conf ) < 0 ) {
 	exit( 1 );
     }
 

@@ -21,6 +21,7 @@
 #include "logname.h"
 #include "rate.h"
 #include "monster.h"
+#include "config.h"
 
 /* idle_cache = (idle+grey) from cosignd, plus loggedout_cache here */
 int		idle_cache = 16200;
@@ -37,6 +38,41 @@ static struct timeval           timeout = { 10 * 60, 0 };
 
 int decision( char *, struct timeval *, time_t *, int * );
 
+char    *cosign_dir = _COSIGN_DIR;
+char	*cryptofile = _COSIGN_TLS_KEY;
+char	*certfile = _COSIGN_TLS_CERT;
+char	*cadir = _COSIGN_TLS_CADIR;
+
+    static void
+monster_configure()
+{
+    char	 *val;
+
+    if (( val = getConfigValue( COSIGNDBKEY )) != NULL ) {
+	syslog( LOG_INFO, "config: overriding default DB location(%s)"
+		" to config value of '%s'", cosign_dir, val );
+	cosign_dir = val;
+    }
+
+    if (( val = getConfigValue( COSIGNCADIRKEY )) != NULL ) {
+	syslog( LOG_INFO, "config: overriding default CA dir(%s)"
+		" to config value of '%s'", cadir, val );
+	cadir = val;
+    }
+
+    if (( val = getConfigValue( COSIGNCERTKEY )) != NULL ) {
+	syslog( LOG_INFO, "config: overriding default ssl cert location(%s)"
+		" to config value of '%s'", certfile, val );
+	certfile = val;
+    }
+
+    if (( val = getConfigValue( COSIGNKEYKEY )) != NULL ) {
+	syslog( LOG_INFO, "config: overriding default ssl key location(%s)"
+		" to config value of '%s'", cryptofile, val );
+	cryptofile = val;
+    }
+}
+
     int
 main( int ac, char **av )
 {
@@ -52,11 +88,8 @@ main( int ac, char **av )
     int			lc_count, sc_count, sc_gone;
     unsigned short	port = htons( 6663 );
     int			rc;
-    char           	*cosign_dir = _COSIGN_DIR;
     char           	*cosign_host = NULL;
-    char		*cryptofile = _COSIGN_TLS_KEY;
-    char		*certfile = _COSIGN_TLS_CERT;
-    char		*cadir = _COSIGN_TLS_CADIR;
+	char		*cosign_conf = _COSIGN_CONF;
     int                 facility = _COSIGN_LOG, level = LOG_INFO;
     SSL_CTX		*ctx = NULL;
     extern int          optind;
@@ -68,8 +101,28 @@ main( int ac, char **av )
 	prog++;
     }
 
-    while (( c = getopt( ac, av, "dF:h:H:i:I:l:L:p:Vx:y:z:" )) != EOF ) {
+    /*
+     * Read config file before chdir(), in case config file is relative path.
+     * We read configuration this early so command line options can override
+     * any configuration in the conf file.
+     */
+    if ( parseConfig( cosign_conf ) < 0 ) {
+	exit( 1 );
+    }
+
+    /* Configure ourself based on the config file */
+    monster_configure();
+
+    while (( c = getopt( ac, av, "c:dF:h:H:i:I:l:L:p:Vx:y:z:" )) != EOF ) {
 	switch ( c ) {
+	case 'c':
+	    cosign_conf = optarg;
+	    /* Must now re-configure :( */
+	    if ( parseConfig( cosign_conf ) < 0 ) {
+		exit( 1 );
+	    }
+	    monster_configure();
+	    break;
 	case 'd' :		/* debug */
 	    debug++;
 	    break;
@@ -141,10 +194,11 @@ main( int ac, char **av )
     }
 
     if ( err || optind != ac ) {
-	fprintf( stderr, "Usage: monster [ -dV ] [ -h cosignd host ] ");
+	fprintf( stderr, "Usage: monster [ -c conf ] [ -dV ] " );
+	fprintf( stderr, "[ -F syslog facility ] [ -h cosignd host ] ");
 	fprintf( stderr, "[ -H hard timeout  ] [ -i idlecachetimeinsecs ] " );
 	fprintf( stderr, "[ -I update interval ] [ -l loggedoutcachetime ]  " );
-	fprintf( stderr, "[ -L syslog facility] [ -p port ] [ -x ca dir ] " );
+	fprintf( stderr, "[ -L syslog level] [ -p port ] [ -x ca dir ] " );
 	fprintf( stderr, "[ -y cert file] [ -z private key file ]\n" );
 	exit( -1 );
     }
