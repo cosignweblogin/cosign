@@ -15,10 +15,11 @@
 #include "cosigncgi.h"
 #include "network.h"
 
-#define LOGIN_HTML	"../templates/login.html"
 #define ERROR_HTML	"../templates/error.html"
-#define SERVICE_MENU	"../templates/service-menu.html"
+#define LOGIN_HTML	"../templates/login.html"
 #define REDIRECT_HTML	"../templates/redirect.html"
+#define SERVICE_MENU	"../templates/service-menu.html"
+#define SPLASH_HTML	"../templates/splash.html"
 #define SIDEWAYS        1
 
 char	*err = NULL;
@@ -156,9 +157,7 @@ main()
 
 	if ( cookie == NULL || strlen( cookie ) == 7 ) {
 	    title = "Authentication Required";
-	    tmpl = ERROR_HTML;
-	    err = "<p>Welcome to the University of Michigan's central web authentication service. You will need to <a href='/cgi-bin/cosign'>visit the login screen</a> and login before continuing.</p><p class='important'><a href='/cgi-bin/cosign'>login now</a></p>";
-
+	    tmpl = SPLASH_HTML;
 	    subfile( tmpl );
 	    exit( 0 );
 	}
@@ -180,6 +179,13 @@ main()
 	}
 
 	if (( rc = cosign_register( cookie, ip_addr, service )) < 0 ) {
+	    if ( cosign_check( cookie ) < 0 ) {
+		title = "Authentication Required";
+		tmpl = SPLASH_HTML;
+		subfile( tmpl );
+		exit( 0 );
+	    }
+
 	    fprintf( stderr, "%s: cosign_register failed\n", script );
 	    title = "Error: Register Failed";
 	    tmpl = ERROR_HTML;
