@@ -16,7 +16,7 @@ INCPATH=        @CPPFLAGS@ @APXS_INCLUDE@ -I../../libsnet @K4INC@ @GSSINC@ -I../
 OPTOPTS=        @OPTOPTS@
 DEFS=           @TLSDEFS@ @KRBDEFS@ @K4DEFS@ @GSSDEFS@ @filteraddrcheck@
 LIBS=           -lsnet @K4LIBS@ @GSSLIBS@ @ADDLIBS@
-LDFLAGS=        -L../../libsnet/.libs @K4LDFLAGS@ @GSSLDFLAGS@ @ADDLDFLAGS@ ${LIBS}
+LDFLAGS=        -L../../libsnet/.libs @K4LDFLAGS@ @GSSLDFLAGS@ @ADDLDFLAGS@ @LDFLAGS@ ${LIBS}
 
 CFLAGS=         ${DEFS} ${OPTOPTS} @CFLAGS@ @APXS_CFLAGS@ @APXS_CFLAGS_SHLIB@ ${INCPATH}
 
