@@ -38,7 +38,7 @@
 
 extern int			idle_out_time;
 extern int			grey_time;
-extern int			cosign_net_timeout;
+extern struct timeval		cosign_net_timeout;
 extern struct sockaddr_in	cosign_sin;
 
 
@@ -348,16 +348,14 @@ f_login( SNET *sn, int ac, char *av[], SNET *pushersn )
 	return( -1 );
     }
 
-    tv.tv_sec = cosign_net_timeout;
-    tv.tv_usec = 0;
+    tv = cosign_net_timeout;
     if (( sizebuf = snet_getline( sn, &tv )) == NULL ) {
         syslog( LOG_ERR, "f_login: snet_getline: %m" );
         return( -1 );
     }
 
     for ( len = atoi( sizebuf ); len > 0; len -= rc ) {
-        tv.tv_sec = cosign_net_timeout;
-        tv.tv_usec = 0;
+        tv = cosign_net_timeout;
         if (( rc = snet_read(
                 sn, buf, (int)MIN( len, sizeof( buf )), &tv )) <= 0 ) {
             syslog( LOG_ERR, "f_login: snet_read: %m" );
@@ -376,7 +374,7 @@ f_login( SNET *sn, int ac, char *av[], SNET *pushersn )
     }
 
 
-    tv.tv_sec = cosign_net_timeout;
+    tv = cosign_net_timeout;
     tv.tv_usec = 0;
     if (( line = snet_getline( sn, &tv )) == NULL ) {
         syslog( LOG_ERR, "f_login: snet_getline: %m" );
@@ -393,7 +391,7 @@ f_login( SNET *sn, int ac, char *av[], SNET *pushersn )
 	    syslog( LOG_ERR, "f_login: unlink: %m" );
 	}
 
-        tv.tv_sec = cosign_net_timeout;
+        tv = cosign_net_timeout;
         tv.tv_usec = 0;
         for (;;) {
             if (( line = snet_getline( sn, &tv )) == NULL ) {
@@ -498,11 +496,9 @@ f_time( SNET *sn, int ac, char *av[], SNET *pushersn )
 
     snet_writef( sn, "%d TIME: Send timestamps.\r\n", 360 );
 
-    tv.tv_sec = cosign_net_timeout;
-    tv.tv_usec = 0;
+    tv = cosign_net_timeout;
     while (( line = snet_getline( sn, &tv )) != NULL ) {
-	tv.tv_sec = cosign_net_timeout;
-	tv.tv_usec = 0;
+	tv = cosign_net_timeout;
 	if (( ac = argcargv( line, &av )) < 0 ) {
 	    syslog( LOG_ERR, "argcargv: %m" );
 	    break;
@@ -1065,8 +1061,7 @@ retr_ticket( SNET *sn, char *krbpath )
     snet_writef( sn, "%d\r\n", (int)st.st_size );
 
     while (( readlen = read( fd, buf, sizeof( buf ))) > 0 ) {
-        tv.tv_sec = cosign_net_timeout;
-        tv.tv_usec = 0;
+        tv = cosign_net_timeout;
         if ( snet_write( sn, buf, (int)readlen, &tv ) != readlen ) {
             syslog( LOG_ERR, "snet_write: %m" );
             return( -1 );
@@ -1123,13 +1118,11 @@ command( int fd, SNET *pushersn )
 
     snet_writef( snet, "%d COokie SIGNer ready\r\n", 220 );
 
-    tv.tv_sec = cosign_net_timeout;
-    tv.tv_usec = 0;
+    tv = cosign_net_timeout;
 
     while (( line = snet_getline( snet, &tv )) != NULL ) {
 	/* log everything we get to stdout if we're debugging */
-	tv.tv_sec = cosign_net_timeout;
-	tv.tv_usec = 0;
+	tv = cosign_net_timeout;
 	if ( debug ) {
 	    printf( "debug: %s\n", line );
 	}

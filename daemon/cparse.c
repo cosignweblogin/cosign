@@ -92,9 +92,11 @@ read_cookie( char *path, struct cinfo *ci )
     extern int          errno;
 
     if (( cf = fopen( path, "r" )) == NULL ) {
-	if ( errno != ENOENT ) {
-	    syslog( LOG_ERR, "read_cookie: %s: %m", path  );
+	/* monster need this ENOENT return val */
+	if ( errno == ENOENT ) {
+	    return( 1 );
 	}
+	syslog( LOG_ERR, "read_cookie: %s: %m", path  );
 	return( -1 );
     }
 

@@ -27,21 +27,24 @@ extern char		*cosign_version;
 extern char		*replhost;
 extern unsigned short	port;
 extern SSL_CTX		*ctx;
-static struct cl	*replhead;
+extern struct timeval	cosign_net_timeout;
 
-static struct timeval   timeout = { 10 * 60, 0 };
+static struct connlist	*replhead;
+static int		reconfig = 0;
+static int		hupsig;
+static int		childsig = 0;
+
 static void     (*logger)( char * ) = NULL;
-
 static void	pusherhup( int );
 static void	pusherchld( int );
 static void	mkpushers( int );
 int		pusherparent( int );
-int		pusher( int, struct cl * );
+int		pusher( int, struct connlist * );
 int		pusherhosts( void );
-void		pusherdaemon( struct cl * );
+void		pusherdaemon( struct connlist * );
 
     void
-pusherdaemon( struct cl *cur )
+pusherdaemon( struct connlist *cur )
 {
     struct timeval	tv;
     char		*line, hostname[ MAXHOSTNAMELEN ];
@@ -53,7 +56,7 @@ pusherdaemon( struct cl *cur )
 
     snet_writef( cur->cl_sn, "DAEMON %s\r\n", hostname );
 
-    tv = timeout;
+    tv = cosign_net_timeout;
     if (( line = snet_getline_multi( cur->cl_sn, logger, &tv )) == NULL ) {
 	syslog( LOG_ERR, "pusherdaemon: %m" );
 	if (( close_sn( cur )) != 0 ) {
@@ -82,14 +85,15 @@ pusherhosts( void )
 {
     int			i;
     struct hostent	*he;
-    struct cl		**tail = NULL, *new = NULL;
+    struct connlist	**tail = NULL, *new = NULL;
 
     if (( he = gethostbyname( replhost )) == NULL ) {
 	return( 1 );
     }
     tail = &replhead;
     for ( i = 0; he->h_addr_list[ i ] != NULL; i++ ) {
-	if (( new = ( struct cl * ) malloc( sizeof( struct cl ))) == NULL ) {
+	if (( new = ( struct connlist * )
+		malloc( sizeof( struct connlist ))) == NULL ) {
 	    return( 1 );
 	}
 
@@ -112,7 +116,13 @@ pusherhosts( void )
     void
 pusherhup( int sig )
 {
-    struct cl		*cur;
+
+    reconfig++;
+    hupsig = sig;
+    return;
+
+#ifdef notdef
+    struct connlist	*cur;
 
     /* hup all the children */
     for ( cur = replhead; cur != NULL; cur = cur->cl_next ) {
@@ -131,15 +141,19 @@ pusherhup( int sig )
     }
 
     syslog( LOG_INFO, "reload pusher %s", cosign_version );
+#endif 
 
-    return;
 }
 
     void
 pusherchld( int sig )
 {
+     childsig++;
+     return;
+
+#ifdef notdef
     int			pid, status;
-    struct cl		**cur, *temp;
+    struct connlist	**cur, *temp;
     extern int		errno;
 
     while (( pid = waitpid( 0, &status, WNOHANG )) > 0 ) {
@@ -191,13 +205,13 @@ pusherchld( int sig )
 	syslog( LOG_ERR, "wait3: %m" );
 	exit( 1 );
     }
-    return;
+#endif
 }
 
     void
 mkpushers( int ppipe )
 {
-    struct cl		*cur, *yacur;
+    struct connlist	*cur, *yacur;
     int			fds[ 2 ];
     struct sigaction	sa;
 
@@ -276,7 +290,7 @@ pusherparent( int ppipe )
     int			max;
     fd_set		fdset;
     struct timeval	tv = { 0, 0 };
-    struct cl		*cur;
+    struct connlist	*cur;
     double		rate;
 
     /* catch SIGHUP */
@@ -321,7 +335,6 @@ pusherparent( int ppipe )
 	    exit( 1 );
 	}
 
-
 	sigprocmask( SIG_BLOCK, &signalset, NULL );
 	mkpushers( ppipe );
 	sigprocmask( SIG_UNBLOCK, &signalset, NULL );
@@ -362,12 +375,10 @@ pusherparent( int ppipe )
 	}
 	sigprocmask( SIG_UNBLOCK, &signalset, NULL );
     }
-
-    return( 0 );
 }
 
     int
-pusher( int cpipe, struct cl *cur )
+pusher( int cpipe, struct connlist *cur )
 {
     SNET		*csn;
     unsigned char	buf[ 8192 ];
@@ -430,7 +441,7 @@ pusher( int cpipe, struct cl *cur )
 	exit( 1 );
     }
 
-    tv = timeout;
+    tv = cosign_net_timeout;
     if (( line = snet_getline_multi( cur->cl_sn, logger, &tv )) == NULL ) {
 	syslog( LOG_ERR, "pusherchld-getline: %m" );
 	exit( 1 );
@@ -467,7 +478,7 @@ pusher( int cpipe, struct cl *cur )
     }
 
     while (( rr = read( fd, buf, sizeof( buf ))) > 0 ) {
-        tv = timeout;
+        tv = cosign_net_timeout;
         if ( snet_write( cur->cl_sn, buf, (int)rr, &tv ) != rr ) {
 	    syslog( LOG_ERR, "login %s failed: %m", av[ 2 ] );
 	    close( fd );
@@ -496,7 +507,7 @@ pusher( int cpipe, struct cl *cur )
         goto done;
     }
 
-    tv = timeout;
+    tv = cosign_net_timeout;
     if (( line = snet_getline_multi( cur->cl_sn, logger, &tv )) == NULL ) {
         if ( snet_eof( cur->cl_sn )) {
             syslog( LOG_ERR, "pusherchld: connection closed" );

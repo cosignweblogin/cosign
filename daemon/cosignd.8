@@ -155,7 +155,9 @@ Defines the maximum queue of pending connections to
 by default five.
 .TP 19
 .BI \-c\  config-file
-specifies the path to cosignd's configuration file, by default _COSIGN_CONF
+specifies the path to cosignd's configuration file, by default
+_COSIGN_CONF. If you want to be able to re-read and survive a HUP, this
+needs to be an absolute path.
 .TP 19
 .BI \-D\  db-directory
 specifies the  directory to store the cookie database, by default _COSIGN_DIR

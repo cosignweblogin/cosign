@@ -41,15 +41,15 @@ int		child_signal = 0;
 
 extern char	*cosign_version;
 int		tlsopt = 0;
-int		idle_out_time = 7200;
-int		grey_time = 1800;
+int		idle_out_time = 60 * 60 * 2;
+int		grey_time = 60 * 30;
 char		*cosign_dir = _COSIGN_DIR;
 char		*cosign_conf = _COSIGN_CONF;
 char		*cryptofile = _COSIGN_TLS_KEY;
 char		*certfile = _COSIGN_TLS_CERT;
 char		*cadir = _COSIGN_TLS_CADIR;
 char		*replhost = NULL;
-int		cosign_net_timeout = 60 * 4;
+struct timeval	cosign_net_timeout = { 60 * 4, 0 };
 unsigned short	port = 0;
 SSL_CTX		*ctx = NULL;
 struct sockaddr_in	cosign_sin;
@@ -90,7 +90,8 @@ daemon_configure()
     if (( val = cosign_config_get( COSIGNTIMEOUTKEY )) != NULL ) {
 	syslog( LOG_INFO, "config: overriding default net tmeout of (%d)"
 		" to config value of '%s'", cosign_net_timeout, val );
-	cosign_net_timeout = atoi( val );
+	cosign_net_timeout.tv_sec = atoi( val );
+	cosign_net_timeout.tv_usec = 0;
     }
 }
 

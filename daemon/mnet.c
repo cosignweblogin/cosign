@@ -28,11 +28,10 @@
 
 static void (*logger)( char * ) = NULL;
 
-static struct timeval		timeout = { 10 * 60, 0 };
-
+extern struct timeval	cosign_net_timeout;
 
     int
-connect_sn( struct cl *cl, SSL_CTX *ctx, char *host )
+connect_sn( struct connlist *cl, SSL_CTX *ctx, char *host )
 {
     int			s, err = -1;
     char		*line, buf[ 1024 ];
@@ -55,7 +54,7 @@ connect_sn( struct cl *cl, SSL_CTX *ctx, char *host )
 	return( -1 );
     }
 
-    tv = timeout;
+    tv = cosign_net_timeout;
     if (( line = snet_getline_multi( cl->cl_sn, logger, &tv )) == NULL ) {
 	syslog( LOG_ERR, "connect_sn: snet_getline_multi failed" );
 	goto done;
@@ -69,7 +68,7 @@ connect_sn( struct cl *cl, SSL_CTX *ctx, char *host )
 	goto done;
     }
 
-    tv = timeout;
+    tv = cosign_net_timeout;
     if (( line = snet_getline_multi( cl->cl_sn, logger, &tv )) == NULL ) {
 	syslog( LOG_ERR, "connect_sn: snet_getline_multi failed" );
 	goto done;
@@ -95,13 +94,12 @@ connect_sn( struct cl *cl, SSL_CTX *ctx, char *host )
     X509_NAME_get_text_by_NID( X509_get_subject_name( peer ), NID_commonName,
 	    buf, sizeof( buf ));
     /* cn and host must match */
+    X509_free( peer );
     if ( strcasecmp( buf, host ) != 0 ) {
 	syslog( LOG_ERR, "cn=%s & host=%s don't match!", buf, host );
-	X509_free( peer );
 	err = -2;
 	goto done;
     }
-    X509_free( peer );
     return( 0 );
 done:
     if ( snet_close( cl->cl_sn ) != 0 ) {
@@ -114,28 +112,34 @@ done:
 
 
    int 
-close_sn( struct cl *cl )
+close_sn( struct connlist *cl )
 {
     char		*line;
+    int			err = 0;
     struct timeval      tv;
 
     /* Close network connection */
     if (( snet_writef( cl->cl_sn, "QUIT\r\n" )) <  0 ) {
 	syslog( LOG_ERR, "close_sn: snet_writef failed" );
-	return( -1 );
+	err = -1;
+	goto done;
     }
-    tv = timeout;
+
+    tv = cosign_net_timeout;
     if ( ( line = snet_getline_multi( cl->cl_sn, logger, &tv ) ) == NULL ) {
 	syslog( LOG_ERR, "close_sn: snet_getline_multi failed" );
-	return( -1 );
+	err = -1;
+	goto done;
     }
     if ( *line != '2' ) {
 	syslog( LOG_ERR, "close_sn: %s", line  );
     }
+
+done:
     if ( snet_close( cl->cl_sn ) != 0 ) {
 	syslog( LOG_ERR, "close_sn: snet_close failed" );
     }
     cl->cl_sn = NULL;
 
-    return( 0 );
+    return( err );
 }

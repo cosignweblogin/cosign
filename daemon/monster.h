@@ -1,8 +1,13 @@
-struct cl {
+/*
+ * Copyright (c) 2004 Regents of The University of Michigan.
+ * All Rights Reserved.  See COPYRIGHT.
+ */
+
+struct connlist {
     struct sockaddr_in  cl_sin;
     SNET                *cl_sn;
     SNET                *cl_psn;
-    struct cl		*cl_next;
+    struct connlist	*cl_next;
     union {
 	time_t		cu_last_time;
 #define cl_last_time	cl_u.cu_last_time
@@ -13,5 +18,5 @@ struct cl {
     struct rate		cl_pushfail;
 };
 
-int connect_sn( struct cl *, SSL_CTX *, char * );
-int close_sn( struct cl *);
+int connect_sn( struct connlist *, SSL_CTX *, char * );
+int close_sn( struct connlist *);
