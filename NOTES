@@ -17,9 +17,10 @@ COSIGND:
     replication (suspenders)
     more conf file
 
-ISUUES:
-1) you would have needed to login, but you don't now!
-2) use of qs for redirect back URL ( consistency ).
+ISSUES:
+1) use of qs for redirect back URL ( consistency ).
+2) IE 5.2 on X doesn't redirect properly.
+2a) use of cookie to store referer - should we do qs instead?
 
 Protocol:
 
