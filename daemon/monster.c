@@ -48,7 +48,7 @@ main( int ac, char **av )
     int			c, i, port = htons( 6663 ), err = 0, state = 0;
     int			rc;
     char           	*cosign_dir = _COSIGN_DIR;
-    char           	*cosign_host = _COSIGN_HOST;
+    char           	*cosign_host = NULL;
     char		*cryptofile = _COSIGN_TLS_KEY;
     char		*certfile = _COSIGN_TLS_CERT;
     char		*cadir = _COSIGN_TLS_CADIR;
@@ -132,12 +132,13 @@ main( int ac, char **av )
 	exit( -1 );
     }
 
+	if ( cosign_host != NULL ) {
     if (( he = gethostbyname( cosign_host )) == NULL ) {
 	fprintf( stderr, "%s no wanna give hostnames\n", cosign_host );
 	exit( 1 );
     }
     tail = &head;
-    for ( i = 1; he->h_addr_list[ i ] != NULL; i++ ) {
+    for ( i = 0; he->h_addr_list[ i ] != NULL; i++ ) {
 	if (( new = ( struct cl * ) malloc( sizeof( struct cl ))) == NULL ) {
 	    perror( "cl build" );
 	    exit( 1 );
@@ -205,6 +206,7 @@ main( int ac, char **av )
 	SSL_CTX_set_verify( ctx,
 		SSL_VERIFY_PEER | SSL_VERIFY_FAIL_IF_NO_PEER_CERT, NULL);
     }
+	}
 
     if ( chdir( cosign_dir ) < 0 ) {
 	perror( cosign_dir );

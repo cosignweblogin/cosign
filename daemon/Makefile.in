@@ -42,7 +42,6 @@ FRC :
 monster.o : monster.c
 	${CC} ${CFLAGS} \
 	-D_COSIGN_DIR=\"${COSIGNDB}\" \
-	-D_COSIGN_HOST=\"${COSIGNHOST}\" \
 	-D_COSIGN_LOG=${COSIGNSYSLOG} \
 	-D_COSIGN_TLS_CADIR=\"${COSIGNCADIR}\" \
 	-D_COSIGN_TLS_CERT=\"${COSIGNCERT}\" \
