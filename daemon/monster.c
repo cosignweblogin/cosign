@@ -28,6 +28,7 @@ int		interval = 120;
 int		hard_timeout = 43200;
 int		loggedout_cache = 7200;
 int             debug = 0;
+int		lc_gone;
 extern char	*cosign_version;
 
 static void (*logger)( char * ) = NULL;
@@ -48,6 +49,7 @@ main( int ac, char **av )
     time_t		itime = 0;
     char		*prog, *line;
     int			c, i, err = 0, state = 0;
+    int			lc_count, sc_count, sc_gone;
     unsigned short	port = htons( 6663 );
     int			rc;
     char           	*cosign_dir = _COSIGN_DIR;
@@ -277,6 +279,7 @@ main( int ac, char **av )
 	for (;;) {
 
     sleep( interval );
+    lc_count = sc_count = lc_gone = sc_gone = 0;
 
     if (( dirp = opendir( cosign_dir )) == NULL ) {
 	syslog( LOG_ERR, "%s: %m", cosign_dir);
@@ -368,6 +371,7 @@ next:
     while (( de = readdir( dirp )) != NULL ) {
 	/* is a login cookie */
 	if ( strncmp( de->d_name, "cosign=", 7 ) == 0 ) {
+	    lc_count++;
 	    if (( rc = decision( de->d_name, &now, &itime, &state )) < 0 ) {
 		syslog( LOG_ERR, "decision failure: %s", de->d_name );
 		continue;
@@ -386,7 +390,7 @@ next:
 		}
 	    }
 	} else if ( strncmp( de->d_name, "cosign-", 7 ) == 0 ) {
-
+	    sc_count++;
 	    if ( service_to_login( de->d_name, login ) != 0 ) {
 		continue;
 	    }
@@ -398,6 +402,7 @@ next:
 		if ( unlink( de->d_name ) != 0 ) {
 		    syslog( LOG_ERR, "%s: 12: %m", de->d_name );
 		}
+		sc_gone++;
 	    }
 	} else {
 	    continue;
@@ -431,7 +436,8 @@ next:
 	}
 
     }
-
+    syslog( LOG_NOTICE, "STATS MONSTER: %d/%d login %d/%d service",
+	    lc_gone, lc_count, sc_gone, sc_count );
 	}
 }
 
@@ -484,6 +490,7 @@ delete_stuff:
     if ( unlink( name ) != 0 ) {
 	syslog( LOG_ERR, "%s: %m", name );
     } 
+    lc_gone++;
 
     return( 0 );
 }
