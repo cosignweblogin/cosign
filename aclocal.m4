@@ -164,3 +164,30 @@ AC_DEFUN([CGI_BASICAUTH],
     AC_SUBST(BASICCGI)
     AC_MSG_RESULT([BasicAuth cgi will be built])
 ])
+
+AC_DEFUN([CHECK_LIBMYSQL],
+[
+    AC_MSG_CHECKING(for mysql)
+    mysqldirs="/usr/local/mysql /usr/lib/mysql /usr/mysql \
+            /usr/pkg /usr/local /usr"
+    AC_CACHE_VAL(ac_cv_path_mysql,[
+        for mysqldir in $mysqldirs; do
+            if test -f "$mysqldir/include/mysql/mysql.h"; then
+                ac_cv_path_mysql=$mysqldir
+                break;
+            fi
+        done
+    ])
+    if test ! -e "$ac_cv_path_mysql" ; then
+        AC_MSG_ERROR(cannot find mysql libraries)
+    fi
+    MYSQLINC="-I$ac_cv_path_mysql/include/mysql";
+    AC_SUBST(MYSQLINC)
+    MYSQLLIBS="-lmysqlclient";
+    AC_SUBST(MYSQLLIBS)
+    MYSQLLDFLAGS="-L$ac_cv_path_mysql/lib/mysql -R$ac_cv_path_mysql/lib/mysql";
+    AC_SUBST(MYSQLLDFLAGS)
+    HAVE_MYSQL=yes
+    AC_SUBST(HAVE_MYSQL)
+    AC_MSG_RESULT($ac_cv_path_mysql)
+])

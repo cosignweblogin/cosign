@@ -23,6 +23,8 @@ AC_ARG_ENABLE(krb, AC_HELP_STRING([--enable-krb=path_to_krb], [enable kerberos f
 AC_ARG_ENABLE(basicauth, AC_HELP_STRING([--enable-basicauth], [build
 the basicauth version of the cgi]), CGI_BASICAUTH, AC_MSG_RESULT( BasicAuth cgi will not be built ))
 
+AC_ARG_ENABLE(mysql, AC_HELP_STRING([--enable-mysql=path_to_mysql], [enable mysql for guest login support in the cgi]), CHECK_LIBMYSQL, AC_MSG_RESULT( mysql not enabled))
+
 AC_ARG_WITH(krb4, AC_HELP_STRING([--with-krb4], [enable apache filter
 to get Kerberos IV tickets]), CHECK_KRB4, AC_MSG_RESULT( kerberos IV not enabled))
 
@@ -46,6 +48,16 @@ AC_ARG_WITH(cosignkey, AC_HELP_STRING([--with-cosignkey=FILE], [default cosign
 key file location]), cosignkey="$withval", cosignkey="/var/cosign/certs/key.pem" )
 AC_SUBST(cosignkey)
 
+AC_ARG_WITH(frienddbhost, AC_HELP_STRING([--with-frienddbhost=NAME], [name of host running friend's mysql db]), frienddbhost="$withval", frienddbhost="localhost" )
+AC_SUBST(frienddbhost)
+
+AC_ARG_WITH(frienddblogin, AC_HELP_STRING([--with-frienddblogin=NAME], [username of friend mysql db account]), frienddblogin="$withval", frienddblogin="friend" )
+AC_SUBST(frienddblogin)
+
+AC_ARG_WITH(frienddbpasswd, AC_HELP_STRING([--with-frienddbpasswd=PASSWD], [password of friend mysql db account]), frienddbpasswd="$withval", frienddbpasswd="" )
+AC_SUBST(frienddbpasswd)
+
+AC_ARG_WITH(filterdb, AC_HELP_STRING([--with-filterdb=DIR], [default cosign filter database storage]), filterdb="$withval", filterdb="/var/cosign/filter" )
 AC_ARG_WITH(filterdb, AC_HELP_STRING([--with-filterdb=DIR], [default cosign filter database storage]), filterdb="$withval", filterdb="/var/cosign/filter" )
 AC_SUBST(filterdb)
 
