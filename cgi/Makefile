@@ -1,5 +1,5 @@
-CGIBIN	= /usr/local/users/canna/public_html/cgi-ssl
-HTML	= /usr/local/users/canna/public_html/html-ssl/
+CGIBIN	= /usr/local/projects/cosign/cgi-ssl
+HTML	= /usr/local/projects/cosign/html-ssl/
 
 CC	= gcc
 TARGETS	= cosign logout

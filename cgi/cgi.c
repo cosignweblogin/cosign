@@ -21,7 +21,7 @@
 char			*err = NULL;
 char			*url = "http://www.umich.edu/";
 char			*title = NULL;
-char			*host = "beothuk.web.itd.umich.edu";
+char			*host = "cosign-test.www.umich.edu";
 int			port = 6663;
 
 struct cgi_list cl[] = {
@@ -110,7 +110,7 @@ main()
     int				len;
     char                	new_cookiebuf[ 128 ];
     char        		new_cookie[ 255 ];
-    char			*data, *ip_addr, *referer;
+    char			*data, *ip_addr, *service, *ref;
     char			*cookie = NULL, *method, *script, *qs;
     char			*tmpl = LOGIN_HTML;
 
@@ -129,9 +129,6 @@ main()
     method = getenv( "REQUEST_METHOD" );
     script = getenv( "SCRIPT_NAME" );
     ip_addr = getenv( "REMOTE_ADDR" );
-    if (( referer = getenv( "HTTP_REFERER" )) == NULL ) {
-	referer = "http://www.umich.edu/~clunis";
-    }
 
     if ((( qs = getenv( "QUERY_STRING" )) != NULL ) && ( *qs != '\0' )) {
 	if ( cookie == NULL ) {
@@ -139,26 +136,27 @@ main()
 	    err = "You are not logged in yet. A link would be here.";
 	    subfile( tmpl );
 	}
-	if ( strncmp( qs, "cosign-", 7 ) != 0 ) {
+	service = strtok( qs, ";" );
+	if ( strncmp( service, "cosign-", 7 ) != 0 ) {
 	    tmpl = ERROR_HTML;
 	    err = "You mock me with your query string.";
 	    subfile( tmpl );
 	}
-	if (( len = strlen( qs )) > MAXPATHLEN ) {
+	if (( len = strlen( service )) > MAXPATHLEN ) {
 	    fprintf( stderr, "Query String too big\n" );
 	    tmpl = ERROR_HTML;
 	    err = "You mock me with your TOO LONG query string.";
 	    subfile( tmpl );
 	}
-	qs[ len - 1 ] = '\0';
-	if ( cosign_register( cookie, ip_addr, qs ) < 0 ) {
+	if ( cosign_register( cookie, ip_addr, service ) < 0 ) {
 	    fprintf( stderr, "%s: cosign_register failed\n", script );
 	    tmpl = ERROR_HTML;
 	    err = "Register Failed. Oh Well.";
 	    subfile( tmpl );
 
 	}
-	printf( "Location: %s\n\n", referer );
+	ref = strtok( NULL, "&" );
+	printf( "Location: %s\n\n", ref );
 	exit( 0 );
 	/* if no referer, redirect to top of site from conf file */
     }
@@ -257,6 +255,7 @@ main()
     title = "Succeeded";
     tmpl = ERROR_HTML;
 
+    /* what happens when we get an already logged in back? tri-val? */
     if ( cosign_login( cookie, ip_addr, 
 	    cl[ CL_UNIQNAME ].cl_data, "UMICH.EDU" ) < 0 ) {
 	    fprintf( stderr, "%s: login failed\n", script ) ;
