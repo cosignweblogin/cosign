@@ -12,6 +12,7 @@
 #include <http_request.h>
 #include <apr_strings.h>
 #include <sys/socket.h>
+#include <sys/param.h>
 #include <arpa/inet.h>
 #include <string.h>
 #include <netdb.h>
