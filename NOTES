@@ -50,7 +50,7 @@ else
      no cookie data retr
      setup env
 
-struct cookieinfo {
+struct secantinfo {
     char        *cookie
     char        *user;
     char        *realm;
