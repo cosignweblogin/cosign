@@ -8,6 +8,7 @@ COSIGNCERT=@cosigncert@
 COSIGNKEY=@cosignkey@
 COSIGNHOST = @cosignhost@
 COSIGNLOGOUTURL = @cosignlogouturl@
+COSIGNLOOPURL = @cosignloopurl@
 COSIGNTICKETCACHE = @ticketcache@
 COSIGNCONF= @cosignconf@
 KEYTABPATH = @keytabpath@
@@ -49,6 +50,7 @@ network.o:	network.c
 cgi.o:	cgi.c
 	${CC} ${CFLAGS} \
 	-D_COSIGN_HOST=\"${COSIGNHOST}\" \
+	-D_COSIGN_LOOP_URL=\"${COSIGNLOOPURL}\" \
 	-D_COSIGN_TLS_CADIR=\"${COSIGNCADIR}\" \
 	-D_COSIGN_TLS_CERT=\"${COSIGNCERT}\" \
 	-D_COSIGN_TLS_KEY=\"${COSIGNKEY}\" \

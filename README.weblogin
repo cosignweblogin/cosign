@@ -68,8 +68,9 @@ Things to know about the CGI:
     instance of the hostname of the machine that the cgi will run on.
 
     The required html and templates for the cgi ( login page, logout
-    page, etc. ) live in ${prefix}/html and ${prefix}/templates. You
-    will most likely want to localize these pages.
+    page, looping page etc. ) live in ${prefix}/html and
+    ${prefix}/templates. You will most likely want to localize these
+    pages.
 
     We use a trick so that cosign.cgi will run from DocumentRoot. In
     order to make this work, you need to make 3 changes to the default
@@ -112,6 +113,7 @@ Creating cosign.conf file:
   set	cosignticketcache	/var/somewhere/cosign/tickets
   set	cosignkeytab		/etc/keytab.cosign
   set	cosignlogouturl		http://cosign.edu
+  set	cosignloopurl		http://cosign.edu/looping.html
   set	cosignnettimeout	300 (time in seconds for net connections)
   set	cosignport		6664
 
@@ -176,6 +178,7 @@ Configure Options:
 
     --with-cosignhost=NAME  	default=cosign.example.edu
     --with-cosignlogouturl=URL	default=http://cosign.example.edu
+    --with-cosignloopurl=URL	default=http://cosign.example.edu/looping.html
     --with-cosigndb=DIR 	overrides /var/cosign/daemon
     --with-cosignconf=FILE	specify new conf file location
     --with-cosigncadir=DIR	default=/var/cosign/certs/CA 

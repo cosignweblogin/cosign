@@ -901,7 +901,7 @@ static command_rec cosign_cmds[ ] =
         "the name of the cosign service" ),
 
         AP_INIT_FLAG( "CosignProtected", set_cosign_protect,
-        NULL, RSRC_CONF | ACCESS_CONF, 
+        NULL, RSRC_CONF | OR_AUTHCFG, 
         "turn cosign off on a location or directory basis" ),
 
         AP_INIT_TAKE1( "CosignRedirect", set_cosign_redirect,

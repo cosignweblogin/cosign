@@ -907,7 +907,7 @@ static command_rec cosign_cmds[ ] =
         "the name of the cosign service" },
 
         { "CosignProtected", set_cosign_protect,
-        NULL, RSRC_CONF | ACCESS_CONF, FLAG,
+        NULL, RSRC_CONF | OR_AUTHCFG, FLAG,
         "turn cosign off on a location or directory basis" },
 
         { "CosignRedirect", set_cosign_redirect,

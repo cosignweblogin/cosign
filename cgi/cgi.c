@@ -27,7 +27,6 @@
 #define ERROR_HTML	"../templates/error.html"
 #define LOGIN_HTML	"../templates/login.html"
 #define SERVICE_MENU	"/services/"
-#define LOOP_PAGE	"https://weblogin.umich.edu/looping.html"
 #define LOOPWINDOW      30 
 #define MAXLOOPCOUNT	10	
 #define MAXCOOKIETIME	86400	 /* Valid life of session cookie: 24 hours */
@@ -40,6 +39,7 @@ char		*title = "Authentication Required";
 char		*cryptofile = _COSIGN_TLS_KEY;
 char		*certfile = _COSIGN_TLS_CERT;
 char		*cadir = _COSIGN_TLS_CADIR;
+char		*loop_page = _COSIGN_LOOP_URL;
 SSL_CTX 	*ctx = NULL;
 
 struct cgi_list cl[] = {
@@ -107,7 +107,7 @@ loop_checker( int time, int count, char *cookie )
 		subfile( tmpl, sl, 0 );
 		exit( 0 );
 	    }
-	    printf( "Location: %s\n\n", LOOP_PAGE );
+	    printf( "Location: %s\n\n", loop_page );
 	    exit( 0 );
 	} else {
 	    /* we're still in the limit, increment and keep going */
@@ -132,6 +132,9 @@ kcgi_configure()
 
     if (( val = cosign_config_get( COSIGNHOSTKEY )) != NULL ) {
 	cosign_host = val;
+    }
+    if (( val = cosign_config_get( COSIGNLOOPURLKEY )) != NULL ) {
+	 loop_page = val;
     }
     if (( val = cosign_config_get( COSIGNKEYKEY )) != NULL ) {
 	cryptofile = val;

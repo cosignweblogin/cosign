@@ -314,7 +314,7 @@ ac_includes_default="\
 #endif"
 
 ac_subdirs_all="$ac_subdirs_all libsnet"
-ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS AWK CC CFLAGS LDFLAGS CPPFLAGS ac_ct_CC EXEEXT OBJEXT INSTALL_PROGRAM INSTALL_SCRIPT INSTALL_DATA LEX LEXLIB LEX_OUTPUT_ROOT YACC build build_cpu build_vendor build_os host host_cpu host_vendor host_os APXS APXS_INCLUDE APXS_CFLAGS APXS_CFLAGS_SHLIB APACHECTL APXS2DEFS APXS2 APXS2_INCLUDE APXS2_CFLAGS APXS2_CFLAGS_SHLIB APACHECTL2 HAVE_APACHE2 KRBCGI KRBDEFS KINC KLIBS KLDFLAGS HAVE_KRB filteraddrcheck MYSQLINC MYSQLLIBS MYSQLLDFLAGS SQLDEFS HAVE_MYSQL K4DEFS K4INC K4LIBS K4LDFLAGS HAVE_KRB4 GSSDEFS GSSINC GSSLIBS GSSLDFLAGS HAVE_GSS cosigndb cosignconf cosigncadir cosigncert cosignkey frienddbhost frienddblogin frienddbpasswd ticketcache filterdb proxydb cosignhost cosignlogouturl keytabpath ADDLIBS ADDLDFLAGS TLSDEFS HAVE_SSL CPP EGREP FILTERS OPTOPTS subdirs LIBOBJS LTLIBOBJS'
+ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS AWK CC CFLAGS LDFLAGS CPPFLAGS ac_ct_CC EXEEXT OBJEXT INSTALL_PROGRAM INSTALL_SCRIPT INSTALL_DATA LEX LEXLIB LEX_OUTPUT_ROOT YACC build build_cpu build_vendor build_os host host_cpu host_vendor host_os APXS APXS_INCLUDE APXS_CFLAGS APXS_CFLAGS_SHLIB APACHECTL APXS2DEFS APXS2 APXS2_INCLUDE APXS2_CFLAGS APXS2_CFLAGS_SHLIB APACHECTL2 HAVE_APACHE2 KRBCGI KRBDEFS KINC KLIBS KLDFLAGS HAVE_KRB filteraddrcheck MYSQLINC MYSQLLIBS MYSQLLDFLAGS SQLDEFS HAVE_MYSQL K4DEFS K4INC K4LIBS K4LDFLAGS HAVE_KRB4 GSSDEFS GSSINC GSSLIBS GSSLDFLAGS HAVE_GSS cosigndb cosignconf cosigncadir cosigncert cosignkey frienddbhost frienddblogin frienddbpasswd ticketcache filterdb proxydb cosignhost cosignlogouturl cosignloopurl keytabpath ADDLIBS ADDLDFLAGS TLSDEFS HAVE_SSL CPP EGREP FILTERS OPTOPTS subdirs LIBOBJS LTLIBOBJS'
 ac_subst_files=''
 
 # Initialize some variables set by options.
@@ -884,6 +884,9 @@ Optional Packages:
   --with-cosignhost=NAME  name of host that runs cosignd
   --with-cosignlogouturl=URL
                           default URL to redirect users to upon logout
+  --with-cosignloopurl=URL
+                          default URL to redirect users to upon detecting an
+                          infinite loop
   --with-keytabpath=FILE  path to keytab
   --with-ssl=DIR          path to ssl
 
@@ -3331,6 +3334,16 @@ fi;
 
 
 
+# Check whether --with-cosignloopurl or --without-cosignloopurl was given.
+if test "${with_cosignloopurl+set}" = set; then
+  withval="$with_cosignloopurl"
+  cosignloopurl="$withval"
+else
+  cosignloopurl="http://cosign.example.edu/looping.html"
+fi;
+
+
+
 # Check whether --with-keytabpath or --without-keytabpath was given.
 if test "${with_keytabpath+set}" = set; then
   withval="$with_keytabpath"
@@ -4787,6 +4800,7 @@ s,@filterdb@,$filterdb,;t t
 s,@proxydb@,$proxydb,;t t
 s,@cosignhost@,$cosignhost,;t t
 s,@cosignlogouturl@,$cosignlogouturl,;t t
+s,@cosignloopurl@,$cosignloopurl,;t t
 s,@keytabpath@,$keytabpath,;t t
 s,@ADDLIBS@,$ADDLIBS,;t t
 s,@ADDLDFLAGS@,$ADDLDFLAGS,;t t
