@@ -9,16 +9,19 @@ COSIGNKEY=@cosignkey@
 COSIGNHOST = @cosignhost@
 COSIGNLOGOUTURL = @cosignlogouturl@
 KEYTABPATH = @keytabpath@
+FRIEND_MYSQL_DB = @frienddbhost@
+FRIEND_MYSQL_LOGIN = @frienddblogin@
+FRIEND_MYSQL_PASSWD = @frienddbpasswd@
 
-INCPATH=        @CPPFLAGS@ @KINC@ -I../libsnet -I../libcgi -I../common
-OPTOPTS=        @OPTOPTS@
-CC=             @CC@
-DEFS=           @TLSDEFS@
-LIBS=           -lsnet -lcgi @LIBS@ @KLIBS@
-LDFLAGS=        -L../libsnet/.libs -L../libcgi @LDFLAGS@ @KLDFLAGS@ ${LIBS}
-INSTALL=        @INSTALL@
+INCPATH=     @CPPFLAGS@ @KINC@ @MYSQLINC@ -I../libsnet -I../libcgi -I../common
+OPTOPTS=     @OPTOPTS@
+CC=          @CC@
+DEFS=        @TLSDEFS@
+LIBS=        -lsnet -lcgi @LIBS@ @KLIBS@ @MYSQLLIBS@
+LDFLAGS=     -L../libsnet/.libs -L../libcgi @LDFLAGS@ @KLDFLAGS@ @MYSQLLDFLAGS@ ${LIBS}
+INSTALL=     @INSTALL@
 
-CFLAGS=         ${DEFS} ${OPTOPTS} @CFLAGS@ ${INCPATH}
+CFLAGS=      ${DEFS} ${OPTOPTS} @CFLAGS@ ${INCPATH}
 
 
 OBJ     = network.o ../common/mkcookie.o ../common/fbase64.o ../version.o
@@ -38,6 +41,9 @@ cgi.o:	cgi.c
 	${CC} ${CFLAGS} \
 	-D_COSIGN_HOST=\"${COSIGNHOST}\" \
 	-D_KEYTAB_PATH=\"${KEYTABPATH}\" \
+	-D_FRIEND_MYSQL_DB=\"${FRIEND_MYSQL_DB}\" \
+	-D_FRIEND_MYSQL_LOGIN=\"${FRIEND_MYSQL_LOGIN}\" \
+	-D_FRIEND_MYSQL_PASSWD=\"${FRIEND_MYSQL_PASSWD}\" \
 	-c cgi.c
 
 basic.o:	basic.c

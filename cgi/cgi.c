@@ -9,8 +9,12 @@
 #include <sys/time.h>
 #include <sys/types.h>
 #include <sys/param.h>
+#include <unistd.h>
+#include <crypt.h>
 #include <time.h>
 #include <krb5.h>
+
+#include <mysql.h>
 
 #include <openssl/ssl.h>
 #include <snet.h>
@@ -21,7 +25,7 @@
 #define ERROR_HTML	"../templates/error.html"
 #define LOGIN_HTML	"../templates/login.html"
 #define SERVICE_MENU	"../templates/service-menu.html"
-#define TKT_PREFIX	"/ticket/"
+#define TKT_PREFIX	"/ticket"
 #define SIDEWAYS        1
 
 extern char	*cosign_version;
@@ -44,6 +48,8 @@ struct cgi_list cl[] = {
 };
 
 void            subfile( char * );
+
+static	MYSQL	friend_db;
 
     void
 subfile( char *filename )
@@ -171,6 +177,9 @@ main( int argc, char *argv[] )
     char			*data, *ip_addr;
     char			*cookie = NULL, *method, *script, *qs;
     char			*tmpl = LOGIN_HTML;
+    MYSQL_RES			*res;
+    MYSQL_ROW			row;
+    char			*sql, *crypted;
 
     if ( argc == 2 && ( strncmp( argv[ 1 ], "-V", 2 ) == 0 )) {
 	printf( "%s\n", cosign_version );
@@ -301,6 +310,83 @@ main( int argc, char *argv[] )
 	exit( 0 );
     }
 
+    if ( strchr( cl[ CL_LOGIN ].cl_data, '@' ) != NULL ) {
+	/* look up guest account in db */
+	if ( !mysql_connect( &friend_db, "localhost", "friend", "(End0!)" )) {
+	    fprintf( stderr, mysql_error( &friend_db ));
+	    err = "Unable to connect to guest account database.";
+	    title = "Authentication Required ( server problem )";
+
+	    subfile ( tmpl );
+	    exit( 0 );
+	}
+
+	if( mysql_select_db( &friend_db, "friend" )) {
+	    fprintf( stderr, mysql_error( &friend_db ));
+	    err = "Unable to select guest account database.";
+	    title = "Authentication Required ( server problem )";
+
+	    subfile ( tmpl );
+	    exit( 0 );
+	}
+
+	sql = malloc( 255 );
+
+	/* XXX should check for sql injection in username query */
+	sprintf( sql, "SELECT account_name, passwd, timestamp FROM friends WHERE account_name = '%s'", cl[ CL_LOGIN ].cl_data );
+
+	if( mysql_real_query( &friend_db, sql, 255 )) {
+	    fprintf( stderr, mysql_error( &friend_db ));
+	    err = "Unable to query guest account database.";
+	    title = "Authentication Required ( server problem )";
+
+	    subfile ( tmpl );
+	    exit( 0 );
+	}
+
+	res = mysql_store_result( &friend_db );
+
+	if (( row = mysql_fetch_row( res ) ) == NULL ) {
+	    err = "Password or Account Name incorrect.  Is [caps lock] on?";
+	    title = "Authentication Required ( guest account error )";
+
+	    subfile ( tmpl );
+	    exit( 0 );
+	}
+
+	mysql_free_result( res );
+	mysql_close( &friend_db );
+
+	/* crypt the user's password */
+	crypted = crypt( cl[ CL_PASSWORD ].cl_data, row[ 1 ] );
+
+	if ( strcmp( crypted, row[ 1 ] ) == 0 ) {
+	    err = "Your password has been accepted.";
+	    title = "Choose a Service";
+	    tmpl = SERVICE_MENU;
+
+	    if ( cosign_login( cookie, ip_addr, 
+		    cl[ CL_LOGIN ].cl_data, "friend", NULL ) < 0 ) {
+		fprintf( stderr, "%s: login failed\n", script ) ;
+
+		/* redirecting to service menu because user is logged in */
+		if (( ref == NULL ) ||
+			( ref = strstr( ref, "http" )) == NULL ) {
+		    printf( "Location: %s\n\n", host );
+		    exit( 0 );
+		}
+	    }
+	    goto accepted;
+	}
+
+	/* this is a valid friend account but password failed */
+	err = "Unable to login because guest password is incorrect.";
+	title = "Authentication Required ( guest password incorrect )";
+
+        subfile ( tmpl );
+	exit( 0 );
+    }
+
     if (( kerror = krb5_init_context( &kcontext ))) {
 	err = (char *)error_message( kerror );
 	title = "Authentication Required ( kerberos error )";
@@ -309,7 +395,6 @@ main( int argc, char *argv[] )
 	subfile ( tmpl );
 	exit( 0 );
     }
-
 
     if (( kerror = krb5_parse_name( kcontext, cl[ CL_LOGIN ].cl_data,
 	    &kprinc ))) {
@@ -456,7 +541,6 @@ main( int argc, char *argv[] )
     krb5_free_principal( kcontext, kprinc );
     krb5_cc_close( kcontext, kccache );
     krb5_free_context( kcontext );
-    /* have name and give that to login */
 
     /* password has been accepted, tell cosignd */
     err = "Your password has been accepted.";
@@ -474,6 +558,7 @@ main( int argc, char *argv[] )
 	}
     }
 
+accepted:
     if (( cl[ CL_SERVICE ].cl_data != NULL ) &&
 	    ( *cl[ CL_SERVICE ].cl_data != '\0' )) {
 
