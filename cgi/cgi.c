@@ -290,7 +290,7 @@ main( int argc, char *argv[] )
 	}
 
 	/* authentication successful, show service menu */
-	printf( "Location: http://%s%s\n\n", cosign_host, SERVICE_MENU );
+	printf( "Location: https://%s%s\n\n", cosign_host, SERVICE_MENU );
 	exit( 0 );
     }
 
@@ -613,7 +613,7 @@ main( int argc, char *argv[] )
 	exit( 0 );
     }
 
-    printf( "Location: http://%s%s\n\n", cosign_host, SERVICE_MENU );
+    printf( "Location: https://%s%s\n\n", cosign_host, SERVICE_MENU );
     exit( 0 );
 
 loginscreen:
