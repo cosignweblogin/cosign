@@ -27,7 +27,6 @@ char	*err = NULL;
 char	*title = "Logout";
 char	*cosign_host =_COSIGN_HOST;
 char	*url = _COSIGN_LOGOUT_URL;
-int	port = 6663;
 int	nocache = 0;
 
 struct cgi_list cl[] = {
@@ -127,6 +126,7 @@ main( int argc, char *argv[] )
 {
     char	*tmpl = VERIFY_LOGOUT;
     char	*cookie = NULL, *data, *ip_addr, *script, *qs;
+    int		port;
     struct connlist	*head;
 
     if ( argc == 2 && ( strncmp( argv[ 1 ], "-V", 2 ) == 0 )) {
@@ -188,6 +188,7 @@ main( int argc, char *argv[] )
     }
 
     /* setup conn and ssl and hostlist crap */
+    port = htons( 6663 );
     if (( head = connlist_setup( cosign_host, port )) == NULL ) {
         title = "Error: But not your fault";
         err = "We were unable to contact the authentication server.  Please try again later.";     

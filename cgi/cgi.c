@@ -38,7 +38,6 @@ char	*cosign_host = _COSIGN_HOST;
 char	*err = NULL, *ref = NULL, *service = NULL;
 char	*title = "Authentication Required";
 char	*keytab_path = _KEYTAB_PATH;
-int	port = 6663;
 
 struct cgi_list cl[] = {
 #define CL_LOGIN	0
@@ -181,6 +180,7 @@ main( int argc, char *argv[] )
     char			*cookie = NULL, *method, *script, *qs;
     char			*tmpl = LOGIN_HTML;
     struct connlist		*head;
+    int				port;
 #ifdef FRIEND_MYSQL_DB
     MYSQL_RES			*res;
     MYSQL_ROW			row;
