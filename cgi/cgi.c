@@ -53,9 +53,9 @@ subfile( char *filename )
     int 	c, i;
     char	nasties[] = "<>(){}[];'`\" \\";
 
-    fputs( "Expires: -1\n"
-	    "Cache-Control: no-cache, private\n"
+    fputs( "Cache-Control: no-cache, private\n"
 	    "Pragma: no-cache\n"
+	    "Expires: Mon, 16 Apr 1973 13:10:00 GMT\n"
 	    "Content-type: text/html\n\n", stdout );
 
     if (( fs = fopen( filename, "r" )) == NULL ) {

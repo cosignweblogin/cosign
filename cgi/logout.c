@@ -50,8 +50,8 @@ subfile( char *filename )
     char	nasties[] = "<>(){}[]~?&=;'`\" \\";
 
     if ( nocache ) {
-	fputs( "Expires: Mon, 16 Apr 1973 02:10:00 GMT\n"
-		"Last-Modified: Mon, 16 Apr 1973 02:10:00 GMT\n"
+	fputs( "Expires: Mon, 16 Apr 1973 13:10:00 GMT\n"
+		"Last-Modified: Mon, 16 Apr 1973 13:10:00 GMT\n"
 		"Cache-Control: no-store, no-cache, must-revalidate\n"
 		"Cache-Control: pre-check=0, post-check=0, max-age=0\n"
 		"Pragma: no-cache\n", stdout );
@@ -202,8 +202,8 @@ main( int argc, char *argv[] )
     }
 
     /* clobber the cosign cookie and display logout screen */
-    htputs( "Expires: Mon, 16 Apr 1973 02:10:00 GMT\n"
-	    "Last-Modified: Mon, 16 Apr 1973 02:10:00 GMT\n"
+    htputs( "Expires: Mon, 16 Apr 1973 13:10:00 GMT\n"
+	    "Last-Modified: Mon, 16 Apr 1973 13:10:00 GMT\n"
 	    "Cache-Control: no-store, no-cache, must-revalidate\n"
 	    "Cache-Control: pre-check=0, post-check=0, max-age=0\n"
 	    "Pragma: no-cache\n" );
