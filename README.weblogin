@@ -165,6 +165,14 @@ Configure Options:
     --with-ticketcache=DIR	default=/ticket
     --with-keytabpath=FILE 	default=NULL ( which means use whatever
 					the krb5.conf says to use )
+    --enable-mysql=path_to_mysql
+		      enable mysql for guest login support in the cgi
+    --with-frienddbhost=NAME
+			    default=localhost
+    --with-frienddblogin=NAME
+			    default=friend
+    --with-frienddbpasswd=PASSWD
+			    no default
 
     The certificate CN of the weblogin server must match the argument
     to --with-cosignhost.
