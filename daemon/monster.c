@@ -297,7 +297,6 @@ main( int ac, char **av )
 		goto next;
 	    }
 
-syslog( LOG_DEBUG, "snet_getline_multi: A: %s", line );
 	    if ( *line == '4' ) {
 		if (( close_sn( *cur )) != 0 ) {
 		    syslog( LOG_ERR, "close_sn: 3: %m" );
@@ -339,7 +338,6 @@ syslog( LOG_DEBUG, "snet_getline_multi: A: %s", line );
 	    }
 	    goto next;
 	}
-syslog( LOG_DEBUG, "snet_getline_multi: B: %s", line );
 
 	if ( *line != '3' ) {
 	    syslog( LOG_ERR, "snet_getline_multi: 9: %s", line );
@@ -362,9 +360,9 @@ next:
 	    for ( cur = &head; *cur != NULL; cur = &(*cur)->cl_next ) {
 		if (( itime > (*cur)->cl_last_time ) &&
 			((*cur)->cl_sn != NULL )) {
+syslog( LOG_DEBUG, "%s: itime: %d last: %d", de->d_name, itime, (*cur)->cl_last_time );
 		    if ( snet_writef( (*cur)->cl_sn, "%s %d %d\r\n",
 			    de->d_name, itime, state ) < 0 ) {
-syslog( LOG_DEBUG, "snet_writef: %s %d %d", de->d_name, itime, state );
 			if ( snet_close( (*cur)->cl_sn ) != 0 ) {
 			    syslog( LOG_ERR, "snet_close: 11: %m" );
 			}
@@ -408,7 +406,6 @@ syslog( LOG_DEBUG, "snet_writef: %s %d %d", de->d_name, itime, state );
 		(*cur)->cl_sn = NULL;
 		continue;
 	    }
-syslog( LOG_DEBUG, "snet_getline_multi: C: %s", line );
 	    if ( *line != '2' ) {
 		syslog( LOG_ERR, "snet_getline_multi: 15: %m" );
 		if ( snet_close( (*cur)->cl_sn ) != 0 ) {
