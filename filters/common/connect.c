@@ -134,6 +134,11 @@ netretr_proxy( char *scookie, struct sinfo *si, SNET *sn )
         return( -1 );
     }
 
+    if ( gettimeofday( &tv, NULL ) < 0 ) {
+	perror( "gettimeofday" );
+	return( -1 );
+    }
+
     if ( snprintf( tmppath, sizeof( tmppath ), "%s/%x%x.%i", proxydb,
             tv.tv_sec, tv.tv_usec, (int)getpid()) >= sizeof( tmppath )) {
         fprintf( stderr, "netretr_proxy: tmppath too long\n" );
@@ -159,9 +164,10 @@ netretr_proxy( char *scookie, struct sinfo *si, SNET *sn )
 	return( -1 );
     }
 
+    tv = timeout;
     do {
 	if (( line = snet_getline( sn, &tv )) == NULL ) {
-	    /* error message */
+	    fprintf( stderr, "netretr_proxy: snet_getline failed.\n" );
 	    return ( -1 );
 	}
 
@@ -184,19 +190,19 @@ netretr_proxy( char *scookie, struct sinfo *si, SNET *sn )
 	}
 
 	if ( strlen( line ) < 3 ) {
-	    /* error message */
+	    fprintf( stderr, "netretr_proxy: short line: %s\n", line );
 	    return( -1 );
 	}
         if ( !isdigit( (int)line[ 1 ] ) ||
                 !isdigit( (int)line[ 2 ] )) {
-	    /* error message */
+	    fprintf( stderr, "netretr_proxy: bad response: %s\n", line );
 	    return( -1 );
         }
 
 	if ( line[ 3 ] != '\0' &&
 		line[ 3 ] != ' ' &&
 		line [ 3 ] != '-' ) {
-	    /* error message */
+	    fprintf( stderr, "netretr_proxy: bad response: %s\n", line );
 	    return( -1 );
 	}
 
