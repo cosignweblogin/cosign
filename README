@@ -134,10 +134,12 @@ The certificate CN of the weblogin server must match CosignHostname.
 --------
 ./configure may take the following options:
 
-    --enable-krb=path_to_krb5	enables Kerberos V
-    --with-krb4			enables Kerberos IV
-    --with-GSS			enables GSSAPI
-    --with-filterdb=DIR         overrides the default of /var/cosign/filter
+    --enable-krb=path_to_krb5		enables Kerberos V
+    --enable-apache1=path_to_apxs_1.3	enables Apache 1.3 filter
+    --enable-apache2=path_to_apxs_2	enables Apache 2 filter
+    --with-krb4				enables Kerberos IV
+    --with-GSS				enables GSSAPI
+    --with-filterdb=DIR         	overrides default of /var/cosign/filter
 
 To make Cosign work with Apache's require directives, you should do the
 following:
