@@ -9,6 +9,8 @@ struct cl {
 	pid_t		cu_pid;
 #define cl_pid		cl_u.cu_pid
     } cl_u;
+    struct rate		cl_pushpass;
+    struct rate		cl_pushfail;
 };
 
 int connect_sn( struct cl *, SSL_CTX *, char * );

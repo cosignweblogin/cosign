@@ -29,14 +29,17 @@
 #include "config.h"
 #include "cparse.h"
 #include "mkcookie.h"
+#include "rate.h"
 
 #define MIN(a,b)        ((a)<(b)?(a):(b))
 #define MAX(a,b)        ((a)>(b)?(a):(b))
 
 #define TKT_PREFIX	_COSIGN_TICKET_CACHE
 
-extern int	idle_out;
-extern int	grey;
+extern int			idle_out;
+extern int			grey;
+extern struct sockaddr_in	cosign_sin;
+
 
 static int	f_noop( SNET *, int, char *[], SNET * );
 static int	f_quit( SNET *, int, char *[], SNET * );
@@ -93,6 +96,11 @@ extern int	debug;
 extern SSL_CTX	*ctx;
 struct command 	*commands = unauth_commands;
 struct chosts	*ch = NULL;
+struct rate	checkpass = { 0, { }};
+struct rate	checkfail = { 0, { }};
+struct rate	checkunknown = { 0, { }};
+struct rate	regunknown = { 0, { }};
+
 int		replicate = 1;
 int	ncommands = sizeof( unauth_commands ) / sizeof(unauth_commands[ 0 ] );
 
@@ -322,6 +330,8 @@ f_login( SNET *sn, int ac, char *av[], SNET *pushersn )
 	    snet_writef( pushersn, "LOGIN %s %s %s %s\r\n",
 		    av[ 1 ], av[ 2 ], av[ 3 ], av[ 4 ]);
 	}
+	syslog( LOG_INFO, "%sLOGIN %s %s %s", replicate ? "" : "R-",
+		av[ 3 ], av [ 4 ], av [ 2 ] );
 	return( 0 );
     }
 
@@ -394,11 +404,14 @@ f_login( SNET *sn, int ac, char *av[], SNET *pushersn )
         return( -1 );
     }
 
+
     snet_writef( sn, "%d LOGIN successful: Cookie & Ticket Stored.\r\n", 201 );
     if (( pushersn != NULL ) && ( replicate )) {
 	snet_writef( pushersn, "LOGIN %s %s %s %s %s\r\n",
 		av[ 1 ], av[ 2 ], av[ 3 ], av[ 4 ], av[ 5 ]);
     }
+    syslog( LOG_INFO, "%sLOGIN %s %s %s", replicate ? "" : "R-",
+	    av[ 3 ], av [ 4 ], av [ 2 ] );
     return( 0 );
 
 file_err:
@@ -452,6 +465,7 @@ f_time( SNET *sn, int ac, char *av[], SNET *pushersn )
     struct stat		st;
     struct timeval	tv;
     int			timestamp, state;
+    int			total = 0, fail = 0;
     char		*line;
 
     /* TIME */
@@ -507,8 +521,10 @@ f_time( SNET *sn, int ac, char *av[], SNET *pushersn )
 	    continue;
 	}
 
+	total++;
 	if ( stat( av[ 0 ], &st ) != 0 ) {
-	    syslog( LOG_DEBUG, "f_time: %s: %m", av[ 0 ] );
+	    /* record a missing cookie here */
+	    fail++;
 	    continue;
 	}
 
@@ -526,10 +542,14 @@ f_time( SNET *sn, int ac, char *av[], SNET *pushersn )
 	}
     }
 
+    if ( total != 0 ) {
+	syslog( LOG_NOTICE, "STATS TIME %s: %d tried, %d%% success",
+		ch->ch_hostname, total, 100 * ( total - fail ) / total );
+    }
     snet_writef( sn, "%d TIME successful: we are now up-to-date\r\n", 260 );
     return( 0 );
-
 }
+
     int
 f_logout( SNET *sn, int ac, char *av[], SNET *pushersn )
 {
@@ -538,13 +558,14 @@ f_logout( SNET *sn, int ac, char *av[], SNET *pushersn )
     /*LOGOUT login_cookie ip */
 
     if ( ch->ch_key != CGI ) {
-	syslog( LOG_ERR, "%s not allowed to logout", ch->ch_hostname );
+	syslog( LOG_ERR, "f_logout: %s not allowed", ch->ch_hostname );
 	snet_writef( sn, "%d LOGOUT: %s not allowed to logout.\r\n",
 		410, ch->ch_hostname );
 	return( 1 );
     }
 
     if ( ac != 3 ) {
+	syslog( LOG_ERR, "f_logout: %s wrong number of args", ch->ch_hostname );
 	snet_writef( sn, "%d LOGOUT: Wrong number of args.\r\n", 510 );
 	return( 1 );
     }
@@ -556,6 +577,7 @@ f_logout( SNET *sn, int ac, char *av[], SNET *pushersn )
     }
 
     if ( strlen( av[ 1 ] ) >= MAXCOOKIELEN ) {
+	syslog( LOG_ERR, "f_logout: %s cookie too long", ch->ch_hostname );
 	snet_writef( sn, "%d LOGOUT: Cookie too long\r\n", 512 );
 	return( 1 );
     }
@@ -581,6 +603,8 @@ f_logout( SNET *sn, int ac, char *av[], SNET *pushersn )
     if (( pushersn != NULL ) && ( replicate )) {
 	snet_writef( pushersn, "LOGOUT %s %s\r\n", av[ 1 ], av [ 2 ] );
     }
+    syslog( LOG_INFO, "%sLOGOUT %s %s %s", replicate ? "" : "R-",
+	    ci.ci_user, ci.ci_realm, av[ 2 ] );
     return( 0 );
 
 }
@@ -594,60 +618,61 @@ f_logout( SNET *sn, int ac, char *av[], SNET *pushersn )
     int
 do_register( char *login, char *scookie )
 {
-    int			fd;
+    int			fd, rc;
     char		tmppath[ MAXCOOKIELEN ];
     FILE		*tmpfile;
     struct timeval	tv;
 
     if ( gettimeofday( &tv, NULL ) != 0 ){
-	syslog( LOG_ERR, "f_register: gettimeofday: %m" );
+	syslog( LOG_ERR, "do_register: gettimeofday: %m" );
 	return( -1 );
     }
 
     if ( snprintf( tmppath, sizeof( tmppath ), "%x%x.%i",
 	    tv.tv_sec, tv.tv_usec, (int)getpid()) >= sizeof( tmppath )) {
-	syslog( LOG_ERR, "f_register: tmppath too long" );
+	syslog( LOG_ERR, "do_register: tmppath too long" );
 	return( -1 );
     }
 
     if (( fd = open( tmppath, O_CREAT|O_EXCL|O_WRONLY, 0644 )) < 0 ) {
-	syslog( LOG_ERR, "f_register: open: %m" );
+	syslog( LOG_ERR, "do_register: open: %m" );
 	return( -1 );
     }
 
     if (( tmpfile = fdopen( fd, "w" )) == NULL ) {
 	if ( unlink( tmppath ) != 0 ) {
-	    syslog( LOG_ERR, "f_register: unlink: %m" );
+	    syslog( LOG_ERR, "do_register: unlink: %m" );
 	}
-	syslog( LOG_ERR, "f_register: fdopen: %m" );
+	syslog( LOG_ERR, "do_register: fdopen: %m" );
 	return( -1 );
     }
 
     /* the service cookie file contains the login cookie only */
     fprintf( tmpfile, "l%s\n", login );
 
-    if ( fclose ( tmpfile ) != 0 ) {
+    if ( fclose( tmpfile ) != 0 ) {
+	syslog( LOG_ERR, "do_register: fclose: %m" );
 	if ( unlink( tmppath ) != 0 ) {
-	    syslog( LOG_ERR, "f_register: unlink: %m" );
+	    syslog( LOG_ERR, "do_register: unlink: %m" );
 	}
 	return( -1 );
     }
 
     if ( link( tmppath, scookie ) != 0 ) {
-	if ( unlink( tmppath ) != 0 ) {
-	    syslog( LOG_ERR, "f_register: unlink: %m" );
-	}
 	if ( errno == EEXIST ) {
-	    syslog( LOG_ERR,
-		    "f_register: service cookie already exists: %s", scookie );
-	    return( 1 );
+	    rc = 1;
+	} else {
+	    syslog( LOG_ERR, "do_register: link: %m" );
+	    rc = -1;
 	}
-	syslog( LOG_ERR, "f_register: link: %m" );
-	return( -1 );
+	if ( unlink( tmppath ) != 0 ) {
+	    syslog( LOG_ERR, "do_register: unlink: %m" );
+	}
+	return( rc );
     }
 
     if ( unlink( tmppath ) != 0 ) {
-	syslog( LOG_ERR, "f_register: unlink: %m" );
+	syslog( LOG_ERR, "do_register: unlink: %m" );
 	return( -1 );
     }
 
@@ -662,17 +687,19 @@ f_register( SNET *sn, int ac, char *av[], SNET *pushersn )
     struct cinfo	ci;
     struct timeval	tv;
     int			rc;
+    double		rate;
 
     /* REGISTER login_cookie ip service_cookie */
 
     if ( ch->ch_key != CGI ) {
-	syslog( LOG_ERR, "%s not allowed to register", ch->ch_hostname );
+	syslog( LOG_ERR, "f_register: %s not allowed", ch->ch_hostname );
 	snet_writef( sn, "%d REGISTER: %s not allowed to register.\r\n",
 		420, ch->ch_hostname );
 	return( 1 );
     }
 
     if ( ac != 4 ) {
+	syslog( LOG_ERR, "f_register: %s wrong number of args.", ch->ch_hostname );
 	snet_writef( sn, "%d REGISTER: Wrong number of args.\r\n", 520 );
 	return( 1 );
     }
@@ -685,19 +712,23 @@ f_register( SNET *sn, int ac, char *av[], SNET *pushersn )
 
     if ( strlen( av[ 1 ] ) >= MAXCOOKIELEN ||
 	    strlen( av[ 3 ] ) >= MAXCOOKIELEN ) {
+	syslog( LOG_ERR, "f_register: cookie name too long." );
 	snet_writef( sn, "%d REGISTER: Cookie too long\r\n", 522 );
 	return( 1 );
     }
 
     if ( read_cookie( av[ 1 ], &ci ) != 0 ) {
-	syslog( LOG_DEBUG, "f_register: %s", av[ 1 ] );
+	if (( rate = rate_tick( &regunknown )) != 0.0 ) {
+	    syslog( LOG_NOTICE, "STATS REGISTER %s: UNKNOWN %.5f / sec",
+		     inet_ntoa( cosign_sin.sin_addr ), rate);
+	}
 	snet_writef( sn, "%d REGISTER error: Sorry\r\n", 523 );
 	return( 1 );
     }
 
     if ( ci.ci_state == 0 ) {
 	syslog( LOG_ERR,
-		"f_register: %s already logged out, can't register", av[ 1 ] );
+		"f_register: %s logged out, can't register", ci.ci_user );
 	snet_writef( sn, "%d REGISTER: Already logged out\r\n", 420 );
 	return( 1 );
     }
@@ -713,7 +744,6 @@ f_register( SNET *sn, int ac, char *av[], SNET *pushersn )
 	snet_writef( sn, "%d REGISTER: Idle Grey Window\r\n", 521 );
 	return( 1 );
      } else if ( tv.tv_sec - ci.ci_itime >  ( idle_out + grey )) {
-	syslog( LOG_INFO, "f_register: idle time out!\n" );
 	if ( do_logout( av[ 1 ] ) < 0 ) {
 	    syslog( LOG_ERR, "f_register: %s: %m", av[ 1 ] );
 	    snet_writef( sn, "%d REGISTER error: Sorry!\r\n", 524 );
@@ -739,6 +769,9 @@ f_register( SNET *sn, int ac, char *av[], SNET *pushersn )
 	snet_writef( pushersn, "REGISTER %s %s %s\r\n",
 		av[ 1 ], av[ 2 ], av [ 3 ] );
     }
+    (void)strtok( av[ 3 ], "=" );
+    syslog( LOG_INFO, "%sREGISTER %s %s %s %s", replicate ? "" : "R-",
+	    ci.ci_user, ci.ci_realm, ci.ci_ipaddr, av[ 3 ] );
     return( 0 );
 }
 
@@ -749,17 +782,19 @@ f_check( SNET *sn, int ac, char *av[], SNET *pushersn )
     struct timeval	tv;
     char		login[ MAXCOOKIELEN ];
     int			status;
+    double		rate;
 
     /* CHECK (service/login)cookie */
 
     if (( ch->ch_key != CGI ) && ( ch->ch_key != SERVICE )) {
-	syslog( LOG_ERR, "%s not allowed to check", ch->ch_hostname );
+	syslog( LOG_ERR, "f_check: %s not allowed", ch->ch_hostname );
 	snet_writef( sn, "%d CHECK: %s not allowed to check.\r\n",
 		430, ch->ch_hostname );
 	return( 1 );
     }
 
     if ( ac != 2 ) {
+	syslog( LOG_ERR, "f_check: %s Wrong number of args.", ch->ch_hostname );
 	snet_writef( sn, "%d CHECK: Wrong number of args.\r\n", 530 );
 	return( 1 );
     }
@@ -771,6 +806,7 @@ f_check( SNET *sn, int ac, char *av[], SNET *pushersn )
     }
 
     if ( strlen( av[ 1 ] ) >= MAXCOOKIELEN ) {
+	syslog( LOG_ERR, "f_check: service cookie too long." );
 	snet_writef( sn, "%d CHECK: Service Cookie too long\r\n", 532 );
 	return( 1 );
     }
@@ -778,6 +814,10 @@ f_check( SNET *sn, int ac, char *av[], SNET *pushersn )
     if ( strncmp( av[ 1 ], "cosign-", 7 ) == 0 ) {
 	status = 231;
 	if ( service_to_login( av[ 1 ], login ) != 0 ) {
+	    if (( rate = rate_tick( &checkunknown )) != 0.0 ) {
+		syslog( LOG_NOTICE, "STATS CHECK %s: UNKNOWN %.5f / sec",
+			inet_ntoa( cosign_sin.sin_addr), rate );
+	    }
 	    snet_writef( sn, "%d CHECK: cookie not in db!\r\n", 533 );
 	    return( 1 );
 	}
@@ -787,14 +827,19 @@ f_check( SNET *sn, int ac, char *av[], SNET *pushersn )
     }
 
     if ( read_cookie( login, &ci ) != 0 ) {
-	syslog( LOG_DEBUG, "f_check: %s", login );
+	if (( rate = rate_tick( &checkunknown )) != 0.0 ) {
+	    syslog( LOG_NOTICE, "STATS CHECK %s: UNKNOWN %.5f / sec",
+		    inet_ntoa( cosign_sin.sin_addr), rate);
+	}
 	snet_writef( sn, "%d CHECK: Who me? Dunno.\r\n", 534 );
 	return( 1 );
     }
 
     if ( ci.ci_state == 0 ) {
-	syslog( LOG_ERR,
-		"f_check: %s logged out", login );
+	if (( rate = rate_tick( &checkfail )) != 0.0 ) {
+	    syslog( LOG_NOTICE, "STATS CHECK %s: FAIL %.5f / sec",
+		    inet_ntoa( cosign_sin.sin_addr), rate);
+	}
 	snet_writef( sn, "%d CHECK: Already logged out\r\n", 430 );
 	return( 1 );
     }
@@ -808,10 +853,17 @@ f_check( SNET *sn, int ac, char *av[], SNET *pushersn )
 
     if ( tv.tv_sec - ci.ci_itime > idle_out &&
 	    tv.tv_sec - ci.ci_itime < (idle_out + grey )) {
+	if (( rate = rate_tick( &checkunknown )) != 0.0 ) {
+	    syslog( LOG_NOTICE, "STATS CHECK %s: UNKNOWN %.5f / sec",
+		    inet_ntoa( cosign_sin.sin_addr), rate);
+	}
 	snet_writef( sn, "%d CHECK: Idle Grey Window\r\n", 531 );
 	return( 1 );
     } else if ( tv.tv_sec - ci.ci_itime > idle_out ) {
-	syslog( LOG_INFO, "f_check: idle time out!\n" );
+	if (( rate = rate_tick( &checkfail )) != 0.0 ) {
+	    syslog( LOG_NOTICE, "STATS CHECK %s: FAIL %.5f / sec",
+		    inet_ntoa( cosign_sin.sin_addr), rate);
+	}
 	snet_writef( sn, "%d CHECK: Idle logged out\r\n", 431 );
 	if ( do_logout( login ) < 0 ) {
 	    syslog( LOG_ERR, "f_check: %s: %m", login );
@@ -823,6 +875,10 @@ f_check( SNET *sn, int ac, char *av[], SNET *pushersn )
     /* prevent idle out if we are actually using it */
     utime( login, NULL );
 
+    if (( rate = rate_tick( &checkpass )) != 0.0 ) {
+	syslog( LOG_NOTICE, "STATS CHECK %s: PASS %.5f / sec",
+		inet_ntoa( cosign_sin.sin_addr), rate);
+    }
     snet_writef( sn,
 	    "%d %s %s %s\r\n", status, ci.ci_ipaddr, ci.ci_user, ci.ci_realm );
     return( 0 );
@@ -836,14 +892,21 @@ f_retr( SNET *sn, int ac, char *av[], SNET *pushersn )
     char		login[ MAXCOOKIELEN ];
 
     if (( ch->ch_key != SERVICE ) || ( ch->ch_key == CGI )) {
-	syslog( LOG_ERR, "%s not allowed to retreive", ch->ch_hostname );
+	syslog( LOG_ERR, "f_retr: %s not allowed", ch->ch_hostname );
 	snet_writef( sn, "%d RETR: %s not allowed to retreive.\r\n",
 		442, ch->ch_hostname );
 	return( 1 );
     }
 
     if ( ac != 3 ) {
+	syslog( LOG_ERR, "f_retr: %s Wrong number of args.", ch->ch_hostname );
 	snet_writef( sn, "%d RETR: Wrong number of args.\r\n", 540 );
+	return( 1 );
+    }
+
+    if ( strlen( av[ 1 ] ) >= MAXCOOKIELEN ) {
+	syslog( LOG_ERR, "f_retr: service cookie too long." );
+	snet_writef( sn, "%d RETR: Service Cookie too long\r\n", 542 );
 	return( 1 );
     }
 
@@ -853,25 +916,17 @@ f_retr( SNET *sn, int ac, char *av[], SNET *pushersn )
 	return( 1 );
     }
 
-    if ( strlen( av[ 1 ] ) >= MAXCOOKIELEN ) {
-	snet_writef( sn, "%d RETR: Service Cookie too long\r\n", 542 );
-	return( 1 );
-    }
-
     if ( service_to_login( av[ 1 ], login ) != 0 ) {
 	snet_writef( sn, "%d RETR: cookie not in db!\r\n", 543 );
 	return( 1 );
     }
 
     if ( read_cookie( login, &ci ) != 0 ) {
-	syslog( LOG_ERR, "f_retr: read_cookie" );
 	snet_writef( sn, "%d RETR: Who me? Dunno.\r\n", 544 );
 	return( 1 );
     }
 
     if ( ci.ci_state == 0 ) {
-	syslog( LOG_ERR,
-		"f_retr: %s logged out", login );
 	snet_writef( sn, "%d RETR: Already logged out\r\n", 440 );
 	return( 1 );
     }
@@ -887,7 +942,6 @@ f_retr( SNET *sn, int ac, char *av[], SNET *pushersn )
 	snet_writef( sn, "%d RETR: Idle Grey Window\r\n", 541 );
 	return( 1 );
     } else if ( tv.tv_sec - ci.ci_itime > idle_out ) {
-	syslog( LOG_INFO, "f_retr: idle time out!\n" );
 	snet_writef( sn, "%d RETR: Idle logged out\r\n", 441 );
 	if ( do_logout( login ) < 0 ) {
 	    syslog( LOG_ERR, "f_retr: %s: %m", login );

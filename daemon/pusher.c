@@ -19,6 +19,7 @@
 #include <snet.h>
 
 #include "argcargv.h"
+#include "rate.h"
 #include "monster.h"
 #include "cparse.h"
 
@@ -241,6 +242,8 @@ mkpushers( int ppipe )
 		    }
 		}
 	    }
+	    cur->cl_pushpass.r_count = 0;
+	    cur->cl_pushfail.r_count = 0;
 	    pusher( fds[ 0 ], cur );
 	    exit( 0 );
 
@@ -274,6 +277,7 @@ pusherparent( int ppipe )
     fd_set		fdset;
     struct timeval	tv = { 0, 0 };
     struct cl		*cur;
+    double		rate;
 
     /* catch SIGHUP */
     memset( &sa, 0, sizeof( struct sigaction ));
@@ -344,9 +348,15 @@ pusherparent( int ppipe )
 	    if ( cur->cl_pid > 0 ) {
 		if ( FD_ISSET( snet_fd( cur->cl_psn ), &fdset )) {
 		    snet_writef( cur->cl_psn, "%s\r\n", line );
+		    if (( rate = rate_tick( &cur->cl_pushpass )) != 0.0 ) {
+			syslog( LOG_NOTICE, "STATS PUSH %s: PASS %.5f / sec",
+				inet_ntoa( cur->cl_sin.sin_addr ), rate );
+		    }
 		} else {
-		    syslog( LOG_DEBUG, "pusherparent: drop %d: %s",
-			    cur->cl_pid, line );
+		    if (( rate = rate_tick( &cur->cl_pushfail )) != 0.0 ) {
+			syslog( LOG_NOTICE, "STATS PUSH %s: FAIL %.5f / sec",
+				inet_ntoa( cur->cl_sin.sin_addr ), rate );
+		    }
 		}
 	    }
 	}

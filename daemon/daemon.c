@@ -28,6 +28,7 @@
 #include "logname.h"
 #include "command.h"
 #include "config.h"
+#include "rate.h"
 #include "monster.h"
 #include "pusher.h"
 
@@ -45,6 +46,7 @@ char		*cosign_conf = _COSIGN_CONF;
 char		*replhost = NULL;
 unsigned short	port = 0;
 SSL_CTX		*ctx = NULL;
+struct sockaddr_in	cosign_sin;
 
 void		hup( int );
 void		chld( int );
@@ -115,6 +117,7 @@ main( int ac, char *av[] )
     char		*certfile = _COSIGN_TLS_CERT;
     char		*cadir = _COSIGN_TLS_CADIR;
     int                 facility = _COSIGN_LOG;
+    int			level = LOG_INFO;
     extern int		optind;
     extern char		*optarg;
 
@@ -124,7 +127,7 @@ main( int ac, char *av[] )
 	prog++;
     }
 
-    while (( c = getopt( ac, av, "b:c:dD:g:h:i:L:np:VXx:y:z:" )) != -1 ) {
+    while (( c = getopt( ac, av, "b:c:dD:F:g:h:i:L:np:VXx:y:z:" )) != -1 ) {
 	switch ( c ) {
 	case 'b' :		/* listen backlog */
 	    backlog = atoi( optarg );
@@ -142,6 +145,14 @@ main( int ac, char *av[] )
 	    cosign_dir = optarg;
 	    break;
 
+	case 'F' :              /* syslog facility */
+	    if (( facility = syslogfacility( optarg )) == -1 ) {
+		fprintf( stderr, "%s: %s: unknown syslog facility\n",
+			prog, optarg );
+		exit( 1 );
+	    }
+	    break;
+
 	case 'g' :		/* grey window for logouts/replication */
 	    grey = atoi( optarg );
 	    break;
@@ -154,9 +165,9 @@ main( int ac, char *av[] )
 	    idle_out  = atoi( optarg );
 	    break;
 
-	case 'L' :              /* syslog facility */
-	    if (( facility = syslogname( optarg )) == -1 ) {
-		fprintf( stderr, "%s: %s: unknown syslog facility\n",
+	case 'L' :              /* syslog level */
+	    if (( level = sysloglevel( optarg )) == -1 ) {
+		fprintf( stderr, "%s: %s: unknown syslog level\n",
 			prog, optarg );
 		exit( 1 );
 	    }
@@ -357,6 +368,7 @@ main( int ac, char *av[] )
 #else /* ultrix */
     openlog( prog, LOG_NOWAIT|LOG_PID, facility );
 #endif /* ultrix */
+    setlogmask( LOG_UPTO( level ));
 
     syslog( LOG_INFO, "restart %s", cosign_version );
 
@@ -419,7 +431,7 @@ main( int ac, char *av[] )
 	/* should select() so we can manage an event queue */
 
 	sinlen = sizeof( struct sockaddr_in );
-	if (( fd = accept( s, (struct sockaddr *)&sin, &sinlen )) < 0 ) {
+	if (( fd = accept( s, (struct sockaddr *)&cosign_sin, &sinlen )) < 0 ) {
 	    if ( errno != EINTR ) {	/* other errors? */
 		syslog( LOG_ERR, "accept: %m" );
 	    }
@@ -429,7 +441,7 @@ main( int ac, char *av[] )
 	/* start child */
 	switch ( c = fork()) {
 	case 0 :
-	    syslog( LOG_INFO, "connect: %s", inet_ntoa( sin.sin_addr ));
+	    syslog( LOG_INFO, "connect: %s", inet_ntoa( cosign_sin.sin_addr ));
 
 	    (void)close( s );
 

@@ -19,6 +19,7 @@
 
 #include "cparse.h"
 #include "logname.h"
+#include "rate.h"
 #include "monster.h"
 
 /* idle_cache = (idle+grey) from cosignd, plus loggedout_cache here */
@@ -54,7 +55,7 @@ main( int ac, char **av )
     char		*cryptofile = _COSIGN_TLS_KEY;
     char		*certfile = _COSIGN_TLS_CERT;
     char		*cadir = _COSIGN_TLS_CADIR;
-    int                 facility = _COSIGN_LOG;
+    int                 facility = _COSIGN_LOG, level = LOG_INFO;
     SSL_CTX		*ctx = NULL;
     extern int          optind;
     extern char         *optarg;
@@ -65,10 +66,18 @@ main( int ac, char **av )
 	prog++;
     }
 
-    while (( c = getopt( ac, av, "dh:H:i:I:l:L:p:Vx:y:z:" )) != EOF ) {
+    while (( c = getopt( ac, av, "dF:h:H:i:I:l:L:p:Vx:y:z:" )) != EOF ) {
 	switch ( c ) {
 	case 'd' :		/* debug */
 	    debug++;
+	    break;
+
+	case 'F' :              /* syslog facility */
+	    if (( facility = syslogfacility( optarg )) == -1 ) {
+		fprintf( stderr, "%s: %s: unknown syslog facility\n",
+			prog, optarg );
+		exit( 1 );
+	    }
 	    break;
 
 	case 'h' :		/* host running cosignd */
@@ -91,9 +100,9 @@ main( int ac, char **av )
 	    loggedout_cache = atoi( optarg );
 	    break;
 
-	case 'L' :              /* syslog facility */
-	    if (( facility = syslogname( optarg )) == -1 ) {
-		fprintf( stderr, "%s: %s: unknown syslog facility\n",
+	case 'L' :              /* syslog level */
+	    if (( level = sysloglevel( optarg )) == -1 ) {
+		fprintf( stderr, "%s: %s: unknown syslog level\n",
 			prog, optarg );
 		exit( 1 );
 	    }
@@ -260,6 +269,7 @@ main( int ac, char **av )
 #else /* ultrix */
     openlog( prog, LOG_NOWAIT|LOG_PID, facility );
 #endif /* ultrix */
+    setlogmask( LOG_UPTO( level ));
 
 
     syslog( LOG_INFO, "restart %s", cosign_version );

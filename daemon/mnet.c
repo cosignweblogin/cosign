@@ -23,6 +23,7 @@
 #include <snet.h>
 
 #include "argcargv.h"
+#include "rate.h"
 #include "monster.h"
 
 static void (*logger)( char * ) = NULL;
