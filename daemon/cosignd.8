@@ -57,10 +57,7 @@ or
 .B service.
 Next is the subject CN ( common name ). The 
 third argument, which is a flag [P,T,PT,0] to signify if the host with the listed subject CN can ask for Kerberos tickets (T), proxy cookies (P), both
-(PT), or none (0, or the field may be left blank). If proxy cookies are
-authorized (P), the fourth argument is the name of a file that contains
-the hostname and servicename for the proxy cookies, one per line, white
-space delimited.  Lines that are blank or begin with '#' are ignored.  '*' is a wildcard and will match any string.
+(PT), or none (0) . If proxy cookies are authorized (P), the fourth argument is the name of a file that contains the hostname and servicename for the proxy cookies, one per line, white space delimited.  Lines that are blank or begin with '#' are ignored.  '*' is a wildcard and will match any string.
 .sp
 A client's CN must match a line in the configuration file, otherwise it is not permitted to talk to cosignd. All clients must call STARTTLS before any other commands can be issued. Clients can only issue commands associated with their keyword. This means that the keyword
 .B service
