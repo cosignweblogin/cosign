@@ -91,7 +91,7 @@ main( int ac, char **av )
     char           	*cosign_host = NULL;
 	char		*cosign_conf = _COSIGN_CONF;
     int                 facility = _COSIGN_LOG, level = LOG_INFO;
-    SSL_CTX		*ctx = NULL;
+    SSL_CTX		*m_ctx = NULL;
     extern int          optind;
     extern char         *optarg;
 
@@ -101,28 +101,33 @@ main( int ac, char **av )
 	prog++;
     }
 
-    /*
-     * Read config file before chdir(), in case config file is relative path.
-     * We read configuration this early so command line options can override
-     * any configuration in the conf file.
-     */
-    if ( cosign_config( cosign_conf ) < 0 ) {
-	exit( 1 );
-    }
 
-    /* Configure ourself based on the config file */
-    monster_configure();
-
-    while (( c = getopt( ac, av, "c:dF:h:H:i:I:l:L:p:Vx:y:z:" )) != EOF ) {
+#define MONSTER_OPTS "c:dF:h:H:i:I:l:L:p:Vx:y:z:"
+    while (( c = getopt( ac, av, MONSTER_OPTS )) != EOF ) {
 	switch ( c ) {
 	case 'c':
 	    cosign_conf = optarg;
-	    /* Must now re-configure :( */
-	    if ( cosign_config( cosign_conf ) < 0 ) {
-		exit( 1 );
-	    }
-	    monster_configure();
 	    break;
+
+        default:
+            break;
+	}
+    }
+
+    if ( cosign_config( cosign_conf ) < 0 ) {
+	fprintf( stderr, "monster: cosign_config failed.\n" );
+	exit( 1 );
+    }
+    monster_configure();
+
+    /* reset optind to parse all other args */
+    optind = 1;
+
+    while (( c = getopt( ac, av, MONSTER_OPTS )) != EOF ) {
+	switch ( c ) {
+	case 'c':
+	    break;
+
 	case 'd' :		/* debug */
 	    debug++;
 	    break;
@@ -195,11 +200,11 @@ main( int ac, char **av )
 
     if ( err || optind != ac ) {
 	fprintf( stderr, "Usage: monster [ -c conf ] [ -dV ] " );
-	fprintf( stderr, "[ -F syslog facility ] [ -h cosignd host ] ");
-	fprintf( stderr, "[ -H hard timeout  ] [ -i idlecachetimeinsecs ] " );
-	fprintf( stderr, "[ -I update interval ] [ -l loggedoutcachetime ]  " );
-	fprintf( stderr, "[ -L syslog level] [ -p port ] [ -x ca dir ] " );
-	fprintf( stderr, "[ -y cert file] [ -z private key file ]\n" );
+	fprintf( stderr, "[ -F syslog-facility ] [ -h cosignd-host ] ");
+	fprintf( stderr, "[ -H hard-timeout  ] [ -i idlecachetimeinsecs ] " );
+	fprintf( stderr, "[ -I update-interval ] [ -l loggedoutcachetime ]  " );
+	fprintf( stderr, "[ -L syslog-level] [ -p port ] [ -x ca-dir ] " );
+	fprintf( stderr, "[ -y cert-file] [ -z private-key-file ]\n" );
 	exit( -1 );
     }
 
@@ -233,55 +238,12 @@ main( int ac, char **av )
     }
     *tail = NULL;
 
-    if ( access( cryptofile, R_OK ) != 0 ) {
-        perror( cryptofile );
-        exit( 1 );
-    }
+    SSL_load_error_strings();
+    SSL_library_init();
 
-    if ( access( certfile, R_OK ) != 0 ) {
-        perror( certfile );
-        exit( 1 );
-    }
-
-    if ( access( cadir, R_OK ) != 0 ) {
-        perror( cadir );
-        exit( 1 );
-    }
-
-    if ( cryptofile != NULL ) {
-	SSL_load_error_strings();
-	SSL_library_init();
-
-	if (( ctx = SSL_CTX_new( SSLv23_client_method())) == NULL ) {
-	    fprintf( stderr, "SSL_CTX_new: %s\n",
-		    ERR_error_string( ERR_get_error(), NULL ));
-	    exit( 1 );
-	}
-
-	if ( SSL_CTX_use_PrivateKey_file( ctx, cryptofile, SSL_FILETYPE_PEM )
-		!= 1 ) {
-	    fprintf( stderr, "SSL_CTX_use_PrivateKey_file: %s: %s\n",
-		    cryptofile, ERR_error_string( ERR_get_error(), NULL));
-	    exit( 1 );
-	}
-	if ( SSL_CTX_use_certificate_chain_file( ctx, certfile ) != 1) {
-	    fprintf( stderr, "SSL_CTX_use_certificate_chain_file: %s: %s\n",
-		    cryptofile, ERR_error_string( ERR_get_error(), NULL));
-	    exit( 1 );
-	}
-	if ( SSL_CTX_check_private_key( ctx ) != 1 ) {
-	    fprintf( stderr, "SSL_CTX_check_private_key: %s\n",
-		    ERR_error_string( ERR_get_error(), NULL ));
-	    exit( 1 );
-	}
-
-	if ( SSL_CTX_load_verify_locations( ctx, NULL, cadir ) != 1 ) {
-	    fprintf( stderr, "SSL_CTX_load_verify_locations: %s: %s\n",
-		    cryptofile, ERR_error_string( ERR_get_error(), NULL));
-	    exit( 1 );
-	}
-	SSL_CTX_set_verify( ctx,
-		SSL_VERIFY_PEER | SSL_VERIFY_FAIL_IF_NO_PEER_CERT, NULL);
+    if ( cosign_ssl( cryptofile, certfile, cadir, &m_ctx ) != 0 ) {
+	fprintf( stderr, "monster: ssl setup error\n" );
+	exit( 1 );
     }
 	}
 
@@ -295,7 +257,7 @@ main( int ac, char **av )
      * Disassociate from controlling tty.
      */
     if ( !debug ) {
-	int		i, dt;
+	int		i, fd, dt;
 
 	switch ( fork()) {
 	case 0 :
@@ -303,12 +265,23 @@ main( int ac, char **av )
 		perror( "setsid" );
 		exit( 1 );
 	    }
-	    dt = getdtablesize();
-	    if (( i = open( "/", O_RDONLY, 0 )) == 0 ) {
-		dup2( i, 1 );
-		dup2( i, 2 );
+	    if (( fd = open( "/", O_RDONLY, 0 )) > 0 ) {
+		perror( "open" );
+		exit( 1 );
 	    }
+	    dt = getdtablesize();
+	    for ( i = 0; i < dt; i++ ) {
+		if ( i != fd ) {			
+		    (void)close( i );
+		}
+	    }
+	    (void)dup2( fd, 0 );
+	    (void)dup2( fd, 1 );
+	    (void)dup2( fd, 2 );
+
+	    (void)close( fd );
 	    break;
+
 	case -1 :
 	    perror( "fork" );
 	    exit( 1 );
@@ -349,7 +322,7 @@ main( int ac, char **av )
     cur = &head;
     while ( *cur != NULL ) {
 	if ( (*cur)->cl_sn == NULL ) {
-	    if ( connect_sn( *cur, ctx, cosign_host ) != 0 ) {
+	    if ( connect_sn( *cur, m_ctx, cosign_host ) != 0 ) {
 		goto next;
 	    }
 

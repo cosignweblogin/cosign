@@ -8,8 +8,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 
 #include <openssl/ssl.h>
+#include <openssl/err.h>
 
 #include <snet.h>
 
@@ -17,25 +19,22 @@
 #include "config.h"
 #include "argcargv.h"
 
-struct authlist		*authlist = NULL;
-struct cosigncfg 	*cfg = NULL;
-
-static void authlist_free();
-
+struct authlist		*authlist = NULL, *new_authlist = NULL;
+struct cosigncfg 	*cfg = NULL, *new_cfg = NULL;
 
     static void
-free_config()
+config_free( struct cosigncfg **p )
 {
-    struct cosigncfg *ptr;
+    struct cosigncfg *q;
 
-    while( cfg ) {
-	free( cfg->cc_key );
-	free( cfg->cc_value );
-	ptr = cfg->cc_next;
-	free( cfg );
-	cfg = ptr;
+    while ( *p ) {
+	free( (*p)->cc_key );
+	free( (*p)->cc_value );
+	q = (*p)->cc_next;
+	free( *p );
+	*p = q;
     }
-    cfg = NULL;
+    return;
 }
 
     char **
@@ -82,12 +81,12 @@ authlist_find( char *hostname )
 }
 
     static void
-authlist_free()
+authlist_free( struct authlist **al )
 {
     struct authlist 	*cur, *next;
     struct proxies	*pcur, *pnext;
 
-    for ( cur = authlist; cur != NULL; cur = next ) {
+    for ( cur = *al; cur != NULL; cur = next ) {
 	free( cur->al_hostname );
 	for ( pcur = cur->al_proxies; pcur != NULL; pcur = pnext ) {
 	    free( pcur->pr_hostname );
@@ -98,7 +97,7 @@ authlist_free()
 	next = cur->al_next;
 	free( cur );
     }
-    authlist = NULL;
+    *al = NULL;
     return;
 }
 
@@ -210,7 +209,7 @@ read_config( char *path )
 		cc_new->cc_value[ i ] = strdup( av[ i + 2 ] );
 
 	    }
-	    for ( cc_cur = &cfg; (*cc_cur) != NULL;
+	    for ( cc_cur = &new_cfg; (*cc_cur) != NULL;
 		    cc_cur = &(*cc_cur)->cc_next )
 		;
 
@@ -308,7 +307,8 @@ read_config( char *path )
 		return( -1 );
 	    }
 
-	    for ( al_cur = &authlist; (*al_cur) != NULL;
+	    
+	    for ( al_cur = &new_authlist; (*al_cur) != NULL;
 		    al_cur = &(*al_cur)->al_next )
 		;
 
@@ -336,13 +336,89 @@ read_config( char *path )
     int
 cosign_config( char *path )
 {
-    if ( authlist != NULL ) {
-	authlist_free( );
+    struct authlist	*old_authlist;
+    struct cosigncfg	*old_cfg;
+    
+    if ( read_config( path ) != 0 ) {
+	if ( new_authlist != NULL ) {
+	    authlist_free( &new_authlist );
+	}
+
+	if ( new_cfg != NULL ) {
+	    config_free( &new_cfg );
+	}
+	return( -1 );
     }
 
-    if ( cfg != NULL ) {
-	free_config();
+    old_cfg = cfg;
+    old_authlist = authlist;
+
+    cfg = new_cfg;
+    authlist = new_authlist;
+
+    if ( old_authlist != NULL ) {
+	authlist_free( &old_authlist );
     }
 
-    return read_config( path );
+    if ( old_cfg != NULL ) {
+	config_free( &old_cfg );
+    }
+
+    return( 0 );
+}
+
+    int
+cosign_ssl( char *cryptofile, char *certfile, char *cadir, SSL_CTX **ctx )
+{
+    SSL_CTX	*tmp, *old;
+
+    if ( access( cryptofile, R_OK ) != 0 ) {
+        perror( cryptofile );
+        return( 1 );
+    }
+
+    if ( access( certfile, R_OK ) != 0 ) {
+        perror( certfile );
+        return( 1 );
+    }
+
+    if ( access( cadir, R_OK ) != 0 ) {
+        perror( cadir );
+        return( 1 );
+    }
+
+    if (( tmp = SSL_CTX_new( SSLv23_method())) == NULL ) {
+	fprintf( stderr, "SSL_CTX_new: %s\n",
+		ERR_error_string( ERR_get_error(), NULL ));
+	return( 1 );
+    }
+
+    if ( SSL_CTX_use_PrivateKey_file( tmp, cryptofile, SSL_FILETYPE_PEM )
+	    != 1 ) {
+	fprintf( stderr, "SSL_CTX_use_PrivateKey_file: %s: %s\n",
+		cryptofile, ERR_error_string( ERR_get_error(), NULL));
+	return( 1 );
+    }
+    if ( SSL_CTX_use_certificate_chain_file( tmp, certfile ) != 1) {
+	fprintf( stderr, "SSL_CTX_use_certificate_chain_file: %s: %s\n",
+		cryptofile, ERR_error_string( ERR_get_error(), NULL));
+	return( 1 );
+    }
+    if ( SSL_CTX_check_private_key( tmp ) != 1 ) {
+	fprintf( stderr, "SSL_CTX_check_private_key: %s\n",
+		ERR_error_string( ERR_get_error(), NULL ));
+	return( 1 );
+    }
+
+    SSL_CTX_set_verify( tmp,
+	    SSL_VERIFY_PEER | SSL_VERIFY_FAIL_IF_NO_PEER_CERT, NULL);
+
+    old = *ctx;
+    *ctx = tmp;
+
+    if ( old != NULL ) {
+	SSL_CTX_free( old );
+    }
+
+    return( 0 );
 }

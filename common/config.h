@@ -48,7 +48,8 @@ struct cosigncfg {
 #define MYSQLPASSWDKEY	"mysqlpasswd"
 #endif
 
-struct authlist * authlist_find( char *host );
-int cosign_config( char *path );
-char * cosign_config_get( char *key );
-char ** cosign_config_get_all( char *key, int *nVals );
+int		cosign_ssl( char *, char *, char *, SSL_CTX ** );
+struct authlist	*authlist_find( char * );
+int		cosign_config( char * );
+char		*cosign_config_get( char * );
+char		**cosign_config_get_all( char *, int * );

@@ -21,7 +21,6 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-#include <openssl/err.h>
 #include <openssl/ssl.h>
 #include <snet.h>
 
@@ -236,55 +235,12 @@ main( int ac, char *av[] )
 	exit( 1 );
     }
 
-    if ( access( cryptofile, R_OK ) != 0 ) {
-        perror( cryptofile );
-        exit( 1 );
-    }
+    SSL_load_error_strings();
+    SSL_library_init();
 
-    if ( access( certfile, R_OK ) != 0 ) {
-        perror( certfile );
-        exit( 1 );
-    }
-
-    if ( access( cadir, R_OK ) != 0 ) {
-        perror( cadir );
-        exit( 1 );
-    }
-
-    if ( cryptofile != NULL ) {
-	SSL_load_error_strings();
-	SSL_library_init();
-
-	if (( ctx = SSL_CTX_new( SSLv23_method())) == NULL ) {
-	    fprintf( stderr, "SSL_CTX_new: %s\n",
-		    ERR_error_string( ERR_get_error(), NULL ));
-	    exit( 1 );
-	}
-
-	if ( SSL_CTX_use_PrivateKey_file( ctx, cryptofile, SSL_FILETYPE_PEM )
-		!= 1 ) {
-	    fprintf( stderr, "SSL_CTX_use_PrivateKey_file: %s: %s\n",
-		    cryptofile, ERR_error_string( ERR_get_error(), NULL));
-	    exit( 1 );
-	}
-	if ( SSL_CTX_use_certificate_chain_file( ctx, certfile ) != 1) {
-	    fprintf( stderr, "SSL_CTX_use_certificate_chain_file: %s: %s\n",
-		    cryptofile, ERR_error_string( ERR_get_error(), NULL));
-	    exit( 1 );
-	}
-	if ( SSL_CTX_check_private_key( ctx ) != 1 ) {
-	    fprintf( stderr, "SSL_CTX_check_private_key: %s\n",
-		    ERR_error_string( ERR_get_error(), NULL ));
-	    exit( 1 );
-	}
-
-	if ( SSL_CTX_load_verify_locations( ctx, NULL, cadir ) != 1 ) {
-	    fprintf( stderr, "SSL_CTX_load_verify_locations: %s: %s\n",
-		    cryptofile, ERR_error_string( ERR_get_error(), NULL));
-	    exit( 1 );
-	}
-	SSL_CTX_set_verify( ctx,
-		SSL_VERIFY_PEER | SSL_VERIFY_FAIL_IF_NO_PEER_CERT, NULL);
+    if ( cosign_ssl( cryptofile, certfile, cadir, &ctx ) != 0 ) {
+	fprintf( stderr, "cosignd: ssl setup error.\n" );
+	exit( 1 );
     }
 
     if ( dontrun ) {
@@ -352,17 +308,24 @@ main( int ac, char *av[] )
 		perror( "setsid" );
 		exit( 1 );
 	    }
+	    if (( fd = open( "/", O_RDONLY, 0 )) > 0 ) {
+		perror( "open" );
+		exit( 1 );
+	    }
 	    dt = getdtablesize();
 	    for ( i = 0; i < dt; i++ ) {
-		if ( i != s ) {			/* keep socket open */
+		if (( i != s ) && ( i != fd )) {			
+		    /* keep socket open */
 		    (void)close( i );
 		}
 	    }
-	    if (( i = open( "/", O_RDONLY, 0 )) == 0 ) {
-		(void)dup2( i, 1 );
-		(void)dup2( i, 2 );
-	    }
+	    (void)dup2( fd, 0 );
+	    (void)dup2( fd, 1 );
+	    (void)dup2( fd, 2 );
+
+	    (void)close( fd );
 	    break;
+
 	case -1 :
 	    perror( "fork" );
 	    exit( 1 );
@@ -432,19 +395,24 @@ main( int ac, char *av[] )
      * Begin accepting connections.
      */
     for (;;) {
-	/* ssl and conf file stuff here later, but for now this is HUP */
+	/* ssl stuff here later, but for now this is HUP */
 	if ( reconfig > 0 ) {
 	    reconfig = 0;
-	    syslog( LOG_INFO, "reload %s", cosign_version );
 	    if ( cosign_config( cosign_conf ) < 0 ) {
-		syslog( LOG_ERR, "%s: re-read failed", cosign_conf );
-		exit( 1 );
+		syslog( LOG_ERR, "%s: re-read failed, continuing with"
+			" old config", cosign_conf );
+	    }
+
+	    if ( cosign_ssl( cryptofile, certfile, cadir, &ctx ) != 0 ) {
+		syslog( LOG_ERR, "%s: ssl re-config failed, continuing with"
+			" old ssl config", cosign_conf );
 	    }
 
 	    if ( kill( pusherpid, hupsig ) < 0 ) {
 		syslog( LOG_CRIT, "kill pusherpid: %m" );
 		exit( 1 );
 	    }
+	    syslog( LOG_INFO, "reload %s", cosign_version );
 	}
 
 	if ( child_signal > 0 ) {
