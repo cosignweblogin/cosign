@@ -62,6 +62,17 @@ Things to know about the CGI:
     ${prefix}/templates. You will most likely want to localize these
     pages.
 
+    We use a trick so that cosign.cgi will run from DocRoot. In order to
+    make this work, you need to make 3 changes to the default httpd.conf:
+
+	DirectoryIndex      cosign.cgi index.php index.html
+	AddHandler          cgi-script      .cgi
+
+	#replace this directory with your document root
+	<Directory /usr/local/projects/cosign/html>
+	    Options ExecCGI
+	</Directory>
+
 See README.scripts for a cron job that prunes old cookies from the
 server's database and a cosignd init script.
 
