@@ -1,19 +1,23 @@
 MODULE:
 
-unhappy with cookieparsing in cosign_auth().
-unhappy with cookie_valid/read_secant division. 
+    unhappy with cookieparsing in cosign_auth().
+    unhappy with cookie_valid/read_secant division. 
 
-TODO in MOD:
+    TODO:
     cookie obscuring - post 1.0
 
 CGI:
     initial info and ticket propogation (belt)
     conf file
+    get a ticket with the keytab
+    screens
+    service menu
 
 COSIGND:
     replication (suspenders)
+    more conf file
 
-
+ISUUES:
 1) you would have needed to login, but you don't now!
 2) use of qs for redirect back URL ( consistency ).
 
@@ -68,6 +72,9 @@ pcanna
 rUMICH.EDU
 t<secondssince1970>
 [k<path_to_k5_tfile>]
+#ifdef k4
+[K<path_to_k4_tfile>] ( only on client )
+#endif k4
 
 cosign-service=
 l<path_to_login_cookie>

@@ -66,7 +66,7 @@ install:	all
 clean:
 	rm -f *.o *.lo libsnet.la
 	rm -f *.bak *[Ee]rrs tags
-	rm -rf .libs profiled/.libs
+	rm -rf .libs profiled/.libs profiled/*.lo profiled/*.la
 
 dist:		distclean
 	mkdir ${DISTDIR}

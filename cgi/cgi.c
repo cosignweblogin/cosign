@@ -313,7 +313,7 @@ main( int argc, char *argv[] )
     }
 
     krb5_get_init_creds_opt_init( &kopts );
-    krb5_get_init_creds_opt_set_tkt_life( &kopts, 5*60 );
+    krb5_get_init_creds_opt_set_tkt_life( &kopts, 10*60*60 );
     krb5_get_init_creds_opt_set_renew_life( &kopts, 0 );
     krb5_get_init_creds_opt_set_forwardable( &kopts, 1 );
     krb5_get_init_creds_opt_set_proxiable( &kopts, 0 );
