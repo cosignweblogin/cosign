@@ -2,9 +2,10 @@ include(`header.html')
 
 	<td valign="top">
             <p>
-		It is necessary to to <a href='/'>visit the login
-		screen</a> and authenticate before accessing protected
-		resources. Login now:
+		You can skip this screen in the future by visiting <a
+		href='/'>https://weblogin.umich.edu/</a> directly to
+		authenticate <em>before</em> accessing protected
+		resources.  Login now:
             </p>
 
             <p class='important'>
