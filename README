@@ -32,11 +32,11 @@ CosignHostname		weblogin.umich.edu
 CosignRedirect		https://weblogin.umich.edu/
 ( NOTE: trailing slash is required! The redirects won't work correctly
 without it! )
-CosignPostErrorRedirect	<will have a central one, for now any will do>
-CosignService		<send e-mail to cosign@umich.edu>
+CosignPostErrorRedirect https://cosign-test.www.umich.edu/post_error.html
+CosignService		<send e-mail to cosign@umich.edu and we will assign>
 CosignCrypto		<path to key> <path to cert> <path to CA directory>
 
-[new in 0.9.0]
+[new in 0.9.x]
 You'll now need a CA directory instead of just a CA. this is so we can
 use umweb, verisign or entrust signed certs. Copy the CAs to your cadir
 and issue the c_rehash command:
@@ -45,11 +45,16 @@ you should see something similar to:
     Doing /usr/local/etc/apache/certs
     umwebCA.pem => 4700e8dd.0
     RSA-SSCA.pem => f73e89fd.0
+    entrust.pem => ed524cf5.0
 
 Contact webmaster@umich.edu for umich CA certs, which are free!
 
 The daemon (cosignd) requires  /var/cosign/daemon to exist and be
 writeable by the user the daemon runs as.
+
+--with-cosign-db=DIR overrides this default
+--with-cosign-conf=FILE -> allows you to specify new conf file location
+default is /usr/local/etc/cosign.conf
 
 An init script will be included next time :)
 
