@@ -186,6 +186,8 @@ main( int argc, char *argv[] )
             }
         }
     }
+    /* only the cosign= cookie and not the loop breaking info */
+    (void)strtok( cookie, "/" );
 
     /* setup conn and ssl and hostlist crap */
     port = htons( 6663 );

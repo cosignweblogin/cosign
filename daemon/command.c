@@ -551,7 +551,7 @@ f_logout( SNET *sn, int ac, char *av[], SNET *pushersn )
 
     if ( strchr( av[ 1 ], '/' ) != NULL ) {
 	syslog( LOG_ERR, "f_logout: cookie name contains '/'" );
-	snet_writef( sn, "%d LOGOUT: Invalid cookie name.r\n", 511 );
+	snet_writef( sn, "%d LOGOUT: Invalid cookie name.\r\n", 511 );
 	return( 1 );
     }
 
