@@ -100,12 +100,12 @@ netcheck_cookie( char *secant, struct sinfo *si )
 	break;
 
     case '4':
-	fprintf( stderr, "netcheck_cookie : %s\n", line);
+	fprintf( stderr, "netcheck_cookie: %s\n", line);
 	return( -1 );
 
     case '5':
 	/* choose another connection */
-	fprintf( stderr, "choose another connection...\n" );
+	fprintf( stderr, "choose another connection: %s\n", line );
 	return( -1 );
 
     default:
@@ -232,7 +232,8 @@ connect_sn( struct connlist *cl )
 	return( -1 );
     }
 
-    if ( *line !='2' ) {
+    if ( *line != '2' ) {
+	fprintf( stderr, "connect_sn: %s\n", line );
 	if ( snet_close( cl->conn_sn ) != 0 ) {
 	    fprintf( stderr, "connect_sn: snet_close failed\n" );
 	}
@@ -262,7 +263,7 @@ close_sn( SNET *sn )
 	return( -1 );
     }
     if ( *line != '2' ) {
-	fprintf( stderr, "close_sn: the server gave us not a 2\n" );
+	fprintf( stderr, "close_sn: %s\n", line  );
     }
     if ( snet_close( sn ) != 0 ) {
 	fprintf( stderr, "close_sn: snet_close failed\n" );

@@ -56,6 +56,7 @@ set_cookie_and_redirect( request_rec *r, cosign_host_config *cfg )
 {
     char		*dest;
     char		*my_cookie;
+    char		*full_cookie;
     char		cookiebuf[ 128 ];
 
     if ( mkcookie( sizeof( cookiebuf ), cookiebuf ) != 0 ) {
@@ -65,18 +66,19 @@ set_cookie_and_redirect( request_rec *r, cosign_host_config *cfg )
 
     if ( r->method_number == M_POST ) {
 	my_cookie = ap_psprintf( r->pool,
-		"%s=%s;path=/;", cfg->posterror, cookiebuf );
+		"%s=%s;", cfg->posterror, cookiebuf );
     } else {
 	my_cookie = ap_psprintf( r->pool,
-		"%s=%s;path=/;", cfg->service, cookiebuf );
+		"%s=%s;", cfg->service, cookiebuf );
     }
+    full_cookie = ap_psprintf( r->pool, "%s;path=/;secure", my_cookie );
 
     /* cookie needs to be set and sent in error headers as 
      * standard headers don't get returned when we redirect,
      * and we need to do both here. 
      */
 
-    ap_table_set( r->err_headers_out, "Set-Cookie", my_cookie );
+    ap_table_set( r->err_headers_out, "Set-Cookie", full_cookie );
     ap_table_set( r->headers_out,
 	    "Expires", "Thurs, 27 Jan 1977 21:20:00 GMT" );
     dest = ap_psprintf( r->pool, "%s?%s", cfg->redirect, my_cookie );
@@ -124,10 +126,10 @@ cosign_auth( request_rec *r )
 
     data = ap_table_get( r->headers_in, "Cookie" );
 
-    while (data && *data && ( pair = ap_getword( r->pool, &data, ';'))) {
+    while ( data && *data && ( pair = ap_getword( r->pool, &data, ';' ))) {
 	if ( *data == ' ' ) ++data;
-	cookiename = ap_getword( r->pool, &pair, '=');
-	if ( strcasecmp( cookiename, cfg->service) == 0 ) {
+	cookiename = ap_getword( r->pool, &pair, '=' );
+	if ( strcasecmp( cookiename, cfg->service ) == 0 ) {
 	    /* we found a matching cookie */
 	    goto validate_cookie;
 	}
@@ -149,14 +151,11 @@ validate_cookie:
     my_cookie = ap_psprintf( r->pool, "%s=%s", cookiename, pair );
     strcpy( si.si_ipaddr, r->connection->remote_ip );
     if ( cookie_valid( cfg->sl, my_cookie, &si ) < 0 ) {
-fprintf( stderr, "want to redirect now!\n" );
-#ifdef notdef
 	if ( set_cookie_and_redirect( r, cfg ) == 0 ) {
 	    return( HTTP_MOVED_TEMPORARILY );
 	} else {
 	    return( FORBIDDEN );
 	}
-#endif notdef
     }
     ap_table_set( r->subprocess_env, "REMOTE_REALM", si.si_realm );
     r->connection->user = ap_pstrcat( r->pool, si.si_user, NULL);
@@ -319,6 +318,16 @@ fprintf( stderr, "setting ip address: %s ", inet_ntoa( *( struct in_addr *)he->h
     return( NULL );
 }
 
+    void
+cosign_child_cleanup( server_rec *s, pool *p )
+{
+    /* upon child exit, close all ropen SNETs */
+    if ( teardown_conn() != 0 ) {
+	fprintf( stderr, "teardown_conn: something bad happened\n" );
+    }
+    return;
+}
+
 command_rec cosign_cmds[ ] =
 {
         { "CosignPostErrorRedirect", set_cosign_post_error,
@@ -348,15 +357,6 @@ command_rec cosign_cmds[ ] =
         { NULL }
 };
 
-    void
-cosign_child_cleanup( server_rec *s, pool *p )
-{
-    /* upon child exit, close all ropen SNETs */
-    if ( teardown_conn() != 0 ) {
-	fprintf( stderr, "teardown_conn: something bad happened\n" );
-    }
-    return;
-}
 module MODULE_VAR_EXPORT cosign_module = {
     STANDARD_MODULE_STUFF, 
     NULL,	           /* module initializer                  */
