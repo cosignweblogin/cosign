@@ -314,7 +314,7 @@ ac_includes_default="\
 #endif"
 
 ac_subdirs_all="$ac_subdirs_all libsnet"
-ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS AWK CC CFLAGS LDFLAGS CPPFLAGS ac_ct_CC EXEEXT OBJEXT INSTALL_PROGRAM INSTALL_SCRIPT INSTALL_DATA LEX LEXLIB LEX_OUTPUT_ROOT YACC build build_cpu build_vendor build_os host host_cpu host_vendor host_os APXS APXS_INCLUDE APXS_CFLAGS APXS_CFLAGS_SHLIB APACHECTL APXS2 APXS2_INCLUDE APXS2_CFLAGS APXS2_CFLAGS_SHLIB APACHECTL2 HAVE_APACHE2 KRBCGI KRBDEFS KINC KLIBS KLDFLAGS HAVE_KRB BASICCGI filteraddrcheck MYSQLINC MYSQLLIBS MYSQLLDFLAGS SQLDEFS HAVE_MYSQL K4DEFS K4INC K4LIBS K4LDFLAGS HAVE_KRB4 GSSDEFS GSSINC GSSLIBS GSSLDFLAGS HAVE_GSS cosigndb cosignconf cosigncadir cosigncert cosignkey frienddbhost frienddblogin frienddbpasswd ticketcache filterdb proxydb cosignhost cosignlogouturl keytabpath ADDLIBS ADDLDFLAGS TLSDEFS HAVE_SSL CPP EGREP FILTERS OPTOPTS subdirs LIBOBJS LTLIBOBJS'
+ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS AWK CC CFLAGS LDFLAGS CPPFLAGS ac_ct_CC EXEEXT OBJEXT INSTALL_PROGRAM INSTALL_SCRIPT INSTALL_DATA LEX LEXLIB LEX_OUTPUT_ROOT YACC build build_cpu build_vendor build_os host host_cpu host_vendor host_os APXS APXS_INCLUDE APXS_CFLAGS APXS_CFLAGS_SHLIB APACHECTL APXS2DEFS APXS2 APXS2_INCLUDE APXS2_CFLAGS APXS2_CFLAGS_SHLIB APACHECTL2 HAVE_APACHE2 KRBCGI KRBDEFS KINC KLIBS KLDFLAGS HAVE_KRB BASICCGI filteraddrcheck MYSQLINC MYSQLLIBS MYSQLLDFLAGS SQLDEFS HAVE_MYSQL K4DEFS K4INC K4LIBS K4LDFLAGS HAVE_KRB4 GSSDEFS GSSINC GSSLIBS GSSLDFLAGS HAVE_GSS cosigndb cosignconf cosigncadir cosigncert cosignkey frienddbhost frienddblogin frienddbpasswd ticketcache filterdb proxydb cosignhost cosignlogouturl keytabpath ADDLIBS ADDLDFLAGS TLSDEFS HAVE_SSL CPP EGREP FILTERS OPTOPTS subdirs LIBOBJS LTLIBOBJS'
 ac_subst_files=''
 
 # Initialize some variables set by options.
@@ -3025,6 +3025,8 @@ echo "$as_me: error: cannot find apache 2" >&2;}
     else
 	APACHECTL2="${APXS2_SBINDIR}/${APXS2_TARGET}ctl"
     fi
+    APXS2DEFS=-DAPXS2;
+
 
 
 
@@ -4048,8 +4050,10 @@ fi
 # Checks for filters:
 
 if test "x_$FILTERS" = "x_" ; then
-  { { echo "$as_me:$LINENO: error: No web server found" >&5
-echo "$as_me: error: No web server found" >&2;}
+  { { echo "$as_me:$LINENO: error: No web server found - you must explicitly \"enable-apache1\"
+  or \"enable-apache2\" or both " >&5
+echo "$as_me: error: No web server found - you must explicitly \"enable-apache1\"
+  or \"enable-apache2\" or both " >&2;}
    { (exit 1); exit 1; }; }
 fi
 
@@ -4756,6 +4760,7 @@ s,@APXS_INCLUDE@,$APXS_INCLUDE,;t t
 s,@APXS_CFLAGS@,$APXS_CFLAGS,;t t
 s,@APXS_CFLAGS_SHLIB@,$APXS_CFLAGS_SHLIB,;t t
 s,@APACHECTL@,$APACHECTL,;t t
+s,@APXS2DEFS@,$APXS2DEFS,;t t
 s,@APXS2@,$APXS2,;t t
 s,@APXS2_INCLUDE@,$APXS2_INCLUDE,;t t
 s,@APXS2_CFLAGS@,$APXS2_CFLAGS,;t t
