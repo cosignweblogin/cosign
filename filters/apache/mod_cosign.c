@@ -382,10 +382,6 @@ set_cosign_service( cmd_parms *params, void *mconfig, char *arg )
 #endif /* KRB */
     }
 
-    if ( cfg->service != NULL ) {
-	return( "Only one service per configuration allowed." );
-    }
-
     cfg->service = ap_psprintf( params->pool,"cosign-%s", arg );
     cfg->configured = 1;
     return( NULL );
