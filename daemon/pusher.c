@@ -381,6 +381,7 @@ pusher( int cpipe, struct cl *cur )
     pusherdaemon( cur );
 
 	for ( ;; ) {
+    krb = 0;
     if (( line = snet_getline( csn, NULL )) == NULL ) {
 	syslog( LOG_ERR, "pusherchild: snet_getline: %m" );
 	exit( 1 );
