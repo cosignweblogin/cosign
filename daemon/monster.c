@@ -290,16 +290,17 @@ main( int ac, char **av )
 	    tv = timeout;
 	    if (( line = snet_getline_multi( (*cur)->cl_sn, logger, &tv ))
 		    == NULL ) {
-		syslog( LOG_ERR, "monster: %m" );
+		syslog( LOG_ERR, "snet_getline_multi: 1: %m" );
 		if (( close_sn( *cur )) != 0 ) {
-		    syslog( LOG_ERR, "monster: close_sn: %m" );
+		    syslog( LOG_ERR, "monster: close_sn: 2: %m" );
 		}
 		goto next;
 	    }
 
+syslog( LOG_DEBUG, "snet_getline_multi: A: %s", line );
 	    if ( *line == '4' ) {
 		if (( close_sn( *cur )) != 0 ) {
-		    syslog( LOG_ERR, "monster: close_sn: %m" );
+		    syslog( LOG_ERR, "close_sn: 3: %m" );
 		}
 		temp = *cur;
 		*cur = (*cur)->cl_next;
@@ -311,18 +312,18 @@ main( int ac, char **av )
 		continue;
 
 	    } else if ( *line != '2' ) {
-		syslog( LOG_ERR, "monster: %s", line );
+		syslog( LOG_ERR, "getline: 4: %s", line );
 		if (( close_sn( *cur )) != 0 ) {
-		    syslog( LOG_ERR, "monster: close_sn: %m" );
+		    syslog( LOG_ERR, "close_sn: 5: %m" );
 		}
 		goto next;
 	    }
 	}
 
 	if ( snet_writef( (*cur)->cl_sn, "TIME\r\n" ) < 0 ) {
-	    syslog( LOG_ERR, "snet_writef failed on TIME\n");
+	    syslog( LOG_ERR, "snet_writef failed on TIME");
 	    if ( snet_close( (*cur)->cl_sn ) != 0 ) {
-		syslog( LOG_ERR, "snet_close: %m\n" );
+		syslog( LOG_ERR, "snet_close: 6: %m" );
 	    }
 	    goto next;
 	}
@@ -331,18 +332,19 @@ main( int ac, char **av )
 	if (( line = snet_getline_multi( (*cur)->cl_sn, logger, &tv ))
 		== NULL ) {
 	    if ( !snet_eof( (*cur)->cl_sn )) {
-		syslog( LOG_ERR, "snet_getline_multi: %m\n" );
+		syslog( LOG_ERR, "snet_getline_multi: 7: %m" );
 	    }
 	    if ( snet_close( (*cur)->cl_sn ) != 0 ) {
-		syslog( LOG_ERR, "snet_close: %m\n" );
+		syslog( LOG_ERR, "snet_close: 8: %m" );
 	    }
 	    goto next;
 	}
+syslog( LOG_DEBUG, "snet_getline_multi: B: %s", line );
 
 	if ( *line != '3' ) {
-	    syslog( LOG_ERR, "snet_getline_multi: %m\n" );
+	    syslog( LOG_ERR, "snet_getline_multi: 9: %s", line );
 	    if ( snet_close( (*cur)->cl_sn ) != 0 ) {
-		syslog( LOG_ERR, "snet_close: %m\n" );
+		syslog( LOG_ERR, "snet_close: 10: %m" );
 	    }
 next:
 	    (*cur)->cl_sn = NULL;
@@ -354,15 +356,17 @@ next:
 	/* is a login cookie */
 	if ( strncmp( de->d_name, "cosign=", 7 ) == 0 ) {
 	    if (( rc = decision( de->d_name, &now, &itime, &state )) < 0 ) {
-		syslog( LOG_ERR, "decision failure: %s\n", de->d_name );
+		syslog( LOG_ERR, "decision failure: %s", de->d_name );
 		continue;
 	    }
 	    for ( cur = &head; *cur != NULL; cur = &(*cur)->cl_next ) {
-		if ( itime > (*cur)->cl_last_time ) {
+		if (( itime > (*cur)->cl_last_time ) &&
+			((*cur)->cl_sn != NULL )) {
 		    if ( snet_writef( (*cur)->cl_sn, "%s %d %d\r\n",
 			    de->d_name, itime, state ) < 0 ) {
+syslog( LOG_DEBUG, "snet_writef: %s %d %d", de->d_name, itime, state );
 			if ( snet_close( (*cur)->cl_sn ) != 0 ) {
-			    syslog( LOG_ERR, "snet_close: %m\n" );
+			    syslog( LOG_ERR, "snet_close: 11: %m" );
 			}
 			(*cur)->cl_sn = NULL;
 			continue;
@@ -372,16 +376,16 @@ next:
 	} else if ( strncmp( de->d_name, "cosign-", 7 ) == 0 ) {
 
 	    if ( service_to_login( de->d_name, login ) != 0 ) {
-		syslog( LOG_ERR, "service to login: %s\n", de->d_name );
+		syslog( LOG_ERR, "service to login: %s", de->d_name );
 		continue;
 	    }
 	    if (( rc = decision( login, &now, &itime, &state )) < 0 ) {
-		syslog( LOG_ERR, "decision failure: %s\n", login );
+		syslog( LOG_ERR, "decision failure: %s", login );
 		continue;
 	    }
 	    if ( rc == 0 ) {
 		if ( unlink( de->d_name ) != 0 ) {
-		    syslog( LOG_ERR, "%s: %m\n", de->d_name );
+		    syslog( LOG_ERR, "%s: 12: %m", de->d_name );
 		}
 	    }
 	} else {
@@ -396,19 +400,19 @@ next:
 	    if (( line = snet_getline_multi( (*cur)->cl_sn, logger, &tv ))
 		     == NULL ) {
 		if ( !snet_eof( (*cur)->cl_sn )) {
-		    syslog( LOG_ERR, "snet_getline_multi: %m\n" );
+		    syslog( LOG_ERR, "snet_getline_multi: 13: %m" );
 		}
 		if ( snet_close( (*cur)->cl_sn ) != 0 ) {
-		    syslog( LOG_ERR, "snet_close: %m\n" );
+		    syslog( LOG_ERR, "snet_close: 14: %m" );
 		}
 		(*cur)->cl_sn = NULL;
 		continue;
 	    }
-
+syslog( LOG_DEBUG, "snet_getline_multi: C: %s", line );
 	    if ( *line != '2' ) {
-		syslog( LOG_ERR, "snet_getline_multi: %m\n" );
+		syslog( LOG_ERR, "snet_getline_multi: 15: %m" );
 		if ( snet_close( (*cur)->cl_sn ) != 0 ) {
-		    syslog( LOG_ERR, "snet_close: %m\n" );
+		    syslog( LOG_ERR, "snet_close: 16: %m" );
 		}
 		(*cur)->cl_sn = NULL;
 		continue;
@@ -465,11 +469,11 @@ delete_stuff:
     /* clean up ticket and file */
     if ( strcmp( ci.ci_krbtkt, "\0" ) != 0 ) {
 	if ( unlink( ci.ci_krbtkt ) != 0 ) {
-	    syslog( LOG_ERR, "%s: %m\n", ci.ci_krbtkt );
+	    syslog( LOG_ERR, "%s: %m", ci.ci_krbtkt );
 	}
     }
     if ( unlink( name ) != 0 ) {
-	syslog( LOG_ERR, "%s: %m\n", name );
+	syslog( LOG_ERR, "%s: %m", name );
     } 
 
     return( 0 );
