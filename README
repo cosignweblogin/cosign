@@ -1,5 +1,8 @@
 Before you begin:
 
+    For documentation and information concerning cosign terminology,
+    see: http://weblogin.org/
+
     To build the Apache filter you need Apache 1.3.X.  Support for
     Apache 2.0 will be available in a later release.  Your web
     server should have SSL enabled.
@@ -14,36 +17,22 @@ Before you begin:
     at <http://sunsolve.sun.com/>.  AIX users will want to get
     prngd.
 
-    You almost certainly do not need Kerberos installed on your
-    machine unless you are building the central server.  If you
-    are building a central server, you will need MIT krb5-1.2.7 or
-    later. See README.weblogin for further information.
+    If your cosign protected service needs kerberos credentials, you
+    will need MIT krb5-1.2.7 or later.  Kerberos libraries are not
+    required if you do not need access to kerberos credentials.  If you
+    are building a central weblogin server, see README.weblogin.
 
-    For documentation and information concerning cosign terminology,
-    see: http://weblogin.org/
+To build the Apache authentication filter:
 
-Set up a cosign-protected service:
-
-    To build the Apache authentication filter:
-
-	./configure
-	make
-	make install
-	mkdir -p /var/cosign/filter
-	chown APACHE_USER /var/cosign/filter
+    ./configure
+    make
+    make install
+    mkdir -p /var/cosign/filter
+    chown APACHE_USER /var/cosign/filter
 
     'make install' will install the filter using your copy of apxs.  Be
     sure to change APACHE_USER to the username defined in your
     httpd.conf file.
-
-	--with-filterdb=DIR overrides the default of /var/cosign/filter
-
-    To do this by hand, copy mod_cosign.so to apache's libexec
-    directory. Edit httpd.conf to include:
-
-
-	LoadModule cosign_module      libexec/mod_cosign.soA
-	AddModule mod_cosign.c
 
     Finally, create a CA directory to hold your CA certificates.  Copy
     the CAs ( see the CAcerts directory in the root of the cosign
@@ -78,13 +67,18 @@ Configure Apache ( U of M specific example ):
 	CosignRedirect		https://weblogin.umich.edu/
 	CosignPostErrorRedirect https://weblogin.umich.edu/post_error.html
 	CosignService		<e-mail to cosign@umich.edu and we will assign>
-	CosignCrypto		<path to key> <path to cert> <path to CA dir>
+	CosignCrypto		/path/to/key /path/to/cert /path/to/CAdir
 
     NOTE: trailing slash is required on CosignRedirect! The redirects
     won't work correctly without it.
 
+Stop and Start Apache
+
+See README.scripts for a cron job that prunes old cookies from the filter's
+database and scripts for local logout.
+
 --------
-Configure Apache ( here are your options ):
+Apache Configuration Options:
 
 	CosignProtected		[ on | off ]
 	    governs whether Cosign is invoked or not
@@ -95,17 +89,8 @@ Configure Apache ( here are your options ):
 				would be redirected to the login cgi
 				during a POST. This screen lets people
 				know we dropped their data. ]
-	CosignService		[ a unique identifier for... ]
+	CosignService		[ the name of the cosign service cookie ]
 	CosignCrypto		[path to key] [path to cert] [path to CA dir]
-
---------
-To make Kerberos work with the module, you'll need the following options:
-
-    --enable-krb=path_to_krb5	enables Kerberos V
-    --with-krb4			enables Kerberos IV
-    --with-GSS			enables GSSAPI ( see directive below )
-
-
 	CosignGetKerberosTickets	[ on | off ]
 	    module asks for tgt from cosignd
 
@@ -113,6 +98,16 @@ To make Kerberos work with the module, you'll need the following options:
 	    whether you want K5 tgt converted to K4 tgt
 
 	CosignKerberosSetupGSS		[ on | off ]
-		setup the enviornment so that other apache modules
-		that need GSSAPI/Kerberos work. e.g. Imp running under mod_php
+	    setup the enviornment so that other apache modules
+	    that need GSSAPI/Kerberos work. e.g. IMP running under mod_php
 
+
+The certificate CN of the weblogin server must match CosignHostname.
+
+--------
+./configure may take the following options:
+
+    --enable-krb=path_to_krb5	enables Kerberos V
+    --with-krb4			enables Kerberos IV
+    --with-GSS			enables GSSAPI
+    --with-filterdb=DIR         overrides the default of /var/cosign/filter

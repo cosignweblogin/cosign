@@ -1,5 +1,8 @@
 Before you begin:
 
+    For documentation and information concerning cosign terminology,
+    see: http://weblogin.org/
+
     Your web server should have SSL enabled.
 
     You will need OpenSSL 0.9.7a or newer.
@@ -12,18 +15,9 @@ Before you begin:
     at <http://sunsolve.sun.com/>.  AIX users will want to get
     prngd.
 
-    You almost certainly do need Kerberos installed on your
-    machine since you are building the central server.
     You will need MIT krb5-1.2.7 or later.
 
-    For documentation and information concerning cosign terminology,
-    see: http://weblogin.org/
-
-CGI:
-CA:
-
-
-To set up a central cosign server ( the weblogin server ):
+To build the central cosign server ( the weblogin server ):
     Note that you should only need this if you are establishing a new
     SSO community for which you will be providing the central login
     server.
@@ -35,25 +29,47 @@ To set up a central cosign server ( the weblogin server ):
 	chown DAEMON_USER /var/cosign/daemon
     
     The daemon (cosignd) requires  /var/cosign/daemon to exist and be
-    writeable by the user the daemon runs as.
+    writeable by the user the daemon runs as, by default "cosign".
 
-    --with-cosigndb=DIR overrides /var/cosign/daemon
-    --with-cosignconf=FILE -> allows you to specify new conf file location
-	    default is /usr/local/etc/cosign.conf
+Testing your certificates:
+
+    You want to make sure that the certs you have are able to be used as
+    both a server ( weblogin server ) and a client ( cosign.cgi ). Debugging
+    certificate problems is the hardest thing to do, and checking now saves
+    a lot of anguish later.
+
+	openssl verify -verbose -purpose sslclient -CApath /var/cosign/certs/CA /var/cosign/certs/cert.pem
+
+	openssl verify -verbose -purpose sslserver -CApath /var/cosign/certs/CA /var/cosign/certs/cert.pem
+
+
+Things to know about the CGI:
+
+    You'll need a keytab with the principal of "cosign" and the
+    instance of the hostname of the machine that the cgi will run on.
+
+    The required html and templates for the cgi ( login page, logout
+    page, services page, etc. ) live in ${prefix}/html and
+    ${prefix}/templates. You will most likely want to localize these
+    pages.
+
+See README.scripts for a cron job that prunes old cookies from the
+server's database and a cosignd init script.
+
+./configure options:
+
+    --with-cosignhost=NAME  	default=cosign.example.edu
+    --with-cosignlogouturl=URL	default=http://cosign.example.edu
+    --with-cosigndb=DIR 	overrides /var/cosign/daemon
+    --with-cosignconf=FILE	specify new conf file location
     --with-cosigncadir=DIR	default=/var/cosign/certs/CA 
     --with-cosigncert=FILE	default=/var/cosign/certs/cert.pem
     --with-cosignkey=FILE	default=/var/cosign/certs/key.pem
     --with-keytabpath=FILE 	default=NULL ( which means use whatever
 					the krb5.conf says to use )
 
-    These 2 are for the login and logout cgi, respectively. They must be
-    set with your localized settings. "cosignhost" is the DNS name of
-    the server running cosignd. "cosignlogouturl" is the default URL a
-    user will be directed to upon logout ( if no URL is specified by
-    another application. )
-
-    --with-cosignhost=NAME  	default=cosign.example.edu
-    --with-cosignlogouturl=URL	default=http://cosign.example.edu
+    The certificate CN of the weblogin server must match the argument
+    to --with-cosignhost.
 
 
 Questions? cosign@umich.edu
