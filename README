@@ -111,3 +111,35 @@ The certificate CN of the weblogin server must match CosignHostname.
     --with-krb4			enables Kerberos IV
     --with-GSS			enables GSSAPI
     --with-filterdb=DIR         overrides the default of /var/cosign/filter
+
+To make Cosign work with Apache's require directives, you should do the
+following:
+
+In httpd.conf, for the directory structure you want to Cosign Protect
+and use apache's require directives on, add the following line:
+
+    #this examples turn this on for everything
+    <Directory />
+	AllowOverride AuthConfig Limit
+    </Directory>
+
+This will allow you to use .htaccess files for Authorization. So now you
+can do something like this:
+
+    AuthType Cosign
+    require user wes canna clunis jarod
+
+This will make it so the core cosign development team can view the pages
+in this hypothetical directory. For more info on this, see Apache's docs
+on .htaccess.
+
+Alternatively you can just specify authorization information inline in
+httpd.conf:
+
+    <Directory />
+	AuthType Cosign
+	Require user grouch harpo chico
+    </Directory>
+
+This allows the marx brothers to exclude Zeppo ( and anyone else ) from
+accessing content on their webserver.

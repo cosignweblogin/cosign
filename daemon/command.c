@@ -85,6 +85,7 @@ struct command	auth_commands[] = {
 };
 
 extern char	*cosign_version;
+extern int	debug;
 extern SSL_CTX	*ctx;
 struct command 	*commands = unauth_commands;
 struct chosts	*ch = NULL;
@@ -976,6 +977,10 @@ command( int fd, SNET *pushersn )
     tv.tv_usec = 0;
 
     while (( line = snet_getline( snet, &tv )) != NULL ) {
+	/* log everything we get to stdout if we're debugging */
+	if ( debug ) {
+	    printf( "debug: %s\n", line );
+	}
 	tv.tv_sec = 60 * 10;
 	tv.tv_usec = 0;
 	if (( ac = argcargv( line, &av )) < 0 ) {

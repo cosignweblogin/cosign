@@ -133,7 +133,7 @@ main( int ac, char *av[] )
 	    break;
 
 	case 'd' :		/* debug */
-	    debug++;
+	    debug = 1;
 	    break;
 
 	case 'D' :		/* directory to store cookies*/
