@@ -31,8 +31,9 @@ static struct cl	*replhead;
 static struct timeval   timeout = { 10 * 60, 0 };
 static void     (*logger)( char * ) = NULL;
 
-static void	pusherhup ( int );
-static void	pusherchld ( int );
+static void	pusherhup( int );
+static void	pusherchld( int );
+static void	mkpushers( int );
 int		pusherparent( int );
 int		pusher( int, struct cl * );
 int		pusherhosts( void );
@@ -144,7 +145,6 @@ pusherchld( int sig )
 	/* mark in the list that child has exited */
 	for ( cur = &replhead; *cur != NULL; cur = &(*cur)->cl_next ) {
 	    if ( pid == (*cur)->cl_pid ) {
-syslog( LOG_DEBUG, "FOUND IT! %d", pid );
 		(*cur)->cl_pid = 0;
 		if ( (*cur)->cl_psn != NULL ) {
 		    snet_close( (*cur)->cl_psn );
@@ -193,6 +193,75 @@ syslog( LOG_DEBUG, "FOUND IT! %d", pid );
     return;
 }
 
+    void
+mkpushers( int ppipe )
+{
+    struct cl		*cur, *yacur;
+    int			fds[ 2 ];
+    struct sigaction	sa;
+
+    for ( cur = replhead; cur != NULL; cur = cur->cl_next ) {
+	if ( cur->cl_pid != 0 ) {
+	    continue;
+	}
+	if ( pipe( fds ) < 0 ) {
+	    syslog( LOG_ERR, "mkpushers: %m" );
+	    exit( 1 );
+	}
+
+	switch ( cur->cl_pid = fork() ) {
+	case 0 :
+	    /* reset SIGCHLD & SIGHUP */
+	    memset( &sa, 0, sizeof( struct sigaction ));
+	    sa.sa_handler = SIG_DFL;
+	    if ( sigaction( SIGCHLD, &sa, NULL ) < 0 ) {
+		syslog( LOG_ERR, "sigaction: %m" );
+		exit( 1 );
+	    }
+
+	    memset( &sa, 0, sizeof( struct sigaction ));
+	    sa.sa_handler = SIG_DFL;
+	    if ( sigaction( SIGHUP, &sa, NULL ) < 0 ) {
+		syslog( LOG_ERR, "sigaction: %m" );
+		exit( 1 );
+	    }
+
+	    if ( close( fds[ 1 ] ) != 0 ) {
+		syslog( LOG_ERR, "pusher parent pipe: %m" );
+		exit( 1 );
+	    }
+	    /* let's not leak fds if we can help it */
+	    close( ppipe );
+	    for ( yacur = replhead; yacur != NULL;
+		    yacur = yacur->cl_next ) {
+		if ( yacur != cur ) {
+		    if ( yacur->cl_psn != NULL ) {
+			snet_close( yacur->cl_psn );
+			yacur->cl_psn = NULL;
+		    }
+		}
+	    }
+	    pusher( fds[ 0 ], cur );
+	    exit( 0 );
+
+	case -1 :
+	    syslog( LOG_ERR, "mkpushers fork: %m" );
+	    exit( 1 );
+	}
+
+	if ( close( fds[ 0 ] ) != 0 ) {
+	    syslog( LOG_ERR, "pusher main pipe: %m" );
+	    exit( 1 );
+	}
+
+	if (( cur->cl_psn = snet_attach( fds[ 1 ], 1024 * 1024 )) == NULL ) {
+	    syslog( LOG_ERR, "mkpushers fork: snet_attach: %m" );
+	    exit( 1 );
+	}
+    }
+
+    return;
+}
 
     int
 pusherparent( int ppipe )
@@ -201,12 +270,10 @@ pusherparent( int ppipe )
     sigset_t 		signalset;
     SNET		*sn;
     char		*line;
-    int			fds[ 2 ];
     int			max;
-    int			rv;
     fd_set		fdset;
     struct timeval	tv = { 0, 0 };
-    struct cl		*cur, *yacur;
+    struct cl		*cur;
 
     /* catch SIGHUP */
     memset( &sa, 0, sizeof( struct sigaction ));
@@ -240,6 +307,10 @@ pusherparent( int ppipe )
         return( -1 );
     }
 
+    sigprocmask( SIG_BLOCK, &signalset, NULL );
+    mkpushers( ppipe );
+    sigprocmask( SIG_UNBLOCK, &signalset, NULL );
+
     for ( ;; ) {
 syslog( LOG_DEBUG, "PUSHERPARENT" );
 	if (( line = snet_getline( sn, NULL )) == NULL ) {
@@ -247,68 +318,9 @@ syslog( LOG_DEBUG, "PUSHERPARENT" );
 	    exit( 1 );
 	}
 
+
 	sigprocmask( SIG_BLOCK, &signalset, NULL );
-	for ( cur = replhead; cur != NULL; cur = cur->cl_next ) {
-	    if ( cur->cl_pid != 0 ) {
-		continue;
-	    }
-	    if ( pipe( fds ) < 0 ) {
-		syslog( LOG_ERR, "pusherparent: %m" );
-		exit( 1 );
-	    }
-
-	    switch ( cur->cl_pid = fork() ) {
-	    case 0 :
-syslog ( LOG_DEBUG, "PUSHER: %s", inet_ntoa(cur->cl_sin.sin_addr));
-		/* reset SIGCHLD & SIGHUP */
-		memset( &sa, 0, sizeof( struct sigaction ));
-		sa.sa_handler = SIG_DFL;
-		if ( sigaction( SIGCHLD, &sa, NULL ) < 0 ) {
-		    syslog( LOG_ERR, "sigaction: %m" );
-		    exit( 1 );
-		}
-
-		memset( &sa, 0, sizeof( struct sigaction ));
-		sa.sa_handler = SIG_DFL;
-		if ( sigaction( SIGHUP, &sa, NULL ) < 0 ) {
-		    syslog( LOG_ERR, "sigaction: %m" );
-		    exit( 1 );
-		}
-
-		if ( close( fds[ 1 ] ) != 0 ) {
-		    syslog( LOG_ERR, "pusher parent pipe: %m" );
-		    exit( 1 );
-		}
-		/* let's not leak fds if we can help it */
-		close( ppipe );
-		for ( yacur = replhead; yacur != NULL;
-			yacur = yacur->cl_next ) {
-		    if ( yacur != cur ) {
-			if ( yacur->cl_psn != NULL ) {
-			    snet_close( yacur->cl_psn );
-			    yacur->cl_psn = NULL;
-			}
-		    }
-		}
-		pusher( fds[ 0 ], cur );
-		exit( 0 );
-
-	    case -1 :
-		syslog( LOG_ERR, "pusherparent fork: %m" );
-		exit( 1 );
-	    }
-
-	    if ( close( fds[ 0 ] ) != 0 ) {
-		syslog( LOG_ERR, "pusher main pipe: %m" );
-		exit( 1 );
-	    }
-
-	    if (( cur->cl_psn = snet_attach( fds[ 1 ], 1024 * 1024 ))
-		    == NULL ) {
-		syslog( LOG_ERR, "pusherparent fork: snet_attach: %m" );
-		exit( 1 );
-	    }
-	}
+	mkpushers( ppipe );
 	sigprocmask( SIG_UNBLOCK, &signalset, NULL );
 
 	sigprocmask( SIG_BLOCK, &signalset, NULL );
@@ -325,13 +337,9 @@ syslog( LOG_DEBUG, "PUSHERPARENT: pid %d fd %d", cur->cl_pid, snet_fd( cur->cl_p
 	}
 	sigprocmask( SIG_UNBLOCK, &signalset, NULL );
 
-	if (( rv = select( max + 1, NULL, &fdset, NULL, &tv )) < 0 ) {
-syslog( LOG_DEBUG, "PUSHERPARENT: continue: %m" );
+	if ( select( max + 1, NULL, &fdset, NULL, &tv ) < 0 ) {
 	    continue;
 	}
-
-syslog( LOG_DEBUG, "PUSHERPARENT: tv %d:%d rv: %d", tv.tv_sec, tv.tv_usec, rv );
-
 
 	sigprocmask( SIG_BLOCK, &signalset, NULL );
 	for ( cur = replhead; cur != NULL; cur = cur->cl_next ) {
@@ -384,8 +392,6 @@ pusher( int cpipe, struct cl *cur )
 	exit( 1 );
     }
 
-syslog( LOG_DEBUG, "pusherchild: %s", line );
-
     if (( ac = argcargv( line, &av )) < 0 ) {
 	syslog( LOG_ERR, "argcargv: %m" );
 	break;
@@ -424,7 +430,6 @@ syslog( LOG_DEBUG, "pusherchild: %s", line );
     }
 
     if ( !krb ) {
-syslog( LOG_DEBUG, "pusherchld: got back: %s", line );
 	goto finish;
     }
 
