@@ -429,12 +429,16 @@ main( int argc, char *argv[] )
 	    cl[ CL_UNIQNAME ].cl_data, "UMICH.EDU", krbpath ) < 0 ) {
 	fprintf( stderr, "%s: login failed\n", script ) ;
 
-	/* redirecting to / ( probably netscape resubmitted post ) */
-	printf( "Location: %s\n\n", host );
+	/* redirecting to service menu because user is logged in */
+	if (( ref == NULL ) || ( ref = strstr( ref, "http" )) == NULL ) {
+	    printf( "Location: %s\n\n", host );
+	    exit( 0 );
+	}
     }
 
     if (( ref != NULL ) && ( ref = strstr( ref, "http" )) != NULL ) {
 	printf( "Location: %s\n\n", ref );
+	exit( 0 );
     }
 
     subfile( tmpl );
