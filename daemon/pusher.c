@@ -1,5 +1,18 @@
+#include <sys/wait.h>
+#include <sys/types.h>
+#include <signal.h>
+#include <syslog.h>
+#include <errno.h>
+
+extern char	*cosign_version;
+
+void	 pusherhup ( int );
+void	 pusherchld ( int );
+int	 pusherparent( int );
+
+
     void
-hup( sig )
+pusherhup( sig )
     int			sig;
 {
     syslog( LOG_INFO, "reload %s", cosign_version );
@@ -9,7 +22,7 @@ hup( sig )
 }
 
     void
-chld( sig )
+pusherchld( sig )
     int			sig;
 {
     int			pid, status;
@@ -42,6 +55,6 @@ chld( sig )
 pusherparent( int pipe )
 {
 
-
+return( 0 );
 
 }

@@ -28,17 +28,21 @@
 #include "logname.h"
 #include "command.h"
 #include "config.h"
+#include "monster.h"
 
 
 int		debug = 0;
 int		backlog = 5;
+int		pusherpid;
 
 extern char	*cosign_version;
 int		tlsopt = 0;
 char		*cosign_dir = _COSIGN_DIR;
 char		*cosign_conf = _COSIGN_CONF;
-
+struct cl	*head = NULL;
 SSL_CTX		*ctx = NULL;
+
+
 void		hup ___P(( int ));
 void		chld ___P(( int ));
 int		main ___P(( int, char *av[] ));
@@ -103,10 +107,13 @@ main( ac, av )
     struct sigaction	sa, osahup, osachld;
     struct sockaddr_in	sin;
     struct servent	*se;
-    int			c, s, err = 0, fd, sinlen;
-    int			dontrun = 0, fds[ 2 ];
+    struct hostent	*he;
+    struct cl		*new, **tail;
+    int			c, s, i, err = 0, fd, sinlen;
+    int			dontrun = 0, fds[ 2 ], pusherfd;
     int			reuseaddr = 1;
     char		*prog;
+    char		*replhost = _COSIGN_REPL_HOST;
     char		*cryptofile = _COSIGN_TLS_KEY;
     char		*certfile = _COSIGN_TLS_CERT;
     char		*cadir = _COSIGN_TLS_CADIR;
@@ -121,7 +128,7 @@ main( ac, av )
 	prog++;
     }
 
-    while (( c = getopt( ac, av, "b:c:dD:L:p:VXx:y:z:" )) != -1 ) {
+    while (( c = getopt( ac, av, "b:c:dD:h:L:p:VXx:y:z:" )) != -1 ) {
 	switch ( c ) {
 	case 'b' :		/* listen backlog */
 	    backlog = atoi( optarg );
@@ -137,6 +144,10 @@ main( ac, av )
 
 	case 'D' :		/* directory to store cookies*/
 	    cosign_dir = optarg;
+	    break;
+
+	case 'h' :		/* host to replicate to*/
+	    replhost = optarg;
 	    break;
 
 	case 'L' :              /* syslog facility */
@@ -291,6 +302,28 @@ main( ac, av )
 	exit( 1 );
     }
 
+    if (( he = gethostbyname( replhost )) == NULL ) {
+	fprintf( stderr, "%s no wanna give hostnames\n", replhost );
+	exit( 1 );
+    }
+    tail = &head;
+    for ( i = 1; he->h_addr_list[ i ] != NULL; i++ ) {
+	if (( new = ( struct cl * ) malloc( sizeof( struct cl ))) == NULL ) {
+	    perror( "cl build" );
+	    exit( 1 );
+	}
+
+        memset( &new->cl_sin, 0, sizeof( struct sockaddr_in ));
+        new->cl_sin.sin_family = AF_INET;
+        new->cl_sin.sin_port = port;
+        memcpy( &new->cl_sin.sin_addr.s_addr,
+                he->h_addr_list[ i ], (unsigned int)he->h_length );
+        new->cl_sn = NULL;
+	new->cl_pid = 0;
+        *tail = new;
+        tail = &new->cl_next;
+    }
+    *tail = NULL;
 
     /*
      * Disassociate from controlling tty.
@@ -343,7 +376,7 @@ main( ac, av )
 	    syslog( LOG_ERR, "pusher parent pipe: %m" );
 	    exit( 1 );
 	}
-	pusher_parent( fds[ 1 ] );
+	//pusherparent( fds[ 1 ] );
 	exit( 0 );
 
     case -1 :
@@ -355,7 +388,7 @@ main( ac, av )
 	    syslog( LOG_ERR, "pusher main pipe: %m" );
 	    exit( 1 );
 	}
-	pusher_fd = fds[ 0 ];
+	pusherfd = fds[ 0 ];
 	break;
     }
 

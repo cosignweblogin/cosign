@@ -11,6 +11,7 @@ COSIGNCADIR=@cosigncadir@
 COSIGNCERT=@cosigncert@
 COSIGNKEY=@cosignkey@
 COSIGNHOST = @cosignhost@
+COSIGNREPLHOST = @cosignreplhost@
 COSIGNSYSLOG=LOG_LOCAL7
 
 INCPATH=        @CPPFLAGS@ -I../libsnet -I../common
@@ -25,11 +26,11 @@ CFLAGS=         ${DEFS} ${OPTOPTS} @CFLAGS@ ${INCPATH}
 
 ################ Nothing below should need editing ###################
 
-SRC= daemon.c command.c cparse.c config.c wildcard.c logname.c
+SRC= daemon.c command.c cparse.c config.c wildcard.c logname.c pusher.c
 MONSTER = monster.c cparse.c logname.c mnet.c
 MOBJ = monster.o cparse.o logname.o mnet.o ../version.o
 COSIGNOBJ= daemon.o command.o cparse.o config.o wildcard.o logname.o \
-	../common/argcargv.o ../common/fbase64.o \
+	pusher.o ../common/argcargv.o ../common/fbase64.o \
 	../common/mkcookie.o ../version.o
 
 TARGETS=	cosignd monster
@@ -55,6 +56,7 @@ monster: ${MOBJ} Makefile
 daemon.o : daemon.c
 	${CC} ${CFLAGS} \
 	-D_COSIGN_CONF=\"${COSIGNCONF}\" \
+	-D_COSIGN_REPL_HOST=\"${COSIGNREPLHOST}\" \
 	-D_COSIGN_DIR=\"${COSIGNDB}\" \
 	-D_COSIGN_LOG=${COSIGNSYSLOG} \
 	-D_COSIGN_TLS_CADIR=\"${COSIGNCADIR}\" \

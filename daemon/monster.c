@@ -137,7 +137,7 @@ main( int ac, char **av )
 	exit( 1 );
     }
     tail = &head;
-    for ( i = 0; he->h_addr_list[ i ] != NULL; i++ ) {
+    for ( i = 1; he->h_addr_list[ i ] != NULL; i++ ) {
 	if (( new = ( struct cl * ) malloc( sizeof( struct cl ))) == NULL ) {
 	    perror( "cl build" );
 	    exit( 1 );
