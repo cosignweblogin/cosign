@@ -545,7 +545,7 @@ main( int argc, char *argv[] )
 	krb5_get_init_creds_opt_set_proxiable( &kopts, 0 );
 
 	if (( kerror = krb5_get_init_creds_password( kcontext, &kcreds, 
-		kprinc, cl[ CL_PASSWORD ].cl_data, krb5_prompter_posix, NULL, 0, 
+		kprinc, cl[ CL_PASSWORD ].cl_data, NULL, NULL, 0, 
 		NULL /*keytab */, &kopts ))) {
 
 	    if ( kerror == KRB5KRB_AP_ERR_BAD_INTEGRITY ) {
