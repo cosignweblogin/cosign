@@ -5,7 +5,7 @@
 
 SNET * connectsn( char *host, int port );
 int closesn( SNET *sn );
-int cosign_login( char *, char *, char *, char * );
+int cosign_login( char *, char *, char *, char *, char * );
 int cosign_logout( char *, char * );
 int cosign_register( char *, char *, char * );
 int cosign_check( char * );

@@ -29,7 +29,7 @@ extern char	*version;
 char	*err = NULL;
 char	*url = "http://www.umich.edu/";
 char	*title = "Authentication Required";
-char	*host = "cosign-test.www.umich.edu";
+char	*host = "weblogin.umich.edu";
 int	nocache = 0;
 int	port = 6663;
 
@@ -373,7 +373,7 @@ main( int argc, char *argv[] )
 
     /* what happens when we get an already logged in back? tri-val? */
     if ( cosign_login( cookie, ip_addr, 
-	    cl[ CL_UNIQNAME ].cl_data, "UMICH.EDU" ) < 0 ) {
+	    cl[ CL_UNIQNAME ].cl_data, "UMICH.EDU", krbpath ) < 0 ) {
 	fprintf( stderr, "%s: login failed\n", script ) ;
 	err = "Login failed: Sorry!";
 	title = "Error: Authentication Failed";

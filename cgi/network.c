@@ -5,6 +5,7 @@
 
 #include <sys/types.h>
 #include <sys/time.h>
+#include <sys/stat.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
@@ -13,6 +14,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <fcntl.h>
 #include <openssl/err.h>
 #include <openssl/ssl.h>
 #include <snet.h>
@@ -31,10 +33,14 @@ extern char		*host;
 SSL_CTX			*ctx;
 
     int
-cosign_login( char *cookie, char *ip, char *user, char *realm )
+cosign_login( char *cookie, char *ip, char *user, char *realm, char *krb)
 {
+    int			fd;
+    ssize_t             rr, size = 0;
     char		*line;
-    struct timeval	 tv;
+    unsigned char	buf[ 8192 ];
+    struct stat         st;
+    struct timeval	tv;
     SNET		*sn;
 
     if (( sn = connectsn( host, port )) == NULL ) {
@@ -42,30 +48,85 @@ cosign_login( char *cookie, char *ip, char *user, char *realm )
 	return( -2 );
     }
 
-    if ( snet_writef( sn, "LOGIN %s %s %s %s\r\n",
+    if ( snet_writef( sn, "LOGIN %s %s %s %s kerberos\r\n",
 	    cookie, ip, user, realm ) < 0 ) {
 	fprintf( stderr, "cosign_login: LOGIN failed\n" );
-	if (( closesn( sn )) != 0 ) {
-	    fprintf( stderr, "cosign_login: closesn failed\n" );
-	}
-	return( -1 );
+	goto done;
     }
 
     tv = timeout;
     if (( line = snet_getline_multi( sn, logger, &tv) ) == NULL ) {
 	fprintf( stderr, "cosign_login: %s\n", strerror( errno ));
-	if (( closesn( sn )) != 0 ) {
-	    fprintf( stderr, "cosign_login: closesn failed\n" );
-	}
-	return( -1 );
+	goto done;
     }
 
-    if ( *line != '2' ) {
+    if ( *line != '3' ) {
 	fprintf( stderr, "cosign_login: %s\n", line );
-	if (( closesn( sn )) != 0 ) {
-	    fprintf( stderr, "cosign_login: closesn failed\n" );
-	}
-	return( -1 );
+	goto done;
+    }
+
+    if (( fd = open( krb, O_RDONLY, 0 )) < 0 ) {
+	perror( krb );
+	goto done;
+    }
+
+    if ( fstat( fd, &st) < 0 ) {
+	perror( krb );
+	goto done2;
+    }
+
+    size = st.st_size;
+    if ( snet_writef( sn, "%d\r\n", (int)st.st_size ) < 0 ) {
+        fprintf( stderr, "login %s failed: %s\n", user, strerror( errno ));
+        goto done2;
+    }
+
+    while (( rr = read( fd, buf, sizeof( buf ))) > 0 ) {
+        tv = timeout;
+        if ( snet_write( sn, buf, (int)rr, &tv ) != rr ) {
+            fprintf( stderr, "login %s failed: %s\n", user,
+                strerror( errno ));
+            goto done2;
+        }
+        size -= rr;
+    }
+    if ( rr < 0 ) {
+        perror( krb );
+        goto done2;
+    }
+
+    /* Check number of bytes sent to server */
+    if ( size != 0 ) {
+        fprintf( stderr,
+            "login %s failed: Sent wrong number of bytes to server\n",
+            user );
+        goto done2;
+    }
+
+    /* End transaction with server */
+    if ( snet_writef( sn, ".\r\n" ) < 0 ) {
+        fprintf( stderr, "login %s failed: %s\n", user,
+            strerror( errno ));
+        goto done2;
+    }
+    tv = timeout;
+    if (( line = snet_getline_multi( sn, logger, &tv )) == NULL ) {
+        if ( snet_eof( sn )) {
+            fprintf( stderr, "login %s failed: Connection closed\n", user );
+        } else {
+            fprintf( stderr, "login %s failed: %s\n", user, strerror( errno ));
+        }
+    }
+    if ( *line != '2' ) {
+        /* Error from server - transaction aborted */
+        fprintf( stderr, "cosign_login:%s\n", line );
+	goto done2;
+    }
+
+    /* Done with server */
+    if ( close( fd ) < 0 ) {
+        perror( krb );
+        return( -1 );
     }
 
     if (( closesn( sn )) != 0 ) {
@@ -74,6 +135,15 @@ cosign_login( char *cookie, char *ip, char *user, char *realm )
     }
 
     return( 0 );
+
+done2:
+    close( fd );
+
+done:
+    if (( closesn( sn )) != 0 ) {
+	fprintf( stderr, "cosign_login: closesn failed\n" );
+    }
+    return ( -1 );
 }
 
 
