@@ -612,7 +612,8 @@ f_register( sn, ac, av )
 	    syslog( LOG_ERR,
 		    "f_register: service cookie already exists: %s", av[ 3 ]);
 	    snet_writef( sn,
-		    "%d REGISTER error: Cookie already exists\r\n", 526 );
+		    "%d REGISTER error: Cookie already exists\r\n", 226 );
+	    /* 226 because already logged-in is not fatal */
 	    return( 1 );
 	}
 	syslog( LOG_ERR, "f_register: link: %m" );
