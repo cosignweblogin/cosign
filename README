@@ -112,6 +112,11 @@ Apache Configuration Options:
 	CosignCrypto		[path to key] [path to cert] [path to CA dir]
 	CosignHttpOnly		[ on | off ]
 		module can be use without SSL - not recommended!
+	CosignTicketPrefix	[ the path to the Kerberos ticket store ]
+	CosignFilterDB		[ the path to the cosign filter DB]
+	CosignProxyDB		[ the path to the cosign proxy DB]
+	CosignAllowPublicAccess		[ on | off ]
+	    make authentication optional for protected sites
 	CosignGetKerberosTickets	[ on | off ]
 	    module asks for tgt from cosignd
 

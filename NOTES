@@ -9,12 +9,9 @@ MODULE:
 
 
 CGI:
-    initial info and ticket propogation (belt)
     conf file
 
 COSIGND:
-    replication (suspenders)
-	-dynamic grace period times?
     actual load prob is number of cookies
     more conf file
     4) cert matching

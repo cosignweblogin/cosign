@@ -202,6 +202,11 @@ cosign_authn( request_rec *r )
     if ( strcasecmp( authn, "Cosign" ) != 0 ) {
 	return( DECLINED );
     } 
+    /* we OK here to claim this as our AuthZ call.
+     * otherwise, we'll get a 503 as basic auth will
+     * try and nab it, but things won't be set up
+     * for basicauth's needs. So that would be bad.
+     */
     return( OK );
 }
 

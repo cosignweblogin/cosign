@@ -169,6 +169,22 @@ Configure Options:
     The certificate CN of the weblogin server must match the argument
     to --with-cosignhost.
 
+Rate Logging:
+
+	Starting with 1.7, we've simplified the loggin paradigm. There's
+	a file in common/ called rate.h and a #define of RATE_INTERVAL.
+	This means that every RATE_INTERVAL number of events, cosignd
+	will write out a summary log line that shows the rate for that
+	particular event. For example, for the CHECK command you'd see:
+
+	    STATS CHECK 141.211.144.17: UNKNOWN .0012 / sec
+	    STATS CHECK 141.211.144.17: PASS 1.2 / sec
+
+	and that would indicate that the rate of 5xx ( or unknowns )
+	returned to that host was .0012 per second and the rate of 2xx
+	( or pass ) was 1.2 per second. More information follows in
+	the cosignd(8) and monster(8) man pages.
+
 Questions?
 
     cosign-discuss@umich.edu
