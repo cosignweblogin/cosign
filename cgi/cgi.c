@@ -15,10 +15,9 @@
 #include "cosigncgi.h"
 #include "network.h"
 
-#define LOGIN_HTML		"../templates/login.html"
-#define ERROR_HTML		"../templates/error.html"
-#define SERVICE_MENU_HTML	"../templates/service-menu.html"
-#define FORWARDING_HTML		"../templates/forwarding.html"
+#define LOGIN_HTML	"../templates/login.html"
+#define ERROR_HTML	"../templates/error.html"
+#define SERVICE_MENU	"../templates/service-menu.html"
 #define SIDEWAYS        1               /* we neglected to tell the
 					   user what was happening.  we
 					   should fix all of these.
@@ -135,22 +134,6 @@ main()
 	}
     }
 
-    /* get cosign-referer cookie if one is set */
-    if (( data = getenv( "HTTP_COOKIE" )) != NULL ) {
-	ref = strtok( data, ";" );
-
-	/* nibble away the cookie string until we see the referer cookie */
-	if ( strncmp( ref, "cosign-referer=", 15 ) != 0 ) {
-	    while (( ref = strtok( NULL, ";" )) != NULL ) {
-		if ( *ref == ' ' ) ++ref;
-		if ( strncmp( ref, "cosign-referer=", 15 ) == 0 ) {
-		    fprintf( stderr, "discarding: %s\n", strtok( ref, "=" ));
-		    break;
-		}
-	    }
-	}
-    }
-
     method = getenv( "REQUEST_METHOD" );
     script = getenv( "SCRIPT_NAME" );
     ip_addr = getenv( "REMOTE_ADDR" );
@@ -225,7 +208,7 @@ main()
 	    goto loginscreen;
 	}
 
-	tmpl = SERVICE_MENU_HTML;
+	tmpl = SERVICE_MENU;
 
 	subfile( tmpl );
 	exit( 0 );
@@ -304,8 +287,8 @@ main()
 
     /* password has been accepted, tell cosignd */
     err = "Your password has been accepted.";
-    title = "Succeeded";
-    tmpl = ERROR_HTML;
+    title = "Authentication Succeeded";
+    tmpl = SERVICE_MENU;
 
     /* what happens when we get an already logged in back? tri-val? */
     if ( cosign_login( cookie, ip_addr, 
@@ -318,10 +301,26 @@ main()
 	exit( 2 );
     }
 
-    if (( ref = strstr( ref, "https://" )) != NULL ) {
-	/* need to set tmpl to FORWARDING_HTML? */
-        printf( "Location: %s\n\n", ref );
-	exit( 0 );
+fprintf( stderr, "DEBUG: login succeeded and everything\n" );
+
+    if (( data = getenv( "HTTP_COOKIE" )) != NULL ) {
+	ref = strtok( data, ";" );
+
+	/* nibble away the cookie string until we see the referer cookie */
+	if ( strncmp( ref, "cosign-referer=", 15 ) != 0 ) {
+	    while (( ref = strtok( NULL, ";" )) != NULL ) {
+		if ( *ref == ' ' ) ++ref;
+		if ( strncmp( ref, "cosign-referer=", 15 ) == 0 ) {
+		    fprintf( stderr, "discarding: %s\n", strtok( ref, "=" ));
+
+		    if (( ref = strstr( ref, "http" )) != NULL ) {
+fprintf( stderr, "DEBUG: redirecting to %s\n", ref );
+			printf( "Location: %s\n\n", ref );
+			exit( 0 );
+		    }
+		}
+	    }
+	}
     }
 
     subfile( tmpl );
@@ -343,4 +342,3 @@ fprintf( stderr, "new_cookie is %s\n", new_cookie );
     subfile( tmpl );
     exit( 0 );
 }
-
