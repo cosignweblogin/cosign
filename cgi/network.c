@@ -329,7 +329,7 @@ connectsn2( struct sockaddr_in *sin, char *host )
     }
     SSL_CTX_set_verify( ctx, SSL_VERIFY_PEER, NULL );
 
-    if (( s = socket( PF_INET, SOCK_STREAM, NULL )) < 0 ) {
+    if (( s = socket( PF_INET, SOCK_STREAM, (int)NULL )) < 0 ) {
 	perror( "socket" );
 	exit( 2 );
     }
