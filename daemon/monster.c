@@ -285,7 +285,7 @@ main( int ac, char **av )
 		goto next;
 	    }
 
-	    snet_writef( (*cur)->cl_sn, "DAEMON %s/r/n", hostname );
+	    snet_writef( (*cur)->cl_sn, "DAEMON %s\r\n", hostname );
 
 	    tv = timeout;
 	    if (( line = snet_getline_multi( (*cur)->cl_sn, logger, &tv ))
