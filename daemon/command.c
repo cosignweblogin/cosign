@@ -375,8 +375,9 @@ f_check( sn, ac, av )
 {
     struct cinfo 	ci;
     char		login[ MAXPATHLEN ];
+    int			status;
 
-    /* CHECK service_cookie */
+    /* CHECK service/login cookie */
 
     if ( ac != 2 ) {
 	snet_writef( sn, "%d CHECK: Wrong number of args.\r\n", 530 );
@@ -394,10 +395,16 @@ f_check( sn, ac, av )
 	return( 1 );
     }
 
-    if ( service_to_login( av[ 1 ], login ) != 0 ) {
-	syslog( LOG_ERR, "f_check: ask someone else about it!"  );
-	snet_writef( sn, "%d CHECK: Raisins in your cookie!\r\n", 533 );
-	return( 1 );
+    if ( strncmp( av[ 1 ], "cosign-", 7 ) == 0 ) {
+	status = 231;
+	if ( service_to_login( av[ 1 ], login ) != 0 ) {
+	    syslog( LOG_ERR, "f_check: ask someone else about it!"  );
+	    snet_writef( sn, "%d CHECK: Raisins in your cookie!\r\n", 533 );
+	    return( 1 );
+	}
+    } else {
+	status = 232;
+	strcpy( login, av[ 1 ] );
     }
 
     if ( read_a_cookie( login, &ci ) != 0 ) {
@@ -415,7 +422,7 @@ f_check( sn, ac, av )
     /* check for idle timeout, and if so, log'em out */
 
     snet_writef( sn,
-	    "%d %s %s %s\r\n", 230, ci.ci_ipaddr, ci.ci_user, ci.ci_realm );
+	    "%d %s %s %s\r\n", status, ci.ci_ipaddr, ci.ci_user, ci.ci_realm );
     return( 0 );
 }
 
@@ -454,7 +461,6 @@ command( fd )
     while (( line = snet_getline( snet, &tv )) != NULL ) {
 	tv.tv_sec = 60 * 10;
 	tv.tv_usec = 0;
-
 	if (( ac = argcargv( line, &av )) < 0 ) {
 	    syslog( LOG_ERR, "argcargv: %m" );
 	    break;
