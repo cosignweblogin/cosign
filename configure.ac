@@ -18,7 +18,9 @@ AC_CANONICAL_HOST
 AC_CHECK_LIB([nsl], [inet_ntoa])
 AC_CHECK_LIB([socket], [socket])
 
-AC_ARG_ENABLE(apache2, AC_HELP_STRING([--enable-apache2=path_to_apache2-apxs], [enable apache 2 filter]), CHECK_APACHE2_APXS, AC_MSG_RESULT( apache 2 not enabled))
+AC_ARG_ENABLE(apache1, AC_HELP_STRING([--enable-apache1=path_to_apache1.3-apxs], [enable apache 1.3 filter] ), CHECK_APACHE_1, AC_MSG_RESULT( apache 1.3 not enabled))
+
+AC_ARG_ENABLE(apache2, AC_HELP_STRING([--enable-apache2=path_to_apache2-apxs], [enable apache 2 filter]), CHECK_APACHE2, AC_MSG_RESULT( apache 2 not enabled))
 
 AC_ARG_ENABLE(krb, AC_HELP_STRING([--enable-krb=path_to_krb], [enable kerberos for the cgi and apache filter]), CHECK_LIBKRB, AC_MSG_RESULT( kerberos not enabled))
 
@@ -87,7 +89,6 @@ AC_CHECK_HEADER([openssl/ssl.h], [], [AC_MSG_ERROR([header file <openssl/ssl.h> 
 You may be running RedHat 9.
 If so, see the FAQ or the README for further instructions.])])
 # Checks for filters:
-CHECK_APACHE_APXS
 
 if test "x_$FILTERS" = "x_" ; then
   AC_MSG_ERROR([No web server found])

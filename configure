@@ -314,7 +314,7 @@ ac_includes_default="\
 #endif"
 
 ac_subdirs_all="$ac_subdirs_all libsnet"
-ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS AWK CC CFLAGS LDFLAGS CPPFLAGS ac_ct_CC EXEEXT OBJEXT INSTALL_PROGRAM INSTALL_SCRIPT INSTALL_DATA LEX LEXLIB LEX_OUTPUT_ROOT YACC build build_cpu build_vendor build_os host host_cpu host_vendor host_os APXS2 APXS2_INCLUDE APXS2_CFLAGS APXS2_CFLAGS_SHLIB APACHECTL2 HAVE_APACHE2 KRBCGI KRBDEFS KINC KLIBS KLDFLAGS HAVE_KRB BASICCGI filteraddrcheck MYSQLINC MYSQLLIBS MYSQLLDFLAGS SQLDEFS HAVE_MYSQL K4DEFS K4INC K4LIBS K4LDFLAGS HAVE_KRB4 GSSDEFS GSSINC GSSLIBS GSSLDFLAGS HAVE_GSS cosigndb cosignconf cosigncadir cosigncert cosignkey frienddbhost frienddblogin frienddbpasswd ticketcache filterdb proxydb cosignhost cosignlogouturl keytabpath ADDLIBS ADDLDFLAGS TLSDEFS HAVE_SSL CPP EGREP APXS APXS_INCLUDE APXS_CFLAGS APXS_CFLAGS_SHLIB APACHECTL FILTERS OPTOPTS subdirs LIBOBJS LTLIBOBJS'
+ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS AWK CC CFLAGS LDFLAGS CPPFLAGS ac_ct_CC EXEEXT OBJEXT INSTALL_PROGRAM INSTALL_SCRIPT INSTALL_DATA LEX LEXLIB LEX_OUTPUT_ROOT YACC build build_cpu build_vendor build_os host host_cpu host_vendor host_os APXS APXS_INCLUDE APXS_CFLAGS APXS_CFLAGS_SHLIB APACHECTL APXS2 APXS2_INCLUDE APXS2_CFLAGS APXS2_CFLAGS_SHLIB APACHECTL2 HAVE_APACHE2 KRBCGI KRBDEFS KINC KLIBS KLDFLAGS HAVE_KRB BASICCGI filteraddrcheck MYSQLINC MYSQLLIBS MYSQLLDFLAGS SQLDEFS HAVE_MYSQL K4DEFS K4INC K4LIBS K4LDFLAGS HAVE_KRB4 GSSDEFS GSSINC GSSLIBS GSSLDFLAGS HAVE_GSS cosigndb cosignconf cosigncadir cosigncert cosignkey frienddbhost frienddblogin frienddbpasswd ticketcache filterdb proxydb cosignhost cosignlogouturl keytabpath ADDLIBS ADDLDFLAGS TLSDEFS HAVE_SSL CPP EGREP FILTERS OPTOPTS subdirs LIBOBJS LTLIBOBJS'
 ac_subst_files=''
 
 # Initialize some variables set by options.
@@ -851,6 +851,8 @@ if test -n "$ac_init_help"; then
 Optional Features:
   --disable-FEATURE       do not include FEATURE (same as --enable-FEATURE=no)
   --enable-FEATURE[=ARG]  include FEATURE [ARG=yes]
+  --enable-apache1=path_to_apache1.3-apxs
+                          enable apache 1.3 filter
   --enable-apache2=path_to_apache2-apxs
                           enable apache 2 filter
   --enable-krb=path_to_krb
@@ -885,7 +887,6 @@ Optional Packages:
                           default URL to redirect users to upon logout
   --with-keytabpath=FILE  path to keytab
   --with-ssl=DIR          path to ssl
-  --with-apache-apxs=FILE path to Apache apxs program
 
 Some influential environment variables:
   CC          C compiler command
@@ -2946,32 +2947,63 @@ _ACEOF
 fi
 
 
+# Check whether --enable-apache1 or --disable-apache1 was given.
+if test "${enable_apache1+set}" = set; then
+  enableval="$enable_apache1"
+
+
+    echo "$as_me:$LINENO: checking for apache 1.3" >&5
+echo $ECHO_N "checking for apache 1.3... $ECHO_C" >&6
+
+    if test -f "$enableval"; then
+        echo "using apxs as '$enableval'"
+        ac_cv_path_apxs="$enableval"
+    fi
+
+    APXS="$ac_cv_path_apxs"
+
+    if test ! -e "$ac_cv_path_apxs" ; then
+        { { echo "$as_me:$LINENO: error: cannot find apache 1.3" >&5
+echo "$as_me: error: cannot find apache 1.3" >&2;}
+   { (exit 1); exit 1; }; }
+    fi
+
+    HAVE_APACHE=yes
+    FILTERS="$FILTERS filters/apache"
+    APXS_INCLUDE="-I`$APXS -q INCLUDEDIR`"
+    APXS_CFLAGS="`$APXS -q CFLAGS`"
+    APXS_CFLAGS_SHLIB="`$APXS -q CFLAGS_SHLIB`"
+    APXS_SBINDIR="`$APXS -q SBINDIR`"
+    APXS_TARGET="`$APXS -q TARGET`"
+    if test x_$APXS_TARGET = x_httpd ; then
+	APACHECTL="${APXS_SBINDIR}/apachectl"
+    else
+	APACHECTL="${APXS_SBINDIR}/${APXS_TARGET}ctl"
+    fi
+
+
+
+
+
+    echo "$as_me:$LINENO: result: apache 1.3 filter will be built" >&5
+echo "${ECHO_T}apache 1.3 filter will be built" >&6
+
+
+else
+  echo "$as_me:$LINENO: result: apache 1.3 not enabled" >&5
+echo "${ECHO_T}apache 1.3 not enabled" >&6
+fi;
+
 # Check whether --enable-apache2 or --disable-apache2 was given.
 if test "${enable_apache2+set}" = set; then
   enableval="$enable_apache2"
 
     echo "$as_me:$LINENO: checking for apache 2" >&5
 echo $ECHO_N "checking for apache 2... $ECHO_C" >&6
-    apxs2dirs="/usr/local/apache2/bin /usr/apache2/bin /usr/pkg/bin \
-    /usr/local/bin /usr/local/httpd/bin"
 
     if test -f "$enableval"; then
-	echo "using apxs2 as '$enableval"
+	echo "using apxs2 as '$enableval'"
 	ac_cv_path_apxs2="$enableval"
-    else
-     	if test "${ac_cv_path_apxs2+set}" = set; then
-  echo $ECHO_N "(cached) $ECHO_C" >&6
-else
-
-	    for i in $apxs2dirs; do
- 	    	if test -f "$i/apxs"; then
- 			ac_cv_path_apxs2="$i/apxs"
-                 	break;
-             	fi
-         	done
-
-fi
-
     fi
 
     APXS2="$ac_cv_path_apxs2"
@@ -3000,8 +3032,9 @@ echo "$as_me: error: cannot find apache 2" >&2;}
 
     HAVE_APACHE2=yes
 
-    echo "$as_me:$LINENO: result: $ac_cv_path_apxs2" >&5
-echo "${ECHO_T}$ac_cv_path_apxs2" >&6
+    echo "$as_me:$LINENO: result: apache 2 filter will be built" >&5
+echo "${ECHO_T}apache 2 filter will be built" >&6
+
 
 else
   echo "$as_me:$LINENO: result: apache 2 not enabled" >&5
@@ -4014,62 +4047,6 @@ fi
 
 # Checks for filters:
 
-    echo "$as_me:$LINENO: checking for Apache DSO support / apxs" >&5
-echo $ECHO_N "checking for Apache DSO support / apxs... $ECHO_C" >&6
-
-# Check whether --with-apache-apxs or --without-apache-apxs was given.
-if test "${with_apache_apxs+set}" = set; then
-  withval="$with_apache_apxs"
-  APXS=$withval
-fi;
-    if test -f "$APXS" ; then
-        ac_cv_path_apxs=$APXS   # put it into the cache
-    else
-        apxsdirs="$PATH:/usr/local/apache/bin:/usr/apache/bin:/usr/pkg/bin:/usr/local/bin:/usr/local/httpd/bin"
-        if test "${ac_cv_path_apxs+set}" = set; then
-  echo $ECHO_N "(cached) $ECHO_C" >&6
-else
-
-            saved_ifs=$IFS
-            IFS=:
-            for i in $apxsdirs; do
-                if test -f "$i/apxs"; then
-                    ac_cv_path_apxs="$i/apxs"
-                    break
-                fi
-            done
-            IFS=$saved_ifs
-
-fi
-
-        APXS="$ac_cv_path_apxs"
-    fi
-    if test -f "$APXS" ; then
-        HAVE_APACHE=yes
-        FILTERS="$FILTERS filters/apache"
-        APXS_INCLUDE="-I`$APXS -q INCLUDEDIR`"
-        APXS_CFLAGS="`$APXS -q CFLAGS`"
-        APXS_CFLAGS_SHLIB="`$APXS -q CFLAGS_SHLIB`"
-        APXS_SBINDIR="`$APXS -q SBINDIR`"
-        APXS_TARGET="`$APXS -q TARGET`"
-        if test x_$APXS_TARGET = x_httpd ; then
-            APACHECTL="${APXS_SBINDIR}/apachectl"
-        else
-            APACHECTL="${APXS_SBINDIR}/${APXS_TARGET}ctl"
-        fi
-
-
-
-
-
-        echo "$as_me:$LINENO: result: $APXS" >&5
-echo "${ECHO_T}$APXS" >&6
-    else
-        echo "$as_me:$LINENO: result: not found - Apache filter support disabled" >&5
-echo "${ECHO_T}not found - Apache filter support disabled" >&6
-    fi
-
-
 if test "x_$FILTERS" = "x_" ; then
   { { echo "$as_me:$LINENO: error: No web server found" >&5
 echo "$as_me: error: No web server found" >&2;}
@@ -4774,6 +4751,11 @@ s,@host@,$host,;t t
 s,@host_cpu@,$host_cpu,;t t
 s,@host_vendor@,$host_vendor,;t t
 s,@host_os@,$host_os,;t t
+s,@APXS@,$APXS,;t t
+s,@APXS_INCLUDE@,$APXS_INCLUDE,;t t
+s,@APXS_CFLAGS@,$APXS_CFLAGS,;t t
+s,@APXS_CFLAGS_SHLIB@,$APXS_CFLAGS_SHLIB,;t t
+s,@APACHECTL@,$APACHECTL,;t t
 s,@APXS2@,$APXS2,;t t
 s,@APXS2_INCLUDE@,$APXS2_INCLUDE,;t t
 s,@APXS2_CFLAGS@,$APXS2_CFLAGS,;t t
@@ -4823,11 +4805,6 @@ s,@TLSDEFS@,$TLSDEFS,;t t
 s,@HAVE_SSL@,$HAVE_SSL,;t t
 s,@CPP@,$CPP,;t t
 s,@EGREP@,$EGREP,;t t
-s,@APXS@,$APXS,;t t
-s,@APXS_INCLUDE@,$APXS_INCLUDE,;t t
-s,@APXS_CFLAGS@,$APXS_CFLAGS,;t t
-s,@APXS_CFLAGS_SHLIB@,$APXS_CFLAGS_SHLIB,;t t
-s,@APACHECTL@,$APACHECTL,;t t
 s,@FILTERS@,$FILTERS,;t t
 s,@OPTOPTS@,$OPTOPTS,;t t
 s,@subdirs@,$subdirs,;t t

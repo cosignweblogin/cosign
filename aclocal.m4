@@ -73,24 +73,13 @@ AC_DEFUN([CHECK_LIBKRB],
     AC_MSG_RESULT($ac_cv_path_krb)
 ])
 
-AC_DEFUN([CHECK_APACHE2_APXS],
+AC_DEFUN([CHECK_APACHE2],
 [
     AC_MSG_CHECKING(for apache 2)
-    apxs2dirs="/usr/local/apache2/bin /usr/apache2/bin /usr/pkg/bin \
-    /usr/local/bin /usr/local/httpd/bin"
  
     if test -f "$enableval"; then
-	echo "using apxs2 as '$enableval"
+	echo "using apxs2 as '$enableval'"
 	ac_cv_path_apxs2="$enableval"
-    else
-     	AC_CACHE_VAL(ac_cv_path_apxs2,[
-	    for i in $apxs2dirs; do
- 	    	if test -f "$i/apxs"; then
- 			ac_cv_path_apxs2="$i/apxs"
-                 	break;
-             	fi
-         	done
-     	])
     fi
 
     APXS2="$ac_cv_path_apxs2"
@@ -117,8 +106,10 @@ AC_DEFUN([CHECK_APACHE2_APXS],
     AC_SUBST(APACHECTL2)
     HAVE_APACHE2=yes
     AC_SUBST(HAVE_APACHE2)
-    AC_MSG_RESULT($ac_cv_path_apxs2)
+    AC_MSG_RESULT(apache 2 filter will be built)
+
 ])
+
 AC_DEFUN([CHECK_KRB4],
 [
     AC_MSG_CHECKING(for krb4)
@@ -157,51 +148,41 @@ AC_DEFUN([CHECK_GSS],
     AC_MSG_RESULT($ac_cv_path_krb)
 ])
 
-AC_DEFUN([CHECK_APACHE_APXS],
+AC_DEFUN([CHECK_APACHE_1],
 [
-    AC_MSG_CHECKING([for Apache DSO support / apxs])
-    AC_ARG_WITH(apache-apxs,
-        AC_HELP_STRING([--with-apache-apxs=FILE], [path to Apache apxs program]),
-        APXS=$withval)
-    if test -f "$APXS" ; then
-        ac_cv_path_apxs=$APXS   # put it into the cache
-    else
-        apxsdirs="$PATH:/usr/local/apache/bin:/usr/apache/bin:/usr/pkg/bin:/usr/local/bin:/usr/local/httpd/bin"
-        AC_CACHE_VAL(ac_cv_path_apxs,[
-            saved_ifs=$IFS
-            IFS=:
-            for i in $apxsdirs; do
-                if test -f "$i/apxs"; then
-                    ac_cv_path_apxs="$i/apxs"
-                    break
-                fi
-            done
-            IFS=$saved_ifs
-        ])
-        APXS="$ac_cv_path_apxs"
+
+    AC_MSG_CHECKING([for apache 1.3])
+
+    if test -f "$enableval"; then
+        echo "using apxs as '$enableval'"
+        ac_cv_path_apxs="$enableval"
     fi
-    if test -f "$APXS" ; then
-        HAVE_APACHE=yes
-        FILTERS="$FILTERS filters/apache"
-        APXS_INCLUDE="-I`$APXS -q INCLUDEDIR`"
-        APXS_CFLAGS="`$APXS -q CFLAGS`"
-        APXS_CFLAGS_SHLIB="`$APXS -q CFLAGS_SHLIB`"
-        APXS_SBINDIR="`$APXS -q SBINDIR`"
-        APXS_TARGET="`$APXS -q TARGET`"
-        if test x_$APXS_TARGET = x_httpd ; then
-            APACHECTL="${APXS_SBINDIR}/apachectl"
-        else
-            APACHECTL="${APXS_SBINDIR}/${APXS_TARGET}ctl"
-        fi
-        AC_SUBST(APXS)
-        AC_SUBST(APXS_INCLUDE)
-        AC_SUBST(APXS_CFLAGS)
-        AC_SUBST(APXS_CFLAGS_SHLIB)
-        AC_SUBST(APACHECTL)
-        AC_MSG_RESULT($APXS)
-    else
-        AC_MSG_RESULT([not found - Apache filter support disabled])
+
+    APXS="$ac_cv_path_apxs"
+
+    if test ! -e "$ac_cv_path_apxs" ; then
+        AC_MSG_ERROR(cannot find apache 1.3)
     fi
+
+    HAVE_APACHE=yes
+    FILTERS="$FILTERS filters/apache"
+    APXS_INCLUDE="-I`$APXS -q INCLUDEDIR`"
+    APXS_CFLAGS="`$APXS -q CFLAGS`"
+    APXS_CFLAGS_SHLIB="`$APXS -q CFLAGS_SHLIB`"
+    APXS_SBINDIR="`$APXS -q SBINDIR`"
+    APXS_TARGET="`$APXS -q TARGET`"
+    if test x_$APXS_TARGET = x_httpd ; then
+	APACHECTL="${APXS_SBINDIR}/apachectl"
+    else
+	APACHECTL="${APXS_SBINDIR}/${APXS_TARGET}ctl"
+    fi
+    AC_SUBST(APXS)
+    AC_SUBST(APXS_INCLUDE)
+    AC_SUBST(APXS_CFLAGS)
+    AC_SUBST(APXS_CFLAGS_SHLIB)
+    AC_SUBST(APACHECTL)
+    AC_MSG_RESULT(apache 1.3 filter will be built)
+
 ])
 
 
