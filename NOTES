@@ -5,7 +5,7 @@ MODULE:
 
     TODO:
     cookie obscuring - post 1.0
-    *k5 needs ironing out
+
 
 CGI:
     initial info and ticket propogation (belt)
@@ -14,9 +14,6 @@ CGI:
 COSIGND:
     replication (suspenders)
     more conf file
-
-ISSUES:
-*1) use of cookie to store referer - should we do qs instead?
 
 post 1.0
 	not doing much with cosign-[name]
