@@ -31,7 +31,7 @@ cosign_create_dir_config( pool *p, char *path )
     cfg->port = htons( 6663 );
     cfg->protect = 1;
     cfg->configured = 0;
-    cfg->sl = NULL;
+    cfg->cl = NULL;
     return( cfg );
 
 }
@@ -49,7 +49,7 @@ cosign_create_server_config( pool *p, server_rec *s )
     cfg->port = htons( 6663 );
     cfg->protect = 1;
     cfg->configured = 0;
-    cfg->sl = NULL;
+    cfg->cl = NULL;
     return( cfg );
 }
 
@@ -168,7 +168,7 @@ cosign_auth( request_rec *r )
 validate_cookie:
     my_cookie = ap_psprintf( r->pool, "%s=%s", cookiename, pair );
     strcpy( si.si_ipaddr, r->connection->remote_ip );
-    if ( cookie_valid( cfg->sl, my_cookie, &si ) < 0 ) {
+    if ( cookie_valid( &cfg->cl, my_cookie, &si ) < 0 ) {
 	if ( set_cookie_and_redirect( r, cfg ) == 0 ) {
 	    return( HTTP_MOVED_TEMPORARILY );
 	} else {
@@ -234,7 +234,7 @@ set_cosign_service( cmd_parms *params, void *mconfig, char *arg )
 	cfg->redirect = ap_pstrdup( params->pool, scfg->redirect );
 	cfg->posterror = ap_pstrdup( params->pool, scfg->posterror );
 	cfg->host = ap_pstrdup( params->pool, scfg->host );
-	cfg->sl = scfg->sl;
+	cfg->cl = scfg->cl;
 	cfg->port = scfg->port; 
     }
 
@@ -251,7 +251,7 @@ set_cosign_service( cmd_parms *params, void *mconfig, char *arg )
 set_cosign_port( cmd_parms *params, void *mconfig, char *arg )
 {
     cosign_host_config		*cfg;
-    struct sinlist		*cur;
+    struct connlist		*cur;
     unsigned short		portarg;
 
     if ( params->path == NULL ) {
@@ -264,8 +264,8 @@ set_cosign_port( cmd_parms *params, void *mconfig, char *arg )
     portarg = strtol( arg, (char **)NULL, 10 );
     cfg->port = htons( portarg );
 
-    for ( cur = cfg->sl; cur != NULL; cur = cur->s_next ) {
-	cur->s_sin.sin_port = cfg->port;
+    for ( cur = cfg->cl; cur != NULL; cur = cur->conn_next ) {
+	cur->conn_sin.sin_port = cfg->port;
     }
     return( NULL );
 }
@@ -295,7 +295,7 @@ set_cosign_host( cmd_parms *params, void *mconfig, char *arg )
 {
     struct hostent		*he;
     int				i;
-    struct sinlist		*new, **cur;
+    struct connlist		*new, **cur;
     char			*err;
     cosign_host_config		*cfg;
 
@@ -318,18 +318,18 @@ set_cosign_host( cmd_parms *params, void *mconfig, char *arg )
 
     /* preserve address order as returned from DNS */
     /* actually, here we will randomize for "load balancing" */
-    cur = &cfg->sl;
+    cur = &cfg->cl;
     for ( i = 0; he->h_addr_list[ i ] != NULL; i++ ) {
-	new = ( struct sinlist * )
-		ap_palloc( params->pool, sizeof( struct sinlist ));
-	memset( &new->s_sin, 0, sizeof( struct sockaddr_in ));
-	new->s_sin.sin_family = AF_INET;
-	new->s_sin.sin_port = cfg->port;
-	memcpy( &new->s_sin.sin_addr.s_addr,
+	new = ( struct connlist * )
+		ap_palloc( params->pool, sizeof( struct connlist ));
+	memset( &new->conn_sin, 0, sizeof( struct sockaddr_in ));
+	new->conn_sin.sin_family = AF_INET;
+	new->conn_sin.sin_port = cfg->port;
+	memcpy( &new->conn_sin.sin_addr.s_addr,
 		he->h_addr_list[ i ], ( unsigned int)he->h_length );
-	new->s_copied = 0;
+	new->conn_sn = NULL;
 	*cur = new;
-	cur = &new->s_next;
+	cur = &new->conn_next;
     }
     *cur = NULL;
     return( NULL );
@@ -338,7 +338,7 @@ set_cosign_host( cmd_parms *params, void *mconfig, char *arg )
     void
 cosign_child_cleanup( server_rec *s, pool *p )
 {
-    /* upon child exit, close all ropen SNETs */
+    /* upon child exit, close all open SNETs */
     if ( teardown_conn() != 0 ) {
 	fprintf( stderr, "teardown_conn: something bad happened\n" );
     }

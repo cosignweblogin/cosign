@@ -22,58 +22,14 @@
 #define USER_SZ 30
 #define REALM_SZ 254
 
-static int choose_conn();
 static int connect_sn( struct connlist *);
 static int close_sn( SNET *);
 void (*logger)( char * ) = NULL;
 
 struct timeval		timeout = { 10 * 60, 0 };
-struct connlist         *conn_head = NULL;
 
     int
-copy_connections( struct sinlist *s_cur )
-{
-    struct connlist **cur = NULL, *new = NULL;
-    int	c = -1;
-
-    /* make sure each child has its own copy of the available
-     * connections. and initialize.
-     */
-
-    if ( s_cur->s_copied ) {
-	choose_conn();
-	return( 0 );
-    }
-
-    for ( ; s_cur != NULL; s_cur = s_cur->s_next ) {
-	for ( cur = &conn_head; *cur != NULL; cur = &(*cur)->conn_next ) {
-	    if (( c = memcmp( &s_cur->s_sin, &(*cur)->conn_sin,
-		    sizeof( struct sockaddr_in ))) == 0 ) {
-		break;
-	    }
-	}
-	if ( c == 0 ) {
-	    s_cur->s_copied = 1;
-	    continue;
-	}
-	if (( new = ( struct connlist * ) malloc( sizeof( struct connlist )))
-		== NULL ) {
-	    exit( 1 );
-	}
-	new->conn_sn = NULL;
-	new->conn_flag = CONN_UNUSED;
-	memcpy( &new->conn_sin, &s_cur->s_sin, sizeof( struct sockaddr_in ));
-	s_cur->s_copied = 1;
-	new->conn_next = *cur;
-	*cur = new;
-    }
-    choose_conn();
-
-    return( 0 );
-}
-
-    int
-netcheck_cookie( char *secant, struct sinfo *si )
+netcheck_cookie( char *secant, struct sinfo *si, SNET *sn )
 {
     int			ac;
     char		*line;
@@ -81,13 +37,13 @@ netcheck_cookie( char *secant, struct sinfo *si )
     struct timeval      tv;
 
     /* CHECK service-cookie */
-    if ( snet_writef( conn_head->conn_sn, "CHECK %s\r\n", secant ) < 0 ) {
+    if ( snet_writef( sn, "CHECK %s\r\n", secant ) < 0 ) {
 	fprintf( stderr, "netcheck_cookie: snet_writef failed\n");
 	return( -1 );
     }
 
     tv = timeout;
-    if (( line = snet_getline_multi( conn_head->conn_sn, logger, &tv ))
+    if (( line = snet_getline_multi( sn, logger, &tv ))
 	    == NULL ) {
 	fprintf( stderr, "netcheck_cookie: snet_getline_multi failed\n");
 	return( -1 );
@@ -119,23 +75,23 @@ netcheck_cookie( char *secant, struct sinfo *si )
 
     if (( ac = argcargv( line, &av )) != 4 ) {
 	fprintf( stderr, "netcheck_cookie: wrong number of args: %s\n", line);
-	return( -1 );
+	return( 1 );
     }
 
     /* I guess we check some sizing here :) */
     if ( strlen( av[ 1 ] ) >= IP_SZ ) {
 	fprintf( stderr, "netcheck_cookie: IP address too long\n" );
-	return( -1 );
+	return( 1 );
     }
     strcpy( si->si_ipaddr, av[ 1 ] );
     if ( strlen( av[ 2 ] ) >= USER_SZ ) {
 	fprintf( stderr, "netcheck_cookie: username too long\n" );
-	return(- 1 );
+	return( 1 );
     }
     strcpy( si->si_user, av[ 2 ] );
     if ( strlen( av[ 3 ] ) >= REALM_SZ ) {
 	fprintf( stderr, "netcheck_cookie: realm too long\n" );
-	return( -1 );
+	return( 1 );
     }
     strcpy( si->si_realm, av[ 3 ] );
 
@@ -143,12 +99,11 @@ netcheck_cookie( char *secant, struct sinfo *si )
 }
 
     int
-teardown_conn( )
+teardown_conn( struct connlist *cur )
 {
-    struct connlist *cur = NULL;
 
     /* close down all children on exit */
-    for ( cur = conn_head; cur != NULL; cur = cur->conn_next ) {
+    for ( ; cur != NULL; cur = cur->conn_next ) {
 	if ( cur->conn_sn != NULL  ) {
 	    if ( close_sn( cur->conn_sn ) != 0 ) {
 		fprintf( stderr, "teardown_conn: close_sn failed\n" );
@@ -158,62 +113,75 @@ teardown_conn( )
     return( 0 );
 }
 
-    static int
-choose_conn( )
+    int
+choose_conn( char *secant, struct sinfo *si, struct connlist **cl )
 {
-    struct connlist *cur = NULL;
+
+    struct connlist	**cur;
+    int			rc;
 
     /* use connection, then shuffle if there is a problem
      * how do we reclaim once it's bad?
      * what happens if they are all bad?
      */
-    for ( cur = conn_head; cur != NULL; cur = cur->conn_next ) {
-	if ( cur->conn_flag & CONN_OPEN ) {
-fprintf( stderr, "we theoretically have a conn open.\n" );
-	    return( 0 );
+    for ( cur = cl; *cur != NULL; cur = &(*cur)->conn_next ) {
+	if ( (*cur)->conn_sn == NULL ) {
+	    continue;
 	}
-	if ( cur->conn_flag & CONN_PROB ) {
-fprintf( stderr, "we theoretically have a conn problem.\n" );
-	} else {
-fprintf( stderr, "opening conn...\n" );
-	    if ( connect_sn( cur ) != 0 ) {
-		continue;
+	if (( rc = netcheck_cookie( secant, si, (*cur)->conn_sn )) < 0 ) {
+	    if ( snet_close( (*cur)->conn_sn ) != 0 ) {
+		fprintf( stderr, "choose_conn: snet_close failed\n" );
 	    }
-	    break;
+	}
+	if ( rc == 0 ) {
+	    goto done;
+	    /* return( 0 );  */
+	    /* do we still reorder? */
 	}
     }
 
-    if ( cur == NULL ) {
+    /* all are closed or we didn't like their answer */
+    for ( cur = cl; *cur != NULL; cur = &(*cur)->conn_next ) {
+	if ( (*cur)->conn_sn != NULL ) {
+	    continue;
+	}
+	if ( connect_sn( *cur ) != 0 ) {
+	    continue;
+	}
+	if (( rc = netcheck_cookie( secant, si, (*cur)->conn_sn )) < 0 ) {
+	    if ( snet_close( (*cur)->conn_sn ) != 0 ) {
+		fprintf( stderr, "choose_conn: snet_close failed\n" );
+	    }
+	}
+	if ( rc == 0 ) {
+	    goto done;
+	    /* return( 0 );  */
+	    /* do we still reorder? */
+	}
+    }
+
+    /* nothing was opened */
+    if ( *cur == NULL ) {
 	return( -1 );
     }
-
-    /* this needs work :) XXX */
-    if ( cur->conn_next == NULL ) {
-	return( 0 );
-    }
-
-    cur = conn_head->conn_next;
-    conn_head->conn_next = cur->conn_next;
-    cur->conn_next = conn_head;
-    conn_head = cur;
 
     /* we've gotten here cos there's either no conns, one 
      * still works or we have a new one. in the last case 
      * we need to re-order the list.
      */
 
+done:
     return( 0 );
 }
 
     static int
-connect_sn( struct connlist *cl )
+connect_sn( struct connlist *cl  )
 {
     int			i, s;
     char		*line;
     struct timeval      tv;
 
     if (( s = socket( PF_INET, SOCK_STREAM, NULL )) < 0 ) {
-	    cl->conn_flag |= CONN_PROB;
 	    return( -1 );
     }
 
@@ -221,23 +189,20 @@ connect_sn( struct connlist *cl )
 	    sizeof( struct sockaddr_in )) != 0 ) {
 	perror( "connect" );
 	(void)close( s );
-	cl->conn_flag |= CONN_PROB;
 	return( -1 );
     }
 
     if (( cl->conn_sn = snet_attach( s, 1024 * 1024 ) ) == NULL ) {
 	fprintf( stderr, "connect_sn: snet_attach failed\n" );
 	(void)close( s );
-	cl->conn_flag |= CONN_PROB;
 	return( -1 );
     }
     tv = timeout;
-    if ( ( line = snet_getline_multi( cl->conn_sn, logger, &tv) ) == NULL ) {
+    if (( line = snet_getline_multi( cl->conn_sn, logger, &tv )) == NULL ) {
 	fprintf( stderr, "connect_sn: snet_getline_multi failed\n" );
 	if ( snet_close( cl->conn_sn ) != 0 ) {
 	    fprintf( stderr, "connect_sn: snet_close failed\n" );
 	}
-	cl->conn_flag |= CONN_PROB;
 	return( -1 );
     }
 
@@ -246,11 +211,9 @@ connect_sn( struct connlist *cl )
 	if ( snet_close( cl->conn_sn ) != 0 ) {
 	    fprintf( stderr, "connect_sn: snet_close failed\n" );
 	}
-	cl->conn_flag |= CONN_PROB;
 	return( -1 );
     }
 
-    cl->conn_flag |= CONN_OPEN;
     return( 0 );
 }
 

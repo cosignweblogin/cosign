@@ -20,7 +20,7 @@
 #define IDLETIME	60
 
     int
-cookie_valid( struct sinlist *s_cur, char *cookie, struct sinfo *si )
+cookie_valid( struct connlist **c_cur, char *cookie, struct sinfo *si )
 {
     struct sinfo	lsi, nsi;
     int			rs, fd;
@@ -70,13 +70,10 @@ fprintf( stderr, "Not in the fs\n" );
 	return( -1 );
     }
 
-    copy_connections( s_cur ); 
-
-    if ( netcheck_cookie( cookie, &nsi ) < 0 ) {
-	fprintf( stderr, "cookie_valid: netcheck_cookie failed\n" );
+    if ( choose_conn( cookie, &nsi, c_cur ) < 0 ) {
+	fprintf( stderr, "cookie_valid: choose_conn failed\n" );
 	return( -1 );
     }
-
     if ( rs == SECANT_NOT_IN_FS ) {
 
 	/* store local copy of secant */
