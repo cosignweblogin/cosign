@@ -197,7 +197,6 @@ cosign_auth( request_rec *r )
      * Verify cfg has been setup correctly by admin
      */
 
-fprintf( stderr, "service is %s\n", cfg->service );
     if (( cfg->host == NULL ) || ( cfg->redirect == NULL ) ||
 		( cfg->service == NULL || cfg->posterror == NULL )) {
 	ap_log_error( APLOG_MARK, APLOG_ERR|APLOG_NOERRNO, r->server,
