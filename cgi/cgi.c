@@ -15,8 +15,10 @@
 #include "cosigncgi.h"
 #include "network.h"
 
-#define LOGIN_HTML	"../templates/login.html"
-#define ERROR_HTML	"../templates/error.html"
+#define LOGIN_HTML		"../templates/login.html"
+#define ERROR_HTML		"../templates/error.html"
+#define SERVICE_MENU_HTML	"../templates/service-menu.html"
+#define FORWARDING_HTML		"../templates/forwarding.html"
 #define SIDEWAYS        1               /* we neglected to tell the
 					   user what was happening.  we
 					   should fix all of these.
@@ -133,6 +135,22 @@ main()
 	}
     }
 
+    /* get cosign-referer cookie if one is set */
+    if (( data = getenv( "HTTP_COOKIE" )) != NULL ) {
+	ref = strtok( data, ";" );
+
+	/* nibble away the cookie string until we see the referer cookie */
+	if ( strncmp( ref, "cosign-referer=", 15 ) != 0 ) {
+	    while (( ref = strtok( NULL, ";" )) != NULL ) {
+		if ( *ref == ' ' ) ++ref;
+		if ( strncmp( ref, "cosign-referer=", 15 ) == 0 ) {
+		    fprintf( stderr, "discarding: %s\n", strtok( ref, "=" ));
+		    break;
+		}
+	    }
+	}
+    }
+
     method = getenv( "REQUEST_METHOD" );
     script = getenv( "SCRIPT_NAME" );
     ip_addr = getenv( "REMOTE_ADDR" );
@@ -207,8 +225,8 @@ main()
 	    goto loginscreen;
 	}
 
-	tmpl = ERROR_HTML;
-	err = "This would be a service menu!";
+	tmpl = SERVICE_MENU_HTML;
+
 	subfile( tmpl );
 	exit( 0 );
     }
@@ -300,26 +318,9 @@ main()
 	exit( 2 );
     }
 
-fprintf( stderr, "DEBUG: login succeeded and everything\n" );
-
-    if (( data = getenv( "HTTP_COOKIE" )) != NULL ) {
-	ref = strtok( data, ";" );
-
-	/* nibble away the cookie string until we see the referer cookie */
-	if ( strncmp( ref, "cosign-referer=", 15 ) != 0 ) {
-	    while (( ref = strtok( NULL, ";" )) != NULL ) {
-		if ( *ref == ' ' ) ++ref;
-		if ( strncmp( ref, "cosign-referer=", 15 ) == 0 ) {
-		    fprintf( stderr, "discarding: %s\n", strtok( ref, "=" ));
-		    break;
-		}
-	    }
-	}
-    }
-
-    if (( ref = strstr( ref, "http" )) != NULL ) {
-fprintf( stderr, "DEBUG: redirecting to %s\n", ref );
-	printf( "Location: %s\n\n", ref );
+    if (( ref = strstr( ref, "https://" )) != NULL ) {
+	/* need to set tmpl to FORWARDING_HTML? */
+        printf( "Location: %s\n\n", ref );
 	exit( 0 );
     }
 
@@ -342,3 +343,4 @@ fprintf( stderr, "new_cookie is %s\n", new_cookie );
     subfile( tmpl );
     exit( 0 );
 }
+

@@ -1,5 +1,4 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
-<META HTTP-EQUIV="Refresh" CONTENT="3; URL=$l">
 
 <!--
     Copyright (c) 2002 Regents of The University of Michigan.
@@ -8,7 +7,7 @@
 
 <html lang="en">
     <head>
-	<title>University of Michigan: Logout $t</title>
+	<title>University of Michigan: Service Menu</title>
 
 	<script language="javascript" type="text/javascript">
 	    <!--
@@ -24,6 +23,12 @@
 	    a:hover { color: #333399; text-decoration: underline }
 
 	    body { margin-top: 15% }
+
+	    blockquote {
+		margin-top: 0pt;
+		text-color: black;
+		font-size: 90%;
+	    }
 
 	    p { font-family: arial, non-serif; color: black; font-size: 100% }
 	    p.titlebar { color: white; font-size: 120% }
@@ -46,7 +51,7 @@
     <tr>
 	<td colspan="2" bgcolor="#11375E" align="left">
 	    <p class="titlebar">
-		<b>Logout Successful</b>
+		<b>Authentication Successful</b>
 	    </p>
 	</td>
     </tr>
@@ -60,13 +65,36 @@
 	
 	<td valign="top">
 	    <p>
-		You have successfully logged out.  In a moment your
-		browser will be redirected to:
+		Please choose from the following menu of services:
+	    </p>
+
+	    <ul>
+		<li>
+		    <a href="https://babbler.web.itd.umich.edu"> ITCS
+		    Development Server. </a>
+
+		    <blockquote>
+			You don't really want this server as there is
+			nothing interesting on it for you.
+		    </blockquote>
+		</li>
+
+		<li>
+		    <a href="https://cow-test.www.umich.edu/">COW Test</a>
+
+		    <blockquote>
+			Like COW, only testier. ( may be down )
+		    </blockquote>
+		</li>
+
+		<li>
+		    <a href="https://cosign-test.www.umich.edu/cgi-bin/logout">logout</a>
+
+		    <blockquote>
+			Initiate the logout process.
+		    </blockquote>
+		</li>
 	    </p> 
-		
-	    <blockquote>
-		<a href="$l">$l</a>
-	    </blockquote>
 	</td>
 
     </tr>
