@@ -13,9 +13,7 @@ typedef struct {
     char		*cadir;
 #ifdef KRB
     int			krbtkt;
-#ifdef KRB4
     int			krb524;
-#endif /* KRB4 */
 #endif /* KRB */
 } cosign_host_config;
 
