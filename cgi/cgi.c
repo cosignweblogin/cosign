@@ -319,7 +319,7 @@ main( int argc, char *argv[] )
     }
     snprintf( krbpath, sizeof( krbpath ), "%s/%s", TKT_PREFIX, tmpkrb );
 
-    if (( krb5_cc_resolve( kcontext, krbpath, &kccache )) != 0 ) {
+    if (( kerror = krb5_cc_resolve( kcontext, krbpath, &kccache )) != 0 ) {
 	err = (char *)error_message( kerror );
 	title = "Authentication Required ( kerberos error )";
 
@@ -358,7 +358,7 @@ main( int argc, char *argv[] )
     }
 
     /* verify no KDC spoofing */
-    if (( krb5_kt_resolve( kcontext, KEYTAB_PATH, &keytab )) != 0 ) {
+    if (( kerror = krb5_kt_resolve( kcontext, KEYTAB_PATH, &keytab )) != 0 ) {
 	err = (char *)error_message( kerror );
 	title = "( Ticket Verify Error )";
 	
@@ -367,7 +367,7 @@ main( int argc, char *argv[] )
 	exit( 0 );
     }
 
-    if (( krb5_sname_to_principal( kcontext, NULL, "cosign",
+    if (( kerror = krb5_sname_to_principal( kcontext, NULL, "cosign",
 	    KRB5_NT_SRV_HST, &sprinc )) != 0 ) {
 	err = (char *)error_message( kerror );
 	title = "( Server Principal Error )";
@@ -377,7 +377,7 @@ main( int argc, char *argv[] )
 	exit( 0 );
     }
 
-    if (( krb5_verify_init_creds(
+    if (( kerror = krb5_verify_init_creds(
 	    kcontext, &kcreds, sprinc, keytab, NULL, NULL )) != 0 ) {
 	err = (char *)error_message( kerror );
 	title = "( Ticket Verify Error )";
@@ -390,7 +390,7 @@ main( int argc, char *argv[] )
     (void)krb5_kt_close( kcontext, keytab );
     krb5_free_principal( kcontext, sprinc );
 
-    if (( krb5_cc_initialize( kcontext, kccache, kprinc )) != 0 ) {
+    if (( kerror = krb5_cc_initialize( kcontext, kccache, kprinc )) != 0 ) {
 	err = (char *)error_message( kerror );
 	title = "( Ticket Sticking Error )";
 	
@@ -399,7 +399,7 @@ main( int argc, char *argv[] )
 	exit( 0 );
     }
 
-    if (( krb5_cc_store_cred( kcontext, kccache, &kcreds )) != 0 ) {
+    if (( kerror = krb5_cc_store_cred( kcontext, kccache, &kcreds )) != 0 ) {
 	err = (char *)error_message( kerror );
 	title = "( Ticket Storing Error )";
 	
