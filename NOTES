@@ -13,12 +13,14 @@ CGI:
 
 COSIGND:
     replication (suspenders)
+	idle time out race condition
+	-grace period which returns 5xx ( allows for repl skew )
+	-dynamic grace period times?
     more conf file
 
 post 1.0
 	not doing much with cosign-[name]
 	linux 524 bug
-	psu realm bug
 
 Protocol:
 
@@ -45,7 +47,6 @@ Misc notes:
     -warning when using sso ( during register )
 
 configuration files:
-
 
     cosignd: has a list ( in /usr/local/etc/cosign.conf? ) of
 	    services, which tickets they can request.
