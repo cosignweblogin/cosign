@@ -108,7 +108,10 @@ Apache Configuration Options:
 				during a POST. This screen lets people
 				know we dropped their data. ]
 	CosignService		[ the name of the cosign service cookie ]
+	CosignSiteEntry		[ the URL to redirect to after login  ]
 	CosignCrypto		[path to key] [path to cert] [path to CA dir]
+	CosignHttpOnly		[ on | off ]
+		module can be use without SSL - not recommended!
 	CosignGetKerberosTickets	[ on | off ]
 	    module asks for tgt from cosignd
 
@@ -118,7 +121,8 @@ Apache Configuration Options:
 	CosignKerberosSetupGSS		[ on | off ]
 	    setup the enviornment so that other apache modules
 	    that need GSSAPI/Kerberos work. e.g. IMP running under mod_php
-
+	CosignGetProxyCookies	[ on | off ]
+	    module asks for proxy cookies from cosignd
 
 The certificate CN of the weblogin server must match CosignHostname.
 

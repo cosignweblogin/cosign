@@ -91,18 +91,32 @@ Creating cosign.conf file:
     The last thing you need to do before starting up your cosign server
     is create the cosign.conf file:
 
-          #
-          # keyword           subject cn               get tickets?
-          #
-          cgi                 cosignserver.umich.edu
-          service             servicea.web.umich.edu        0
-          service             serviceb.web.umich.edu        0
-          service             campusmail.umich.edu          1
-          service             alumni.web.mgoblue.com        0
-          service             *.web.umich.edu               0
+#
+# keyword           subject cn           tickets/proxy proxyfile
+#
+  cgi        cosignserver.umich.edu
+  service    servicea.web.umich.edu        T
+  service    serviceb.web.umich.edu       TP 	/etc/cosign/servb.txt
+  service    campusmail.umich.edu          P	/etc/cosign/mail.txt
+  service    alumni.web.mgoblue.com        0
+  service    *.web.umich.edu               0
 
     The default location for this file is /etc/cosign.conf.  See the
     cosignd man page for more information.
+
+    For cosign proxy authentication, you need additional files
+    (proxyfile) in the format:
+
+    #
+    #  domain name              service-name
+    #
+
+    campusmail.umich.edu        cosign-campusmail
+    news.web.umich.edu          cosign-webnews
+
+    for each host you'd like to be able to proxy. See the
+    cosignd man page for more information.
+
 
 Scripts
 
@@ -148,6 +162,7 @@ Configure Options:
     --with-cosigncadir=DIR	default=/var/cosign/certs/CA 
     --with-cosigncert=FILE	default=/var/cosign/certs/cert.pem
     --with-cosignkey=FILE	default=/var/cosign/certs/key.pem
+    --with-ticketcache=DIR	default=/ticket
     --with-keytabpath=FILE 	default=NULL ( which means use whatever
 					the krb5.conf says to use )
 
