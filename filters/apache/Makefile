@@ -13,7 +13,7 @@ APACHECTL=apachectl
 INC=-I/usr/local/openssl/include -I/usr/local/apache/include -I./libsnet
 CFLAGS=	${DEF} ${INC} -DEAPI
 LIB=-L/usr/local/openssl/lib -lcrypto -L./libsnet -lsnet
-OBJ=	mod_cosign.o mkcookie.o fbase64.o connect.o bprint.o cookiefs.o
+OBJ=	mod_cosign.o mkcookie.o fbase64.o connect.o bprint.o cookiefs.o sparse.o
 
 #   the default target
 all: mod_cosign.so
