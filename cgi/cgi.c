@@ -216,7 +216,6 @@ main( int argc, char *argv[] )
 	    exit( 0 );
 	}
 
-fprintf( stderr, "%s: cosign_register coming\n", script );
 	if (( rc = cosign_register( cookie, ip_addr, service )) < 0 ) {
 	    if ( cosign_check( cookie ) < 0 ) {
 		title = "Authentication Required";
@@ -243,7 +242,6 @@ fprintf( stderr, "%s: cosign_register coming\n", script );
 	exit( 0 );
     }
 
-fprintf( stderr, "%s: cookie check\n", script );
     if ( cookie == NULL ) {
 	if ( strcmp( method, "POST" ) == 0 ) {
 	    title = "Error: Cookies Required";
@@ -255,10 +253,8 @@ fprintf( stderr, "%s: cookie check\n", script );
 	goto loginscreen;
     }
 
-fprintf( stderr, "%s: cosign check redux\n", script );
     if ( strcmp( method, "POST" ) != 0 ) {
 	if ( cosign_check( cookie ) < 0 ) {
-	    /* fprintf( stderr, "no longer logged in\n" ); */
 	    err = "You are not logged in. Please log in now.";
 	    goto loginscreen;
 	}
@@ -271,21 +267,15 @@ fprintf( stderr, "%s: cosign check redux\n", script );
 	exit( 0 );
     }
 
-fprintf( stderr, "%s: cgi_info\n", script );
     if ( cgi_info( CGI_STDIN, cl ) != 0 ) {
-	fprintf( stderr, "%s: cgi_info failed\n", script );
 	exit( SIDEWAYS );
     }
 
-fprintf( stderr, "%s: ref\n", script );
     if (( cl[ CL_REF ].cl_data != NULL ) ||
 	    ( *cl[ CL_REF ].cl_data != '\0' )) {
-fprintf( stderr, "%s: ass ref\n", script );
         ref = cl[ CL_REF ].cl_data;
-fprintf( stderr, "%s: assed ref\n", script );
     }
 
-fprintf( stderr, "%s: uniqname\n", script );
     if (( cl[ CL_UNIQNAME ].cl_data == NULL ) ||
 	    ( *cl[ CL_UNIQNAME ].cl_data == '\0' )) {
 	title = "Authentication Required";
@@ -422,7 +412,6 @@ fprintf( stderr, "%s: uniqname\n", script );
     nocache = 1;
 
     /* what happens when we get an already logged in back? tri-val? */
-fprintf( stderr, "%s: cosign_login\n", script );
     if ( cosign_login( cookie, ip_addr, 
 	    cl[ CL_UNIQNAME ].cl_data, "UMICH.EDU", krbpath ) < 0 ) {
 	fprintf( stderr, "%s: login failed\n", script ) ;
