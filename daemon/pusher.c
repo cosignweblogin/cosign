@@ -404,7 +404,7 @@ pusher( int cpipe, struct connlist *cur )
     switch ( ac ) {
     case 6 :
 	if (( strcasecmp( av[ 0 ], "login" )) != 0 ) {
-	    syslog( LOG_ERR, "pusherchild: %s: bad command" );
+	    syslog( LOG_ERR, "pusherchild: %s: bad command", av[ 0 ] );
 	    exit( 1 );
 	}
 	snet_writef( cur->cl_sn, "LOGIN %s %s %s %s kerberos\r\n",
@@ -414,7 +414,7 @@ pusher( int cpipe, struct connlist *cur )
 
     case 5 :
 	if (( strcasecmp( av[ 0 ], "login" )) != 0 ) {
-	    syslog( LOG_ERR, "pusherchild: %s: bad command" );
+	    syslog( LOG_ERR, "pusherchild: %s: bad command", av[ 0 ] );
 	    exit( 1 );
 	}
 	snet_writef( cur->cl_sn, "LOGIN %s %s %s %s\r\n",
@@ -423,7 +423,7 @@ pusher( int cpipe, struct connlist *cur )
 
     case 4 :
 	if (( strcasecmp( av[ 0 ], "register" )) != 0 ) {
-	    syslog( LOG_ERR, "pusherchild: %s: bad command" );
+	    syslog( LOG_ERR, "pusherchild: %s: bad command", av[ 0 ] );
 	    exit( 1 );
 	}
 	snet_writef( cur->cl_sn, "REGISTER %s %s %s\r\n",
@@ -432,7 +432,7 @@ pusher( int cpipe, struct connlist *cur )
 
     case 3 :
 	if (( strcasecmp( av[ 0 ], "logout" )) != 0 ) {
-	    syslog( LOG_ERR, "pusherchild: %s: bad command" );
+	    syslog( LOG_ERR, "pusherchild: %s: bad command", av[ 0 ] );
 	    exit( 1 );
 	}
 	snet_writef( cur->cl_sn, "LOGOUT %s %s\r\n", av[ 1 ], av[ 2 ] );
