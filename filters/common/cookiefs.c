@@ -68,6 +68,7 @@ cookie_valid( cosign_host_config *cfg, char *cookie, struct sinfo *si,
 	strcpy( si->si_ipaddr, lsi.si_ipaddr );
 	strcpy( si->si_user, lsi.si_user );
 	strcpy( si->si_realm, lsi.si_realm );
+
 #ifdef KRB
 	if ( cfg->krbtkt ) {
 #ifdef KRB4
@@ -113,6 +114,19 @@ cookie_valid( cosign_host_config *cfg, char *cookie, struct sinfo *si,
 		    cookie );
 	    return( -1 );
 	}
+
+	/* since we're not getting the ticket everytime, we need
+	 * to copy the info here so the ENV will be right.
+	 */
+
+#ifdef KRB
+	if ( cfg->krbtkt ) {
+#ifdef KRB4
+	    strcpy( si->si_krb4tkt, lsi.si_krb4tkt );
+#endif /* krb4 */
+	    strcpy( si->si_krb5tkt, lsi.si_krb5tkt );
+	}
+#endif /* KRB */
 	/* update to current time, pushing window forward */
 	utime( path, NULL );
 	return( 0 );
