@@ -30,6 +30,7 @@ static void (*logger)( char * ) = NULL;
 static struct timeval		timeout = { 10 * 60, 0 };
 extern int	errno;
 extern char	*cosign_host;
+extern SSL_CTX	*ctx;
 
 static int connect_sn( struct connlist * );
 static int cosign_choose_conn( struct connlist *, void *,
