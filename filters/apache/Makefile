@@ -39,15 +39,6 @@ version.o : version.c
 install: all
 	$(APXS) -i -a -n 'cosign' mod_cosign.so
 
-VERSION=`date +%Y%m%d`
-DISTDIR=../mod_cosign-${VERSION}
-
-dist   : clean
-	mkdir ${DISTDIR}
-	tar chfFFX - EXCLUDE . | ( cd ${DISTDIR}; tar xvf - )
-	chmod +w ${DISTDIR}/Makefile
-	echo ${VERSION} > ${DISTDIR}/VERSION
-
 #   cleanup
 clean:
 	cd libsnet; ${MAKE} ${MFLAGS} clean
