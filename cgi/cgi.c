@@ -221,15 +221,12 @@ main( int argc, char *argv[] )
 	    exit( 0 );
 	}
 
-	if ( cosign_check( cookie ) == 0 ) {
-	    title = "Please Choose A Service";
-	    tmpl = SERVICE_MENU;
-
-	    subfile( tmpl );
-	    exit( 0 );
-	}
-
 	if (( rc = cosign_register( cookie, ip_addr, service )) < 0 ) {
+	    if ( cosign_check( cookie ) < 0 ) {
+		err = "You are not logged in. Please log in now.";
+		goto loginscreen;
+	    }
+
 	    fprintf( stderr, "%s: cosign_register failed\n", script );
 	    title = "Error: Register Failed";
 	    tmpl = ERROR_HTML;
