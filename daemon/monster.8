@@ -1,4 +1,4 @@
-.TH monster "8" "January 2004" "umweb" "System Manager's Manual"
+.TH monster "8" "October 2004" "umweb" "System Manager's Manual"
 .SH NAME
 .B monster
 \- cleans up cookies and tickets, propagates timestamps
@@ -7,6 +7,8 @@ and state
 .B monster
 [
 .B \-dV
+] [
+.BI \-F\  syslog-facility
 ] [
 .BI \-h\  replication-hostname
 ] [
@@ -18,7 +20,7 @@ and state
 ] [
 .BI \-l\  loggedout-cache
 ] [
-.BI \-L\  syslog-facility
+.BI \-L\  syslog-level
 ] [
 .BI \-p\  port
 ] [
@@ -65,6 +67,15 @@ changes in the time stamps or state of its database of login cookies. It does
 this through the use of the
 .B TIME
 command. See cosignd(8).
+.SH STATS LOGGING
+Upon each pass, Monster logs a line that contains the total number of
+login and service cookies analyzed during the pass, and also notes how
+many of these cookies were deleted. The line appears as follows:
+.sp
+STATS MONSTER: 1/6 login 2/4 service
+.sp
+This means Monster analyzed 6 login cookies and 4 service cookies, and
+deleted 1 login cooke and 2 service cookies.
 .SH TERMINOLOGY
 .TP 19
 .B login-cookie
@@ -82,6 +93,9 @@ line that links to the user's login cookie.
 .B \-d
 debug mode. Does not disassociate from controlling tty.
 .TP 19
+.BI \-F\  syslog-facility
+specifies which syslog-facilty to log messages to.
+.TP 19
 .BI \-h\  replication-host
 hostname to replicate to. This "turns on" monster's state propagation.
 .TP 19
@@ -98,8 +112,8 @@ and the default loggedout_cache time in monster.
 specifies, in seconds, how long monster should sleep between passes, by
 default 2 minutes.
 .TP 19
-.BI \-L\  syslog-facility
-specifies which syslog-facilty to log messages to.
+.BI \-L\  syslog-level
+specifies which syslog-level to log messages at.
 .TP 19
 .BI \-l\  loggedout-cache
 specifies, in seconds, how long to store logged out cookies in the

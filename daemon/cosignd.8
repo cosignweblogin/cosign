@@ -1,4 +1,4 @@
-.TH cosignd "8" "December 2003" "umweb" "System Manager's Manual"
+.TH cosignd "8" "October 2004" "umweb" "System Manager's Manual"
 .SH NAME
 .B cosignd
 \- Cookie Sign-On Daemon
@@ -11,6 +11,8 @@
 ] [
 .BI \-c\  config-file
 ] [
+.BI \-F\  syslog-facility
+] [
 .BI \-D\  db-directory
 ] [
 .BI \-g\  grey-window-in-seconds
@@ -19,7 +21,7 @@
 ] [
 .BI \-i\  idle-timeout-in-seconds
 ] [
-.BI \-L\  syslog-facility
+.BI \-L\  syslog-level
 ] [
 .BI \-p\  port
 ] [
@@ -78,6 +80,24 @@ and
 .B LOGOUT
 commands. 
 .sp
+.SH STATS LOGGING
+cosignd has a few different kinds of statistic logging. All LOGIN,
+REGISTER, and LOGOUTs log command, username, realm, ip, and if
+applicable, cosign service name, as follows:
+.sp
+REGISTER siteuser UMICH.EDU 141.211.144.16 cosign-testservicename
+.sp
+. In addition, the rate per second of
+.B CHECK
+calls are logged for Pass (2xx), Fail (4xx), and Unknown(5xx). The rate per
+second of unknown (5xx)
+.B REGISTER
+s is also logged. If replication is on, the rate per second of
+replication passes (information was propgated) and fails (information
+was dropped) is logged as well. Finally, the number of cookies
+cosignd transmits information about with the
+.B TIME
+command is also logged, as well as the percentage of success.
 .SH TERMINOLOGY
 .TP 19
 .B login-cookie
@@ -142,6 +162,9 @@ specifies the  directory to store the cookie database, by default _COSIGN_DIR
 .B \-d
 debug mode. Does not disassociate from controlling tty.
 .TP 19
+.BI \-F\  syslog-facility
+specifies which syslog-facilty to log messages to.
+.TP 19
 .BI \-g\  grey-window-in-seconds
 grey window for replication and idle logout. All cosignd's will answer
 5xx during this period (idle + grey) in case they've missed an event in
@@ -155,8 +178,8 @@ hostname to replicate to. This "turns on" cosignd's replication.
 idle timeout, after which an unused cookie will be eligible for idle logout,
 by default 7200 seconds (2 hours).
 .TP 19
-.BI \-L\  syslog-facility
-specifies which syslog-facilty to log messages to.
+.BI \-L\  syslog-level
+specifies which syslog-level to log messages at.
 .TP 19
 .B \-n
 don't run. Checks config file syntax and exits.
