@@ -53,9 +53,11 @@ subfile( char *filename )
     char	nasties[] = "<>(){}[]~?&=;'`\" \\";
 
     if ( nocache ) {
-	fputs( "Cache-Control: private, must-revalidate, no-cache\n"
-	       "Expires: Mon, 16 Apr 1973 02:10:00 GMT\n"
-	       "Pragma: no cache\n", stdout );
+        fputs( "Expires: Mon, 16 Apr 1973 02:10:00 GMT\n"
+                "Last-Modified: Mon, 16 Apr 1973 02:10:00 GMT\n"
+                "Cache-Control: no-store, no-cache, must-revalidate\n"
+                "Cache-Control: pre-check=0, post-check=0, max-age=0\n"
+                "Pragma: no-cache\n", stdout );
     }
 
     fputs( "Content-type: text/html\n\n", stdout );
