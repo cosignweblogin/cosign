@@ -526,7 +526,7 @@ f_check( sn, ac, av )
 	status = 231;
 	if ( service_to_login( av[ 1 ], login ) != 0 ) {
 	    syslog( LOG_ERR, "f_check: ask someone else about it!"  );
-	    snet_writef( sn, "%d CHECK: Raisins in your cookie!\r\n", 533 );
+	    snet_writef( sn, "%d CHECK: cookie not in db!\r\n", 533 );
 	    return( 1 );
 	}
     } else {
