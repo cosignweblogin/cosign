@@ -7,7 +7,7 @@ include(`header.html')
 	    and log out now?
 	</p>
 
-	<p align="center">
+	<p class="centerBodyText">
 	    <form name="f" method="post" action="/cgi-bin/logout">
 		<input type="submit" value="Cancel" />
 
@@ -20,7 +20,7 @@ include(`header.html')
 	    </form>
 	</p>
 
-	<p class="small">
+	<p class="smallBodyText">
 	    After logout your browser will redirect to: $l
 	</p>
 
