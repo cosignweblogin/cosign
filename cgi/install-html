@@ -14,12 +14,9 @@ for i in `/bin/ls *.html`; do
 
     echo copying $i to $2/$i
 
-    if [ $i != "login.html" ]; then
-	gcc -E -x c -P -C $i  >$2/$i
-    else
-	gcc -E -x c -P -C login.html \
-		| /usr/bin/sed 's/<body/<body onLoad="setfocus()"/' >$2/$i
-    fi
+    # this could also be m4, cpp, cc, whatever.
+    # should probably be m4, actually.
+    gcc -E -xc -P -C $i  >$2/$i
 done
 
 exit;
