@@ -105,7 +105,13 @@ subfile( char *filename )
                         /* block XSS attacks while printing */
                         if ( strchr( nasties, ref[ i ] ) != NULL ||
                                 ref[ i ] <= 0x1F || ref[ i ] >= 0x7F ) {
-                            printf( "%%%x", ref[ i ] );
+
+			    if ( ref[ i ] == '?' ) {
+				putc( ref[ i ], stdout );
+			    } else {
+				printf( "%%%x", ref[ i ] );
+			    }
+
                         } else {
                             putc( ref[ i ], stdout );
                         }
