@@ -106,6 +106,7 @@ set_cookie_and_redirect( request_rec *r, cosign_host_config *cfg )
     return( 0 );
 }
 
+
     static int
 cosign_auth( request_rec *r )
 {
@@ -160,6 +161,7 @@ cosign_auth( request_rec *r )
      * Look for cfg->service cookie. if there isn't one,
      * set it and redirect.
      */
+
     if (( data = ap_table_get( r->headers_in, "Cookie" )) == NULL ) {
 	goto set_cookie;
     }
@@ -415,7 +417,7 @@ module MODULE_VAR_EXPORT cosign_module = {
     cosign_auth,           /* [#3] check access by host address   */
     NULL,                  /* [#6] determine MIME type            */
     NULL,	  	   /* [#7] pre-run fixups                 */
-    NULL,          	   /* [#9] log a transaction              */
+    NULL,  	  	   /* [#9] log a transaction              */
     NULL,                  /* [#2] header parser                  */
     NULL,                  /* child_init                          */
     cosign_child_cleanup,  /* child_exit                          */

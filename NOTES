@@ -1,29 +1,3 @@
--linked list of hosts to try
-    sockaddr_in
-    snet = NULL;
-    next
--walk the list and always insert at end.
-**cur
-cur = &head;
------
-cur = &cur->next;
-*cur = NULL;
-
-
-connection management:
-( goals )
-    1) fail over
-    2) resource sharing
-    3) load balancing
-
-cookiefs.c knows how to look in fs for cookies - does it also know how
-to issue the verify command and copy stuff to fs?
-
-
-?? if you run thru the whole list and mark everything down, that's a
-forbidden?
-
-
 MODULE:
 
 unhappy with cookieparsing in cosign_auth().
@@ -40,15 +14,19 @@ otherwise, do we redirect? must discuss.
 
 TODO in MOD:
     kerberos
-    cookie obscuring
-    forbidden vs redirect
+    cookie obscuring - post 1.0
 
 CGI:
     logout
+    initial info and ticket propogation (belt)
+    kerberos
+    conf file
 
 COSIGND:
     idle timeout
-
+    kerberos
+    replication (suspenders)
+    conf file
 
 Protocol:
 
@@ -71,16 +49,6 @@ everyone:
     QUIT: quit
 
 Misc notes:
-
-connection management:
-
-    the parent creates a globally available structure of randomized
-    information after fetching from DNS.  children re-randomize
-    this structure locally before getting jiggy with it.
-
-    ( crappy randomness from bind (potentially removed by nscd),
-      randomness from parent, randomness from child equals load
-      balancing?  we'll see.  )
 
 configuration files:
 

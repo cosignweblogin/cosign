@@ -52,10 +52,6 @@ clean:
 	cd libsnet; ${MAKE} ${MFLAGS} clean
 	rm -f ${OBJ} mod_cosign.so
 
-#   simple test
-test: reload
-	lynx -mime_header http://localhost/cosign
-
 #   reload the module by installing and restarting Apache
 reload: install restart
 
