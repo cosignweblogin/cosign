@@ -107,8 +107,6 @@ set_cookie_and_redirect( request_rec *r, cosign_host_config *cfg )
      */
 
     ap_table_set( r->err_headers_out, "Set-Cookie", full_cookie );
-    ap_table_set( r->headers_out,
-	    "Expires", "Thurs, 27 Jan 1977 21:20:00 GMT" );
     if (( port = ap_get_server_port( r )) == 443 ) {
 	ref = ap_psprintf( r->pool, "https://%s%s", 
 		ap_get_server_name( r ), r->unparsed_uri );
