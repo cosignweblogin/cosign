@@ -13,11 +13,11 @@ case $1 in
     ;;
 
     'stop')
-	# this will kill when we have a pid file
+	#kill -15 `ps -def | grep [c]osignd | awk '{print $2}'`
     ;;
 
     'restart')
-	# this will HUP when we have a pid file
+	#kill -HUP `ps -def | grep [c]osignd | awk '{print $2}'`
     ;;
 
     *)
