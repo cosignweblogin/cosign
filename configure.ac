@@ -77,6 +77,7 @@ CHECK_SSL
 
 # Checks for filters:
 CHECK_APACHE_APXS
+CHECK_APACHE_APXS2
 
 if test "x_$FILTERS" = "x_" ; then
   AC_MSG_ERROR([No web server found])

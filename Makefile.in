@@ -7,7 +7,7 @@ filters:	@FILTERS@
 all:		filters
 everything:	${ALL}
 
-cgi daemon filters/apache:	version.o common libsnet
+cgi daemon filters/apache filters/apache2:	version.o common libsnet
 cgi:	libcgi
 
 ${ALL}:	version.o FRC
