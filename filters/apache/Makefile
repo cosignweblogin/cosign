@@ -20,8 +20,13 @@ OBJ=	mod_cosign.o mkcookie.o fbase64.o connect.o cookiefs.o sparse.o \
 all: mod_cosign.so
 
 #   compile the DSO file
-mod_cosign.so: ${OBJ}
+mod_cosign.so: libsnet/libsnet.a ${OBJ}
 	$(APXS) -c $(LIB) ${OBJ}
+
+FRC :
+
+libsnet/libsnet.a : FRC
+	cd libsnet; ${MAKE} ${MFLAGS} CC=${CC}
 
 version.o : version.c
 	${CC} ${CFLAGS} \
@@ -44,7 +49,8 @@ dist   : clean
 
 #   cleanup
 clean:
-	-rm -f ${OBJ} mod_cosign.so
+	cd libsnet; ${MAKE} ${MFLAGS} clean
+	rm -f ${OBJ} mod_cosign.so
 
 #   simple test
 test: reload
