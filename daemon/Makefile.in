@@ -11,7 +11,6 @@ COSIGNCADIR=@cosigncadir@
 COSIGNCERT=@cosigncert@
 COSIGNKEY=@cosignkey@
 COSIGNHOST = @cosignhost@
-COSIGNREPLHOST = @cosignreplhost@
 COSIGNSYSLOG=LOG_LOCAL7
 
 INCPATH=        @CPPFLAGS@ -I../libsnet -I../common
@@ -56,7 +55,6 @@ monster: ${MOBJ} Makefile
 daemon.o : daemon.c
 	${CC} ${CFLAGS} \
 	-D_COSIGN_CONF=\"${COSIGNCONF}\" \
-	-D_COSIGN_REPL_HOST=\"${COSIGNREPLHOST}\" \
 	-D_COSIGN_DIR=\"${COSIGNDB}\" \
 	-D_COSIGN_LOG=${COSIGNSYSLOG} \
 	-D_COSIGN_TLS_CADIR=\"${COSIGNCADIR}\" \
