@@ -113,8 +113,6 @@ cosign_init(apr_pool_t *p, apr_pool_t *plog, apr_pool_t *ptemp, server_rec *s)
 
     ap_log_error( APLOG_MARK, APLOG_INFO|APLOG_NOERRNO, 0, s,
 	    "mod_cosign: version %s initialized.", cosign_version );
-fprintf( stderr, "mod_cosign: version %s init\n", cosign_version );
-
     return( OK );
 }
 
@@ -277,13 +275,13 @@ cosign_auth( request_rec *r )
     if (( cookiename == NULL ) || ( strlen( pair ) < 120 )) {
 	goto set_cookie;
     }
+    my_cookie = apr_psprintf( r->pool, "%s=%s", cookiename, pair );
 
     /*
      * Validate cookie with backside server.  If we already have a cached
      * version of the data, just verify the cookie's still valid.
      * Otherwise, retrieve the auth info from the server.
      */
-    my_cookie = apr_psprintf( r->pool, "%s=%s", cookiename, pair );
     if (( cv = cosign_cookie_valid( cfg, my_cookie, &si,
 	    r->connection->remote_ip )) < 0 ) {	
 	return( HTTP_SERVICE_UNAVAILABLE );	/* it's all forbidden! */

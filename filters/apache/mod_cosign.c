@@ -277,13 +277,13 @@ cosign_auth( request_rec *r )
     if (( cookiename == NULL ) || ( strlen( pair ) < 120 )) {
 	goto set_cookie;
     }
+    my_cookie = ap_psprintf( r->pool, "%s=%s", cookiename, pair );
 
     /*
      * Validate cookie with backside server.  If we already have a cached
      * version of the data, just verify the cookie's still valid.
      * Otherwise, retrieve the auth info from the server.
      */
-    my_cookie = ap_psprintf( r->pool, "%s=%s", cookiename, pair );
     if (( cv = cosign_cookie_valid( cfg, my_cookie, &si,
 	    r->connection->remote_ip )) < 0 ) {	
 	return( HTTP_SERVICE_UNAVAILABLE );	/* it's all forbidden! */
