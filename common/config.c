@@ -38,13 +38,18 @@ chosts_find( char *hostname )
 chosts_free()
 {
     struct chosts 	*cur, *next;
+    struct proxies	*pcur, *pnext;
 
-    cur = authlist;
-    while ( cur != NULL ) {
+    for ( cur = authlist; cur != NULL; cur = next ) {
 	free( cur->ch_hostname );
+	for ( pcur = cur->ch_proxies; pcur != NULL; pcur = pnext ) {
+	    free( pcur->pr_hostname );
+	    free( pcur->pr_cookie );
+	    pnext = pcur;
+	    free( pcur );
+	}
 	next = cur->ch_next;
 	free( cur );
-	cur = next;
     }
     authlist = NULL;
     return;
@@ -108,8 +113,9 @@ chosts_read( char *path )
 	}
 
 	new->ch_hostname = strdup( av[ 1 ] );
-
 	new->ch_flag = 0;
+	new->ch_proxies = NULL;
+
 	if (( ac >= 3 ) && ( new->ch_key == SERVICE )) {
 	    if ( strchr( av[ 2 ], 'T' ) != 0 ) {
 		new->ch_flag |= CH_TICKET;
