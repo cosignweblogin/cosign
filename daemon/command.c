@@ -84,6 +84,7 @@ f_login( sn, ac, av )
     char		tmppath[ MAXPATHLEN ];
     FILE		*tmpfile;
     struct timeval	tv;
+    struct cinfo	ci;
     int			fd;
     extern int		errno;
 
@@ -164,10 +165,35 @@ f_login( sn, ac, av )
 	if ( unlink( tmppath ) != 0 ) {
 	    syslog( LOG_ERR, "f_login: unlink: %m" );
 	}
-	if( errno == EEXIST ) {
+	if ( errno == EEXIST ) {
 	    syslog( LOG_ERR, "f_login: file already exists: %s", av[ 1 ]);
+	    if ( read_a_cookie( av[ 1 ], &ci ) != 0 ) {
+		syslog( LOG_ERR, "f_login: read_a_cookie: XXX" );
+		snet_writef( sn, "%d LOGIN error: Sorry\r\n", 503 );
+		return( 1 );
+	    }
+	    if ( ci.ci_state == 0 ) {
+		syslog( LOG_ERR,
+			"f_login: %s already logged out", av[ 1 ] );
+		snet_writef( sn, "%d LOGIN: Already logged out\r\n", 505 );
+		return( 1 );
+	    }
+	    if ( strcmp( av[ 2 ], ci.ci_ipaddr ) != 0 ) {
+		syslog( LOG_ERR, "%s in cookie %s does not match %s",
+			ci.ci_ipaddr, av[ 1 ], av[ 2 ] );
+		snet_writef( sn,
+			"%d IP address given does not match cookie\r\n", 401 );
+		return( 1 );
+	    }
+	    if ( strcmp( av[ 3 ], ci.ci_user ) != 0 ) {
+		syslog( LOG_ERR, "%s in cookie %s does not match %s",
+			ci.ci_user, av[ 1 ], av[ 3 ] );
+		snet_writef( sn,
+			"%d user name given does not match cookie\r\n", 402 );
+		return( 1 );
+	    }
 	    snet_writef( sn,
-		    "%d LOGIN error: Cookie already exists\r\n", 400 );
+		    "%d LOGIN: Cookie already exists\r\n", 201 );
 	    return( 1 );
 	}
 	syslog( LOG_ERR, "f_login: link: %m" );
@@ -294,7 +320,7 @@ f_register( sn, ac, av )
 	return( 1 );
     }
 
-    if( strcmp( av[ 2 ], ci.ci_ipaddr ) != 0 ) {
+    if ( strcmp( av[ 2 ], ci.ci_ipaddr ) != 0 ) {
 	syslog( LOG_ERR, "%s in cookie %s does not match %s",
 		ci.ci_ipaddr, av[ 1 ], av[ 2 ] );
 	snet_writef( sn,
@@ -458,9 +484,11 @@ command( fd )
 
     tv.tv_sec = 60 * 10;	/* 10 minutes, should get this from config */
     tv.tv_usec = 0;
+
     while (( line = snet_getline( snet, &tv )) != NULL ) {
 	tv.tv_sec = 60 * 10;
 	tv.tv_usec = 0;
+syslog( LOG_INFO, "line: %s", line );
 	if (( ac = argcargv( line, &av )) < 0 ) {
 	    syslog( LOG_ERR, "argcargv: %m" );
 	    break;
@@ -487,11 +515,15 @@ command( fd )
 	}
     }
 
-    snet_writef( snet,
-	    "421 Service not available, closing transmission channel\r\n" );
-
-    if ( line == NULL ) {
-	syslog( LOG_ERR, "snet_getline: %m" );
+    if ( line != NULL ) {
+	snet_writef( snet,
+		"421 Service not available, closing transmission channel\r\n" );
+    } else {
+	if ( snet_eof( snet )) {
+	    syslog( LOG_ERR, "client dropped connection" );
+	} else {
+	    syslog( LOG_ERR, "snet_getline: %m" );
+	}
     }
 
     exit( 1 );
