@@ -206,7 +206,7 @@ f_login( SNET *sn, int ac, char *av[], SNET *pushersn )
 		return( -1 );
 	    }
 	    if ( snprintf( krbpath, sizeof( krbpath ), "%s/%s",
-		    TKT_PREFIX, tmpkrb ) > sizeof( krbpath )) {
+		    TKT_PREFIX, tmpkrb ) >= sizeof( krbpath )) {
 		syslog( LOG_ERR, "f_login: krbpath too long." );
 		return( -1 );
 	    }
