@@ -33,8 +33,6 @@ struct cgi_list cl[] = {
         { "uniqname", NULL },
 #define CL_PASSWORD	1
         { "password", NULL },
-#define CL_LINK		2
-        { "link", NULL },
         { NULL, NULL },
 };
 
@@ -123,7 +121,7 @@ subfile( char *filename )
 main( int argc, char *argv[] )
 {
     char	*tmpl = REDIRECT_HTML;
-    char	*cookie = NULL, *data, *ip_addr, *script;
+    char	*cookie = NULL, *data, *ip_addr, *script, *qs;
 
     if ( argc == 2 && ( strncmp( argv[ 1 ], "-V", 2 ) == 0 )) {
 	printf( "%s\n", version );
@@ -168,10 +166,12 @@ main( int argc, char *argv[] )
     /* clobber the cosign cookie and display logout screen */
     fputs( "Set-Cookie: cosign=; path=/; expires=Wednesday, 16-Apr-73 02:10:00 GMT; secure\n", stdout );
 
-    if (( cl[ CL_LINK ].cl_data != NULL ) &&
-	    ( *cl[ CL_LINK ].cl_data != '\0' )) {
+    if ((( qs = getenv( "QUERY_STRING" )) != NULL ) &&
+	    ( *qs != '\0' ) &&
+	    ( strncmp( qs, "http", 4 ) == 0 )) {
 
-	url = (char *)cl[ CL_LINK ].cl_data;
+	/* query string looks like a url, redirect to it */
+	url = strdup( qs );
     }
 
     htputs( "Cache-Control: private, must-revalidate, no-cache\n"
