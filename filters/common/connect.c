@@ -18,6 +18,10 @@
 #include "cosign.h"
 #include "argcargv.h"
 
+#define IP_SZ 254
+#define USER_SZ 30
+#define REALM_SZ 254
+
 static int choose_conn();
 static int connect_sn( struct connlist *);
 static int close_sn( SNET *);
@@ -115,17 +119,17 @@ netcheck_cookie( char *secant, struct sinfo *si )
     }
 
     /* I guess we check some sizing here :) */
-    if ( strlen( av[ 1 ] ) >= sizeof( si->si_ipaddr )) {
+    if ( strlen( av[ 1 ] ) >= IP_SZ ) {
 	fprintf( stderr, "Swedish hacker port?\n" );
 	return( -1 );
     }
     strcpy( si->si_ipaddr, av[ 1 ] );
-    if ( strlen( av[ 2 ] ) >= sizeof( si->si_user )) {
+    if ( strlen( av[ 2 ] ) >= USER_SZ ) {
 	fprintf( stderr, "Swedish hacker port?\n" );
 	return(- 1 );
     }
     strcpy( si->si_user, av[ 2 ] );
-    if ( strlen( av[ 3 ] ) >= sizeof( si->si_realm )) {
+    if ( strlen( av[ 3 ] ) >= REALM_SZ ) {
 	fprintf( stderr, "Swedish hacker port?\n" );
 	return( -1 );
     }
