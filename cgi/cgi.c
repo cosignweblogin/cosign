@@ -187,7 +187,13 @@ main( int argc, char *argv[] )
 	    title = "Authentication Required";
 
 	    /* XXX lame hack to make ref work */
-	    printf( "Set-Cookie: cosign=expired; path=/; secure\n" );
+	    if ( mkcookie( sizeof( new_cookiebuf ), new_cookiebuf ) != 0 ) {
+		fprintf( stderr, "%s: mkcookie: failed\n", script );
+		exit( SIDEWAYS );
+	    }
+
+	    sprintf( new_cookie, "cosign=%s", new_cookiebuf );
+	    printf( "Set-Cookie: %s; path=/; secure\n", new_cookie );
 
 	    tmpl = SPLASH_HTML;
 	    subfile( tmpl );
