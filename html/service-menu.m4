@@ -7,16 +7,6 @@ include(`header.html')
 
 	    <ul>
 		<li>
-		    <a href="https://babbler.web.itd.umich.edu"> ITCS
-		    Development Server. </a>
-
-		    <blockquote>
-			You do not really want this server as there is
-			nothing interesting on it for you.
-		    </blockquote>
-		</li>
-
-		<li>
 		    <a href="https://spg.umich.edu/admin/">SPG Admin</a>
 
 		    <blockquote>
@@ -35,7 +25,6 @@ include(`header.html')
 
 		<li>
 		    <a href="https://weblogin.umich.edu/cgi-bin/logout">logout</a>
-
 		    <blockquote>
 			Initiate the logout process.
 		    </blockquote>

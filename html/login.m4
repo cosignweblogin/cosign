@@ -2,7 +2,7 @@ define( `ONLOAD', `1' )
 include(`header.html')
 
 	<td valign="top">
-	    <form name="login" action="$s"
+	    <form name="login" action="/"
 		    enctype="application/x-www-form-urlencoded"
 		    method="post" autocomplete="off">
 

@@ -1,8 +1,9 @@
 CGIBIN	= /usr/local/projects/cosign/cgi-ssl
+DOCROOT	= /usr/local/projects/cosign/html
 
 CC	= gcc
 DEFS	= -DTLS
-TARGETS	= cosign logout
+TARGETS	= cosign.cgi logout
 OBJ	= mkcookie.o fbase64.o network.o ../version.o
 
 KDIR	= /usr/local/krb5
@@ -22,8 +23,8 @@ CFLAGS	= -g -Wall $(DEFS) $(INC)
 
 all: ${TARGETS}
 
-cosign: cgi.o $(OBJ)
-		${CC} -o cosign cgi.o $(OBJ) $(LIBS) $(LDFLAGS)
+cosign.cgi: cgi.o $(OBJ)
+		${CC} -o cosign.cgi cgi.o $(OBJ) $(LIBS) $(LDFLAGS)
 
 logout: logout.o $(OBJ)
 		${CC} -o logout logout.o $(OBJ) $(LIBS)
@@ -33,4 +34,5 @@ clean:
 		/bin/rm -rf *.o ${TARGETS}
 
 install: all
-		/bin/cp $(TARGETS) $(CGIBIN)
+		/bin/cp logout $(CGIBIN)
+		/bin/cp cosign.cgi $(DOCROOT)
