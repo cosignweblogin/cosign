@@ -19,9 +19,11 @@
 #include "logname.h"
 #include "monster.h"
 
-/* 90 minutes */
-int		idle = 45000;
+/* 120 minutes */
+int		idle = 14400;
 int		interval = 20;
+int		hard_timeout = 43200;
+int		logged_out = 7200;
 int             debug = 0;
 extern char	*cosign_version;
 
@@ -60,7 +62,7 @@ main( int ac, char **av )
 	prog++;
     }
 
-    while (( c = getopt( ac, av, "dh:i:I:L:p:x:y:z:" )) != EOF ) {
+    while (( c = getopt( ac, av, "dh:H:i:I:l:L:p:x:y:z:" )) != EOF ) {
 	switch ( c ) {
 	case 'd' :		/* debug */
 	    debug++;
@@ -70,12 +72,20 @@ main( int ac, char **av )
 	    cosign_host = optarg;
 	    break;
 
+	case 'H' :		/* hard timeout for all cookies */
+	    hard_timeout = atoi( optarg );
+	    break;
+
 	case 'i' :              /* idle timeout in seconds*/
 	    idle = atoi( optarg );
 	    break;
 
 	case 'I' :              /* timestamp pushing interval*/
 	    interval = atoi( optarg );
+	    break;
+
+	case 'l' :              /* how long to keep logged out cookies*/
+	    logged_out = atoi( optarg );
 	    break;
 
 	case 'L' :              /* syslog facility */
@@ -114,7 +124,8 @@ main( int ac, char **av )
 
     if ( err || optind != ac ) {
 	fprintf( stderr, "Usage: monster [ -dV ] [ -h cosignd host ] ");
-	fprintf( stderr, "[ -i idletimeinsecs  ] [ -I update interval ] " );
+	fprintf( stderr, "[ -H hard timeout  ] [ -i idletimeinsecs ] " );
+	fprintf( stderr, "[ -I update interval ] [ -l logged out time ]  " );
 	fprintf( stderr, "[ -L syslog facility] [ -p port ] [ -x ca dir ] " );
 	fprintf( stderr, "[ -y cert file] [ -z private key file ]\n" );
 	exit( -1 );
@@ -367,7 +378,7 @@ main( int ac, char **av )
 decision( char *name, struct timeval *now, time_t *itime )
 {
     struct cinfo	ci = { 0, 0, "\0","\0","\0", "\0","\0", 0, };
-    int			rc;
+    int			rc, create = 0;
     extern int		errno;
 
 
@@ -382,11 +393,19 @@ decision( char *name, struct timeval *now, time_t *itime )
 	return( 0 );
     }
 
-    if ( !ci.ci_state ) {
+    /* logged out plus extra non-fail overtime */
+    if ( !ci.ci_state && (( now->tv_sec - ci.ci_itime ) > logged_out )) {
 	goto delete_stuff;
     }
 
-    if ( now->tv_sec - ci.ci_itime  > idle ) {
+    /* idle out, plus gray window, plus non-failover */
+    if (( now->tv_sec - ci.ci_itime )  > idle ) {
+	goto delete_stuff;
+    }
+
+    /* hard timeout */
+    create = atoi( ci.ci_ctime );
+    if (( now->tv_sec - create )  > hard_timeout ) {
 	goto delete_stuff;
     }
 
