@@ -42,7 +42,7 @@ cosign_create_dir_config( pool *p, char *path )
     cfg->ctx = NULL;
     cfg->key = NULL;
     cfg->cert = NULL;
-    cfg->ca = NULL;
+    cfg->cadir = NULL;
     return( cfg );
 
 }
@@ -64,7 +64,7 @@ cosign_create_server_config( pool *p, server_rec *s )
     cfg->ctx = NULL;
     cfg->key = NULL;
     cfg->cert = NULL;
-    cfg->ca = NULL;
+    cfg->cadir = NULL;
     return( cfg );
 }
 
@@ -357,10 +357,11 @@ set_cosign_certs( cmd_parms *params, void *mconfig,
 
     cfg->key = ap_pstrdup( params->pool, one );
     cfg->cert = ap_pstrdup( params->pool, two );
-    cfg->ca = ap_pstrdup( params->pool, three );
+    cfg->cadir = ap_pstrdup( params->pool, three );
 
-    if (( cfg->key == NULL ) || ( cfg->cert == NULL ) || ( cfg->ca == NULL)) {
-	return( "you know you want the crypto!" );
+    if (( cfg->key == NULL ) || ( cfg->cert == NULL ) ||
+	    ( cfg->cadir == NULL)) {
+	return( "You know you want the crypto!" );
     }
 
     SSL_load_error_strings();
@@ -389,7 +390,7 @@ set_cosign_certs( cmd_parms *params, void *mconfig,
 		ERR_error_string( ERR_get_error(), NULL ));
 	exit( 1 );
     }
-    if ( SSL_CTX_load_verify_locations( cfg->ctx, cfg->ca, NULL ) != 1 ) {
+    if ( SSL_CTX_load_verify_locations( cfg->ctx, NULL, cfg->cadir ) != 1 ) {
 	ap_log_error( APLOG_MARK, APLOG_ERR|APLOG_NOERRNO, params->server,
 		"SSL_CTX_load_verify_locations: %s: %s\n",
 		cfg->key, ERR_error_string( ERR_get_error(), NULL ));

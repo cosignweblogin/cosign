@@ -10,7 +10,7 @@ typedef struct {
     SSL_CTX		*ctx;
     char		*cert;
     char		*key;
-    char		*ca;
+    char		*cadir;
 } cosign_host_config;
 
 
