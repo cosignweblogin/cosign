@@ -31,7 +31,8 @@ Before you begin:
 To build the Apache authentication filter:
 
     NOTE: On Redhat 9, kerberos is in a  non-standard place, and so, by
-    default, configure may not find it.
+    default, configure may not find it. So if you need to use
+    kerberos ticket transfers, you will need to do the following.
     
     Add "env CPPFLAGS=-I/usr/kerberos/include" before  you run configure. So in
     csh your configure line will look  like this:

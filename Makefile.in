@@ -1,6 +1,7 @@
 CC=	@CC@
 ALL=	common libsnet @FILTERS@ libcgi cgi html daemon 
 TARGETS= cgi html daemon @FILTERS@
+FILTERS= @FILTERS@
 CFLAGS=
 
 filters:	@FILTERS@
@@ -37,7 +38,9 @@ distclean: clean
 	rm -rf autom4te.cache
 
 install: @FILTERS@
-	cd filters/apache; ${MAKE} ${MFLAGS} install
+	for i in ${FILTERS}; \
+	    do (cd $$i; ${MAKE} ${MFLAGS} install); \
+	done
 
 install-all : everything
 	for i in ${TARGETS}; \
