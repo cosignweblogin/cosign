@@ -1,0 +1,144 @@
+-linked list of hosts to try
+    sockaddr_in
+    snet = NULL;
+    next
+-walk the list and always insert at end.
+**cur
+cur = &head;
+-----
+cur = &cur->next;
+*cur = NULL;
+
+
+connection management:
+( goals )
+    1) fail over
+    2) resource sharing
+    3) load balancing
+
+cookiefs.c knows how to look in fs for cookies - does it also know how
+to issue the verify command and copy stuff to fs?
+
+if sinlist hasn't been copied into conn_list, do it.
+
+choose_conn() - conn_head is the one to use
+    -open if it needs to be, otherwise use
+    -if there is a problem, mark it as so and then go on to open another one
+        -once the new one is open, move it to the head
+
+cur = conn_head->next;
+conn_head->next = cur->next;
+cur->next = conn_head;
+conn_head = cur;
+
+( inserts cur at the head of the list )
+
+most recently used?
+
+?? if you run thru the whole list and mark everything down, that's a
+forbidden?
+
+
+check cookie in fs
+    yes check cache expired
+	yes revalidate
+	    yes setup env
+	else
+	    no there's an error
+    no go to setup env
+else
+     no cookie data retr
+     setup env
+
+struct cookieinfo {
+    char        *cookie
+    char        *name;
+    char        *realm;
+    char        *ip;
+    time_t      checktime;
+}
+
+logged_out?
+
+declare cookieinfo on the stack in cookiefs?
+-check for file with name cookie infs ( stat )
+-if there, read into local cookieinfo
+-if atime is in the cache window, compare cookieinfo local with
+cookieinfo from
+module?
+
+fill in cookie, name, realm, ip
+
+cookie_valid returns 0, which is "move along", -1, which is "set a
+cookie and redirect" if we want to know what the cookie problem is, we
+could use error codes.  we could have a big ugly switch.
+
+
+MODULE:
+
+if in set_cookie_and_redirect we are POSTing, redirect to
+CosignPostErrorRedirect instead.
+
+upon cookie_ok, module sets up cgi env ( remote user etc )
+    snprintf( tfname, MAXPATHLEN - 1 , "%s%s", TICKET_PREFIX, user );
+    /* aka "/ticket/kerb.canna" in current system */
+    krb_set_tkt_string( tfname );
+    ap_table_set( r->subprocess_env, "KRBTKFILE", tfname );
+    ap_table_set( r->subprocess_env, "REMOTE_REALM", realm );
+    r->connection->user is REMOTE_USER, i believe
+otherwise, do we redirect? must discuss.
+
+Protocol:
+
+cosign.cgi:
+    CREATE login_cookie ip
+    LOGIN login_cookie ip princ [ tgt ]
+    LOGOUT login_cookie ip
+    REGISTER login_cookie ip service_cookie
+
+mod_cosign:
+    CHECK service_cookie ip princ
+    RETRIEVE service_cookie ip [ tkt ]
+
+cosignd:
+    POLL timestamp
+
+everyone:
+    START_TLS
+    NOOP: no op.
+    QUIT: quit
+
+Misc notes:
+
+connection management:
+
+    the parent creates a globally available structure of randomized
+    information after fetching from DNS.  children re-randomize
+    this structure locally before getting jiggy with it.
+
+    ( crappy randomness from bind (potentially removed by nscd),
+      randomness from parent, randomness from child equals load
+      balancing?  we'll see.  )
+
+configuration files:
+
+    module:  configured entirely in web server config files.  has
+	    a directive that lists which tickets it will ask for
+	    per location?  per directory?  per server?  all of the
+	    above?
+
+    cosignd: has a list ( in /usr/local/etc/cosign.conf? ) of
+	    services, which tickets they can request, top of site,
+	    top of site policy, name of service for display ( e.g.
+	    "Conferencing on the Web" ), name of service for cookies
+	    minus cosign- ( e.g.  "cow" ), is include in service list?.
+
+	    possible additions:
+	    audience (for service list)
+
+	    structure: flat text file -- csv?  pipe delimited?
+		    elephant/cheese delimited?
+
+    cosign.cgi: uses same conf file as cosignd.
+
+
