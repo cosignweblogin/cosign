@@ -5,6 +5,7 @@ include(`header.html')
 <form name="f" action="/"
 	enctype="application/x-www-form-urlencoded"
 	method="post" autocomplete="off">
+<input type="hidden" name="ref" value="$r">
 
 <p>
     By using this service you agree to adhere to <a
@@ -43,7 +44,6 @@ include(`header.html')
 
     <tr>
 	<td colspan="2" align="right" bgcolor="#FFFFFF">
-	    <input type="hidden" name="ref" value="$r">
 	    <input type="submit" value="Login">
 	    <p class="error" align="center">$e</p>
 	</td>
