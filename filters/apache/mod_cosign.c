@@ -339,6 +339,7 @@ set_cosign_protect( cmd_parms *params, void *mconfig, int flag )
 	if ( cfg->service == NULL ) {
 	    cfg->service = ap_pstrdup( params->pool, scfg->service );
 	}
+	cfg->proxy = scfg->proxy; 
 #ifdef KRB
 	cfg->krbtkt = scfg->krbtkt; 
 #ifdef GSS
