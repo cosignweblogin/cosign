@@ -132,20 +132,20 @@ set_cookie_and_redirect( request_rec *r, cosign_host_config *cfg )
     unsigned int	port;
     struct timeval	now;
 
+    /* if they've posted, let them know they are out of luck */
+    if ( r->method_number == M_POST ) {
+	dest = ap_psprintf( r->pool, "%s", cfg->posterror );
+	ap_table_set( r->headers_out, "Location", dest );
+	return( 0 );
+    }
+
     if ( mkcookie( sizeof( cookiebuf ), cookiebuf ) != 0 ) {
 	cosign_log( APLOG_ERR, r->server,
 		"mod_cosign: Raisins! Something wrong with mkcookie()" );
 	return( -1 );
     }
 
-    if ( r->method_number == M_POST ) {
-	dest = ap_psprintf( r->pool, "%s", cfg->posterror );
-	ap_table_set( r->headers_out, "Location", dest );
-	return( 0 );
-    } else {
-	my_cookie = ap_psprintf( r->pool,
-		"%s=%s", cfg->service, cookiebuf );
-    }
+    my_cookie = ap_psprintf( r->pool, "%s=%s", cfg->service, cookiebuf );
 
     /* older version of IE on MacOS 9 seem to need ";;" instead of */
     /* simply ";" as the cookie delimiter, otherwise no cookie is */
@@ -874,6 +874,7 @@ set_cosign_expiretime( cmd_parms *params, void *mconfig, char *arg )
 	cfg = (cosign_host_config *) ap_get_module_config(
 		params->server->module_config, &cosign_module );
     } else {
+	/* maybe we need to rethink this */
 	return( "Service cookie expiration policy applies server-wide.");
     }
 
