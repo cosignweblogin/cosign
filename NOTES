@@ -29,14 +29,14 @@ ISSUES:
 Protocol:
 
 cosign.cgi:
-    LOGIN login_cookie ip princ realm [ tgt ]
+    LOGIN login_cookie ip princ realm "kerberos"
     LOGOUT login_cookie ip
     REGISTER login_cookie ip service_cookie
     CHECK login_cookie
 
 mod_cosign:
     CHECK service_cookie
-    RETRIEVE service_cookie ip [ tkt ]
+    RETRIEVE service_cookie ip tkt 
 
 cosignd:
     POLL timestamp
@@ -50,22 +50,14 @@ Misc notes:
 
 configuration files:
 
-    module:  configured entirely in web server config files.  has
-	    a directive that lists which tickets it will ask for
-	    per location?  per directory?  per server?  all of the
-	    above?
 
     cosignd: has a list ( in /usr/local/etc/cosign.conf? ) of
-	    services, which tickets they can request, top of site,
+	    services, which tickets they can request.
+
+    cosign.cgi: service menu top of site,
 	    top of site policy, name of service for display ( e.g.
 	    "Conferencing on the Web" ), name of service for cookies
 	    minus cosign- ( e.g.  "cow" ), is include in service list?.
-
-	    possible additions:
-	    audience (for service list)
-
-
-    cosign.cgi: service menu
 
 FILE FORMAT:
 
