@@ -22,6 +22,13 @@ AC_DEFUN([CHECK_SSL],
     if test ! -e "$ac_cv_path_ssl" ; then
         AC_MSG_ERROR(cannot find ssl libraries)
     fi
+    if test "X$host_os" = "Xaix" ; then
+	ADDLIBS="-lssl -lcrypto";
+	AC_SUBST(ADDLIBS)
+	ADDLDFLAGS="-L$ac_cv_path_ssl/lib";
+	AC_SUBST(ADDLDFLAGS)
+    fi
+
     CPPFLAGS="$CPPFLAGS -I$ac_cv_path_ssl/include";
     TLSDEFS=-DTLS;
     AC_SUBST(TLSDEFS)
@@ -138,6 +145,7 @@ AC_DEFUN([CHECK_APACHE_APXS],
         fi
         AC_SUBST(APXS)
         AC_SUBST(APXS_INCLUDE)
+        AC_SUBST(APXS_CFLAGS)
         AC_SUBST(APXS_CFLAGS_SHLIB)
         AC_SUBST(APACHECTL)
         AC_MSG_RESULT($APXS)

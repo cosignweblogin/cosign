@@ -12,6 +12,8 @@ AC_PROG_INSTALL
 AC_PROG_LEX
 AC_PROG_YACC
 
+AC_CANONICAL_HOST 
+
 # Checks for libraries.
 AC_CHECK_LIB([nsl], [inet_ntoa])
 AC_CHECK_LIB([socket], [socket])
@@ -39,6 +41,9 @@ AC_SUBST(cosigncert)
 AC_ARG_WITH(cosignkey, AC_HELP_STRING([--with-cosignkey=FILE], [default cosign
 key file location]), cosignkey="$withval", cosignkey="/var/cosign/certs/key.pem" )
 AC_SUBST(cosignkey)
+
+AC_ARG_WITH(filterdb, AC_HELP_STRING([--with-filterdb=DIR], [default cosign filter database storage]), filterdb="$withval", filterdb="/var/cosign/filter" )
+AC_SUBST(filterdb)
 
 CHECK_SSL
 

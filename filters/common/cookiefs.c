@@ -22,8 +22,9 @@
 #include "sparse.h"
 #include "cosign.h"
 
-#define CPATH		"/var/cosign/filter"
 #define IDLETIME	60
+
+char	*filterdb = _FILTER_DB;
 
     int
 cookie_valid( cosign_host_config *cfg, char *cookie, struct sinfo *si,
@@ -41,7 +42,7 @@ cookie_valid( cosign_host_config *cfg, char *cookie, struct sinfo *si,
 	return( -1 );
     }
 
-    if ( snprintf( path, MAXPATHLEN, "%s/%s", CPATH, cookie ) >= MAXPATHLEN ) {
+    if ( snprintf( path, MAXPATHLEN, "%s/%s", filterdb, cookie ) >= MAXPATHLEN ) {
 	fprintf( stderr, "cookie_valid: cookie too long\n" );
 	return( -1 );
     }
@@ -133,7 +134,7 @@ cookie_valid( cosign_host_config *cfg, char *cookie, struct sinfo *si,
     }
 
     /* store local copy of scookie (service cookie) */
-    if ( snprintf( tmppath, MAXPATHLEN, "%s/%x%x.%i", CPATH,
+    if ( snprintf( tmppath, MAXPATHLEN, "%s/%x%x.%i", filterdb,
 	    tv.tv_sec, tv.tv_usec, (int)getpid()) >= MAXPATHLEN ) {
 	fprintf( stderr, "cookiefs: tmppath too long\n" );
 	return( -1 );
