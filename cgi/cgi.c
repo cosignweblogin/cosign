@@ -106,7 +106,7 @@ subfile( char *filename )
                         if ( strchr( nasties, ref[ i ] ) != NULL ||
                                 ref[ i ] <= 0x1F || ref[ i ] >= 0x7F ) {
 
-			    if ( ref[ i ] == '?' ) {
+			    if ( ref[ i ] == '?' || ref[ i ] == '=' ) {
 				putc( ref[ i ], stdout );
 			    } else {
 				printf( "%%%x", ref[ i ] );
