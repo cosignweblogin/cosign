@@ -31,6 +31,13 @@ To build the central cosign server ( the weblogin server ):
     The daemon (cosignd) requires  /var/cosign/daemon to exist and be
     writeable by the user the daemon runs as, by default "cosign".
 
+    Also, in order to avoid the warning:
+
+	cosignd: can't find cosign service 
+
+    add cosignd to /etc/services on port 6663 ( the default ) or
+    whatever port you are running it on.
+
 Testing your certificates:
 
     You want to make sure that the certs you have are able to be used as
