@@ -13,7 +13,8 @@ APACHECTL=apachectl
 INC=-I/usr/local/openssl/include -I/usr/local/apache/include -I./libsnet
 CFLAGS=	${DEF} ${INC} -DEAPI
 LIB=-L/usr/local/openssl/lib -lcrypto -L./libsnet -lsnet
-OBJ=	mod_cosign.o mkcookie.o fbase64.o connect.o bprint.o cookiefs.o sparse.o argcargv.o
+OBJ=	mod_cosign.o mkcookie.o fbase64.o connect.o cookiefs.o sparse.o \
+	argcargv.o version.o
 
 #   the default target
 all: mod_cosign.so
@@ -22,10 +23,24 @@ all: mod_cosign.so
 mod_cosign.so: ${OBJ}
 	$(APXS) -c $(LIB) ${OBJ}
 
+version.o : version.c
+	${CC} ${CFLAGS} \
+	    -DVERSION=\"`cat VERSION`\" \
+	    -c version.c
+
 #   install the DSO file into the Apache installation
 #   and activate it in the Apache configuration
 install: all
 	$(APXS) -i -a -n 'cosign' mod_cosign.so
+
+VERSION=`date +%Y%m%d`
+DISTDIR=../mod_cosign-${VERSION}
+
+dist   : clean
+	mkdir ${DISTDIR}
+	tar chfFFX - EXCLUDE . | ( cd ${DISTDIR}; tar xvf - )
+	chmod +w ${DISTDIR}/Makefile
+	echo ${VERSION} > ${DISTDIR}/VERSION
 
 #   cleanup
 clean:

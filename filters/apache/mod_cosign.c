@@ -4,6 +4,7 @@
 
 #include <httpd.h>
 #include <http_config.h>
+#include <http_log.h>
 #include <http_protocol.h>
 #include <ap_config.h>
 #include <sys/socket.h>
@@ -50,6 +51,16 @@ cosign_create_server_config( pool *p, server_rec *s )
     cfg->configured = 0;
     cfg->sl = NULL;
     return( cfg );
+}
+
+    static void
+cosign_init( server_rec *s, pool *p )
+{
+    extern char	*version;
+
+    ap_log_error( APLOG_MARK, APLOG_INFO|APLOG_NOERRNO, s,
+	    "mod_cosign: version %s initialized.", version );
+    return;
 }
 
     int
@@ -311,7 +322,6 @@ set_cosign_host( cmd_parms *params, void *mconfig, char *arg )
 	memcpy( &new->s_sin.sin_addr.s_addr,
 		he->h_addr_list[ i ], ( unsigned int)he->h_length );
 	new->s_copied = 0;
-fprintf( stderr, "setting ip address: %s ", inet_ntoa( *( struct in_addr *)he->h_addr_list[ i ] ));
 	*cur = new;
 	cur = &new->s_next;
     }
@@ -360,7 +370,7 @@ command_rec cosign_cmds[ ] =
 
 module MODULE_VAR_EXPORT cosign_module = {
     STANDARD_MODULE_STUFF, 
-    NULL,	           /* module initializer                  */
+    cosign_init,	    /* module initializer                  */
     cosign_create_dir_config, /* create per-dir    config structures */
     NULL,                  /* merge  per-dir    config structures */
     cosign_create_server_config, /* create per-server config structures */
