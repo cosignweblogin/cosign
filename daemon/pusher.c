@@ -498,7 +498,7 @@ pusher( int cpipe, struct cl *cur )
     }
 
 finish:
-    if ( *line != '2' ) {
+    if (( *line != '2' ) && ( *line != '5' )) {
 	syslog( LOG_ERR, "pusherchld: %s", line );
 	if (( close_sn( cur )) != 0 ) {
 	    syslog( LOG_ERR, "pusherchld: close_sn: %m" );
