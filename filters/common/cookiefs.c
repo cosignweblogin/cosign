@@ -82,7 +82,7 @@ cookie_valid( cosign_host_config *cfg, char *cookie, struct sinfo *si,
     }
 
     if ( strcmp( ipaddr, si->si_ipaddr ) != 0 ) {
-	return( -1 );
+	return( 1 );
     }
 
     if ( rs == 0 ) {
