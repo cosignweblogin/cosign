@@ -24,8 +24,12 @@
 #include "network.h"
 #include "subfile.h"
 
-char	*keytab_path = _KEYTAB_PATH;
-char	*ticket_path = _COSIGN_TICKET_CACHE;
+#ifdef KRB || SQL_FRIEND
+
+#ifdef KRB
+static char	*keytab_path = _KEYTAB_PATH;
+static char	*ticket_path = _COSIGN_TICKET_CACHE;
+#endif /* KRB */
 
 #define LOGIN_ERROR_HTML        "../templates/login_error.html"
 #define ERROR_HTML	        "../templates/error.html"
@@ -50,10 +54,10 @@ static struct subfile_list sl[] = {
 #include <crypt.h>
 #include <mysql.h>
 
-static	MYSQL	friend_db;
-char	*friend_db_name = _FRIEND_MYSQL_DB;
-char	*friend_login = _FRIEND_MYSQL_LOGIN;
-char	*friend_passwd = _FRIEND_MYSQL_PASSWD;
+static MYSQL	friend_db;
+static char	*friend_db_name = _FRIEND_MYSQL_DB;
+static char	*friend_login = _FRIEND_MYSQL_LOGIN;
+static char	*friend_passwd = _FRIEND_MYSQL_PASSWD;
 # endif  /* SQL_FRIEND */
 
     static void
@@ -61,12 +65,14 @@ lcgi_configure()
 {
     char        *val;
 
+# ifdef KRB
     if (( val = cosign_config_get( COSIGNKEYTABKEY )) != NULL ) {
         keytab_path = val;
     }
     if (( val = cosign_config_get( COSIGNTICKKEY )) != NULL ) {
         ticket_path = val;
     }
+# endif /* KRB */
 
 # ifdef SQL_FRIEND
     if (( val = cosign_config_get( MYSQLDBKEY )) != NULL ) {
@@ -80,6 +86,7 @@ lcgi_configure()
     }
 #endif /* SQL_FRIEND */
 }
+
 # ifdef SQL_FRIEND
     void
 cosign_login_mysql( struct connlist *head, char *id, char *passwd,
@@ -379,3 +386,4 @@ cosign_login_krb5( struct connlist *head, char *id, char *passwd,
 }
 
 #endif /* KRB */
+#endif /* KRB || SQL_FRIEND */

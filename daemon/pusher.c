@@ -379,7 +379,7 @@ pusher( int cpipe, struct connlist *cur )
         return( -1 );
     }
 
-    if (( rc = connect_sn( cur, ctx, replhost )) == -2 ) {
+    if (( rc = connect_sn( cur, ctx, replhost, 0 )) == -2 ) {
 	syslog( LOG_ERR, "pusher: connect_sn permanent failure" );
 	exit( 2 );
     } else if ( rc == -1 ) {

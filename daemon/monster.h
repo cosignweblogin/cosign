@@ -18,5 +18,5 @@ struct connlist {
     struct rate		cl_pushfail;
 };
 
-int connect_sn( struct connlist *, SSL_CTX *, char * );
+int connect_sn( struct connlist *, SSL_CTX *, char *, int );
 int close_sn( struct connlist *);

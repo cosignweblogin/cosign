@@ -8,6 +8,7 @@
 #include <sys/time.h>
 #include <sys/param.h>
 #include <netinet/in.h>
+#include <netinet/tcp.h>
 #include <arpa/inet.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -1092,11 +1093,19 @@ retr_ticket( SNET *sn, char *krbpath )
 command( int fd, SNET *pushersn )
 {
     SNET				*snet;
-    int					ac, i;
+    int					ac, i, zero = 0;
     char				**av, *line;
     struct timeval			tv;
     extern int				errno;
     double				rate;
+    struct protoent			*proto;
+
+    if (( proto = getprotobyname( "tcp" )) != NULL ) {
+	if ( setsockopt( fd, proto->p_proto, TCP_NODELAY,
+		&zero, sizeof( zero )) < 0 ) {
+	    syslog( LOG_ERR, "setsockopt TCP_NODELAY: %m" );
+	}
+    }
 
     if (( snet = snet_attach( fd, 1024 * 1024 )) == NULL ) {
 	syslog( LOG_ERR, "snet_attach: %m" );

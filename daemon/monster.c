@@ -339,7 +339,7 @@ main( int ac, char **av )
     cur = &head;
     while ( *cur != NULL ) {
 	if ( (*cur)->cl_sn == NULL ) {
-	    if ( connect_sn( *cur, m_ctx, cosign_host ) != 0 ) {
+	    if ( connect_sn( *cur, m_ctx, cosign_host, 1 ) != 0 ) {
 		goto next;
 	    }
 

@@ -8,6 +8,7 @@
 #include <sys/time.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
+#include <netinet/tcp.h>
 #include <arpa/inet.h>
 #include <unistd.h>
 #include <syslog.h>
@@ -469,14 +470,24 @@ net_check( SNET *sn, void *vcp )
     int
 connect_sn( struct connlist *conn )
 {
-    int			s, err = -1;
+    int			s, err = -1, zero = 0;
     char		*line, buf[ 1024 ];
     X509		*peer;
     struct timeval      tv;
+    struct protoent	*proto;
 
     if (( s = socket( PF_INET, SOCK_STREAM, (int)NULL )) < 0 ) {
-	    return( -1 );
+	perror( "socket" );
+	return( -1 );
     }
+
+    if (( proto = getprotobyname( "tcp" )) != NULL ) {
+	if ( setsockopt( s, proto->p_proto, TCP_NODELAY,
+		&zero, sizeof( zero )) < 0 ) {
+	    perror( "setsockopt" );
+	}
+    }
+
     if ( connect( s, ( struct sockaddr *)&conn->conn_sin,
 	    sizeof( struct sockaddr_in )) != 0 ) {
 	fprintf( stderr, "connect %s:%d: %s\n",

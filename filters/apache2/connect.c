@@ -9,6 +9,7 @@
 #include <sys/socket.h>
 #include <sys/param.h>
 #include <netinet/in.h>
+#include <netinet/tcp.h>
 #include <arpa/inet.h>
 #include <unistd.h>
 #include <stdio.h>
@@ -185,8 +186,9 @@ netretr_proxy( char *scookie, struct sinfo *si, SNET *sn, char *proxydb,
 	return( -1 );
     }
 
-    if ( snprintf( tmppath, sizeof( tmppath ), "%s/%x%x.%i", proxydb,
-            tv.tv_sec, tv.tv_usec, (int)getpid()) >= sizeof( tmppath )) {
+    if ( snprintf( tmppath, sizeof( tmppath ), "%s/%x%x.%i",
+	    proxydb, (int)tv.tv_sec, (int)tv.tv_usec, (int)getpid()) >=
+	    sizeof( tmppath )) {
 	cosign_log( APLOG_ERR, s,
 		"mod_cosign: netretr_proxy: tmppath too long");
         return( -1 );
@@ -638,18 +640,28 @@ done:
 connect_sn( struct connlist *cl, SSL_CTX *ctx, char *host, 
 	server_rec *s )
 {
-    int			sock;
+    int			sock, zero = 0;
     char		*line, buf[ 1024 ];
     X509		*peer;
     struct timeval      tv;
+    struct protoent	*proto;
 
     if (( sock = socket( PF_INET, SOCK_STREAM, (int)NULL )) < 0 ) {
+	cosign_log( APLOG_ERR, s, "mod_cosign: connect_sn: socket" );
 	return( -1 );
+    }
+
+    if (( proto = getprotobyname( "tcp" )) != NULL ) {
+	if ( setsockopt( sock, proto->p_proto, TCP_NODELAY,
+		&zero, sizeof( zero )) < 0 ) {
+	    cosign_log( APLOG_ERR, s,
+		    "mod_cosign: connect_sn: setsockopt: TCP_NODELAY" );
+	}
     }
 
     if ( connect( sock, ( struct sockaddr *)&cl->conn_sin,
 	    sizeof( struct sockaddr_in )) != 0 ) {
-	perror( "connect" );
+	cosign_log( APLOG_ERR, s, "mod_cosign: connect_sn: connect" );
 	(void)close( sock );
 	return( -1 );
     }

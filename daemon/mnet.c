@@ -8,6 +8,7 @@
 #include <sys/time.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
+#include <netinet/tcp.h>
 #include <arpa/inet.h>
 #include <unistd.h>
 #include <syslog.h>
@@ -31,16 +32,27 @@ static void (*logger)( char * ) = NULL;
 extern struct timeval	cosign_net_timeout;
 
     int
-connect_sn( struct connlist *cl, SSL_CTX *ctx, char *host )
+connect_sn( struct connlist *cl, SSL_CTX *ctx, char *host, int delay )
 {
     int			s, err = -1;
     char		*line, buf[ 1024 ];
     X509		*peer;
     struct timeval      tv;
+    struct protoent	*proto;
 
     if (( s = socket( PF_INET, SOCK_STREAM, (int)NULL )) < 0 ) {
 	    return( -1 );
     }
+
+    if ( ! delay ) {
+	if (( proto = getprotobyname( "tcp" )) != NULL ) {
+	    if ( setsockopt( s, proto->p_proto, TCP_NODELAY,
+		    &delay, sizeof( delay )) < 0 ) {
+		syslog( LOG_ERR, "setsockopt TCP_NODELAY: %m" );
+	    }
+	}
+    }
+
     if ( connect( s, ( struct sockaddr *)&cl->cl_sin,
 	    sizeof( struct sockaddr_in )) != 0 ) {
 	syslog( LOG_ERR, "connect: %m" );
