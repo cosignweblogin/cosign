@@ -38,22 +38,22 @@
 #define IDLE_OUT	7200
 #define GREY		1800
 
-static int	f_noop ___P(( SNET *, int, char *[], SNET * ));
-static int	f_quit ___P(( SNET *, int, char *[], SNET * ));
-static int	f_help ___P(( SNET *, int, char *[], SNET * ));
-static int	f_notauth ___P(( SNET *, int, char *[], SNET * ));
-static int	f_login ___P(( SNET *, int, char *[], SNET * ));
-static int	f_logout ___P(( SNET *, int, char *[], SNET * ));
-static int	f_register ___P(( SNET *, int, char *[], SNET * ));
-static int	f_check ___P(( SNET *, int, char *[], SNET * ));
-static int	f_retr ___P(( SNET *, int, char *[], SNET * ));
-static int	f_time ___P(( SNET *, int, char *[], SNET * ));
-static int	f_daemon ___P(( SNET *, int, char *[], SNET * ));
-static int	f_starttls ___P(( SNET *, int, char *[], SNET * ));
+static int	f_noop( SNET *, int, char *[], SNET * );
+static int	f_quit( SNET *, int, char *[], SNET * );
+static int	f_help( SNET *, int, char *[], SNET * );
+static int	f_notauth( SNET *, int, char *[], SNET * );
+static int	f_login( SNET *, int, char *[], SNET * );
+static int	f_logout( SNET *, int, char *[], SNET * );
+static int	f_register( SNET *, int, char *[], SNET * );
+static int	f_check( SNET *, int, char *[], SNET * );
+static int	f_retr( SNET *, int, char *[], SNET * );
+static int	f_time( SNET *, int, char *[], SNET * );
+static int	f_daemon( SNET *, int, char *[], SNET * );
+static int	f_starttls( SNET *, int, char *[], SNET * );
 
 struct command {
     char	*c_name;
-    int		(*c_func) ___P(( SNET *, int, char *[], SNET * ));
+    int		(*c_func)( SNET *, int, char *[], SNET * );
 };
 
 struct command	unauth_commands[] = {
@@ -92,11 +92,7 @@ int		replicate = 1;
 int	ncommands = sizeof( unauth_commands ) / sizeof(unauth_commands[ 0 ] );
 
     int
-f_quit( sn, ac, av, pushersn )
-    SNET	*sn;
-    int		ac;
-    char	*av[];
-    SNET	*pushersn;
+f_quit( SNET *sn, int ac, char *av[], SNET *pushersn )
 {
     snet_writef( sn, "%d Service closing transmission channel\r\n", 221 );
     syslog( LOG_INFO, "done" );
@@ -104,44 +100,28 @@ f_quit( sn, ac, av, pushersn )
 }
 
     int
-f_noop( sn, ac, av, pushersn )
-    SNET	*sn;
-    int		ac;
-    char	*av[];
-    SNET	*pushersn;
+f_noop( SNET *sn, int ac, char *av[], SNET *pushersn )
 {
     snet_writef( sn, "%d cosign v%s\r\n", 250, cosign_version );
     return( 0 );
 }
 
     int
-f_help( sn, ac, av, pushersn )
-    SNET        *sn;
-    int         ac;
-    char        *av[];
-    SNET	*pushersn;
+f_help( SNET *sn, int ac, char *av[], SNET *pushersn )
 {
     snet_writef( sn, "%d Slainte Mhath!\r\n", 203 );
     return( 0 );
 }
 
     int
-f_notauth( sn, ac, av, pushersn )
-    SNET        *sn;
-    int         ac;
-    char        *av[];
-    SNET	*pushersn;
+f_notauth( SNET *sn, int ac, char *av[], SNET *pushersn )
 {
     snet_writef( sn, "%d You must call STARTTLS first!\r\n", 550 );
     return( 0 );
 }
 
     int
-f_starttls( sn, ac, av, pushersn )
-    SNET	*sn;
-    int		ac;
-    char	*av[];
-    SNET	*pushersn;
+f_starttls( SNET *sn, int ac, char *av[], SNET *pushersn )
 {
 
     int				rc;
@@ -188,11 +168,7 @@ f_starttls( sn, ac, av, pushersn )
 
 
     int
-f_login( sn, ac, av, pushersn )
-    SNET        *sn;
-    int         ac;
-    char        *av[];
-    SNET	*pushersn;
+f_login( SNET *sn, int ac, char *av[], SNET *pushersn )
 {
     FILE		*tmpfile;
     char		tmppath[ MAXPATHLEN ];
@@ -444,11 +420,7 @@ file_err:
 }
 
     int
-f_daemon( sn, ac, av, pushersn )
-    SNET	*sn;
-    int		ac;
-    char	*av[];
-    SNET	*pushersn;
+f_daemon( SNET *sn, int ac, char *av[], SNET *pushersn )
 {
 
     char	hostname[ MAXHOSTNAMELEN ];
@@ -482,11 +454,7 @@ f_daemon( sn, ac, av, pushersn )
 }
 
     int
-f_time( sn, ac, av, pushersn )
-    SNET        *sn;
-    int         ac;
-    char        *av[];
-    SNET	*pushersn;
+f_time( SNET *sn, int ac, char *av[], SNET *pushersn )
 {
     struct utimbuf	new_time;
     struct stat		st;
@@ -571,11 +539,7 @@ f_time( sn, ac, av, pushersn )
 
 }
     int
-f_logout( sn, ac, av, pushersn )
-    SNET        *sn;
-    int         ac;
-    char        *av[];
-    SNET	*pushersn;
+f_logout( SNET *sn, int ac, char *av[], SNET *pushersn )
 {
     struct cinfo	ci;
 
@@ -639,11 +603,7 @@ f_logout( sn, ac, av, pushersn )
 }
 
     int
-f_register( sn, ac, av, pushersn )
-    SNET	*sn;
-    int		ac;
-    char	*av[];
-    SNET	*pushersn;
+f_register( SNET *sn, int ac, char *av[], SNET *pushersn )
 {
     struct cinfo	ci;
     struct timeval	tv;
@@ -787,11 +747,7 @@ f_register( sn, ac, av, pushersn )
 }
 
     int
-f_check( sn, ac, av, pushersn )
-    SNET	*sn;
-    int		ac;
-    char	*av[];
-    SNET	*pushersn;
+f_check( SNET *sn, int ac, char *av[], SNET *pushersn )
 {
     struct cinfo 	ci;
     struct timeval	tv;
@@ -880,11 +836,7 @@ f_check( sn, ac, av, pushersn )
 }
 
     int
-f_retr( sn, ac, av, pushersn )
-    SNET	*sn;
-    int		ac;
-    char	*av[];
-    SNET	*pushersn;
+f_retr( SNET *sn, int ac, char *av[], SNET *pushersn )
 {
     struct cinfo        ci;
     struct timeval      tv;
@@ -1018,9 +970,7 @@ f_retr( sn, ac, av, pushersn )
 
 
     int
-command( fd, pushersn )
-    int			fd;
-    SNET		*pushersn;
+command( int fd, SNET *pushersn )
 {
     SNET				*snet;
     int					ac, i;

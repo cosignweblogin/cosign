@@ -44,13 +44,12 @@ char		*replhost = NULL;
 unsigned short	port = 0;
 SSL_CTX		*ctx = NULL;
 
-void		hup ___P(( int ));
-void		chld ___P(( int ));
-int		main ___P(( int, char *av[] ));
+void		hup( int );
+void		chld( int );
+int		main( int, char *av[] );
 
     void
-hup( sig )
-    int			sig;
+hup( int sig )
 {
     syslog( LOG_INFO, "reload %s", cosign_version );
     if ( chosts_read( cosign_conf ) < 0 ) {
@@ -67,8 +66,7 @@ hup( sig )
 }
 
     void
-chld( sig )
-    int			sig;
+chld( int sig )
 {
     int			pid, status;
     extern int		errno;
@@ -101,9 +99,7 @@ chld( sig )
 
 
     int
-main( ac, av )
-    int		ac;
-    char	*av[];
+main( int ac, char *av[] )
 {
     struct sigaction	sa, osahup, osachld;
     struct sockaddr_in	sin;

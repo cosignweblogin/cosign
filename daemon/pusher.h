@@ -1,2 +1,2 @@
 int pusherparent ( int );
-int pusherhosts (  );
+int pusherhosts ( void );

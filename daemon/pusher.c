@@ -35,7 +35,7 @@ static void	pusherhup ( int );
 static void	pusherchld ( int );
 int		pusherparent( int );
 int		pusher( int, struct cl * );
-int		pusherhosts( );
+int		pusherhosts( void );
 void		pusherdaemon( struct cl * );
 
     void
@@ -76,7 +76,7 @@ pusherdaemon( struct cl *cur )
 }
 
     int
-pusherhosts( )
+pusherhosts( void )
 {
     int			i;
     struct hostent	*he;
@@ -108,8 +108,7 @@ pusherhosts( )
 }
 
     void
-pusherhup( sig )
-    int			sig;
+pusherhup( int sig )
 {
     struct cl		*cur;
 
@@ -118,6 +117,7 @@ pusherhup( sig )
 	if ( cur->cl_pid <= 0 ) {
 	    continue;
 	}
+
 	if ( kill( cur->cl_pid, sig ) < 0 ) {
 	    syslog( LOG_ERR, "pusherhup: %m" );
 	}
@@ -134,8 +134,7 @@ pusherhup( sig )
 }
 
     void
-pusherchld( sig )
-    int			sig;
+pusherchld( int sig )
 {
     int			pid, status;
     struct cl		**cur, *temp;
@@ -211,6 +210,7 @@ pusherparent( int ppipe )
     /* catch SIGHUP */
     memset( &sa, 0, sizeof( struct sigaction ));
     sa.sa_handler = pusherhup;
+    sa.sa_flags = SA_RESTART;
     if ( sigaction( SIGHUP, &sa, NULL ) < 0 ) {
 	syslog( LOG_ERR, "sigaction: %m" );
 	exit( 1 );
