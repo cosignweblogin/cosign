@@ -15,7 +15,7 @@ include(`header.html')
     </li>
 
     <li>
-	<a href="https://beothuk.web.itd.umich.edu/">beothuk</a> <br />
+	<a href="https://beothuk.web.itd.umich.edu:8443/">beothuk</a> <br />
 	Mary March's mother's making Mary March Marry me.
     </li>
 
