@@ -344,7 +344,7 @@ main( int ac, char *av[] )
 #ifdef ultrix
     openlog( prog, LOG_NOWAIT|LOG_PID );
 #else /* ultrix */
-    openlog( prog, LOG_NOWAIT|LOG_PID, LOG_DAEMON );
+    openlog( prog, LOG_NOWAIT|LOG_PID, facility );
 #endif /* ultrix */
 
     syslog( LOG_INFO, "restart %s", cosign_version );
