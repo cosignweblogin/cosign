@@ -339,7 +339,6 @@ main( int argc, char *argv[] )
     krb5_get_init_creds_opt_set_renew_life( &kopts, 0 );
     krb5_get_init_creds_opt_set_forwardable( &kopts, 1 );
     krb5_get_init_creds_opt_set_proxiable( &kopts, 0 );
-    krb5_get_init_creds_opt_set_address_list( &kopts, NULL );
 
     if (( kerror = krb5_get_init_creds_password( kcontext, &kcreds, 
 	    kprinc, cl[ CL_PASSWORD ].cl_data, krb5_prompter_posix, NULL, 0, 
