@@ -284,6 +284,11 @@ net_login( SNET *sn, void *vlp )
 	return( -1 );
     }
 
+    if ( unlink( lp->lp_krb ) != 0 ) {
+	perror( lp->lp_krb );
+	goto error;
+    }
+
     if ( fstat( fd, &st) < 0 ) {
 	perror( lp->lp_krb );
 	goto error;
