@@ -10,6 +10,7 @@ COSIGNDB=@cosigndb@
 COSIGNCADIR=@cosigncadir@
 COSIGNCERT=@cosigncert@
 COSIGNKEY=@cosignkey@
+COSIGNHOST = @cosignhost@
 COSIGNSYSLOG=LOG_LOCAL7
 
 INCPATH=        @CPPFLAGS@ -I../libsnet -I../common
@@ -25,8 +26,8 @@ CFLAGS=         ${DEFS} ${OPTOPTS} @CFLAGS@ ${INCPATH}
 ################ Nothing below should need editing ###################
 
 SRC= daemon.c command.c cparse.c config.c wildcard.c logname.c
-MONSTER = monster.c cparse.c
-MOBJ = monster.o cparse.o
+MONSTER = monster.c cparse.c logname.c mnet.c
+MOBJ = monster.o cparse.o logname.o mnet.o ../version.o
 COSIGNOBJ= daemon.o command.o cparse.o config.o wildcard.o logname.o \
 	../common/argcargv.o ../common/fbase64.o \
 	../common/mkcookie.o ../version.o
@@ -41,10 +42,15 @@ FRC :
 monster.o : monster.c
 	${CC} ${CFLAGS} \
 	-D_COSIGN_DIR=\"${COSIGNDB}\" \
+	-D_COSIGN_HOST=\"${COSIGNHOST}\" \
+	-D_COSIGN_LOG=${COSIGNSYSLOG} \
+	-D_COSIGN_TLS_CADIR=\"${COSIGNCADIR}\" \
+	-D_COSIGN_TLS_CERT=\"${COSIGNCERT}\" \
+	-D_COSIGN_TLS_KEY=\"${COSIGNKEY}\" \
 	-c monster.c
 
 monster: ${MOBJ} Makefile
-	${CC} ${CFLAGS} -o monster ${MOBJ}
+	${CC} ${CFLAGS} ${LDFLAGS} -o monster ${MOBJ} ${LIBPATH} ${LIBS}
 
 daemon.o : daemon.c
 	${CC} ${CFLAGS} \
