@@ -64,7 +64,7 @@ main( int ac, char **av )
 	prog++;
     }
 
-    while (( c = getopt( ac, av, "dh:H:i:I:l:L:p:x:y:z:" )) != EOF ) {
+    while (( c = getopt( ac, av, "dh:H:i:I:l:L:p:Vx:y:z:" )) != EOF ) {
 	switch ( c ) {
 	case 'd' :		/* debug */
 	    debug++;
@@ -101,6 +101,10 @@ main( int ac, char **av )
 	case 'p' :              /* TCP port */
 	     port = htons( atoi( optarg ));
 	     break;
+
+	case 'V' :              /* version */
+	    printf( "%s\n", cosign_version );
+	    exit( 0 );
 
 	case 'x' :		/* ca dir */
 	    cadir = optarg;

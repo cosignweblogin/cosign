@@ -1,4 +1,4 @@
-.TH cosignd "8" "August 2003" "umweb" "System Manager's Manual"
+.TH cosignd "8" "December 2003" "umweb" "System Manager's Manual"
 .SH NAME
 .B cosignd
 \- Cookie Sign-On Daemon
@@ -68,6 +68,7 @@ allows clients to use the
 .B CHECK,
 .B REGISTER,
 .B TIME,
+.B DAEMON,
 and
 .B LOGOUT
 commands. 
@@ -104,6 +105,9 @@ Allows clients to retrieve information about a user based on the cookie presente
 .TP 10
 TIME
 Allows daemons to propagate timestamp information for login cookies.
+.TP 10
+DAEMON
+Part of replication, prevents the server from replicating to itself.
 .TP 10
 LOGOUT
 Invalidates a user's login cookie, causing any future 

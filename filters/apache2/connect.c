@@ -415,7 +415,7 @@ done:
     } else {
 #ifdef KRB
 	if ( tkt ) {
-	    if ( netretr_ticket( scookie, si, (*cur)->conn_sn, cfg->krb524 )
+	    if ( netretr_ticket( scookie, si, cfg->cl->conn_sn, cfg->krb524 )
 		    != 2 ) {
 		fprintf( stderr, "Can't retrieve kerberos ticket\n" );
 	    }
