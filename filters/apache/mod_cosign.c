@@ -709,7 +709,7 @@ static command_rec cosign_cmds[ ] =
 
         { "CosignGetProxyCookies", set_cosign_proxy_cookies,
         NULL, RSRC_CONF, FLAG,
-        "whether or not to get kerberos tickets" },
+        "whether or not to get proxy cookies" },
 #ifdef KRB
         { "CosignGetKerberosTickets", set_cosign_tickets,
         NULL, RSRC_CONF, FLAG,
