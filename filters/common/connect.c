@@ -353,7 +353,7 @@ teardown_conn( struct connlist *cur )
 }
 
     int
-check_cookie( char *scookie, struct sinfo *si, cosign_host_config *cfg,
+cosign_check_cookie( char *scookie, struct sinfo *si, cosign_host_config *cfg,
 	int tkt )
 {
     struct connlist	**cur, *tmp;
