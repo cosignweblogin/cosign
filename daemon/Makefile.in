@@ -13,7 +13,7 @@ COSIGNKEY=@cosignkey@
 COSIGNHOST = @cosignhost@
 COSIGNTICKETCACHE=@ticketcache@
 
-COSIGNSYSLOG=LOG_LOCAL7
+COSIGNSYSLOG=LOG_DAEMON
 
 INCPATH=        @CPPFLAGS@ -I../libsnet -I../common
 OPTOPTS=        @OPTOPTS@
