@@ -22,11 +22,17 @@
 #include "network.h"
 #include "config.h"
 
-#ifdef SQL_FRIEND
+# ifdef SQL_FRIEND
+
 #include <crypt.h>
 #include <mysql.h>
+
 static	MYSQL	friend_db;
-#endif
+char	*friend_db_name = _FRIEND_MYSQL_DB;
+char	*friend_login = _FRIEND_MYSQL_LOGIN;
+char	*friend_passwd = _FRIEND_MYSQL_PASSWD;
+
+# endif /* SQL_FRIEND */
 
 #define LOGIN_ERROR_HTML	"../templates/login_error.html"
 #define ERROR_HTML	"../templates/error.html"
@@ -35,8 +41,8 @@ static	MYSQL	friend_db;
 #define LOOP_PAGE	"https://weblogin.umich.edu/looping.html"
 #define SIDEWAYS        1
 #define LOOPWINDOW      30 
-#define MAXREDIRECTS	10	
-#define EXPIRE_TIME	86400	 /* 24 hours */
+#define MAXLOOPCOUNT	10	
+#define MAXCOOKIETIME	86400	 /* Valid life of session cookie: 24 hours */
 
 extern char	*cosign_version;
 char		*cosign_host = _COSIGN_HOST;
@@ -48,12 +54,6 @@ char		*cryptofile = _COSIGN_TLS_KEY;
 char		*certfile = _COSIGN_TLS_CERT;
 char		*cadir = _COSIGN_TLS_CADIR;
 SSL_CTX 	*ctx = NULL;
-
-#ifdef SQL_FRIEND
-char	*friend_db_name = _FRIEND_MYSQL_DB;
-char	*friend_login = _FRIEND_MYSQL_LOGIN;
-char	*friend_passwd = _FRIEND_MYSQL_PASSWD;
-#endif
 
 struct cgi_list cl[] = {
 #define CL_LOGIN	0
@@ -67,10 +67,7 @@ struct cgi_list cl[] = {
         { NULL, NULL },
 };
 
-void	subfile( char * );
-void	loop_checker( int, int, char * );
-
-    void
+    static void
 loop_checker( int time, int count, char *cookie )
 {
     struct timeval	tv;
@@ -99,7 +96,7 @@ loop_checker( int time, int count, char *cookie )
 	return;
     } else {
        /* too many redirects - break the loop and give an error */
-       if ( count >= MAXREDIRECTS ) {
+       if ( count >= MAXLOOPCOUNT ) {
 	    time = tv.tv_sec;
 	    count = 1;
 	    if ( snprintf( new_cookie, sizeof( new_cookie ),
@@ -127,7 +124,7 @@ loop_checker( int time, int count, char *cookie )
     }
 }
 
-    void
+    static void
 subfile( char *filename )
 {
     FILE	*fs;
@@ -256,7 +253,7 @@ kcgi_configure()
     if (( val = cosign_config_get( COSIGNCADIRKEY )) != NULL ) {
 	cadir = val;
     }
-#ifdef SQL_FRIEND
+# ifdef SQL_FRIEND
     if (( val = getConfigValue( MYSQLDBKEY )) != NULL ) {
 	friend_db_name = val;
     }
@@ -266,10 +263,10 @@ kcgi_configure()
     if (( val = getConfigValue( MYSQLPASSWDKEY )) != NULL ) {
 	friend_passwd = val;
     }
-#endif	
+# endif	 /* SQL_FRIEND */
 }
 
-int
+    int
 main( int argc, char *argv[] )
 {
     krb5_error_code		kerror = 0;
@@ -295,12 +292,12 @@ main( int argc, char *argv[] )
     struct connlist		*head;
     unsigned short		port;
 
-#ifdef SQL_FRIEND
+# ifdef SQL_FRIEND
     MYSQL_RES			*res;
     MYSQL_ROW			row;
     char			sql[ 225 ]; /* holds sql query + email addr */
     char			*crypted, *p;
-#endif
+# endif /* SQL_FRIEND */
 
     if ( argc == 2 && ( strncmp( argv[ 1 ], "-V", 2 ) == 0 )) {
 	printf( "%s\n", cosign_version );
@@ -316,32 +313,56 @@ main( int argc, char *argv[] )
     }
     kcgi_configure();
 
-    if (( data = getenv( "HTTP_COOKIE" )) != NULL ) {
-	cookie = strtok( data, ";" );
-
-	/* nibble away the cookie string until we see the cosign= cookie */
-	if ( strncmp( cookie, "cosign=", 7 ) != 0 ) {
-	    while (( cookie = strtok( NULL, ";" )) != NULL ) {
-		if ( *cookie == ' ' ) ++cookie;
-		if ( strncmp( cookie, "cosign=", 7 ) == 0 ) {
-		    break;
-		}
-	    }
-	}
-
-	(void)strtok( cookie, "/" );
-	if (( misc = strtok( NULL, "/" )) != NULL ) {
-	    cookietime = atoi( misc );
-	}
-
-	if (( misc = strtok( NULL, "/" )) != NULL ) {
-	    cookiecount = atoi( misc );
-	}
-    }
-
     method = getenv( "REQUEST_METHOD" );
     script = getenv( "SCRIPT_NAME" );
     ip_addr = getenv( "REMOTE_ADDR" );
+
+    if (( data = getenv( "HTTP_COOKIE" )) != NULL ) {
+	for ( cookie = strtok( data, ";" ); cookie != NULL;
+		cookie = strtok( NULL, ";" )) {
+	    while ( *cookie == ' ' ) ++cookie;
+	    if ( strncmp( cookie, "cosign=", 7 ) == 0 ) {
+		break;
+	    }
+	}
+    }
+
+    if ( cookie == NULL ) {
+	if ( strcmp( method, "POST" ) == 0 ) {
+	    title = "Error: Cookies Required";
+	    err = "This service requires that cookies be enabled.";
+	    tmpl = ERROR_HTML;
+	    subfile( tmpl );
+	    exit( 0 );
+	}
+	goto loginscreen;
+    }
+
+    if ( strlen( cookie ) < 120 ) {
+	goto loginscreen;
+    }
+
+    (void)strtok( cookie, "/" );
+    if (( misc = strtok( NULL, "/" )) != NULL ) {
+	cookietime = atoi( misc );
+
+	if ( gettimeofday( &tv, NULL ) != 0 ) {
+	    title = "Error: Login Screen";
+	    err = "Please try again later.";
+	    subfile( ERROR_HTML );
+	    exit( 0 );
+	}
+
+	if (( tv.tv_sec - cookietime ) > MAXCOOKIETIME ) {
+	    goto loginscreen;
+	}
+    }
+
+    if (( misc = strtok( NULL, "/" )) != NULL ) {
+	cookiecount = atoi( misc );
+    }
+
+	/* after here, we have a well-formed cookie */
 
     /* setup conn and ssl and hostlist */
     port = htons( 6663 );
@@ -383,23 +404,6 @@ main( int argc, char *argv[] )
 	}
 	ref++;
 
-	if ( cookie == NULL || strlen( cookie ) < 120 ) {
-	    title = "Authentication Required";
-	    err = "You have not yet logged-in.";
-	    goto loginscreen;
-	}
-
-	if ( gettimeofday( &tv, NULL ) != 0 ) {
-	    title = "Error: Login Screen";
-	    err = "Please try again later.";
-	    subfile( ERROR_HTML );
-	    exit( 0 );
-	}
-
-	if (( tv.tv_sec - cookietime ) > EXPIRE_TIME ) {
-	    goto loginscreen;
-	}
-
 	if (( rc = cosign_register( head, cookie, ip_addr, service )) < 0 ) {
 	    if ( cosign_check( head, cookie ) < 0 ) {
 		err = "You are not logged in. Please log in now.";
@@ -424,17 +428,6 @@ main( int argc, char *argv[] )
 	/* if no referrer, redirect to top of site from conf file */
 	printf( "Location: %s\n\n", ref );
 	exit( 0 );
-    }
-
-    if ( cookie == NULL ) {
-	if ( strcmp( method, "POST" ) == 0 ) {
-	    title = "Error: Cookies Required";
-	    err = "This service requires that cookies be enabled.";
-	    tmpl = ERROR_HTML;
-	    subfile( tmpl );
-	    exit( 0 );
-	}
-	goto loginscreen;
     }
 
     if ( strcmp( method, "POST" ) != 0 ) {
@@ -476,7 +469,7 @@ main( int argc, char *argv[] )
     }
 
     if ( strchr( cl[ CL_LOGIN ].cl_data, '@' ) != NULL ) {
-#ifdef SQL_FRIEND
+# ifdef SQL_FRIEND
 	if ( !mysql_real_connect( &friend_db, friend_db_name, friend_login, friend_passwd, "friend", 3306, NULL, 0 )) {
 	    fprintf( stderr, mysql_error( &friend_db ));
 	    err = "Unable to connect to guest account database.";
@@ -580,7 +573,7 @@ main( int argc, char *argv[] )
 	tmpl = LOGIN_ERROR_HTML;
 	subfile ( tmpl );
 	exit( 0 );
-#endif
+# endif
     } else {
 	/* not a friend, must be kerberos */
 	if (( kerror = krb5_init_context( &kcontext ))) {
