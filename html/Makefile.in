@@ -5,12 +5,10 @@ TMPLDIR  = @prefix@/templates
 HTMLDIR  = @prefix@/html
 INSTALL	=	@INSTALL@
 
-M4 = /usr/ccs/bin/m4
-
 .SUFFIXES: .m4 .html
 
 .m4.html:
-	${M4} $*.m4 >$*.html
+	m4 $*.m4 >$*.html
 
 all: ${ALL}
 
@@ -19,8 +17,8 @@ install : all
 	-mkdir -p ${TMPLDIR}
 	for i in ${ALL}; do \
 	    ${INSTALL} -m 0644 -c $$i ${TMPLDIR}/; \
-	    /usr/bin/cp -r images/ cosign.css post_error.html ${HTMLDIR}/; \
+	    cp -r images/ cosign.css post_error.html ${HTMLDIR}/; \
 	done
 
 clean:
-	/bin/rm -f ${ALL}
+	rm -f ${ALL}
