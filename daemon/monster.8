@@ -1,0 +1,124 @@
+.TH monster "8" "January 2004" "umweb" "System Manager's Manual"
+.SH NAME
+.B monster
+\- cleans up cookies and tickets, propagates timestamps
+and state
+.SH SYNOPSIS
+.B monster
+[
+.B \-dV
+] [
+.BI \-h\  replication-hostname
+] [
+.BI \-H\  hard-timeout
+] [
+.BI \-i\  idle-timeout
+] [
+.BI \-I\  timestamp-pushing-interval
+] [
+.BI \-l\  loggedout-keep-time
+] [
+.BI \-L\  syslog-facility
+] [
+.BI \-p\  port
+] [
+.BI \-x\  ca-dir
+] [
+.BI \-y\  cert-pem-file
+] [ 
+.BI \-z\  private-key-file
+]
+.sp
+.SH DESCRIPTION
+Monster serves two separate functions. In all cases, it is the mechanisim by
+which old cookies and tickets can be deleted when they are no longer needed.
+In addition, in a replicated cosign environment, monster can be used to
+propagate the time stamps and state of the login cookies.
+Upon startup, monster disassociates from the terminal. This can be
+prevented by using the -d option. If the -h option is give, monster
+retrieves the host information for
+.I replication-hostname
+and opens an SSL connection to the cosignds on all of the other cosign
+hosts. 
+.sp
+Monster sleeps for 120 seconds between successive passes through the cookie 
+database ( _COSIGN_DIR ).  This interval can be changed to
+an arbitrary
+.I timestamp-pushing-interval
+with the -I option.
+Monster stats each login cookie, checking to see if it is either past the
+.I idle-timeout
+, the 
+.I hard-timeout
+or if it is already logged out if it is past the
+.I loggedout-keep-time.
+If it is past these timeouts, the login cookie is deleted, as well as any
+corresponding Kerberos tickets. When monster encounters a service
+cookie, it looks up the corresponding login cookie and checks for
+timeouts as specified above. If any are encountered, it deletes the
+login cookie as well as the service cookie. If the service cookie's
+corrresonding login cookie has already been deleted, the service cookie is
+also deleted.
+.sp
+If replication is enabled, monster also updates the other cosignds with
+chnages in the time stamps or state of its database of login cookies. It does
+this through the use of the
+.B TIME
+command. See cosignd(8).
+.SH TERMINOLOGY
+.TP 19
+.B login-cookie
+in the form of "cosign=kl32kj42b...42b4kj2k", contains the user name,
+ip address , realm, login time and optionally, the path to the user's
+Kerberos V and/or Kerberos IV tickets. In addition, the login cookie
+keeps state as to whether the user is logged in or logged out.
+.TP 19
+.B service-cookie
+in the form of "cosign-campusmail=98ad9898fdg...798dfg9as", contains a
+line that links to the user's login cookie.
+.sp
+.SH OPTIONS
+.TP 19
+.B \-d
+debug mode. Does not disassociate from controlling tty.
+.TP 19
+.BI \-h\  replication-host
+hostname to replicate to. This "turns on" monster's state propagation.
+.TP 19
+.BI \-H\  hard-timeout
+specifies, in seconds, the absolute or hard timeout for any login cookie. 
+.TP 19
+.BI \-i\  idle-timeout
+specifies, in seconds, the timeout for an idle login cookie.
+.TP 19
+.BI \-I\  timestamp-pushing-interval
+specifies, in seconds, how long monster should sleep between passes.
+.TP 19
+.BI \-L\  syslog-facility
+specifies which syslog-facilty to log messages to.
+.TP 19
+.BI \-l\  loggedout-keep-time
+specifies, in seconds, how long to store logged out cookies in the
+database before they are deleted.
+.TP 19
+.BI \-p\  port 
+specifies the port of the cosign server, by default
+.BR 6663 .
+.TP 19
+.B \-V
+displays the version of 
+.B  monster
+and exits.
+.TP 19
+.BI \-x\  ca-dir
+Certificate authority's public certificate directory, by default _COSIGN_TLS_CADIR.
+.TP 19
+.BI \-y\  cert-pem-file
+Server's public certificate, by default _COSIGN_TLS_CERT.
+.TP 19
+.BI \-z\  private-key-file
+Server's private key, by default _COSIGN_TLS_KEY.
+.sp
+.SH SEE ALSO
+.sp
+http://weblogin.org, cosignd(8)
