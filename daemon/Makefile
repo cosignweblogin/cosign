@@ -52,7 +52,7 @@ libsnet/libsnet.a : FRC
 		INCPATH="${INCPATH}"
 
 VERSION=`date +%Y%m%d`
-DISTDIR=../cosignd-${VERSION}
+DISTDIR=../cosign-${VERSION}
 
 dist : clean
 	mkdir ${DISTDIR}
