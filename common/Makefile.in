@@ -1,0 +1,17 @@
+################## Some of this may need to be edited ##################
+
+INCPATH=        @CPPFLAGS@
+CC=             @CC@
+
+CFLAGS=         ${DEFS} ${OPTOPTS} @CFLAGS@ ${INCPATH}
+
+################ Nothing below should need editing ###################
+
+SRC= argcargv.c fbase64.c mkcookie.c
+COMMONOBJ= argcargv.o fbase64.o mkcookie.o
+
+all : ${COMMONOBJ}
+
+clean :
+	rm -f a.out core* *.o *.bak *[Ee]rrs tags
+
