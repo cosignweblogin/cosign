@@ -131,19 +131,19 @@ logout_configure()
 {
     char	 *val;
 
-    if (( val = getConfigValue( COSIGNHOSTKEY )) != NULL ) {
+    if (( val = cosign_config_get( COSIGNHOSTKEY )) != NULL ) {
         cosign_host = val;
     }
-    if (( val = getConfigValue( COSIGNLOGOUTURLKEY)) != NULL ) {
+    if (( val = cosign_config_get( COSIGNLOGOUTURLKEY)) != NULL ) {
 	url = val;
     }
-    if (( val = getConfigValue( COSIGNKEYKEY )) != NULL ) {
+    if (( val = cosign_config_get( COSIGNKEYKEY )) != NULL ) {
         cryptofile = val;
     }
-    if (( val = getConfigValue( COSIGNCERTKEY )) != NULL ) {
+    if (( val = cosign_config_get( COSIGNCERTKEY )) != NULL ) {
         certfile = val;
     }
-    if (( val = getConfigValue( COSIGNCADIRKEY )) != NULL ) {
+    if (( val = cosign_config_get( COSIGNCADIRKEY )) != NULL ) {
         cadir = val;
     }
 }
@@ -161,7 +161,7 @@ main( int argc, char *argv[] )
 	exit( 0 );
     }
 
-    if ( parseConfig( cosign_conf ) < 0 ) {
+    if ( cosign_config( cosign_conf ) < 0 ) {
         title = "Error: But not your fault";
         err = "We were unable to parse the configuration file";
         tmpl = ERROR_HTML;

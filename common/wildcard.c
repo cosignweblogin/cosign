@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2004 Regents of The University of Michigan.
+ * All Rights Reserved.  See LICENSE.
+ */
+
 #include <stdlib.h>
 #include <ctype.h>
 
@@ -27,12 +32,6 @@ wildcard( char *wild, char *p, int sensitive )
 	case '<' :
 	    wild++;
 
-	    if ( ! isdigit( (int)*p )) {
-		return( 0 );
-	    }
-	    i = atoi( p );
-	    while ( isdigit( (int)*p )) p++;
-
 	    if ( ! isdigit( (int)*wild )) {
 		return( 0 );
 	    }
@@ -52,6 +51,12 @@ wildcard( char *wild, char *p, int sensitive )
 	    if ( *wild++ != '>' ) {
 		return( 0 );
 	    }
+
+	    if ( ! isdigit( (int)*p )) {
+		return( 0 );
+	    }
+	    i = atoi( p );
+	    while ( isdigit( (int)*p )) p++;
 
 	    if (( i < min ) || ( i > max )) {
 		return( 0 );

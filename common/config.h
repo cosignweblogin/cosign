@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2004 Regents of The University of Michigan.
+ * All Rights Reserved.  See LICENSE.
+ */
+
 #define NOTAUTH 0 
 #define CGI	1
 #define SERVICE	2
