@@ -101,7 +101,7 @@ Things to know about the CGI:
     Then turn a specific location, like test.html, on
 
 	<Location /test.html>
-	    CosignProtected Off
+	    CosignProtected On
 	</Location>
 
     This will make it so the cgi can run when you are not logged in,
