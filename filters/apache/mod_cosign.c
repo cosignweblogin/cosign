@@ -106,6 +106,22 @@ set_cookie_and_redirect( request_rec *r, cosign_host_config *cfg )
     return( 0 );
 }
 
+    static int
+cosign_authn( request_rec *r )
+{
+    char *authn;
+
+    if ((( authn = ap_auth_type( r )) == NULL ) || 
+	    ( r->connection->user == NULL )) {
+	return( DECLINED );
+    }
+
+    if ( strcmp( authn, "Cosign" ) != 0 ) {
+	return( DECLINED );
+    } 
+    return( OK );
+}
+
 
     static int
 cosign_auth( request_rec *r )
@@ -196,7 +212,7 @@ cosign_auth( request_rec *r )
 
 	/* XXX add in Kerberos info here */
 
-	return( OK );
+	return( DECLINED );
     }
 
 set_cookie:
@@ -412,9 +428,9 @@ module MODULE_VAR_EXPORT cosign_module = {
     cosign_cmds,           /* table of config file commands       */
     NULL,		   /* [#8] MIME-typed-dispatched handlers */
     NULL,                  /* [#1] URI to filename translation    */
-    cosign_auth,           /* [#4] validate user id from request  */
+    cosign_authn,          /* [#4] validate user id from request  */
     NULL,                  /* [#5] check if the user is ok _here_ */
-    NULL,          	   /* [#3] check access by host address   */
+    cosign_auth,           /* [#3] check access by host address   */
     NULL,                  /* [#6] determine MIME type            */
     NULL,	  	   /* [#7] pre-run fixups                 */
     NULL,  	  	   /* [#9] log a transaction              */
