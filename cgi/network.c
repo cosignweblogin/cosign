@@ -68,6 +68,56 @@ cosign_login( char *cookie, char *ip, char *user, char *realm )
 
     return( 0 );
 }
+
+
+    int
+cosign_logout( char *cookie, char *ip )
+{
+    char		*line;
+    struct timeval	 tv;
+    SNET		*sn;
+
+    if (( sn = connectsn( host, port )) == NULL ) {
+	fprintf( stderr, "%s: %d connection failed.\n", host, port );
+	return( -2 );
+    }
+
+    if ( snet_writef( sn, "LOGOUT %s %s\r\n",
+	    cookie, ip ) < 0 ) {
+	fprintf( stderr, "cosign_logout: LOGOUT failed\n" );
+
+	if (( closesn( sn )) != 0 ) {
+	    fprintf( stderr, "cosign_logout: closesn failed\n" );
+	}
+	return( -1 );
+    }
+
+    tv = timeout;
+    if (( line = snet_getline_multi( sn, logger, &tv) ) == NULL ) {
+	fprintf( stderr, "cosign_logout: %s\n", strerror( errno ));
+	if (( closesn( sn )) != 0 ) {
+	    fprintf( stderr, "cosign_logout: closesn failed\n" );
+	}
+	return( -1 );
+    }
+
+    if ( *line != '2' ) {
+	fprintf( stderr, "cosign_logout: %s\n", line );
+	if (( closesn( sn )) != 0 ) {
+	    fprintf( stderr, "cosign_logout: closesn failed\n" );
+	}
+	return( -1 );
+    }
+
+    if (( closesn( sn )) != 0 ) {
+	fprintf( stderr, "cosign_logout: closesn failed\n" );
+	return( -2 );
+    }
+
+    return( 0 );
+}
+
+
     int
 cosign_register( char *cookie, char *ip, char *secant )
 {
@@ -115,6 +165,7 @@ cosign_register( char *cookie, char *ip, char *secant )
     return( 0 );
 }
 
+
     int
 cosign_check( char *cookie )
 {
@@ -160,6 +211,7 @@ cosign_check( char *cookie )
     return( 0 );
 }
 
+
     static SNET *
 connectsn2( struct sockaddr_in *sin )
 {
@@ -196,6 +248,7 @@ connectsn2( struct sockaddr_in *sin )
 
     return( sn );
 }
+
 
     SNET *
 connectsn( char *host, int port )
@@ -236,6 +289,7 @@ connectsn( char *host, int port )
     fprintf( stderr, "%s: connection failed\n", host );
     exit( 2 );
 }
+
 
     int
 closesn( SNET *sn )

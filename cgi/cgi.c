@@ -15,8 +15,12 @@
 #include "cosigncgi.h"
 #include "network.h"
 
-#define LOGIN_HTML	"../html-ssl/login.html"
-#define ERROR_HTML	"../html-ssl/error.html"
+#define LOGIN_HTML	"../templates/login.html"
+#define ERROR_HTML	"../templates/error.html"
+#define SIDEWAYS        1               /* we neglected to tell the
+					   user what was happening.  we
+					   should fix all of these.
+					 */
 
 char			*err = NULL;
 char			*url = "http://www.umich.edu/";
@@ -44,7 +48,7 @@ subfile( char *filename )
 
     if (( fs = fopen( filename, "r" )) == NULL ) {
 	perror( filename );
-	exit( 1 );
+	exit( SIDEWAYS );
     }
 
     while (( c = getc( fs )) != EOF ) {
@@ -94,7 +98,8 @@ subfile( char *filename )
     if ( fclose( fs ) != 0 ) {
 	perror( filename );
     }
-    exit( 0 );
+
+    return;
 }
 
 
@@ -135,33 +140,42 @@ main()
 	    tmpl = ERROR_HTML;
 	    err = "You are not logged in yet. A link would be here.";
 	    subfile( tmpl );
+	    exit( 0 );
 	}
+
 	service = strtok( qs, ";" );
 	if ( strncmp( service, "cosign-", 7 ) != 0 ) {
 	    tmpl = ERROR_HTML;
 	    err = "You mock me with your query string.";
 	    subfile( tmpl );
+	    exit( 0 );
 	}
+
 	if ( strlen( service ) > MAXPATHLEN ) {
 	    fprintf( stderr, "Query String too big\n" );
 	    tmpl = ERROR_HTML;
 	    err = "You mock me with your TOO LONG query string.";
 	    subfile( tmpl );
+	    exit( 0 );
 	}
+
 	if (( rc = cosign_register( cookie, ip_addr, service )) < 0 ) {
 	    fprintf( stderr, "%s: cosign_register failed\n", script );
 	    tmpl = ERROR_HTML;
 	    err = "Register Failed. Oh Well.";
 	    subfile( tmpl );
-
+	    exit( 0 );
 	}
+
 	if ( rc > 0 ) {
 	    err = "You are not logged in. Please log in now.";
 	    goto loginscreen;
 	}
+
 	ref = strtok( NULL, "&" );
 	printf( "Location: %s\n\n", ref );
 	exit( 0 );
+
 	/* if no referer, redirect to top of site from conf file */
     }
 
@@ -172,6 +186,7 @@ main()
 	    tmpl = ERROR_HTML;
 	    err = "Turn on cookies. Someday we'll have a link";
 	    subfile( tmpl );
+	    exit( 0 );
 	}
 
 	goto loginscreen;
@@ -189,17 +204,19 @@ main()
 	tmpl = ERROR_HTML;
 	err = "This would be a service menu!";
 	subfile( tmpl );
+	exit( 0 );
     }
 
     if ( cgi_info( CGI_STDIN, cl ) != 0 ) {
 	fprintf( stderr, "%s: cgi_info failed\n", script );
-	exit( 1 );
+	exit( SIDEWAYS );
     }
 
     if (( cl[ CL_UNIQNAME ].cl_data == NULL ) ||
 	    ( *cl[ CL_UNIQNAME ].cl_data == '\0' )) {
 	err = "Please enter your uniqname and password.";
         subfile ( tmpl );
+	exit( 0 );
     }
 
     if (( cl[ CL_PASSWORD ].cl_data == NULL ) ||
@@ -208,6 +225,7 @@ main()
 	title = "( missing password )";
 
         subfile ( tmpl );
+	exit( 0 );
     }
 
     if (( kerror = krb5_init_context( &kcontext ))) {
@@ -216,6 +234,7 @@ main()
 
 	tmpl = ERROR_HTML;
 	subfile ( tmpl );
+	exit( 0 );
     }
 
     if (( kerror = krb5_parse_name( kcontext, cl[ CL_UNIQNAME ].cl_data,
@@ -225,6 +244,7 @@ main()
 
 	tmpl = ERROR_HTML;
 	subfile ( tmpl );
+	exit( 0 );
     }
 
     krb5_get_init_creds_opt_init( &kopts );
@@ -243,16 +263,20 @@ main()
 	    title = "( Password Incorrect )";
 
 	    subfile ( tmpl );
+	    exit( 0 );
 	} else {
 	    err = (char *)error_message( kerror );
 	    title = "( Password Error )";
 	    
 	    subfile ( tmpl );
+	    exit( 0 );
 	}
     }
 
+    /*
     krb5_free_data_contents( kcontext, &kd_rs );
     krb5_free_data_contents( kcontext, &kd_rcs );
+    */
 
     /* password has been accepted, tell cosignd */
     err = "Your password has been accepted.";
@@ -277,7 +301,7 @@ loginscreen:
 
     if ( mkcookie( sizeof( new_cookiebuf ), new_cookiebuf ) != 0 ) {
 	fprintf( stderr, "%s: mkcookie: failed\n", script );
-	exit( 1 );
+	exit( SIDEWAYS );
     }
 
     sprintf( new_cookie, "cosign=%s", new_cookiebuf );

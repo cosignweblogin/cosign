@@ -3,29 +3,26 @@
  * All Rights Reserved.  See LICENSE.
 */
 
-#include <arpa/inet.h>
-#include <netdb.h>
-#include <netinet/in.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/socket.h>
 #include <sys/time.h>
 #include <sys/types.h>
-#include <krb5.h>
+#include <sys/param.h>
 #include <snet.h>
 #include "cgi.h"
+#include "cosigncgi.h"
+#include "network.h"
 
-#define HOST		"beothuk.web.itd.umich.edu"
-#define PORT		6663
-#define ERROR_HTML	"../html-ssl/error.html"
-#define LOGOUT_HTML	"../html-ssl/logout.html"
+#define ERROR_HTML	"../templates/error.html"
+#define LOGOUT_HTML	"../templates/logout.html"
 #define htputs( x ) fputs((x),stdout);
 
 char			*err = NULL;
-char			*url = "http://www.umich.edu/";
 char			*title = NULL;
-struct timeval          timeout = { 10 * 60, 0 };
+char                    *url = "http://www.umich.edu/";
+char                    *host = "cosign-test.www.umich.edu";
+int                     port = 6663;
 
 struct cgi_list cl[] = {
 #define CL_UNIQNAME	0
@@ -36,6 +33,8 @@ struct cgi_list cl[] = {
         { "link", NULL },
         { NULL, NULL },
 };
+
+void            (*logger)( char * ) = NULL;
 
 
     void
@@ -112,27 +111,42 @@ subfile( char *filename )
     int
 main()
 {
-    krb5_error_code		kerror;
-    krb5_context		kcontext;
-    krb5_principal		kprinc;
-    krb5_get_init_creds_opt	kopts;
-    krb5_creds			kcreds;
-    krb5_data			kd_rcs, kd_rs;
-    int				port = PORT;
-    char 			*host = HOST;
-    int				i, s;
-    struct hostent		*he;
-    struct sockaddr_in		sin;
-    struct timeval		tv;
-    SNET			*sn = NULL;
-    char			*line;
-    char                	cookiebuf[ 128 ];
-    char        		cookie[ 255 ];
-    char			*tmpl = LOGOUT_HTML;
+    char	*tmpl = LOGOUT_HTML;
+    char	*cookie = NULL, *data, *ip_addr, *script;
 
     if ( cgi_info( CGI_GET, cl ) != 0 ) {
 	fprintf( stderr, "%s: cgi_info broken\n", getenv( "SCRIPT_NAME" ) );
 	exit( 1 );
+    }
+
+    /* read user's cosign cookie and LOGOUT */
+    if (( data = getenv( "HTTP_COOKIE" )) != NULL ) {
+        cookie = strtok( data, ";" );
+        if ( strncmp( cookie, "cosign=", 7 ) != 0 ) {
+            while (( cookie = strtok( NULL, ";" )) != NULL ) {
+                if ( *cookie == ' ' ) ++cookie;
+                if ( strncmp( cookie, "cosign=", 7 ) == 0 ) {
+                    break;
+                }
+            }
+        }
+    }
+
+    ip_addr = getenv( "REMOTE_ADDR" );
+    script = getenv( "SCRIPT_NAME" );
+
+    if ( cookie != NULL ) {
+	fprintf( stderr, "LOGOUT %s %s\n", cookie, ip_addr );
+	if ( cosign_logout( cookie, ip_addr ) < 0 ) {
+	    fprintf( stderr, "%s: logout failed\n", script ) ;
+
+	    err = "Logout failed: No Idea Why!";
+	    title = "Failed";
+	    tmpl = ERROR_HTML;
+
+	    subfile( tmpl );
+	    exit( 2 );
+	}
     }
 
     /* clobber the cosign cookie and display logout screen */
@@ -140,6 +154,7 @@ main()
 
     if (( cl[ CL_LINK ].cl_data != NULL ) &&
 	    ( *cl[ CL_LINK ].cl_data != '\0' )) {
+
 	url = (char *)cl[ CL_LINK ].cl_data;
     }
 
@@ -147,7 +162,6 @@ main()
             "Expires: Mon, 16 Apr 1973 02:10:00 GMT\n"
             "Pragma: no cache\n" );
 
-dispage:
     subfile ( tmpl );
 
     exit( 0 );

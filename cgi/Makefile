@@ -1,9 +1,10 @@
 CGIBIN	= /usr/local/projects/cosign/cgi-ssl
-HTML	= /usr/local/projects/cosign/html-ssl/
+TMPL	= /usr/local/projects/cosign/templates/
+HTML	= /usr/local/projects/cosign/html/
 
 CC	= gcc
 TARGETS	= cosign logout
-OBJ	= cgi.o mkcookie.o fbase64.o network.o
+OBJ	= mkcookie.o fbase64.o network.o
 
 KDIR	= /usr/local/krb5
 KLIBDIR	= $(KDIR)/lib
@@ -13,7 +14,8 @@ EX_LIBS	= -lsocket -lnsl -lresolv
 
 INC	= -Ilibcgi -I/afs/umich.edu/group/itd/software/packages/k/kerberos-5/krb5-1.2.1UM/@sys/dest/usr/krb5/include -I$(KINCDIR) -I/usr/local/openssl/include -I../libsnet
 
-LIBS	= -Llibcgi -lcgi -L/usr/local/krb5/lib -lkrb5 -lk5crypto -lcom_err $(EX_LIBS) -L/usr/local/openssl/lib -lcrypto -L../libsnet -lsnet
+LIBCGI  = -Llibcgi -lcgi
+LIBS	= $(LIBCGI) -L/usr/local/krb5/lib -lkrb5 -lk5crypto -lcom_err $(EX_LIBS) -L/usr/local/openssl/lib -lcrypto -L../libsnet -lsnet
 
 LDFLAGS	= $(KLIBS)
 CFLAGS	= -g -Wall $(INC)
@@ -21,11 +23,11 @@ CFLAGS	= -g -Wall $(INC)
 
 all: ${TARGETS}
 
-cosign: libs $(OBJ)
-		${CC} -o cosign $(OBJ) $(LIBS) $(LDFLAGS)
+cosign: libs cgi.o $(OBJ)
+		${CC} -o cosign cgi.o $(OBJ) $(LIBS) $(LDFLAGS)
 
-logout: libs $(OBJ)
-		${CC} -o logout $(OBJ) $(LIBS) $(LDFLAGS)
+logout: libs logout.o $(OBJ)
+		${CC} -o logout logout.o $(OBJ) $(LIBS)
 
 libs:
 		cd ../libsnet; ${MAKE} ${MFLAGS} CC=${CC}
@@ -38,4 +40,5 @@ clean:
 
 install: all
 		/bin/cp $(TARGETS) $(CGIBIN)
-		/bin/cp -r html/* $(HTML)
+		/bin/cp -r html/*.html $(TMPL)
+		/bin/cp -r html/seal.gif $(HTML)
