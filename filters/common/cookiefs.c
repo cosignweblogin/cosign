@@ -63,9 +63,10 @@ cosign_cookie_valid( cosign_host_config *cfg, char *cookie, struct sinfo *si,
     }
 
     /*
-     * -1 bummer
+     * rs return vals:
+     * -1 system error
      * 0 ok
-     * 1 not in fs
+     * 1 not in filesystem
      */
     if (( rs = read_scookie( path, &lsi, s )) < 0 ) {
 	cosign_log( APLOG_ERR, s, "mod_cosign: read_scookie error" );
@@ -93,16 +94,11 @@ cosign_cookie_valid( cosign_host_config *cfg, char *cookie, struct sinfo *si,
 	return( COSIGN_OK );
     }
 
-    if (( rc = cosign_check_cookie( cookie, si, cfg, rs, s )) < 0 ) {
-	cosign_log( APLOG_ERR, s, "mod_cosign: cosign_cookie_valid: "
-		"check_cookie error" );
-        return( -1 );
-    }
-
-    if ( rc == COSIGN_ERROR ) {
+    if (( rc = cosign_check_cookie( cookie, si, cfg, rs, s ))
+	    == COSIGN_ERROR ) {
 	cosign_log( APLOG_ERR, s, "mod_cosign: cosign_cookie_valid: "
 		"Unable to connect to any Cosign server." ); 
-	return( COSIGN_ERROR );
+        return( COSIGN_ERROR );
     }
 
     if ( rc == COSIGN_RETRY ) {
@@ -111,7 +107,7 @@ cosign_cookie_valid( cosign_host_config *cfg, char *cookie, struct sinfo *si,
 
 #ifdef CHECK_SOURCE_ADDR
     if ( strcmp( ipaddr, si->si_ipaddr ) != 0 ) {
-	return( COSIGN_RETRY );
+	return( COSIGN_ERROR );
     }
 #endif /* CHECK_SOURCE_ADDR */
 

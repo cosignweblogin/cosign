@@ -55,12 +55,6 @@ static struct rate   		checkfail = { 0 };
 static struct rate   		checkunknown = { 0 };
 static double             	rate;
 
-/*
- * -1 means big error, dump this connection
- * 0 means that this host is having a replication problem
- * 1 means the user is not logged in
- * 2 means everything's peachy
- */
     static int
 netcheck_cookie( char *scookie, struct sinfo *si, struct connlist *conn,
 	server_rec *s )
@@ -290,7 +284,7 @@ netretr_ticket( char *scookie, struct sinfo *si, SNET *sn, int convert,
     char		*line;
     char                tmpkrb[ 16 ], krbpath [ MAXPATHLEN ];
     char		buf[ 8192 ];
-    int			fd, returnval = COSIGN_ERROR;
+    int			fd; 
     size_t              size = 0;
     ssize_t             rr;
     struct timeval      tv;
@@ -374,12 +368,10 @@ netretr_ticket( char *scookie, struct sinfo *si, SNET *sn, int convert,
                 &tv )) <= 0 ) {
 	    cosign_log( APLOG_ERR, s,
 		    "mod_cosign: retrieve tgt failed: %s", strerror( errno ));
-            returnval = COSIGN_ERROR;
             goto error2;
         }
         if ( write( fd, buf, (size_t)rr ) != rr ) {
             perror( krbpath );
-            returnval = COSIGN_ERROR;
             goto error2;
         }
         size -= rr;
@@ -393,12 +385,10 @@ netretr_ticket( char *scookie, struct sinfo *si, SNET *sn, int convert,
     if (( line = snet_getline( sn, &tv )) == NULL ) {
 	cosign_log( APLOG_ERR, s, "mod_cosign: retrieve for %s failed: %s",
 		scookie, strerror( errno ));
-        returnval = COSIGN_ERROR;
         goto error1;
     }
     if ( strcmp( line, "." ) != 0 ) {
 	cosign_log( APLOG_ERR, s, "mod_cosign: netretr_ticket: %s", line );
-        returnval = COSIGN_ERROR;
         goto error1;
     }
 
@@ -406,7 +396,6 @@ netretr_ticket( char *scookie, struct sinfo *si, SNET *sn, int convert,
     if ( strlen( krbpath ) >= sizeof( si->si_krb5tkt )) {
 	cosign_log( APLOG_ERR, s,
 		"mod_cosign: netretr_ticket: krb5tkt path too long" );
-        returnval = COSIGN_ERROR;
 	goto error1;
     }
     strcpy( si->si_krb5tkt, krbpath );
@@ -421,7 +410,6 @@ netretr_ticket( char *scookie, struct sinfo *si, SNET *sn, int convert,
     if ( mkcookie( sizeof( tmpkrb ), tmpkrb ) != 0 ) {
 	cosign_log( APLOG_ERR, s,
 		"mod_cosign: netretr_ticket: mkcookie failed" );
-        returnval = COSIGN_ERROR;
 	goto error1;
     }
 
@@ -436,7 +424,6 @@ netretr_ticket( char *scookie, struct sinfo *si, SNET *sn, int convert,
     if (( kerror = krb5_init_context( &kcontext )) != KSUCCESS ) {
 	cosign_log( APLOG_ERR, s, "mod_cosign: krb5_init_context: %s", 
 		(char *)error_message( kerror ));
-        returnval = COSIGN_ERROR;
 	goto error1;
     }
 
@@ -445,7 +432,6 @@ netretr_ticket( char *scookie, struct sinfo *si, SNET *sn, int convert,
 	    KSUCCESS ) {
 	cosign_log( APLOG_ERR, s, "mod_cosign: krb5_cc_resolve: %s", 
 		(char *)error_message( kerror ));
-        returnval = COSIGN_ERROR;
 	goto error1;
     }
 
@@ -453,7 +439,6 @@ netretr_ticket( char *scookie, struct sinfo *si, SNET *sn, int convert,
 	    KSUCCESS ) {
 	cosign_log( APLOG_ERR, s, "mod_cosign: krb5_cc_get_princ: %s", 
 		(char *)error_message( kerror ));
-        returnval = COSIGN_ERROR;
 	goto error1;
     }
     if (( kerror = krb5_build_principal( kcontext, &kserver,
@@ -462,7 +447,6 @@ netretr_ticket( char *scookie, struct sinfo *si, SNET *sn, int convert,
 	    krb5_princ_realm( kcontext, kclient)->data, NULL)) != KSUCCESS ) {
 	cosign_log( APLOG_ERR, s, "mod_cosign: krb5_build_princ: %s", 
 		(char *)error_message( kerror ));
-        returnval = COSIGN_ERROR;
 	goto error1;
     }
 
@@ -475,7 +459,6 @@ netretr_ticket( char *scookie, struct sinfo *si, SNET *sn, int convert,
 	    &increds, &v5creds )) != KSUCCESS ) {
 	cosign_log( APLOG_ERR, s, "mod_cosign: krb5_get_credentials: %s", 
 		(char *)error_message( kerror ));
-        returnval = COSIGN_ERROR;
 	goto error1;
     }
 
@@ -483,7 +466,6 @@ netretr_ticket( char *scookie, struct sinfo *si, SNET *sn, int convert,
 	    KSUCCESS ) {
 	cosign_log( APLOG_ERR, s, "mod_cosign: krb524: %s",
 		(char *)error_message( kerror ));
-        returnval = COSIGN_ERROR;
 	goto error1;
     }
 
@@ -491,7 +473,6 @@ netretr_ticket( char *scookie, struct sinfo *si, SNET *sn, int convert,
     if (( kerror = in_tkt( v4creds.pname, v4creds.pinst )) != KSUCCESS ) {
 	cosign_log( APLOG_ERR, s,
 		"mod_cosign: in_tkt: %s", (char *)error_message( kerror ));
-        returnval = COSIGN_ERROR;
 	goto error1;
     }
 
@@ -500,14 +481,12 @@ netretr_ticket( char *scookie, struct sinfo *si, SNET *sn, int convert,
 	    &(v4creds.ticket_st), v4creds.issue_date )) != KSUCCESS ) {
 	cosign_log( APLOG_ERR, s, "mod_cosign: krb_save_cred: %s",
 		(char *)error_message( kerror ));
-        returnval = COSIGN_ERROR;
 	goto error1;
     }
 
     if ( strlen( krb4path ) >= sizeof( si->si_krb4tkt )) {
 	cosign_log( APLOG_ERR, s,
 		"mod_cosign: netretr_ticket: krb4tkt path too long" );
-        returnval = COSIGN_ERROR;
 	goto error1;
     }
     strcpy( si->si_krb4tkt, krb4path );
@@ -532,7 +511,7 @@ error1:
 #ifdef KRB4
     unlink( krb4path );
 #endif /* KRB4 */
-    return( returnval );
+    return( COSIGN_ERROR );
 }
 #endif /* KRB */
 
