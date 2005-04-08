@@ -536,7 +536,7 @@ cosign_check_cookie( char *scookie, struct sinfo *si, cosign_host_config *cfg,
 	int first, server_rec *s )
 {
     struct connlist	**cur, *tmp;
-    int			rc = COSIGN_ERROR;
+    int			rc = COSIGN_ERROR, retry = 0;
 
     /* use connection, then shuffle if there is a problem
      * what happens if they are all bad?
@@ -545,16 +545,26 @@ cosign_check_cookie( char *scookie, struct sinfo *si, cosign_host_config *cfg,
 	if ( (*cur)->conn_sn == NULL ) {
 	    continue;
 	}
-	if (( rc = netcheck_cookie( scookie, si, *cur, s )) < 0 ) {
+
+	switch ( rc = netcheck_cookie( scookie, si, *cur, s )) {
+	case COSIGN_OK :
+	case COSIGN_LOGGED_OUT :
+	    goto done;
+
+	case COSIGN_RETRY :
+	    retry = 1;
+	    break;
+
+	default:
+	    cosign_log( APLOG_ERR, s,
+		    "mod_cosign: cosign_check_cookie: unknown return: %d", rc );
+	case COSIGN_ERROR :
 	    if ( snet_close( (*cur)->conn_sn ) != 0 ) {
 		cosign_log( APLOG_ERR, s,
 			"mod_cosign: choose_conn: snet_close failed" );
 	    }
 	    (*cur)->conn_sn = NULL;
-	}
-
-	if (( rc == COSIGN_LOGGED_OUT ) || ( rc == COSIGN_OK )) {
-	    goto done;
+	    break;
 	}
     }
 
@@ -566,27 +576,33 @@ cosign_check_cookie( char *scookie, struct sinfo *si, cosign_host_config *cfg,
 	if (( rc = connect_sn( *cur, cfg->ctx, cfg->host, s )) != 0 ) {
 	    continue;
 	}
-	if (( rc = netcheck_cookie( scookie, si, *cur, s )) < 0 ) {
+
+	switch ( rc = netcheck_cookie( scookie, si, *cur, s )) {
+	case COSIGN_OK :
+	case COSIGN_LOGGED_OUT :
+	    goto done;
+
+	case COSIGN_RETRY :
+	    retry = 1;
+	    break;
+
+	default:
+	    cosign_log( APLOG_ERR, s,
+		    "mod_cosign: cosign_check_cookie: unknown return: %d", rc );
+	case COSIGN_ERROR :
 	    if ( snet_close( (*cur)->conn_sn ) != 0 ) {
 		cosign_log( APLOG_ERR, s,
 			"mod_cosign: choose_conn: snet_close failed" );
 	    }
 	    (*cur)->conn_sn = NULL;
-	}
-
-	if (( rc == COSIGN_LOGGED_OUT ) || ( rc == COSIGN_OK )) {
-	    goto done;
+	    break;
 	}
     }
 
-    /* bug? we need to think about the mixed cases */
-    /* number of hosts we could actually talk to */
-    /* if we talk to anyone, we set and redirect */
-    /* otherwise, we are forbidden */
-    if ( rc  == COSIGN_ERROR ) {
-	return( COSIGN_ERROR );
+    if ( retry ) {
+	return( COSIGN_RETRY );
     }
-    return( COSIGN_RETRY );
+    return( COSIGN_ERROR );
 
 done:
     if ( cur != &cfg->cl ) {
@@ -595,7 +611,7 @@ done:
 	tmp->conn_next = cfg->cl;
 	cfg->cl = tmp;
     }
-    if ( rc == COSIGN_RETRY ) {
+    if ( rc == COSIGN_LOGGED_OUT ) {
 	return( COSIGN_RETRY );
     } else {
 	if (( first ) && ( cfg->proxy )) {

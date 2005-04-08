@@ -41,41 +41,42 @@ cosign_cookie_valid( cosign_host_config *cfg, char *cookie, struct sinfo *si,
 
     if ( access( cfg->filterdb, R_OK | W_OK | X_OK ) != 0 ) {
 	perror( cfg->filterdb );
-	return( -1 );
+	return( COSIGN_ERROR );
     }
 
     if ( strchr( cookie, '/' ) != NULL ) {
 	cosign_log( APLOG_ERR, s,
 	            "mod_cosign: cosign_cookie_valid: cookie contains '/'" );
-	return( -1 );
+	return( COSIGN_ERROR );
     }
 
     if ( snprintf( path, sizeof( path ), "%s/%s", cfg->filterdb, cookie ) >=
 	    sizeof( path )) {
 	cosign_log( APLOG_ERR, s, "mod_cosign: cosign_cookie_valid: "
 		    "cookie path too long" );
-	return( -1 );
+	return( COSIGN_ERROR );
     }
 
     if ( gettimeofday( &tv, NULL ) != 0 ){
 	perror( "cosign_cookie_valid" );
-        return( -1 );
+        return( COSIGN_ERROR );
     }
 
     /*
-     * -1 bummer
+     * rs return vals:
+     * -1 system error
      * 0 ok
-     * 1 not in fs
+     * 1 not in filesystem
      */
     if (( rs = read_scookie( path, &lsi, s )) < 0 ) {
 	cosign_log( APLOG_ERR, s, "mod_cosign: read_scookie error" );
-	return( -1 );
+	return( COSIGN_ERROR );
     }
 
     if (( rs == 0 ) && (( tv.tv_sec - lsi.si_itime ) <= IDLETIME )) {
 #ifdef CHECK_SOURCE_ADDR
 	if ( strcmp( ipaddr, lsi.si_ipaddr ) != 0 ) {
-	    return( -1 );
+	    return( COSIGN_ERROR );
 	}
 #endif /* CHECK_SOURCE_ADDR */
 	strcpy( si->si_ipaddr, lsi.si_ipaddr );
@@ -90,28 +91,23 @@ cosign_cookie_valid( cosign_host_config *cfg, char *cookie, struct sinfo *si,
 	    strcpy( si->si_krb5tkt, lsi.si_krb5tkt );
 	}
 #endif /* KRB */
-	return( 0 );
+	return( COSIGN_OK );
     }
 
-    if (( rc = cosign_check_cookie( cookie, si, cfg, rs, s )) < 0 ) {
-	cosign_log( APLOG_ERR, s, "mod_cosign: cosign_cookie_valid: "
-		"check_cookie error" );
-        return( -1 );
-    }
-
-    if ( rc == 2 ) {
+    if (( rc = cosign_check_cookie( cookie, si, cfg, rs, s ))
+	    == COSIGN_ERROR ) {
 	cosign_log( APLOG_ERR, s, "mod_cosign: cosign_cookie_valid: "
 		"Unable to connect to any Cosign server." ); 
-	return( -1 );
+        return( COSIGN_ERROR );
     }
 
-    if ( rc == 1 ) {
-	return( 1 );
+    if ( rc == COSIGN_RETRY ) {
+	return( COSIGN_RETRY );
     }
 
 #ifdef CHECK_SOURCE_ADDR
     if ( strcmp( ipaddr, si->si_ipaddr ) != 0 ) {
-	return( 1 );
+	return( COSIGN_ERROR );
     }
 #endif /* CHECK_SOURCE_ADDR */
 
@@ -122,7 +118,7 @@ cosign_cookie_valid( cosign_host_config *cfg, char *cookie, struct sinfo *si,
 		( strcmp( si->si_realm, lsi.si_realm ) != 0 )) {
 	    cosign_log( APLOG_ERR, s, "mod_cosign: cosign_cookie_valid: "
 		    "network info does not match local info for %s", cookie );
-	    return( -1 );
+	    return( COSIGN_ERROR );
 	}
 
 	/* since we're not getting the ticket everytime, we need
@@ -139,20 +135,21 @@ cosign_cookie_valid( cosign_host_config *cfg, char *cookie, struct sinfo *si,
 #endif /* KRB */
 	/* update to current time, pushing window forward */
 	utime( path, NULL );
-	return( 0 );
+	return( COSIGN_OK );
     }
 
     /* store local copy of scookie (service cookie) */
     if ( snprintf( tmppath, sizeof( tmppath ), "%s/%x%x.%i", cfg->filterdb,
-	    tv.tv_sec, tv.tv_usec, (int)getpid()) >= sizeof( tmppath )) {
+	    (int)tv.tv_sec, (int)tv.tv_usec, (int)getpid()) >=
+	    sizeof( tmppath )) {
 	cosign_log( APLOG_ERR, s, "mod_cosign: cosign_cookie_valid: "
 		"tmppath too long" );
-	return( -1 );
+	return( COSIGN_ERROR );
     }
 
     if (( fd = open( tmppath, O_CREAT|O_EXCL|O_WRONLY, 0644 )) < 0 ) {
 	perror( tmppath );
-	return( -1 );
+	return( COSIGN_ERROR );
     }
 
     if (( tmpfile = fdopen( fd, "w" )) == NULL ) {
@@ -160,7 +157,7 @@ cosign_cookie_valid( cosign_host_config *cfg, char *cookie, struct sinfo *si,
 	    perror( tmppath );
 	}
 	perror( tmppath );
-	return( -1 );
+	return( COSIGN_ERROR );
     }
 
     fprintf( tmpfile, "i%s\n", si->si_ipaddr );
@@ -181,7 +178,7 @@ cosign_cookie_valid( cosign_host_config *cfg, char *cookie, struct sinfo *si,
 	    perror( tmppath );
 	}
 	perror( tmppath );
-	return( -1 );
+	return( COSIGN_ERROR );
     }
 
     if ( link( tmppath, path ) != 0 ) {
@@ -189,12 +186,12 @@ cosign_cookie_valid( cosign_host_config *cfg, char *cookie, struct sinfo *si,
 	    perror( tmppath );
 	}
 	perror( tmppath );
-	return( -1 );
+	return( COSIGN_ERROR );
     }
 
     if ( unlink( tmppath ) != 0 ) {
 	perror( tmppath );
     }
 
-    return( 0 );
+    return( COSIGN_OK );
 }
