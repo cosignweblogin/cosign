@@ -78,27 +78,37 @@ connlist_setup( char *host, unsigned short port )
 
 }
 
-    int
+    static int
 cosign_choose_conn( struct connlist *head, void *netparams,
 	int (*fp)( SNET *, void * ))
 {
 
     struct connlist 	*cur;
-    int 		rc = 0, ret = 0;
+    int 		rc = 0, retry = 0;
 
     for ( cur = head; cur != NULL; cur = cur->conn_next ) {
         if ( cur->conn_sn == NULL ) {
             continue;
         }
-        if (( rc = (*fp)( cur->conn_sn, netparams )) < 0 ) {
+
+        switch ( rc = (*fp)( cur->conn_sn, netparams )) {
+	case COSIGN_OK :
+	case COSIGN_LOGGED_OUT :
+	    goto done;
+
+	case COSIGN_RETRY :
+	    retry = 1;
+	    break;
+
+	default:
+	    fprintf( stderr, "cosign_choose_conn: unknown return: %d", rc );
+
+	case COSIGN_ERROR :
             if ( snet_close( cur->conn_sn ) != 0 ) {
                 fprintf( stderr, "choose_conn: snet_close failed\n" );
             }
             cur->conn_sn = NULL;
-        }
-
-        if ( rc > 0 ) {
-            goto done;
+	    break;
         }
     }
 
@@ -107,18 +117,28 @@ cosign_choose_conn( struct connlist *head, void *netparams,
         if ( cur->conn_sn != NULL ) {
             continue;
         }
-        if (( ret = connect_sn( cur )) != 0 ) {
+        if ( connect_sn( cur )) != 0 ) {
             continue;
         }
-        if (( rc = (*fp)( cur->conn_sn, netparams )) < 0 ) {
+
+        switch ( rc = (*fp)( cur->conn_sn, netparams )) {
+	case COSIGN_OK :
+	case COSIGN_LOGGED_OUT :
+	    goto done;
+
+	case COSIGN_RETRY :
+	    retry = 1;
+	    break;
+
+	default:
+	    fprintf( stderr, "cosign_choose_conn: unknown return: %d", rc );
+
+	case COSIGN_ERROR :
             if ( snet_close( cur->conn_sn ) != 0 ) {
-                fprintf( stderr, "cosign_choose_conn: snet_close failed\n" );
+                fprintf( stderr, "choose_conn: snet_close failed\n" );
             }
             cur->conn_sn = NULL;
-        }
-
-        if ( rc > 0 ) {
-            goto done;
+	    break;
         }
     }
 
@@ -134,7 +154,7 @@ cosign_choose_conn( struct connlist *head, void *netparams,
 
 done:
     /* not logged in or some such, whatever it failed */
-    if ( rc == 1 ) {
+    if ( rc == COSIGN_LOGGED_OUT ) {
         return( -1 );
     } else {
         return( 0 );
@@ -160,7 +180,7 @@ cosign_login( struct connlist *conn, char *cookie, char *ip, char *user,
     return( 0 );
 }
 
-    int
+    static int
 net_login( SNET *sn, void *vlp )
 {
     int			fd = 0;
@@ -183,20 +203,20 @@ net_login( SNET *sn, void *vlp )
 	if ( snet_writef( sn, "LOGIN %s %s %s %s\r\n", lp->lp_cookie, lp->lp_ip,
 		lp->lp_user, lp->lp_realm ) < 0 ) {
 	    fprintf( stderr, "net_login: LOGIN failed\n" );
-	    return( -1 );
+	    return( COSIGN_ERROR );
 	}
     } else {
 	if ( snet_writef( sn, "LOGIN %s %s %s %s kerberos\r\n", lp->lp_cookie,
 		lp->lp_ip, lp->lp_user, lp->lp_realm ) < 0 ) {
 	    fprintf( stderr, "net_login: LOGIN failed\n" );
-	    return( -1 );
+	    return( COSIGN_ERROR );
 	}
     }
 
     tv = timeout;
     if (( line = snet_getline_multi( sn, logger, &tv )) == NULL ) {
 	fprintf( stderr, "net_login: %s\n", strerror( errno ));
-	return( -1 );
+	return( COSIGN_ERROR );
     }
 
     if ( lp->lp_krb == NULL ) {
@@ -208,27 +228,27 @@ net_login( SNET *sn, void *vlp )
     switch( *line ) {
     case '2':
 	/* You'd only get this the user double clicks on the "login" button. */
-	return( 2 );
+	return( COSIGN_OK );
 
     case '3':
     	break;
 
     case '4':
         fprintf( stderr, "net_login: %s\n", line);
-        return( 1 );
+        return( COSIGN_LOGGED_OUT );
 
     case '5':
         /* choose another connection */
-        return( 0 );
+        return( COSIGN_RETRY );
 
     default:
         fprintf( stderr, "net_login: %s\n", line );
-        return( -1 );
+        return( COSIGN_ERROR );
     }
 
     if (( fd = open( lp->lp_krb, O_RDONLY, 0 )) < 0 ) {
 	perror( lp->lp_krb );
-	return( -1 );
+	return( COSIGN_ERROR );
     }
 
     if ( unlink( lp->lp_krb ) != 0 ) {
@@ -260,7 +280,7 @@ net_login( SNET *sn, void *vlp )
     close( fd );
     if ( rr < 0 ) {
         perror( lp->lp_krb );
-        return( -1 );
+        return( COSIGN_ERROR );
     }
 
     /* Check number of bytes sent to server */
@@ -268,14 +288,14 @@ net_login( SNET *sn, void *vlp )
         fprintf( stderr,
             "login %s failed: Sent wrong number of bytes to server\n",
             lp->lp_user );
-        return( -1 );
+        return( COSIGN_ERROR );
     }
 
     /* End transaction with server */
     if ( snet_writef( sn, ".\r\n" ) < 0 ) {
         fprintf( stderr, "login %s failed: %s\n", lp->lp_user,
             strerror( errno ));
-        return( -1 );
+        return( COSIGN_ERROR );
     }
     tv = timeout;
     if (( line = snet_getline_multi( sn, logger, &tv )) == NULL ) {
@@ -291,24 +311,24 @@ net_login( SNET *sn, void *vlp )
 finish:
     switch( *line ) {
     case '2':
-	return( 2 );
+	return( COSIGN_OK );
 
     case '4':
         fprintf( stderr, "net_login: %s\n", line);
-        return( 1 );
+        return( COSIGN_LOGGED_OUT );
 
     case '5':
         /* choose another connection */
-        return( 0 );
+        return( COSIGN_RETRY );
 
     default:
         fprintf( stderr, "net_login: %s\n", line );
-        return( -1 );
+        return( COSIGN_ERROR );
     }
 
 error:
     close( fd );
-    return( -1 );
+    return( COSIGN_ERROR );
 }
 
     int
@@ -326,7 +346,7 @@ cosign_logout( struct connlist *conn, char *cookie, char *ip )
     return( 0 );
 }
 
-    int
+    static int
 net_logout( SNET *sn, void *vlp )
 {
     char		*line;
@@ -335,30 +355,30 @@ net_logout( SNET *sn, void *vlp )
 
     if ( snet_writef( sn, "LOGOUT %s %s\r\n", lp->lp_cookie, lp->lp_ip ) < 0 ) {
 	fprintf( stderr, "net_logout: LOGOUT failed\n" );
-	return( -1 );
+	return( COSIGN_ERROR );
     }
 
     tv = timeout;
     if (( line = snet_getline_multi( sn, logger, &tv )) == NULL ) {
 	fprintf( stderr, "net_logout: %s\n", strerror( errno ));
-	return( -1 );
+	return( COSIGN_ERROR );
     }
 
     switch( *line ) {
     case '2':
-	return( 2 );
+	return( COSIGN_OK );
 
     case '4':
         fprintf( stderr, "net_logout: %s\n", line);
-        return( 1 );
+        return( COSIGN_LOGGED_OUT );
 
     case '5':
         /* choose another connection */
-        return( 0 );
+        return( COSIGN_RETRY );
 
     default:
         fprintf( stderr, "net_logout: %s\n", line );
-        return( -1 );
+        return( COSIGN_ERROR );
     }
 }
 
@@ -380,7 +400,7 @@ cosign_register( struct connlist *conn, char *cookie, char *ip, char *scookie )
     return( 0 );
 }
 
-    int
+    static int
 net_register( SNET *sn, void *vrp )
 {
     char		*line;
@@ -390,30 +410,30 @@ net_register( SNET *sn, void *vrp )
     if ( snet_writef( sn, "REGISTER %s %s %s\r\n", rp->rp_cookie, rp->rp_ip,
 	    rp->rp_scookie ) < 0 ) {
 	fprintf( stderr, "cosign_register: register failed\n" );
-	return( -1 );
+	return( COSIGN_ERROR );
     }
 
     tv = timeout;
     if (( line = snet_getline_multi( sn, logger, &tv )) == NULL ) {
 	fprintf( stderr, "cosign_register: %s\n", strerror( errno ));
-	return( -1 );
+	return( COSIGN_ERROR );
     }
 
     switch( *line ) {
     case '2':
-	return( 2 );
+	return( COSIGN_OK );
 
     case '4':
         fprintf( stderr, "net_register: %s\n", line);
-        return( 1 );
+        return( COSIGN_LOGGED_OUT );
 
     case '5':
         /* choose another connection */
-        return( 0 );
+        return( COSIGN_RETRY );
 
     default:
         fprintf( stderr, "net_register: %s\n", line );
-        return( -1 );
+        return( COSIGN_ERROR );
     }
 }
 
@@ -431,7 +451,7 @@ cosign_check( struct connlist *conn, char *cookie )
     return( 0 );
 }
 
-    int
+    static int
 net_check( SNET *sn, void *vcp )
 {
     char		*line;
@@ -440,30 +460,30 @@ net_check( SNET *sn, void *vcp )
 
     if ( snet_writef( sn, "CHECK %s\r\n", cp->cp_cookie ) < 0 ) {
 	fprintf( stderr, "cosign_check: check failed\n" );
-	return( -1 );
+	return( COSIGN_ERROR );
     }
 
     tv = timeout;
     if (( line = snet_getline_multi( sn, logger, &tv )) == NULL ) {
 	fprintf( stderr, "cosign_check: %s\n", strerror( errno ));
-	return( -1 );
+	return( COSIGN_ERROR );
     }
 
     switch( *line ) {
     case '2':
-	return( 2 );
+	return( COSIGN_OK );
 
     case '4':
         fprintf( stderr, "net_check: %s\n", line);
-        return( 1 );
+        return( COSIGN_LOGGED_OUT );
 
     case '5':
         /* choose another connection */
-        return( 0 );
+        return( COSIGN_RETRY );
 
     default:
         fprintf( stderr, "net_check: %s\n", line );
-        return( -1 );
+        return( COSIGN_ERROR );
     }
 }
 
