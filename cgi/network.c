@@ -119,7 +119,7 @@ cosign_choose_conn( struct connlist *head, void *netparams,
         if ( cur->conn_sn != NULL ) {
             continue;
         }
-        if ( connect_sn( cur )) != 0 ) {
+        if ( connect_sn( cur ) != 0 ) {
             continue;
         }
 
