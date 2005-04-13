@@ -93,8 +93,10 @@ cosign_choose_conn( struct connlist *head, void *netparams,
 
         switch ( rc = (*fp)( cur->conn_sn, netparams )) {
 	case COSIGN_OK :
+	    return( 0 );
+
 	case COSIGN_LOGGED_OUT :
-	    goto done;
+	    return( -1 );
 
 	case COSIGN_RETRY :
 	    retry = 1;
@@ -123,8 +125,10 @@ cosign_choose_conn( struct connlist *head, void *netparams,
 
         switch ( rc = (*fp)( cur->conn_sn, netparams )) {
 	case COSIGN_OK :
+	    return( 0 );
+
 	case COSIGN_LOGGED_OUT :
-	    goto done;
+	    return( -1 );
 
 	case COSIGN_RETRY :
 	    retry = 1;
@@ -142,25 +146,15 @@ cosign_choose_conn( struct connlist *head, void *netparams,
         }
     }
 
-    if ( ret < 0 ) {
-	fprintf( stderr, "cosign_choose_conn: no connection to servers.\n" );
-    }
-
-    if ( rc == 0 ) {
+    if ( retry ) {
 	fprintf( stderr,
-		"cosign_choose_conn: all servers returned UNKNOWN\n");
+		"cosign_choose_conn: some servers returned UNKNOWN\n");
+    } else {
+	fprintf( stderr,
+		"cosign_choose_conn: all servers returned ERROR\n");
     }
     return( -1 );
-
-done:
-    /* not logged in or some such, whatever it failed */
-    if ( rc == COSIGN_LOGGED_OUT ) {
-        return( -1 );
-    } else {
-        return( 0 );
-    }
 }
-
     int
 cosign_login( struct connlist *conn, char *cookie, char *ip, char *user,
 	char *realm, char *krb )
