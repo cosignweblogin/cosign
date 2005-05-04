@@ -309,16 +309,7 @@ cosign_login_krb5( struct connlist *head, char *id, char *passwd,
     }
 
     /* verify no KDC spoofing */
-    if ( *keytab_path == '\0' ) {
-	if (( kerror = krb5_kt_default_name(
-		kcontext, ktbuf, MAX_KEYTAB_NAME_LEN )) != 0 ) {
-	    sl[ SL_ERROR ].sl_data = (char *)error_message( kerror );
-	    sl[ SL_TITLE ].sl_data = "Ticket Verification Error";
-	    tmpl = ERROR_HTML;
-	    subfile( tmpl, sl, 0 );
-	    exit( 0 );
-	}
-    } else {
+    if ( *keytab_path != '\0' ) {
 	if ( strlen( keytab_path ) > MAX_KEYTAB_NAME_LEN ) {
 	    sl[ SL_ERROR ].sl_data = "server configuration error";
 	    sl[ SL_TITLE ].sl_data = "Ticket Verification Error";
@@ -327,36 +318,36 @@ cosign_login_krb5( struct connlist *head, char *id, char *passwd,
 	    exit( 0 );
 	}
 	strcpy( ktbuf, keytab_path );
-    }
 
-    if (( kerror = krb5_kt_resolve( kcontext, ktbuf, &keytab )) != 0 ) {
-	sl[ SL_ERROR ].sl_data = (char *)error_message( kerror );
-	sl[ SL_TITLE ].sl_data = "KT Resolve Error";
-	tmpl = ERROR_HTML;
-	subfile( tmpl, sl, 0 );
-	exit( 0 );
-    }
+	if (( kerror = krb5_kt_resolve( kcontext, ktbuf, &keytab )) != 0 ) {
+	    sl[ SL_ERROR ].sl_data = (char *)error_message( kerror );
+	    sl[ SL_TITLE ].sl_data = "KT Resolve Error";
+	    tmpl = ERROR_HTML;
+	    subfile( tmpl, sl, 0 );
+	    exit( 0 );
+	}
 
-    if (( kerror = krb5_sname_to_principal( kcontext, NULL, "cosign",
-	    KRB5_NT_SRV_HST, &sprinc )) != 0 ) {
-	sl[ SL_ERROR ].sl_data = (char *)error_message( kerror );
-	sl[ SL_TITLE ].sl_data = "Server Principal Error";
-	tmpl = ERROR_HTML;
-	subfile( tmpl, sl, 0 );
-	exit( 0 );
-    }
+	if (( kerror = krb5_sname_to_principal( kcontext, NULL, "cosign",
+		KRB5_NT_SRV_HST, &sprinc )) != 0 ) {
+	    sl[ SL_ERROR ].sl_data = (char *)error_message( kerror );
+	    sl[ SL_TITLE ].sl_data = "Server Principal Error";
+	    tmpl = ERROR_HTML;
+	    subfile( tmpl, sl, 0 );
+	    exit( 0 );
+	}
 
-    if (( kerror = krb5_verify_init_creds(
-	    kcontext, &kcreds, sprinc, keytab, NULL, NULL )) != 0 ) {
-	sl[ SL_ERROR ].sl_data = (char *)error_message( kerror );
-	sl[ SL_TITLE ].sl_data = "Ticket Verify Error";
-	tmpl = ERROR_HTML;
-	subfile( tmpl, sl, 0 );
+	if (( kerror = krb5_verify_init_creds(
+		kcontext, &kcreds, sprinc, keytab, NULL, NULL )) != 0 ) {
+	    sl[ SL_ERROR ].sl_data = (char *)error_message( kerror );
+	    sl[ SL_TITLE ].sl_data = "Ticket Verify Error";
+	    tmpl = ERROR_HTML;
+	    subfile( tmpl, sl, 0 );
+	    krb5_free_principal( kcontext, sprinc );
+	    exit( 0 );
+	}
+	(void)krb5_kt_close( kcontext, keytab );
 	krb5_free_principal( kcontext, sprinc );
-	exit( 0 );
     }
-    (void)krb5_kt_close( kcontext, keytab );
-    krb5_free_principal( kcontext, sprinc );
 
     if (( kerror = krb5_cc_initialize( kcontext, kccache, kprinc )) != 0 ) {
 	sl[ SL_ERROR ].sl_data = (char *)error_message( kerror );
@@ -381,7 +372,8 @@ cosign_login_krb5( struct connlist *head, char *id, char *passwd,
     krb5_free_context( kcontext );
 
     /* password has been accepted, tell cosignd */
-    if ( cosign_login( head, cookie, ip_addr, id, realm, krbpath ) < 0 ) {
+    if ( cosign_login( head, cookie, ip_addr, id, realm,
+	    __APPLE__ ? NULL : krbpath ) < 0 ) {
 	fprintf( stderr, "cosign_login_krb5: login failed\n") ;
 	sl[ SL_ERROR ].sl_data = "We were unable to contact the "
 		"authentication server. Please try again later.";

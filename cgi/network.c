@@ -185,12 +185,6 @@ net_login( SNET *sn, void *vlp )
     struct timeval	tv;
     struct login_param	*lp = vlp;
 
-    /*
-     * -1 means big error, dump this connection
-     * 0 means that this host is having a replication problem
-     * 1 means the user is not logged in
-     * 2 means everything's peachy
-     */
 
     /* if we're doing BasicAuth or PAM we might not have a ticket */
     if ( lp->lp_krb == NULL ) {
