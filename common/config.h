@@ -11,6 +11,14 @@
 #define AL_TICKET	(1<<0)
 #define AL_PROXY	(1<<1)
 
+#define SL_REAUTH	(1<<0)
+
+struct servicelist {
+    char		*sl_cookie;
+    int			sl_flag;
+    struct servicelist	*sl_next;
+};
+
 struct authlist {
     char		*al_hostname;
     int			al_key;
@@ -52,6 +60,7 @@ struct cosigncfg {
 
 int		cosign_ssl( char *, char *, char *, SSL_CTX ** );
 struct authlist	*authlist_find( char * );
+struct servicelist	*service_find( char * );
 int		cosign_config( char * );
 char		*cosign_config_get( char * );
 char		**cosign_config_get_all( char *, int * );

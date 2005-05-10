@@ -20,6 +20,7 @@
 #include "argcargv.h"
 
 struct authlist		*authlist = NULL, *new_authlist;
+struct servicelist	*servicelist = NULL;
 struct cosigncfg 	*cfg = NULL, *new_cfg;
 
     static void
@@ -64,6 +65,19 @@ cosign_config_get( char *key )
 	}
     }
     return( NULL );
+}
+
+    struct servicelist *
+service_find( char *cookie )
+{
+    struct servicelist	*cur = NULL;
+
+    for ( cur = servicelist; cur != NULL; cur = cur->sl_next ) {
+	if ( strcmp( cur->sl_cookie, cookie ) == 0 ) {
+	    break;
+	}
+    }
+    return( cur );
 }
 
     struct authlist *
@@ -166,6 +180,7 @@ read_config( char *path )
     int			linenum = 0;
     struct cosigncfg	*cc_new, **cc_cur;
     struct authlist 	*al_new, **al_cur;
+    struct servicelist	*sl_new, **sl_cur;
 
     if (( sn = snet_open( path, O_RDONLY, 0, 0 )) == NULL ) {
 	perror( path );
@@ -216,7 +231,7 @@ read_config( char *path )
 	    cc_new->cc_next = *cc_cur;
 	    *cc_cur = cc_new;
 
-	} else if ( strcmp( av[ 0 ],"include" ) == 0 ) {
+	} else if ( strcmp( av[ 0 ], "include" ) == 0 ) {
 	    if ( ac != 2 ) {
 		fprintf( stderr, "%s: line %d, "
 			"wrong number args to include keyword\n",
@@ -227,6 +242,37 @@ read_config( char *path )
 		fprintf( stderr,"%s line %d\n", path, linenum );
 		return( -1 );
 	    }
+
+	} else if ( strcmp( av[ 0 ], "cookie" ) == 0 ) {
+	    if ( ac != 3 ) {
+		fprintf( stderr, "line %d: keyword cookie takes 3 args\n",
+			linenum );
+		return( -1 );
+	    }
+	    if ( strcmp( av[ 2 ], "reauth" ) != 0 ) {
+		fprintf( stderr, "line %d: unknown argument to cookie: %s\n",
+			linenum, av[ 2 ] );
+		return( -1 );
+	    }
+	    if (( sl_new = (struct servicelist *)malloc(
+		    sizeof( struct servicelist ))) == NULL ) {
+		perror( "malloc" );
+		return( -1 );
+	    }
+	    if (( sl_new->sl_cookie = strdup( av[ 1 ] )) == NULL ) {
+		perror( "malloc" );
+		return( -1 );
+	    }
+	    sl_new->sl_flag = SL_REAUTH;
+	    sl_new->sl_next = NULL;
+
+	    for ( sl_cur = &servicelist; (*sl_cur) != NULL;
+		    sl_cur = &(*sl_cur)->sl_next )
+		;
+
+	    sl_new->sl_next = *sl_cur;
+	    *sl_cur = sl_new;
+
 	} else {
 	    if ( strcmp( av[ 0 ], "cgi" ) == 0 ) {
 		if ( ac != 2 ) {

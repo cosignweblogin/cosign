@@ -425,18 +425,19 @@ net_register( SNET *sn, void *vrp )
     }
 }
 
-    int
+    char *
 cosign_check( struct connlist *conn, char *cookie )
 {
-    struct check_param cp;
+    static struct check_param cp;
 
     cp.cp_cookie = cookie;
+    *cp.cp_user = '\0';
 
     if ( cosign_choose_conn( conn, &cp, net_check ) < 0 ) {
-	return( -1 );
+	return( NULL );
     }
 
-    return( 0 );
+    return( cp.cp_user );
 }
 
     static int
@@ -459,6 +460,7 @@ net_check( SNET *sn, void *vcp )
 
     switch( *line ) {
     case '2':
+	/* XXX parse line, ac == 4, return user */
 	return( COSIGN_OK );
 
     case '4':

@@ -29,10 +29,11 @@ struct reg_param
 struct check_param
 {
     char	*cp_cookie;
+    char	cp_user[ 131 ];
 };
 
 int cosign_login( struct connlist *, char *, char *, char *, char *, char * );
 int cosign_logout( struct connlist *, char *, char * );
 int cosign_register( struct connlist *, char *, char *, char * );
-int cosign_check( struct connlist *, char * );
+char *cosign_check( struct connlist *, char * );
 int ssl_setup(char *, char *, char * );

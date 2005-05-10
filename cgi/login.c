@@ -34,9 +34,6 @@ static char	*keytab_path = _KEYTAB_PATH;
 static char	*ticket_path = _COSIGN_TICKET_CACHE;
 #endif /* KRB */
 
-#define LOGIN_ERROR_HTML        "../templates/login_error.html"
-#define ERROR_HTML	        "../templates/error.html"
-
 extern char	*cosign_host, *cosign_conf;
 
 static struct subfile_list sl[] = {
@@ -93,7 +90,7 @@ lcgi_configure()
 # ifdef SQL_FRIEND
     void
 cosign_login_mysql( struct connlist *head, char *id, char *passwd,
-	char *ip_addr, char *cookie, char *ref, char *service )
+	char *ip_addr, char *cookie, char *ref, char *service, int reauth )
 {
     MYSQL_RES		*res;
     MYSQL_ROW		row;
@@ -164,7 +161,11 @@ cosign_login_mysql( struct connlist *head, char *id, char *passwd,
 	if ( service != NULL ) {
 	    sl[ SL_SERVICE ].sl_data = service;
 	}
-	tmpl = LOGIN_ERROR_HTML;
+	if ( reauth ) {
+	    tmpl = REAUTH_HTML;
+	} else {
+	    tmpl = LOGIN_ERROR_HTML;
+	}
 	subfile ( tmpl, sl, 1 );
 	exit( 0 );
     }
@@ -187,13 +188,21 @@ cosign_login_mysql( struct connlist *head, char *id, char *passwd,
 	    "is incorrect.";
 	sl[ SL_TITLE ].sl_data = "Authentication Required "
 	    "( guest password incorrect )";
-	tmpl = LOGIN_ERROR_HTML;
+	if ( reauth ) {
+	    tmpl = REAUTH_HTML;
+	} else {
+	    tmpl = LOGIN_ERROR_HTML;
+	}
 	subfile( tmpl, sl, 1 );
 	exit( 0 );
     }
 
     mysql_free_result( res );
     mysql_close( &friend_db );
+
+    if ( reauth ) {
+	return;
+    }
 
     if ( cosign_login( head, cookie, ip_addr, id, "friend", NULL ) < 0 ) {
 	fprintf( stderr, "cosign_login_mysql: login failed\n" ) ;
@@ -211,7 +220,7 @@ cosign_login_mysql( struct connlist *head, char *id, char *passwd,
 #ifdef KRB
     void
 cosign_login_krb5( struct connlist *head, char *id, char *passwd,
-	char *ip_addr, char *cookie, char *ref, char *service )
+	char *ip_addr, char *cookie, char *ref, char *service, int reauth )
 {
     krb5_error_code             kerror = 0;
     krb5_context                kcontext;
@@ -290,7 +299,11 @@ cosign_login_krb5( struct connlist *head, char *id, char *passwd,
 	if ( kerror == KRB5KRB_AP_ERR_BAD_INTEGRITY ) {
 	    sl[ SL_ERROR ].sl_data = "Password incorrect.  Is [caps lock] on?";
 	    sl[ SL_TITLE ].sl_data = "Password Incorrect";
-	    tmpl = LOGIN_ERROR_HTML;
+	    if ( reauth ) {
+		tmpl = REAUTH_HTML;
+	    } else {
+		tmpl = LOGIN_ERROR_HTML;
+	    }
 	    if ( ref != NULL ) {
 		sl[ SL_REF ].sl_data = ref;
 	    }
@@ -349,6 +362,10 @@ cosign_login_krb5( struct connlist *head, char *id, char *passwd,
 	krb5_free_principal( kcontext, sprinc );
     }
 
+    if ( reauth ) {
+	return;
+    }
+
     if (( kerror = krb5_cc_initialize( kcontext, kccache, kprinc )) != 0 ) {
 	sl[ SL_ERROR ].sl_data = (char *)error_message( kerror );
 	sl[ SL_TITLE ].sl_data = "CC Initialize Error";
@@ -372,8 +389,12 @@ cosign_login_krb5( struct connlist *head, char *id, char *passwd,
     krb5_free_context( kcontext );
 
     /* password has been accepted, tell cosignd */
-    if ( cosign_login( head, cookie, ip_addr, id, realm,
-	    __APPLE__ ? NULL : krbpath ) < 0 ) {
+#ifdef __APPLE__
+    if ( cosign_login( head, cookie, ip_addr, id, realm, NULL ) < 0 ) 
+#else
+    if ( cosign_login( head, cookie, ip_addr, id, realm, krbpath ) < 0 ) 
+#endif
+    {
 	fprintf( stderr, "cosign_login_krb5: login failed\n") ;
 	sl[ SL_ERROR ].sl_data = "We were unable to contact the "
 		"authentication server. Please try again later.";

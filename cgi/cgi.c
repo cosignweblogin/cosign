@@ -23,9 +23,6 @@
 #include "login.h"
 #include "subfile.h"
 
-#define LOGIN_ERROR_HTML	"../templates/login_error.html"
-#define ERROR_HTML	"../templates/error.html"
-#define LOGIN_HTML	"../templates/login.html"
 #define SERVICE_MENU	"/services/"
 #define LOOPWINDOW      30 
 #define MAXLOOPCOUNT	10	
@@ -51,6 +48,8 @@ struct cgi_list cl[] = {
         { "ref", NULL },
 #define CL_SERVICE	3
         { "service", NULL },
+#define CL_REAUTH	4
+        { "reauth", NULL },
         { NULL, NULL },
 };
 
@@ -157,6 +156,7 @@ main( int argc, char *argv[] )
 {
     int				rc, cookietime = 0, cookiecount = 0;
     int				rebasic = 0, len, server_port;
+    int				reauth = 0;
     char                	new_cookiebuf[ 128 ];
     char        		new_cookie[ 255 ];
     char			*data, *ip_addr;
@@ -165,6 +165,7 @@ main( int argc, char *argv[] )
     char			*ref = NULL, *service = NULL, *login = NULL;
     char			*remote_user = NULL;
     char			*tmpl = LOGIN_HTML;
+    struct servicelist		*scookie;
     struct timeval		tv;
     struct connlist		*head;
 
@@ -227,8 +228,7 @@ main( int argc, char *argv[] )
 	    }
 	    if ( strncmp( service, "cosign-", 7 ) != 0 ) {
 		sl[ SL_TITLE ].sl_data = "Error: Unrecognized Service";
-		sl[ SL_ERROR ].sl_data = "Unable to determine referring "
-			"service from query string.";
+		sl[ SL_ERROR ].sl_data = "Bad service in query string.";
 		tmpl = ERROR_HTML;
 		subfile( tmpl, sl, 0 );
 		exit( 0 );
@@ -332,8 +332,35 @@ main( int argc, char *argv[] )
 	    exit( 0 );
 	}
 
+	if ( !rebasic ) {
+	    if (( p = strchr( service, '=' )) == NULL ) {
+		sl[ SL_TITLE ].sl_data = "Error: Unrecognized Service";
+		sl[ SL_ERROR ].sl_data = "Malformed service in query string.";
+		tmpl = ERROR_HTML;
+		subfile( tmpl, sl, 0 );
+		exit( 0 );
+	    }
+	    *p = '\0';
+	    if (( scookie = service_find( service )) != NULL ) {
+		if ( scookie->sl_flag & SL_REAUTH ) {
+		    if (( sl[ SL_LOGIN ].sl_data =
+			    cosign_check( head, cookie )) == NULL ) {
+			sl[ SL_ERROR ].sl_data = "You are not logged in. "
+				"Please log in now.";
+			goto loginscreen;
+		    }
+		    sl[ SL_TITLE ].sl_data = "REAUTH TITLE";
+		    sl[ SL_ERROR ].sl_data = "REAUTH ERROR.";
+		    tmpl = REAUTH_HTML;
+		    subfile( tmpl, sl, 0 );
+		    exit( 0 );
+		}
+	    }
+	    *p = '=';
+	}
+
 	if (( rc = cosign_register( head, cookie, ip_addr, service )) < 0 ) {
-	    if ( cosign_check( head, cookie ) < 0 ) {
+	    if ( cosign_check( head, cookie ) == NULL ) {
 		sl[ SL_ERROR ].sl_data = "You are not logged in. "
 			"Please log in now.";
 		goto loginscreen;
@@ -363,7 +390,7 @@ main( int argc, char *argv[] )
     }
 
     if ( strcmp( method, "POST" ) != 0 ) {
-	if ( cosign_check( head, cookie ) < 0 ) {
+	if ( cosign_check( head, cookie ) == NULL ) {
 	    if ( rebasic && cosign_login( head, cookie, ip_addr, remote_user,
 			"basic", NULL ) < 0 ) {
 		fprintf( stderr, "cosign_login: basic login failed\n" ) ;
@@ -398,6 +425,15 @@ main( int argc, char *argv[] )
 	    ( *cl[ CL_REF ].cl_data != '\0' )) {
         ref = sl[ SL_REF ].sl_data = cl[ CL_REF ].cl_data;
     }
+    if (( cl[ CL_SERVICE ].cl_data != NULL ) &&
+	    ( *cl[ CL_SERVICE ].cl_data != '\0' )) {
+	service = sl[ SL_SERVICE ].sl_data = cl[ CL_SERVICE ].cl_data;
+    }
+    if (( cl[ CL_REAUTH ].cl_data != NULL ) &&
+	    ( *cl[ CL_REAUTH ].cl_data != '\0' ) &&
+	    ( strcmp( cl[ CL_REAUTH ].cl_data, "true" ) == 0 )) {
+	reauth = 1;
+    }
 
     if (( cl[ CL_LOGIN ].cl_data == NULL ) ||
 	    ( *cl[ CL_LOGIN ].cl_data == '\0' )) {
@@ -413,7 +449,11 @@ main( int argc, char *argv[] )
 	sl[ SL_TITLE ].sl_data = "Missing Password";
 	sl[ SL_ERROR ].sl_data = "Unable to login because password is "
 		"a required field.";
-	tmpl = LOGIN_ERROR_HTML;
+	if ( reauth ) {
+	    tmpl = REAUTH_HTML;
+	} else {
+	    tmpl = LOGIN_ERROR_HTML;
+	}
 	subfile( tmpl, sl, 1 );
 	exit( 0 );
     }
@@ -421,11 +461,15 @@ main( int argc, char *argv[] )
     if ( strchr( login, '@' ) != NULL ) {
 # ifdef SQL_FRIEND
 	cosign_login_mysql( head, login, cl[ CL_PASSWORD ].cl_data,
-		ip_addr, cookie, ref, service );
+		ip_addr, cookie, ref, service, reauth );
 # else
 	/* no @ unless we're friendly. */
 	sl[ SL_ERROR ].sl_data = sl[ SL_TITLE ].sl_data = "Your login id may not contain an '@'";
-	tmpl = LOGIN_ERROR_HTML;
+	if ( reauth ) {
+	    tmpl = REAUTH_HTML;
+	} else {
+	    tmpl = LOGIN_ERROR_HTML;
+	}
 	subfile( tmpl, sl, 1 );
 	exit( 0 );
 
@@ -434,7 +478,7 @@ main( int argc, char *argv[] )
 # ifdef KRB
 	/* not a friend, must be kerberos */
 	cosign_login_krb5( head, login, cl[ CL_PASSWORD ].cl_data,
-		ip_addr, cookie, ref, service );
+		ip_addr, cookie, ref, service, reauth );
 # else /* KRB */
 	sl[ SL_TITLE ].sl_data = "Error: Server Configuration";
 	sl[ SL_ERROR ].sl_data = "No Login Method Configured";
@@ -444,15 +488,10 @@ main( int argc, char *argv[] )
 # endif /* KRB */
     }
 
-    if (( cl[ CL_SERVICE ].cl_data != NULL ) &&
-	    ( *cl[ CL_SERVICE ].cl_data != '\0' )) {
-
-	/* url decode here the service cookie? */
-	service = sl[ SL_SERVICE ].sl_data = cl[ CL_SERVICE ].cl_data;
-
+    if ( service ) {
         if (( rc = cosign_register( head, cookie, ip_addr, service )) < 0 ) {
 	    /* this should not be possible... do it anyway? */
-            if ( cosign_check( head, cookie ) < 0 ) {
+            if ( cosign_check( head, cookie ) == NULL ) {
                 sl[ SL_TITLE ].sl_data = "Authentication Required";
                 goto loginscreen;
             }
