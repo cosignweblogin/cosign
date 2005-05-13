@@ -3051,22 +3051,30 @@ if test "${enable_krb+set}" = set; then
 
     echo "$as_me:$LINENO: checking for krb" >&5
 echo $ECHO_N "checking for krb... $ECHO_C" >&6
-    krbdirs="/usr/local/kerberos /usr/lib/kerberos /usr/kerberos \
-            /usr/local/krb5 /usr/lib/krb /usr/krb \
-            /usr/pkg /usr/local /usr"
-    if test "${ac_cv_path_krb+set}" = set; then
+
+    if test -d $enableval; then
+	echo "using krb as '$enableval'";
+	if test -f "$enableval/include/krb5.h"; then
+	    ac_cv_path_krb=$enableval
+	fi
+    else
+	krbdirs="/usr/local/kerberos /usr/lib/kerberos /usr/kerberos \
+		/usr/local/krb5 /usr/lib/krb /usr/krb \
+		/usr/pkg /usr/local /usr"
+	if test "${ac_cv_path_krb+set}" = set; then
   echo $ECHO_N "(cached) $ECHO_C" >&6
 else
 
-        for krbdir in $krbdirs; do
-            if test -f "$krbdir/include/krb5.h"; then
-                ac_cv_path_krb=$krbdir
-                break;
-            fi
-        done
+	    for krbdir in $krbdirs; do
+		if test -f "$krbdir/include/krb5.h"; then
+		    ac_cv_path_krb=$krbdir
+		    break;
+		fi
+	    done
 
 fi
 
+    fi
     if test ! -e "$ac_cv_path_krb" ; then
         { { echo "$as_me:$LINENO: error: cannot find krb libraries" >&5
 echo "$as_me: error: cannot find krb libraries" >&2;}
@@ -3084,8 +3092,8 @@ echo "$as_me: error: cannot find krb libraries" >&2;}
 
     HAVE_KRB=yes
 
-    echo "$as_me:$LINENO: result: $ac_cv_path_krb" >&5
-echo "${ECHO_T}$ac_cv_path_krb" >&6
+    echo "$as_me:$LINENO: result: Kerberos found at $ac_cv_path_krb" >&5
+echo "${ECHO_T}Kerberos found at $ac_cv_path_krb" >&6
 
 else
   echo "$as_me:$LINENO: result: kerberos not enabled" >&5

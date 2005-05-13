@@ -44,17 +44,25 @@ AC_DEFUN([CHECK_SSL],
 AC_DEFUN([CHECK_LIBKRB],
 [
     AC_MSG_CHECKING(for krb)
-    krbdirs="/usr/local/kerberos /usr/lib/kerberos /usr/kerberos \
-            /usr/local/krb5 /usr/lib/krb /usr/krb \
-            /usr/pkg /usr/local /usr"
-    AC_CACHE_VAL(ac_cv_path_krb,[
-        for krbdir in $krbdirs; do
-            if test -f "$krbdir/include/krb5.h"; then
-                ac_cv_path_krb=$krbdir
-                break;
-            fi
-        done
-    ])
+
+    if test -d $enableval; then
+	echo "using krb as '$enableval'";
+	if test -f "$enableval/include/krb5.h"; then
+	    ac_cv_path_krb=$enableval
+	fi
+    else
+	krbdirs="/usr/local/kerberos /usr/lib/kerberos /usr/kerberos \
+		/usr/local/krb5 /usr/lib/krb /usr/krb \
+		/usr/pkg /usr/local /usr"
+	AC_CACHE_VAL(ac_cv_path_krb,[
+	    for krbdir in $krbdirs; do
+		if test -f "$krbdir/include/krb5.h"; then
+		    ac_cv_path_krb=$krbdir
+		    break;
+		fi
+	    done
+	])
+    fi
     if test ! -e "$ac_cv_path_krb" ; then
         AC_MSG_ERROR(cannot find krb libraries)
     fi
@@ -70,7 +78,7 @@ AC_DEFUN([CHECK_LIBKRB],
     AC_SUBST(KLDFLAGS)
     HAVE_KRB=yes
     AC_SUBST(HAVE_KRB)
-    AC_MSG_RESULT($ac_cv_path_krb)
+    AC_MSG_RESULT(Kerberos found at $ac_cv_path_krb)
 ])
 
 AC_DEFUN([CHECK_APACHE2],
