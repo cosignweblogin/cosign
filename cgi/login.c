@@ -166,6 +166,7 @@ cosign_login_mysql( struct connlist *head, char *id, char *passwd,
 	} else {
 	    tmpl = LOGIN_ERROR_HTML;
 	}
+	sl[ SL_LOGIN ].sl_data = id;
 	subfile ( tmpl, sl, 1 );
 	exit( 0 );
     }
@@ -193,6 +194,7 @@ cosign_login_mysql( struct connlist *head, char *id, char *passwd,
 	} else {
 	    tmpl = LOGIN_ERROR_HTML;
 	}
+	sl[ SL_LOGIN ].sl_data = id;
 	subfile( tmpl, sl, 1 );
 	exit( 0 );
     }
@@ -310,6 +312,7 @@ cosign_login_krb5( struct connlist *head, char *id, char *passwd,
 	    if ( service != NULL ) {
 		sl[ SL_SERVICE ].sl_data = service;
 	    }
+	    sl[ SL_LOGIN ].sl_data = id;
 	    subfile( tmpl, sl, 1 );
 	    exit( 0 );
 	} else {

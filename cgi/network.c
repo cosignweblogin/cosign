@@ -24,6 +24,7 @@
 
 #include <snet.h>
 
+#include "argcargv.h"
 #include "cosigncgi.h"
 #include "network.h"
 
@@ -443,7 +444,9 @@ cosign_check( struct connlist *conn, char *cookie )
     static int
 net_check( SNET *sn, void *vcp )
 {
+    int                 ac;
     char		*line;
+    char                **av;
     struct timeval	tv;
     struct check_param *cp = vcp;
 
@@ -460,7 +463,15 @@ net_check( SNET *sn, void *vcp )
 
     switch( *line ) {
     case '2':
-	/* XXX parse line, ac == 4, return user */
+	if (( ac = argcargv( line, &av )) != 4 ) {
+	    fprintf( stderr, "net_check: wrong num of args: %s\n", line);
+	    return( COSIGN_ERROR );
+	}
+	if ( strlen( av[ 2 ] ) >= sizeof( cp->cp_user )) {
+	    fprintf( stderr, "net_check: username %s too long", av[ 2 ] );
+	    return( COSIGN_ERROR );
+	}
+	strcpy( cp->cp_user, av[ 2 ] );
 	return( COSIGN_OK );
 
     case '4':

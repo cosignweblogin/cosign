@@ -351,6 +351,7 @@ main( int argc, char *argv[] )
 		    }
 		    sl[ SL_TITLE ].sl_data = "REAUTH TITLE";
 		    sl[ SL_ERROR ].sl_data = "REAUTH ERROR.";
+		    *p = '=';
 		    tmpl = REAUTH_HTML;
 		    subfile( tmpl, sl, 0 );
 		    exit( 0 );
