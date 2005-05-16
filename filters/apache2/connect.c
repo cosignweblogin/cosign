@@ -615,8 +615,8 @@ done:
 	return( COSIGN_RETRY );
     } else {
 	if (( first ) && ( cfg->proxy )) {
-	    if ( netretr_proxy
-		    ( scookie, si, cfg->cl->conn_sn, cfg->proxydb, s ) != 2 ) {
+	    if ( netretr_proxy ( scookie, si, cfg->cl->conn_sn,
+		    cfg->proxydb, s ) != COSIGN_OK ) {
 		cosign_log( APLOG_ERR, s, "mod_cosign: choose_conn: " 
 			"can't retrieve proxy cookies" );
 	    }
@@ -624,7 +624,7 @@ done:
 #ifdef KRB
 	if (( first ) && ( cfg->krbtkt )) {
 	    if ( netretr_ticket( scookie, si, cfg->cl->conn_sn, cfg->krb524,
-		    cfg->tkt_prefix, s ) != 2 ) {
+		    cfg->tkt_prefix, s ) != COSIGN_OK ) {
 		cosign_log( APLOG_ERR, s, "mod_cosign: choose_conn: " 
 			"can't retrieve kerberos ticket" );
 	    }
