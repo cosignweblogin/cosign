@@ -1,12 +1,14 @@
 /*
- * Copyright (c) 1998 Regents of The University of Michigan.
- * All Rights Reserved.  See LICENSE.
+ * Copyright (c) 2003 Regents of The University of Michigan.
+ * All Rights Reserved.  See COPYRIGHT.
  */
 
-#ifdef __STDC__
-#define ___P(x)		x
-#else /* __STDC__ */
-#define ___P(x)		()
-#endif /* __STDC__ */
+#define argcargv(X, Y) (acav_parse( NULL, X, Y ))
 
-int		argcargv ___P(( char *, char **[] ));
+typedef struct {
+    int		acv_argc;
+    char	**acv_argv;
+} ACAV;
+ACAV* acav_alloc( void );
+int acav_parse( ACAV *acav, char *, char *** );
+int acav_free( ACAV *acav );

@@ -1,70 +1,132 @@
 /*
- * Copyright (c) 1998 Regents of The University of Michigan.
- * All Rights Reserved.  See LICENSE.
+ * Copyright (c) 2003 Regents of The University of Michigan.
+ * All Rights Reserved.  See COPYRIGHT.
  */
 
 /*
  * Return parsed argc/argv from the net.
  */
 
-#include <sys/param.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "argcargv.h"
 
 #define ACV_ARGC		10
-#define ACV_WHITE		0
-#define ACV_WORD		1
-static unsigned	acv_argc;
-static char	**acv_argv;
+#define ACV_WHITE		(0)
+#define ACV_WORD		(1<<0)
+#define ACV_DQUOTE		(1<<1)
+static ACAV *acavg = NULL;
+
+    ACAV *
+acav_alloc( void )
+{
+    ACAV *acav;
+
+    if ( ( acav = (ACAV*)malloc( sizeof( ACAV ) ) ) == NULL ) {
+	return( NULL );
+    }
+    if ( ( acav->acv_argv =
+	    (char **)malloc( sizeof(char *) * ( ACV_ARGC ) ) ) == NULL ) {
+	free( acav );
+	return( NULL );
+    }
+    acav->acv_argc = ACV_ARGC;
+
+    return( acav );
+}
+
+/*
+ * acav->acv_argv = **argv[] if passed an ACAV
+ */
 
     int
-argcargv( line, argv )
-    char		*line;
-    char		**argv[];
+acav_parse( ACAV *acav, char *line, char **argv[] )
 {
     int		ac;
     int		state;
+    int		len;
 
-    if ( acv_argv == NULL ) {
-	if (( acv_argv =
-		(char **)malloc( sizeof( char *) * ACV_ARGC )) == NULL ) {
-	    return( -1 );
+    if ( acav == NULL ) {
+	if ( acavg == NULL ) {
+	    acavg = acav_alloc();
 	}
-	acv_argc = ACV_ARGC;
+	acav = acavg;
     }
 
     ac = 0;
     state = ACV_WHITE;
 
-    for ( ; *line != '\0'; line++ ) {
+    while ( *line != '\0' ) {
 	switch ( *line ) {
 	case ' ' :
 	case '\t' :
+	case '\n' :
 	    if ( state == ACV_WORD ) {
 		*line = '\0';
 		state = ACV_WHITE;
 	    }
 	    break;
 
+	case '"' :
+	    memcopy( line, line + 1, strlen( line ));
+	    if ( state & ACV_DQUOTE ) {
+		state &= ~ACV_DQUOTE;
+		continue;	/* don't increment line */
+	    } else {
+		state |= ACV_DQUOTE;
+	    }
+	    /* fall through */
+
 	default :
-	    if ( state == ACV_WHITE ) {
-		acv_argv[ ac++ ] = line;
-		if ( ac >= acv_argc ) {
+	    if ( *line == '\\' ) {
+		memcopy( line, line + 1, strlen( line ));
+	    }
+	    if ( !( state & ACV_WORD )) {
+		acav->acv_argv[ ac++ ] = line;
+		if ( ac >= acav->acv_argc ) {
 		    /* realloc */
-		    if (( acv_argv = (char **)realloc( acv_argv,
-			    sizeof( char * ) * ( acv_argc + ACV_ARGC )))
+		    if (( acav->acv_argv = (char **)realloc( acav->acv_argv,
+			    sizeof( char * ) * ( acav->acv_argc + ACV_ARGC )))
 			    == NULL ) {
 			return( -1 );
 		    }
-		    acv_argc += ACV_ARGC;
+		    acav->acv_argc += ACV_ARGC;
 		}
-		state = ACV_WORD;
+		state |= ACV_WORD;
 	    }
 	}
+
+	line++;
     }
 
-    acv_argv[ ac ] = NULL;
-    *argv = acv_argv;
+    acav->acv_argv[ ac ] = NULL; 
+    *argv = acav->acv_argv;
     return( ac );
 }
+
+    int
+acav_free( ACAV *acav )
+{
+    free( acav->acv_argv );
+    free( acav );
+
+    return( 0 );
+}
+
+#ifdef notdef
+main( int ac, char *av[] )
+{
+    char	**nav;
+    int		nac, i;
+
+    printf( "av: %s\n", av[ 1 ] );
+
+    nac = acav_parse( NULL, av[ 1 ], &nav );
+
+    for ( i = 0; i < nac; i++ ) {
+	printf( "nav[ %d ] = %s\n", i, nav[ i ] );
+    }
+    exit( 0 );
+}
+#endif // notdef
