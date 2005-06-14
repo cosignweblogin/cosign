@@ -13,6 +13,15 @@
 
 #define SL_REAUTH	(1<<0)
 
+struct certlist {
+    char		*cl_issuer;
+    char		*cl_subject;
+    char		*cl_login;
+    char		*cl_realm;
+    char		*cl_type;
+    struct certlist	*cl_next;
+};
+
 struct servicelist {
     char		*sl_cookie;
     int			sl_flag;

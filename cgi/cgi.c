@@ -170,7 +170,7 @@ main( int argc, char *argv[] )
     struct connlist		*head;
 
     if ( argc == 2 ) {
-	if ( strncmp( argv[ 1 ], "-V", 2 ) == 0 ) {
+	if ( strcmp( argv[ 1 ], "-V" ) == 0 ) {
 	    printf( "%s\n", cosign_version );
 	    exit( 0 );
 	} else if ( strncmp( argv[ 1 ], "basic", 5 ) == 0 ) {
@@ -202,8 +202,17 @@ main( int argc, char *argv[] )
 
     method = getenv( "REQUEST_METHOD" );
     ip_addr = getenv( "REMOTE_ADDR" );
-    remote_user = getenv( "REMOTE_USER" );
     server_port = atoi( getenv( "SERVER_PORT" ));
+
+    subject_dn = getenv( "SSL_CLIENT_S_DN" );
+    issuer_dn = getenv( "SSL_CLIENT_I_DN" );
+    if ( subject_dn && issuer_dn ) {
+	x509_translate( subject_dn, issuer_dn, &login, &realm )
+	remote_user = login;
+    } else {
+	remote_user = getenv( "REMOTE_USER" );
+	realm = "basic";
+    }
 
     if ((( qs = getenv( "QUERY_STRING" )) != NULL ) && ( *qs != '\0' )) {
 	if (( p = strtok( qs, "&" )) == NULL ) {

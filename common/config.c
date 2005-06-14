@@ -21,6 +21,7 @@
 
 struct authlist		*authlist = NULL, *new_authlist;
 struct servicelist	*servicelist = NULL;
+struct certlist		*certlist = NULL;
 struct cosigncfg 	*cfg = NULL, *new_cfg;
 
     static void
@@ -93,6 +94,48 @@ authlist_find( char *hostname )
     }
     return( cur );
 }
+
+    int
+cert_to_login_info( char *i_dn, char *subj_dn, char *login, char *realm )
+{
+    struct certlist	*cur = NULL;
+    regex_t		preg;
+    char		error[ 1024 ];
+    int			rc;
+    regmatch_t		matches[ 3 ];
+
+    for ( cur = certlist; cur != NULL; cur = cur->cl_next ) {
+	if ( strcmp( cur->cl_issuer, i_dn ) != 0 ) {
+	    continue;
+	}
+	if (( rc = regcomp( &preg, cur->cl_subject, 0 )) != 0 ) {
+	    regerror( rc, &preg, error, sizeof( error ));
+	    fprintf( stderr, "%s: %s", cur->cl_subject, error );
+	    continue;
+	}
+	if (( rc = regexec( &preg, subj_dn, 3, matches, 0 )) == 0 ) {
+	    if ( matches[ 0 ].rm_so != subj_dn ||
+		    *matches[ 0 ].rm_eo != '\0' ) {
+		continue;
+	    }
+	    break;
+	}
+	if ( rc != REG_NOMATCH ) {
+	    regerror( rc, &preg, error, sizeof( error ));
+	    fprintf( stderr, "%s: %s", cur->cl_subject, error );
+	}
+    }
+
+    if ( cur == NULL ) {
+	fprintf( stderr, "%s: issuer not found.\n", issuer );
+	return ( -1 );
+    }
+
+    /* substitute */
+
+    return( 0 );
+}
+
 
     static void
 authlist_free( struct authlist **al )
@@ -181,6 +224,7 @@ read_config( char *path )
     struct cosigncfg	*cc_new, **cc_cur;
     struct authlist 	*al_new, **al_cur;
     struct servicelist	*sl_new, **sl_cur;
+    struct certlist	*cl_new, **cl_cur;
 
     if (( sn = snet_open( path, O_RDONLY, 0, 0 )) == NULL ) {
 	perror( path );
@@ -273,6 +317,49 @@ read_config( char *path )
 	    sl_new->sl_next = *sl_cur;
 	    *sl_cur = sl_new;
 
+	} else if ( strcmp( av[ 0 ], "cert" ) == 0 ) {
+	    if (( ac != 5 ) || ( ac != 6 )) {
+		fprintf( stderr, "line %d: keyword cert takes 5 or 6 args\n",
+			linenum );
+		return( -1 );
+	    }
+	    if (( cl_new = (struct certlist *)malloc(
+		    sizeof( struct certlist ))) == NULL ) {
+		perror( "malloc" );
+		return( -1 );
+	    }
+	    if (( cl_new->cl_issuer = strdup( av[ 1 ] )) == NULL ) {
+		perror( "malloc" );
+		return( -1 );
+	    }
+	    if (( cl_new->cl_subject = strdup( av[ 2 ] )) == NULL ) {
+		perror( "malloc" );
+		return( -1 );
+	    }
+	    if (( cl_new->cl_login = strdup( av[ 3 ] )) == NULL ) {
+		perror( "malloc" );
+		return( -1 );
+	    }
+	    if (( cl_new->cl_realm = strdup( av[ 4 ] )) == NULL ) {
+		perror( "malloc" );
+		return( -1 );
+	    }
+	    if ( ac == 6 ) {
+		if (( cl_new->cl_type = strdup( av[ 5 ] )) == NULL ) {
+		    perror( "malloc" );
+		    return( -1 );
+		}
+	    } else {
+		cl_new->cl_type = NULL;
+	    }
+	    cl_new->cl_next = NULL;
+
+	    for ( cl_cur = &certlist; (*cl_cur) != NULL;
+		    cl_cur = &(*cl_cur)->cl_next )
+		;
+
+	    cl_new->cl_next = *cl_cur;
+	    *cl_cur = cl_new;
 	} else {
 	    if ( strcmp( av[ 0 ], "cgi" ) == 0 ) {
 		if ( ac != 2 ) {
