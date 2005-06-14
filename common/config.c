@@ -97,16 +97,53 @@ authlist_find( char *hostname )
 }
 
     int
-x509_translate( char *i_dn, char *subj_dn, char *login, char *realm )
+x509_substitute( char *pattern, int len, char *buf,
+	int nmatch, regmatch_t matches, char *source )
+{
+    char	*p, *q;
+    int		i, j;
+
+    for ( p = pattern, q = buf; p != '\0'; p++ ) {
+	if ( *p++ == '$' ) {
+	    if ( *p == '\0' || *p == '$' ) {
+		*q++ = '$';
+	    }
+	    if ( isdigit( *p )) {
+		i = strtol( p, p + 1, 10 );
+		if ( i >= nmatch ) {
+		    *q++ = '$';
+		    *q++ = *p;
+		    continue;
+		}
+		j = matches[ i ].rm_eo - matches[ i ].rm_so;
+		strncpy( q, source + matches[ i ].rm_so, j );
+		q += j;
+	    } else {
+		*q++ = '$';
+		*q++ = *p;
+	    }
+	} else {
+	    *q++ = *p;
+	}
+    }
+
+    *q = '\0';
+    return( 0 );
+}
+
+    int
+x509_translate( char *subject, char *issuer, char *l, char *r )
 {
     struct certlist	*cur = NULL;
     regex_t		preg;
     char		error[ 1024 ];
     int			rc;
     regmatch_t		matches[ 3 ];
+    static char		login[ 130 ];	/* "64@64\0" */
+    static char		realm[ 256 ];	/* big */
 
     for ( cur = certlist; cur != NULL; cur = cur->cl_next ) {
-	if ( strcmp( cur->cl_issuer, i_dn ) != 0 ) {
+	if ( strcmp( cur->cl_issuer, issuer ) != 0 ) {
 	    continue;
 	}
 	if (( rc = regcomp( &preg, cur->cl_subject, 0 )) != 0 ) {
@@ -114,9 +151,9 @@ x509_translate( char *i_dn, char *subj_dn, char *login, char *realm )
 	    fprintf( stderr, "%s: %s", cur->cl_subject, error );
 	    continue;
 	}
-	if (( rc = regexec( &preg, subj_dn, 3, matches, 0 )) == 0 ) {
+	if (( rc = regexec( &preg, subject, 3, matches, 0 )) == 0 ) {
 	    if ( matches[ 0 ].rm_so != 0 ||
-		    matches[ 0 ].rm_eo != strlen( subj_dn )) {
+		    matches[ 0 ].rm_eo != strlen( subject )) {
 		continue;
 	    }
 	    break;
@@ -128,11 +165,24 @@ x509_translate( char *i_dn, char *subj_dn, char *login, char *realm )
     }
 
     if ( cur == NULL ) {
-	fprintf( stderr, "%s: issuer not found.\n", i_dn );
+	fprintf( stderr, "%s: issuer not found.\n", issuer );
 	return ( -1 );
     }
 
-    /* substitute */
+    if ( x509_substitute( cur->cl_login, sizeof( login ), login,
+	    3, matches, subject ) != 0 ) {
+	fprintf( stderr, "subject (%s) or login (%s) too big.\n",
+		subject, cur->cl_login );
+	return( -1 );
+    }
+    l = login;
+
+    if ( x509_substitute( cur->cl_realm, sizeof( realm ), realm,
+	    3, matches, subject ) != 0 ) {
+	fprintf( stderr, "subject (%s) or realm (%s) too big.\n",
+		subject, cur->cl_realm );
+    }
+    r = realm;
 
     return( 0 );
 }
