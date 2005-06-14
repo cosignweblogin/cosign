@@ -165,6 +165,7 @@ main( int argc, char *argv[] )
     char			*ref = NULL, *service = NULL, *login = NULL;
     char			*remote_user = NULL;
     char			*tmpl = LOGIN_HTML;
+    char			*subject_dn = NULL, *issuer_dn = NULL;
     struct servicelist		*scookie;
     struct timeval		tv;
     struct connlist		*head;
@@ -207,11 +208,11 @@ main( int argc, char *argv[] )
     subject_dn = getenv( "SSL_CLIENT_S_DN" );
     issuer_dn = getenv( "SSL_CLIENT_I_DN" );
     if ( subject_dn && issuer_dn ) {
-	x509_translate( subject_dn, issuer_dn, &login, &realm )
+	//x509_translate( subject_dn, issuer_dn, &login, &realm )
 	remote_user = login;
     } else {
 	remote_user = getenv( "REMOTE_USER" );
-	realm = "basic";
+	//realm = "basic";
     }
 
     if ((( qs = getenv( "QUERY_STRING" )) != NULL ) && ( *qs != '\0' )) {

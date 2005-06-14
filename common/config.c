@@ -9,6 +9,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <regex.h>
 
 #include <openssl/ssl.h>
 #include <openssl/err.h>
@@ -96,7 +97,7 @@ authlist_find( char *hostname )
 }
 
     int
-cert_to_login_info( char *i_dn, char *subj_dn, char *login, char *realm )
+x509_translate( char *i_dn, char *subj_dn, char *login, char *realm )
 {
     struct certlist	*cur = NULL;
     regex_t		preg;
@@ -114,8 +115,8 @@ cert_to_login_info( char *i_dn, char *subj_dn, char *login, char *realm )
 	    continue;
 	}
 	if (( rc = regexec( &preg, subj_dn, 3, matches, 0 )) == 0 ) {
-	    if ( matches[ 0 ].rm_so != subj_dn ||
-		    *matches[ 0 ].rm_eo != '\0' ) {
+	    if ( matches[ 0 ].rm_so != 0 ||
+		    matches[ 0 ].rm_eo != strlen( subj_dn )) {
 		continue;
 	    }
 	    break;
@@ -127,7 +128,7 @@ cert_to_login_info( char *i_dn, char *subj_dn, char *login, char *realm )
     }
 
     if ( cur == NULL ) {
-	fprintf( stderr, "%s: issuer not found.\n", issuer );
+	fprintf( stderr, "%s: issuer not found.\n", i_dn );
 	return ( -1 );
     }
 

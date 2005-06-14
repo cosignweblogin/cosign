@@ -69,7 +69,7 @@ acav_parse( ACAV *acav, char *line, char **argv[] )
 	    break;
 
 	case '"' :
-	    memcopy( line, line + 1, strlen( line ));
+	    memcpy( line, line + 1, strlen( line ));
 	    if ( state & ACV_DQUOTE ) {
 		state &= ~ACV_DQUOTE;
 		continue;	/* don't increment line */
@@ -80,7 +80,7 @@ acav_parse( ACAV *acav, char *line, char **argv[] )
 
 	default :
 	    if ( *line == '\\' ) {
-		memcopy( line, line + 1, strlen( line ));
+		memcpy( line, line + 1, strlen( line ));
 	    }
 	    if ( !( state & ACV_WORD )) {
 		acav->acv_argv[ ac++ ] = line;
