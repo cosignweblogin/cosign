@@ -166,6 +166,7 @@ main( int argc, char *argv[] )
     char			*remote_user = NULL;
     char			*tmpl = LOGIN_HTML;
     char			*subject_dn = NULL, *issuer_dn = NULL;
+    char			*realm = NULL;
     struct servicelist		*scookie;
     struct timeval		tv;
     struct connlist		*head;
@@ -207,12 +208,20 @@ main( int argc, char *argv[] )
 
     subject_dn = getenv( "SSL_CLIENT_S_DN" );
     issuer_dn = getenv( "SSL_CLIENT_I_DN" );
+
     if ( subject_dn && issuer_dn ) {
-	//x509_translate( subject_dn, issuer_dn, &login, &realm )
+	if ( x509_translate( subject_dn, issuer_dn, &login, &realm )
+		!= 0 ) {
+	    sl[ SL_TITLE ].sl_data = "Error: X509 failed";
+	    sl[ SL_ERROR ].sl_data = "x509 issues";
+	    tmpl = ERROR_HTML;
+	    subfile( tmpl, sl, 0 );
+	    exit( 0 );
+	}
 	remote_user = login;
     } else {
 	remote_user = getenv( "REMOTE_USER" );
-	//realm = "basic";
+	realm = "basic";
     }
 
     if ((( qs = getenv( "QUERY_STRING" )) != NULL ) && ( *qs != '\0' )) {

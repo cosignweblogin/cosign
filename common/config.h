@@ -73,3 +73,4 @@ struct servicelist	*service_find( char * );
 int		cosign_config( char * );
 char		*cosign_config_get( char * );
 char		**cosign_config_get_all( char *, int * );
+int 		x509_translate( char *, char *, char **, char ** );

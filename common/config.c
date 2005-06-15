@@ -10,6 +10,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <regex.h>
+#include <ctype.h>
 
 #include <openssl/ssl.h>
 #include <openssl/err.h>
@@ -98,41 +99,54 @@ authlist_find( char *hostname )
 
     int
 x509_substitute( char *pattern, int len, char *buf,
-	int nmatch, regmatch_t matches, char *source )
+	int nmatch, regmatch_t matches[], char *source )
 {
     char	*p, *q;
-    int		i, j;
+    int		i, j, k = 0;
 
-    for ( p = pattern, q = buf; p != '\0'; p++ ) {
-	if ( *p++ == '$' ) {
+    /* need to do bounds checking */
+
+fprintf( stderr, "x509_sub: %s\n", pattern );
+    for ( p = pattern, q = buf; *p != '\0'; p++ ) {
+fprintf( stderr, "%X: %c\n", p, *p );
+	if ( *p == '$' ) {
+	    p++;
+fprintf( stderr, "%X: p is $\n", p );
 	    if ( *p == '\0' || *p == '$' ) {
 		*q++ = '$';
+fprintf( stderr, "%X: q is $\n", q );
 	    }
 	    if ( isdigit( *p )) {
-		i = strtol( p, p + 1, 10 );
+		/* need to write our own? */
+		i = strtol( p, NULL, 10 );
+fprintf( stderr, "%X: p is $%d\n", p, i );
 		if ( i >= nmatch ) {
 		    *q++ = '$';
 		    *q++ = *p;
 		    continue;
 		}
 		j = matches[ i ].rm_eo - matches[ i ].rm_so;
+fprintf( stderr, "%X: copy %.*s to q\n", q, j, source + matches[ i ].rm_so);
 		strncpy( q, source + matches[ i ].rm_so, j );
 		q += j;
 	    } else {
+fprintf( stderr, "%X %X: copy $%c\n", p, q, *p );
 		*q++ = '$';
 		*q++ = *p;
 	    }
 	} else {
+fprintf( stderr, "%X %X: copy %c\n", p, q, *p );
 	    *q++ = *p;
 	}
     }
 
     *q = '\0';
+fprintf( stderr, "%X: done %s\n", q, buf );
     return( 0 );
 }
 
     int
-x509_translate( char *subject, char *issuer, char *l, char *r )
+x509_translate( char *subject, char *issuer, char **l, char **r )
 {
     struct certlist	*cur = NULL;
     regex_t		preg;
@@ -175,14 +189,14 @@ x509_translate( char *subject, char *issuer, char *l, char *r )
 		subject, cur->cl_login );
 	return( -1 );
     }
-    l = login;
+    *l = login;
 
     if ( x509_substitute( cur->cl_realm, sizeof( realm ), realm,
 	    3, matches, subject ) != 0 ) {
 	fprintf( stderr, "subject (%s) or realm (%s) too big.\n",
 		subject, cur->cl_realm );
     }
-    r = realm;
+    *r = realm;
 
     return( 0 );
 }
@@ -369,7 +383,8 @@ read_config( char *path )
 	    *sl_cur = sl_new;
 
 	} else if ( strcmp( av[ 0 ], "cert" ) == 0 ) {
-	    if (( ac != 5 ) || ( ac != 6 )) {
+
+	    if (( ac != 5 ) && ( ac != 6 )) {
 		fprintf( stderr, "line %d: keyword cert takes 5 or 6 args\n",
 			linenum );
 		return( -1 );
