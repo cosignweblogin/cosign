@@ -341,7 +341,7 @@ main( int argc, char *argv[] )
 
 	/* basic's implicit register */
 	if ( rebasic && cosign_login( head, cookie, ip_addr, remote_user,
-		    "basic", NULL ) < 0 ) {
+		    realm, NULL ) < 0 ) {
 	    fprintf( stderr, "cosign_login: basic login failed\n" ) ;
 	    sl[ SL_ERROR ].sl_data = "We were unable to contact the "
 		    "authentication server. Please try again later.";
@@ -412,7 +412,7 @@ main( int argc, char *argv[] )
     if ( strcmp( method, "POST" ) != 0 ) {
 	if ( cosign_check( head, cookie ) == NULL ) {
 	    if ( rebasic && cosign_login( head, cookie, ip_addr, remote_user,
-			"basic", NULL ) < 0 ) {
+			realm, NULL ) < 0 ) {
 		fprintf( stderr, "cosign_login: basic login failed\n" ) ;
 		sl[ SL_ERROR ].sl_data = "We were unable to contact the "
 			"authentication server. Please try again later.";

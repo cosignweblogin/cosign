@@ -102,46 +102,37 @@ x509_substitute( char *pattern, int len, char *buf,
 	int nmatch, regmatch_t matches[], char *source )
 {
     char	*p, *q;
-    int		i, j, k = 0;
+    int		i, j;
 
     /* need to do bounds checking */
 
-fprintf( stderr, "x509_sub: %s\n", pattern );
     for ( p = pattern, q = buf; *p != '\0'; p++ ) {
-fprintf( stderr, "%X: %c\n", p, *p );
 	if ( *p == '$' ) {
 	    p++;
-fprintf( stderr, "%X: p is $\n", p );
 	    if ( *p == '\0' || *p == '$' ) {
 		*q++ = '$';
-fprintf( stderr, "%X: q is $\n", q );
 	    }
 	    if ( isdigit( *p )) {
 		/* need to write our own? */
 		i = strtol( p, NULL, 10 );
-fprintf( stderr, "%X: p is $%d\n", p, i );
 		if ( i >= nmatch ) {
 		    *q++ = '$';
 		    *q++ = *p;
 		    continue;
 		}
 		j = matches[ i ].rm_eo - matches[ i ].rm_so;
-fprintf( stderr, "%X: copy %.*s to q\n", q, j, source + matches[ i ].rm_so);
 		strncpy( q, source + matches[ i ].rm_so, j );
 		q += j;
 	    } else {
-fprintf( stderr, "%X %X: copy $%c\n", p, q, *p );
 		*q++ = '$';
 		*q++ = *p;
 	    }
 	} else {
-fprintf( stderr, "%X %X: copy %c\n", p, q, *p );
 	    *q++ = *p;
 	}
     }
 
     *q = '\0';
-fprintf( stderr, "%X: done %s\n", q, buf );
     return( 0 );
 }
 
@@ -195,6 +186,7 @@ x509_translate( char *subject, char *issuer, char **l, char **r )
 	    3, matches, subject ) != 0 ) {
 	fprintf( stderr, "subject (%s) or realm (%s) too big.\n",
 		subject, cur->cl_realm );
+	return( -1 );
     }
     *r = realm;
 
