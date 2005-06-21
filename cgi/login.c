@@ -128,10 +128,9 @@ cosign_login_mysql( struct connlist *head, char *id, char *passwd,
 	    exit( 0 );
 	}
     }
-    snprintf( sql, sizeof( sql ),
-"SELECT account_name, passwd FROM friends WHERE account_name = '%s'", id );
+    snprintf( sql, sizeof( sql ), "SELECT account_name, passwd FROM friends WHERE account_name = '%s'", id );
 
-    if( mysql_real_query( &friend_db, sql, sizeof( sql ))) {
+    if( mysql_real_query( &friend_db, sql, strlen( sql ))) {
 	fprintf( stderr, mysql_error( &friend_db ));
 	sl[ SL_ERROR ].sl_data = "Unable to query guest account database.";
 	sl[ SL_TITLE ].sl_data = "Server Problem";
