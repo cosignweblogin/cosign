@@ -32,6 +32,7 @@
 #include "cparse.h"
 #include "mkcookie.h"
 #include "rate.h"
+#include "argcargv.h"
 
 #ifndef MIN
 #define MIN(a,b)        ((a)<(b)?(a):(b))
