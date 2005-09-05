@@ -5,7 +5,7 @@
 
     <body>
         <h1>
-            Hello, <?php $_SERVER[ REMOTE_USER ] ?>!
+            Hello, <?php echo( $_SERVER[ REMOTE_USER ] ) ?>!
         </h1>
     </body>
 </html>
