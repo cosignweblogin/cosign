@@ -1,8 +1,10 @@
-ALL	= error.html login.html login_error.html redirect.html verify-logout.html post_error.html looping.html reauth.html
+TEMPLATES = error.html login.html login_error.html redirect.html verify-logout.html post_error.html looping.html reauth.html
+HTML = cosign.css post_error.html looping.html
 prefix=@prefix@
 exec_prefix=@exec_prefix@
 TMPLDIR  = @prefix@/templates
 HTMLDIR  = @prefix@/html
+SERVICESDIR  = @prefix@/services
 INSTALL	=	@INSTALL@
 
 .SUFFIXES: .m4 .html
@@ -10,15 +12,22 @@ INSTALL	=	@INSTALL@
 .m4.html:
 	m4 $*.m4 >$*.html
 
-all: ${ALL}
+all: ${TEMPLATES}
 
 install : all
 	-mkdir -p ${exec_prefix}
 	-mkdir -p ${TMPLDIR}
-	for i in ${ALL}; do \
+	-mkdir -p ${HTMLDIR}
+	for i in ${TEMPLATES}; do \
 	    ${INSTALL} -m 0644 -c $$i ${TMPLDIR}/; \
-	    cp -r images/ services/ cosign.css post_error.html looping.html ${HTMLDIR}/; \
 	done
+	for i in ${HTML}; do \
+	    ${INSTALL} -m 0644 -c $$i ${HTMLDIR}/; \
+	done
+	-mkdir -p ${HTMLDIR}/images
+	cp images/*.gif ${HTMLDIR}/images/
+	-mkdir -p ${SERVICESDIR}
+	cp services/*.html ${SERVICESDIR}/
 
 clean:
-	rm -f ${ALL}
+	rm -f ${TEMPLATES}

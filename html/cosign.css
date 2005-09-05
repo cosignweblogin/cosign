@@ -2,12 +2,12 @@
 	color: #00FFFF;
 	height: 309px;
 	width: 513px;
-	background-image: url(images/cosign_mainbadge.gif);
+	background-image: url(/cosign/images/cosign_mainbadge.gif);
 	background-repeat: no-repeat;
 }
 .message-area {
 	color: #666666;
-	background-image: url(images/centerbox.gif);
+	background-image: url(/cosign/images/centerbox.gif);
 	background-repeat: repeat-y;
 	font-family: Verdana, Arial, Helvetica, sans-serif;
 	font-size: 10px;
@@ -19,7 +19,7 @@
 	line-height: 15px;
 }
 .footercap {
-	background-image: url(images/footercap.gif);
+	background-image: url(/cosign/images/footercap.gif);
 	background-repeat: no-repeat;
 	width: 513px;
 	height: 15px;
@@ -29,7 +29,7 @@
 	height: 100%;
 }
 .pagefooter {
-	background-image: url(images/grayfooter.gif);
+	background-image: url(/cosign/images/grayfooter.gif);
 	background-repeat: repeat-x;
 	width: 100%;
 	height: 36px;

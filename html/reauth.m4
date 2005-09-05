@@ -1,7 +1,7 @@
 define( `LOGIN_ONLOAD', `1' )
 include(`header.html')
 
-<form name="f" action="/"
+<form name="f" action="/cosign-bin/cosign.cgi"
 	enctype="application/x-www-form-urlencoded"
 	method="post" autocomplete="off">
 <input type="hidden" name="ref" value="$r">
@@ -44,7 +44,7 @@ The service you were attempting to access requires that you verify your identity
 	<td colspan="2" align="right" bgcolor="#FFFFFF">
 	    <input type="submit" value="Re-Authenticate">
 	    </form>
-	    <form name="switch" action="/cgi-bin/logout"
+	    <form name="switch" action="/cosign-bin/logout"
 	    enctype="application/x-www-form-urlencoded"
 	    method="post" autocomplete="off">
 	    <input type="hidden" name="url" value="$r">

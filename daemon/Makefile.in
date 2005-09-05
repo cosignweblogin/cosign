@@ -71,14 +71,13 @@ cosignd : ../libsnet/libsnet.la ${COSIGNOBJ} Makefile
 man : FRC
 	-mkdir tmp
 	-mkdir tmp/man
-	pwd
 	for i in ${MANTARGETS}; do \
-	sed -e 's@_COSIGN_CONF@${COSIGNCONF}@g'  \
-	-e 's@_COSIGN_DIR@${COSIGNDB}@g' \
-	-e 's@_COSIGN_TLS_CADIR@${COSIGNCADIR}@g' \
-	-e 's@_COSIGN_TLS_CERT@${COSIGNCERT}@g' \
-	-e 's@_COSIGN_TLS_KEY@${COSIGNKEY}@g' \
-	$$i > tmp/man/$$i; \
+	    sed -e 's@_COSIGN_CONF@${COSIGNCONF}@g'  \
+	    -e 's@_COSIGN_DIR@${COSIGNDB}@g' \
+	    -e 's@_COSIGN_TLS_CADIR@${COSIGNCADIR}@g' \
+	    -e 's@_COSIGN_TLS_CERT@${COSIGNCERT}@g' \
+	    -e 's@_COSIGN_TLS_KEY@${COSIGNKEY}@g' \
+	    $$i > tmp/man/$$i; \
 	done
 
 install : all man

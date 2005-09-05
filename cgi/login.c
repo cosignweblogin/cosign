@@ -391,12 +391,7 @@ cosign_login_krb5( struct connlist *head, char *id, char *passwd,
     krb5_free_context( kcontext );
 
     /* password has been accepted, tell cosignd */
-#ifdef __APPLE__
-    if ( cosign_login( head, cookie, ip_addr, id, realm, NULL ) < 0 ) 
-#else
-    if ( cosign_login( head, cookie, ip_addr, id, realm, krbpath ) < 0 ) 
-#endif
-    {
+    if ( cosign_login( head, cookie, ip_addr, id, realm, krbpath ) < 0 ) {
 	fprintf( stderr, "cosign_login_krb5: login failed\n") ;
 	sl[ SL_ERROR ].sl_data = "We were unable to contact the "
 		"authentication server. Please try again later.";

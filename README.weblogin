@@ -5,7 +5,14 @@ Before you begin:
 
     Your web server should have SSL enabled.
 
+    If you want to use Kerberos, you will need MIT krb5-1.2.7 or
+    later.
+
     You will need OpenSSL 0.9.7a or newer.
+
+    The cosign filters and the weblogin server use SSL mutual
+    authentication.  It may be easier & cheaper to run your own CA
+    to manage the required certificates.
 
     You will need a source of entropy for the OpenSSL libraries to
     work.  If your system has /dev/*random then you're all set,
@@ -15,84 +22,108 @@ Before you begin:
     at <http://sunsolve.sun.com/>.  AIX users will want to get
     prngd.
 
-    You will need MIT krb5-1.2.7 or later.
+Customizing your html:
+
+    The html & graphics are provided as examples.  You'll probably
+    want to customize them for your site.
+
+    Before doing a 'make install-all', be sure to customize the
+    contents of 'html/header.html', 'html/footer.html'.  Once
+    installed, you can customize 'html/cosign.css' and the other
+    templates as well.  Be careful with the variable display strings
+    ( of the form '$a' where 'a' can be any letter or number ).
+    These variables are replaced by the CGI during execution.
+
+    Also note that 'make install-all' overwrites existing html,
+    templates, and graphics.
 
 To build the central cosign server ( the weblogin server ):
+
     Note that you should only need this if you are establishing a new
     SSO community for which you will be providing the central login
     server.
 
-	./configure --enable-krb=/path/to/krb5
+	./configure --enable-apache1=/path/to/apxs --enable-krb=/path/to/krb5
 	make everything
 	make install-all
 	mkdir -p /var/cosign/daemon
 	chown DAEMON_USER /var/cosign/daemon
     
-    The daemon (cosignd) requires  /var/cosign/daemon to exist and be
-    writeable by the user the daemon runs as, by default "cosign".
+    --enable-apache2=/path/to/apxs may also work.  The daemon
+    (cosignd) requires  /var/cosign/daemon to exist and be writeable
+    by the user the daemon runs as, by default "cosign".
 
     Also, in order to avoid the warning:
 
 	cosignd: can't find cosign service 
 
-    add cosign to /etc/services on port 6663/tcp ( the default ) or
-    whatever port you are running it on.
+    add cosign to /etc/services on port 6663/tcp ( the default )
+    or whatever port you are running it on.
 
-    If you are using Kerberos, create a /ticket and change the permissions
-    so the webserver and the daemon can write there.
+    If you are using Kerberos, create cosignticketcache (by default
+    /ticket) and change the permissions so both the webserver and
+    the daemon can write there.
 
-Testing your certificates:
+    Also, if you're using Kerberos, you'll probably want a keytab
+    with the principal of "cosign" and the instance of the hostname
+    of the machine that the cgi will run on.  This keytab is used
+    during authentication to verify that KDC spoofing is not happening
+    <http://www.securityfocus.com/bid/1616> and must therefore be
+    readable by the UID the CGI runs as (usually the same as your
+    web server).  The path to this file can be set at compile time
+    using the --with-keytabpath=FILE configure option, during runtime
+    with the cosignkeytab setting (see below) or krb5_kt_default_name(3)
+    will be used at run time to identify the default keytab file
+    for the uid running the CGI.
 
-    You want to make sure that the certs you have are able to be used as
-    both a server ( weblogin server ) and a client ( cosign.cgi ). Debugging
-    certificate problems is the hardest thing to do, and checking now saves
-    a lot of anguish later.
+Configuring Apache:
 
-	openssl verify -verbose -purpose sslclient -CApath /var/cosign/certs/CA /var/cosign/certs/cert.pem
+    To enable the cosign apache module, see README.
 
-	openssl verify -verbose -purpose sslserver -CApath /var/cosign/certs/CA /var/cosign/certs/cert.pem
+    Assuming a prefix of /usr/local/cosign, a simple apache
+    configuration using the supplied html & templates might be:
 
+    <VirtualHost *:443>
+	SSLEngine		On
+	SSLCertificateFile	/path/to/server.cert
+	SSLCertificateKeyFile	/path/to/server.key
 
-Customizing your html:
+	CosignProtected		Off
+	CosignHostname		cosign.edu
+	CosignRedirect          https://cosign.edu/cosign-bin/cosign.cgi
+	CosignPostErrorRedirect https://cosign.edu/cosign/post_error.html
+	CosignService           simpleservice
+	CosignCrypto            /path/to/server.key /path/to/server.cert /path/to/CA-dir
 
-    Before doing a 'make everything' and certainly before doing a 'make
-    install-all,' be sure to customize the contents of 'html/header.html,
-    'html/footer.html,' and 'html/cosign.css.'  You can, of course,
-    customize the other templates as well but be careful with the variable
-    display strings ( of the form '$a' where 'a' can be any letter or
-    number ).  These are needed by the CGI.
+	Alias /cosign/ "/usr/local/cosign/html/"
+	ScriptAlias /cosign-bin/ "/usr/local/cosign/cgi-ssl/"
 
-Things to know about the CGI:
+	Alias /services/ "/usr/local/cosign/services/"
+	<Directory "/usr/local/cosign/services">
+	    CosignProtected On
+	</Directory>
+    </VirtualHost>
 
-    You'll need a keytab with the principal of "cosign" and the
-    instance of the hostname of the machine that the cgi will run on.
-    This keytab is used during authentication to verify that KDC
-    spoofing is not happening <http://www.securityfocus.com/bid/1616>
-    and must therefore be readable by the UID the CGI runs as (usually
-    the same as your web server).  The path to this file can be set at
-    compile time using the --with-keytabpath=FILE configure option or
-    krb5_kt_default_name(3) will be used at run time to identify the
-    default keytab file for the uid running the CGI.
+    In the above configuration the login URL is:
 
-    The required html and templates for the cgi ( login page, logout
-    page, looping page etc. ) live in ${prefix}/html and
-    ${prefix}/templates. You will most likely want to localize these
-    pages.
+	https://cosign.edu/cosign-bin/cosign.cgi
 
-    We use a trick so that cosign.cgi will run from DocumentRoot. In
-    order to make this work, you need to make 3 changes to the default
-    httpd.conf:
+    and the logout URL is:
 
-	DirectoryIndex      cosign.cgi index.php index.html
-	AddHandler          cgi-script      .cgi
+	https://cosign.edu/cosign-bin/logout
 
-	#replace this directory with your document root
-	<Directory /usr/local/projects/cosign/html>
+    It's possible to simplify the login URL with this configuration:
+
+        CosignRedirect          https://cosign.edu/
+	DocumentRoot		"/usr/local/cosign/cgi-ssl"
+	<Directory /usr/local/cosign/cgi-ssl>
+	    DirectoryIndex      cosign.cgi
+	    AddHandler          cgi-script      .cgi
 	    Options ExecCGI
 	</Directory>
 
-    If you choose to install the cgi in a subdirectory (e.g. /login/)
-    be sure to have the action of your form end in a trailing '/'
+    Note that the trailing '/' in CosignRedirect is required in
+    this configuration.
 
 Creating cosign.conf file:
 
@@ -153,34 +184,6 @@ Scripts
     database (if you are not using replication), and several example
     logout scripts.
 
-Setting up an example protected service:
-
-    It may be useful to run both the cgi/daemon and the filter on a single
-    server. To test a cosign filter installation on the cosign server,
-    you'll need some special configuration options, like so:
-
-    in your server root, turn Cosign protection on:
-	CosignProtected On
-
-    in your document root, turn Cosign Protected Off:
-
-	<Directory /usr/local/projects/cosign/html>
-	    Options ExecCGI
-	    CosignProtected Off
-	</Directory>
-
-    Then turn a specific location, like /services/, on
-
-	<Location /services/>
-	    CosignProtected On
-	</Location>
-
-    This will make it so the cgi can run when you are not logged in,
-    but that in order to access /services/ you must be logged in. More
-    complicated configurations are possible, but this is a basic one
-    to get you going.  The distribution includes a sample /services/
-    directory for testing.
-
 Configure Options:
 
     --with-cosignhost=NAME  	default=cosign.example.edu
@@ -208,19 +211,30 @@ Configure Options:
 
 Rate Logging:
 
-	Starting with 1.7, we've simplified the logging paradigm. There's
-	a file in common/ called rate.h and a #define of RATE_INTERVAL.
-	This means that every RATE_INTERVAL number of events, cosignd
-	will write out a summary log line that shows the rate for that
-	particular event. For example, for the CHECK command you'd see:
+    Starting with 1.7, we've simplified the logging paradigm. There's
+    a file in common/ called rate.h and a #define of RATE_INTERVAL.
+    This means that every RATE_INTERVAL number of events, cosignd
+    will write out a summary log line that shows the rate for that
+    particular event. For example, for the CHECK command you'd see:
 
-	    STATS CHECK 141.211.144.17: UNKNOWN .0012 / sec
-	    STATS CHECK 141.211.144.17: PASS 1.2 / sec
+	STATS CHECK 141.211.144.17: UNKNOWN .0012 / sec
+	STATS CHECK 141.211.144.17: PASS 1.2 / sec
 
-	and that would indicate that the rate of 5xx ( or unknowns )
-	returned to that host was .0012 per second and the rate of 2xx
-	( or pass ) was 1.2 per second. More information follows in
-	the cosignd(8) and monster(8) man pages.
+    and that would indicate that the rate of 5xx ( or unknowns )
+    returned to that host was .0012 per second and the rate of 2xx
+    ( or pass ) was 1.2 per second. More information follows in the
+    cosignd(8) and monster(8) man pages.
+
+Testing your certificates:
+
+    Make sure that the certs you have are able to be used as both
+    a server ( weblogin server ) and a client ( cosign.cgi ).
+    Debugging certificate problems is the hardest thing to do, and
+    checking now saves a lot of anguish later.
+
+	openssl verify -verbose -purpose sslclient -CApath /var/cosign/certs/CA /var/cosign/certs/cert.pem
+
+	openssl verify -verbose -purpose sslserver -CApath /var/cosign/certs/CA /var/cosign/certs/cert.pem
 
 Questions?
 

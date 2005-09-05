@@ -6,14 +6,14 @@ include(`header.html')
 	<td height="487" class="maincell">
 	    <table width="513"  border="0" align="center" cellpadding="0" cellspacing="0">
 		<tr>
-		    <td align="right" valign="middle" class="topbar"> <img src="/images/yellow_divdots.gif" width="12" height="20" align="absmiddle" class="leftbuffer"><a href="#" class="graylink">Help</a>
+		    <td align="right" valign="middle" class="topbar"> <img src="/cosign/images/yellow_divdots.gif" width="12" height="20" align="absmiddle" class="leftbuffer"><a href="#" class="graylink">Help</a>
 		    </td>
 		</tr>
 		<tr>
 		    <td align="right" valign="top" class="dialog">
 			<table width="200" height="230"  border="0" align="right" cellpadding="0" cellspacing="0" class="logobox">
 			    <tr>
-				<td><img src="/images/cosign_logotext.gif" width="184" height="86"></td>
+				<td><img src="/cosign/images/cosign_logotext.gif" width="184" height="86"></td>
 			    </tr>
 			    <tr>
 				<td>
@@ -24,7 +24,7 @@ include(`header.html')
 	</p>
 
 	<p class="maintext">
-	    <form name="f" method="post" action="/cgi-bin/logout">
+	    <form name="f" method="post" action="/cosign-bin/logout">
 		<input type="button" value="Back" onClick="history.go(-1)">
 
 		&nbsp;
@@ -41,7 +41,7 @@ include(`header.html')
 		    </td>
 		</tr>
 		<tr>
-		    <td class="message-area"><img src="/images/icon_sysmessage.gif" width="14" height="14"> <strong>Note:</strong> After logout your browser will redirect to: $u
+		    <td class="message-area"><img src="/cosign/images/icon_sysmessage.gif" width="14" height="14"> <strong>Note:</strong> After logout your browser will redirect to: $u
 </td>
 		</tr>
 		<tr>

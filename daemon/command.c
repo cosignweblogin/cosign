@@ -38,12 +38,11 @@
 #define MIN(a,b)        ((a)<(b)?(a):(b))
 #endif
 
-#define TKT_PREFIX	_COSIGN_TICKET_CACHE
-
 extern int			idle_out_time;
 extern int			grey_time;
 extern struct timeval		cosign_net_timeout;
 extern struct sockaddr_in	cosign_sin;
+extern char			*cosign_tickets;
 
 
 static int	f_noop( SNET *, int, char *[], SNET * );
@@ -224,7 +223,7 @@ f_login( SNET *sn, int ac, char *av[], SNET *pushersn )
 		return( -1 );
 	    }
 	    if ( snprintf( krbpath, sizeof( krbpath ), "%s/%s",
-		    TKT_PREFIX, tmpkrb ) >= sizeof( krbpath )) {
+		    cosign_tickets, tmpkrb ) >= sizeof( krbpath )) {
 		syslog( LOG_ERR, "f_login: krbpath too long." );
 		return( -1 );
 	    }

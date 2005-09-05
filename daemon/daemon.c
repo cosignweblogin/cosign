@@ -43,6 +43,7 @@ int		tlsopt = 0;
 int		idle_out_time = 60 * 60 * 2;
 int		grey_time = 60 * 30;
 char		*cosign_dir = _COSIGN_DIR;
+char		*cosign_tickets = _COSIGN_TICKET_CACHE;
 char		*cosign_conf = _COSIGN_CONF;
 char		*cryptofile = _COSIGN_TLS_KEY;
 char		*certfile = _COSIGN_TLS_CERT;
@@ -66,6 +67,12 @@ daemon_configure()
 	syslog( LOG_INFO, "config: overriding default DB location(%s)"
 		" to config value of '%s'", cosign_dir, val );
 	cosign_dir = val;
+    }
+
+    if (( val = cosign_config_get( COSIGNTICKKEY )) != NULL ) {
+	syslog( LOG_INFO, "config: overriding default ticket location(%s)"
+		" to config value of '%s'", cosign_tickets, val );
+	cosign_tickets = val;
     }
 
     if (( val = cosign_config_get( COSIGNCADIRKEY )) != NULL ) {
