@@ -441,7 +441,7 @@ main( int argc, char *argv[] )
 	exit( 1 );
     }
 
-    if (( cl[ CL_REF ].cl_data != NULL ) ||
+    if (( cl[ CL_REF ].cl_data != NULL ) &&
 	    ( *cl[ CL_REF ].cl_data != '\0' )) {
         ref = sl[ SL_REF ].sl_data = cl[ CL_REF ].cl_data;
     }
