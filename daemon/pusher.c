@@ -526,6 +526,7 @@ pusher( int cpipe, struct connlist *cur )
         } else {
             syslog( LOG_ERR, "pusher: login %s failed: %m\n", av[ 1 ] );
         }
+	exit( 1 );
     }
 
 done:
