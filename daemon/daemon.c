@@ -69,7 +69,7 @@ daemon_configure()
 	cosign_dir = val;
     }
 
-    if (( val = cosign_config_get( COSIGNTICKKEY )) != NULL ) {
+    if (( val = cosign_config_get( COSIGNDTICKKEY )) != NULL ) {
 	syslog( LOG_INFO, "config: overriding default ticket location(%s)"
 		" to config value of '%s'", cosign_tickets, val );
 	cosign_tickets = val;
