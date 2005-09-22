@@ -37,6 +37,7 @@ char		*cryptofile = _COSIGN_TLS_KEY;
 char		*certfile = _COSIGN_TLS_CERT;
 char		*cadir = _COSIGN_TLS_CADIR;
 char		*loop_page = _COSIGN_LOOP_URL;
+int		x509krbtkts = 0;
 SSL_CTX 	*ctx = NULL;
 
 struct cgi_list cl[] = {
@@ -144,6 +145,17 @@ kcgi_configure()
     if (( val = cosign_config_get( COSIGNCADIRKEY )) != NULL ) {
 	cadir = val;
     }
+    if (( val = cosign_config_get( COSIGNX509TKTSKEY )) != NULL ) {
+	if ( strcasecmp( val, "on" ) == 0 ) {
+	    x509krbtkts = 1;
+	} else if ( strcasecmp( val, "off" ) == 0 ) {
+	    x509krbtkts = 0;
+	} else {
+	    fprintf( stderr, "%s: invalid setting for kx509: defaulting off.\n",
+		    val );
+	    x509krbtkts = 0;
+	}
+    }
     if (( val = cosign_config_get( COSIGNPORTKEY )) != NULL ) {
 	cosign_port = htons( atoi( val ));
     } else {
@@ -166,7 +178,7 @@ main( int argc, char *argv[] )
     char			*remote_user = NULL;
     char			*tmpl = LOGIN_HTML;
     char			*subject_dn = NULL, *issuer_dn = NULL;
-    char			*realm = NULL;
+    char			*realm = NULL, *krbtkt_path = NULL;
     struct servicelist		*scookie;
     struct timeval		tv;
     struct connlist		*head;
@@ -219,6 +231,12 @@ main( int argc, char *argv[] )
 	    exit( 0 );
 	}
 	remote_user = login;
+	if ( x509krbtkts ) {
+	    if (( krbtkt_path = getenv( "KRB5CCNAME" )) == NULL ) {
+		fprintf( stderr, "x509 Kerberos ticket transfer is on,
+			but no tickets were found in the environment\n" );
+	    }
+	}
     } else {
 	remote_user = getenv( "REMOTE_USER" );
 	realm = "basic";
@@ -341,7 +359,7 @@ main( int argc, char *argv[] )
 
 	/* basic's implicit register */
 	if ( rebasic && cosign_login( head, cookie, ip_addr, remote_user,
-		    realm, NULL ) < 0 ) {
+		    realm, krbtkt_path ) < 0 ) {
 	    fprintf( stderr, "cosign_login: basic login failed\n" ) ;
 	    sl[ SL_ERROR ].sl_data = "We were unable to contact the "
 		    "authentication server. Please try again later.";
@@ -412,7 +430,7 @@ main( int argc, char *argv[] )
     if ( strcmp( method, "POST" ) != 0 ) {
 	if ( cosign_check( head, cookie ) == NULL ) {
 	    if ( rebasic && cosign_login( head, cookie, ip_addr, remote_user,
-			realm, NULL ) < 0 ) {
+			realm, krbtkt_path ) < 0 ) {
 		fprintf( stderr, "cosign_login: basic login failed\n" ) ;
 		sl[ SL_ERROR ].sl_data = "We were unable to contact the "
 			"authentication server. Please try again later.";

@@ -61,6 +61,7 @@ struct cosigncfg {
 #define COSIGNTIMEOUTKEY	"cosignnettimeout"
 #define COSIGNPORTKEY		"cosignport"
 #define COSIGNLOOPURLKEY	"cosignloopurl"
+#define COSIGNX509TKTSKEY       "cosignx509krbtkts"
 
 #ifdef SQL_FRIEND
 #define MYSQLDBKEY	"mysqldb"
