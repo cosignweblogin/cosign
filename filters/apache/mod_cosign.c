@@ -403,7 +403,7 @@ cosign_merge_cfg( cmd_parms *params, void *mconfig )
     if ( cfg->host == NULL ) {
 	cfg->host = ap_pstrdup( params->pool, scfg->host );
     }
-    if ( cfg->host == NULL ) {
+    if ( cfg->posterror == NULL ) {
 	cfg->posterror = ap_pstrdup( params->pool, scfg->posterror );
     }
     if ( cfg->port == 0 ) {
