@@ -404,7 +404,7 @@ netretr_ticket( char *scookie, struct sinfo *si, SNET *sn, int convert,
     /* clear it, in case we can't get it later */
     *si->si_krb4tkt = '\0';
 
-    if ( !convert ) {
+    if ( convert != 1 ) {
 	return( COSIGN_OK );
     }
     if ( mkcookie( sizeof( tmpkrb ), tmpkrb ) != 0 ) {
@@ -614,7 +614,7 @@ done:
     if ( rc == COSIGN_LOGGED_OUT ) {
 	return( COSIGN_RETRY );
     } else {
-	if (( first ) && ( cfg->proxy )) {
+	if (( first ) && ( cfg->proxy == 1 )) {
 	    if ( netretr_proxy ( scookie, si, cfg->cl->conn_sn,
 		    cfg->proxydb, s ) != COSIGN_OK ) {
 		cosign_log( APLOG_ERR, s, "mod_cosign: choose_conn: " 
@@ -622,7 +622,7 @@ done:
 	    }
 	}
 #ifdef KRB
-	if (( first ) && ( cfg->krbtkt )) {
+	if (( first ) && ( cfg->krbtkt == 1 )) {
 	    if ( netretr_ticket( scookie, si, cfg->cl->conn_sn, cfg->krb524,
 		    cfg->tkt_prefix, s ) != COSIGN_OK ) {
 		cosign_log( APLOG_ERR, s, "mod_cosign: choose_conn: " 
