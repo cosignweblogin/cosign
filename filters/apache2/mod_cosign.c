@@ -45,18 +45,18 @@ static int	set_cookie_and_redirect( request_rec *, cosign_host_config * );
 module AP_MODULE_DECLARE_DATA cosign_module;
 
     static void *
-cosign_create_dir_config( apr_pool_t *p, char *path )
+cosign_create_config( pool *p )
 {
     cosign_host_config *cfg;
-    
+
     cfg = (cosign_host_config *)apr_pcalloc( p, sizeof( cosign_host_config ));
     cfg->service = NULL;
     cfg->siteentry = NULL;
-    cfg->public = 0;
+    cfg->public = -1;
     cfg->redirect = NULL;
     cfg->posterror = NULL;
-    cfg->port = htons( 6663 );
-    cfg->protect = 1;
+    cfg->port = 0;
+    cfg->protect = -1;
     cfg->configured = 0;
     cfg->cl = NULL;
     cfg->ctx = NULL;
@@ -66,58 +66,32 @@ cosign_create_dir_config( apr_pool_t *p, char *path )
     cfg->filterdb = _FILTER_DB;
     cfg->proxydb = _PROXY_DB;
     cfg->tkt_prefix = _COSIGN_TICKET_CACHE;
-    cfg->http = 0;
-    cfg->proxy = 0;
-    cfg->expiretime = 86400;	/* 24 hours */
+    cfg->http = -1;
+    cfg->proxy = -1;
+    cfg->expiretime = 86400; /* 24 hours */
 #ifdef KRB
-    cfg->krbtkt = 0;
+    cfg->krbtkt = -1;
 #ifdef GSS
-    cfg->gss = 0;
+    cfg->gss = -1;
 #endif /* GSS */
 #ifdef KRB4
-    cfg->krb524 = 0;
+    cfg->krb524 = -1;
 #endif /* KRB4 */
 #endif /* KRB */
     return( cfg );
+}
 
+
+    static void *
+cosign_create_dir_config( apr_pool_t *p, char *path )
+{
+    return( cosign_create_config( p ));
 }
 
     static void *
 cosign_create_server_config( apr_pool_t *p, server_rec *s )
 {
-    cosign_host_config *cfg;
-    
-    cfg = (cosign_host_config *)apr_pcalloc( p, sizeof( cosign_host_config ));
-    cfg->host = NULL;
-    cfg->service = NULL;
-    cfg->siteentry = NULL;
-    cfg->public = 0;
-    cfg->redirect = NULL;
-    cfg->posterror = NULL;
-    cfg->port = htons( 6663 );
-    cfg->protect = 1;
-    cfg->configured = 0;
-    cfg->cl = NULL;
-    cfg->ctx = NULL;
-    cfg->key = NULL;
-    cfg->cert = NULL;
-    cfg->cadir = NULL;
-    cfg->filterdb = _FILTER_DB;
-    cfg->proxydb = _PROXY_DB;
-    cfg->tkt_prefix = _COSIGN_TICKET_CACHE;
-    cfg->http = 0;
-    cfg->proxy = 0;
-    cfg->expiretime = 86400;	/* 24 hours */
-#ifdef KRB
-    cfg->krbtkt = 0;
-#ifdef GSS
-    cfg->gss = 0;
-#endif /* GSS */
-#ifdef KRB4
-    cfg->krb524 = 0;
-#endif /* KRB4 */
-#endif /* KRB */
-    return( cfg );
+    return( cosign_create_config( p ));
 }
 
     static int
@@ -158,7 +132,7 @@ set_cookie_and_redirect( request_rec *r, cosign_host_config *cfg )
     /* returned upon revisit. */
 
     gettimeofday( &now, NULL );
-    if ( cfg->http ) { /* living dangerously */
+    if ( cfg->http == 1 ) { /* living dangerously */
 	full_cookie = apr_psprintf( r->pool, "%s/%lu;;path=/",
 		my_cookie, now.tv_sec );
     } else {
@@ -173,11 +147,11 @@ set_cookie_and_redirect( request_rec *r, cosign_host_config *cfg )
 
     apr_table_set( r->err_headers_out, "Set-Cookie", full_cookie );
 
-    if ( cfg->siteentry != NULL ) {
+    if ( cfg->siteentry != NULL && strcasecmp( cfg->siteentry, "none" ) != 0 ) {
 	ref = cfg->siteentry;
     } else {
 	/* live dangerously, we're redirecting to http */
-	if ( cfg->http ) {
+	if ( cfg->http == 1 ) {
 	    if (( port = ap_get_server_port( r )) == 80 ) {
 		ref = apr_psprintf( r->pool, "http://%s%s",
 			ap_get_server_name( r ), r->unparsed_uri );
@@ -197,6 +171,7 @@ set_cookie_and_redirect( request_rec *r, cosign_host_config *cfg )
 	}
     }
 
+    /* we need to remove this semi-colon eventually */
     dest = apr_psprintf( r->pool, "%s?%s;&%s", cfg->redirect, my_cookie, ref );
     apr_table_set( r->headers_out, "Location", dest );
     return( 0 );
@@ -269,7 +244,7 @@ cosign_auth( request_rec *r )
 		r->server->module_config, &cosign_module);
     }
 
-    if ( !cfg->configured || !cfg->protect ) {
+    if ( !cfg->configured || cfg->protect == 0 ) {
 	return( DECLINED );
     }
 
@@ -359,10 +334,10 @@ cosign_auth( request_rec *r )
 	apr_table_set( r->subprocess_env, "COSIGN_SERVICE", cfg->service );
 	apr_table_set( r->subprocess_env, "REMOTE_REALM", si.si_realm );
 #ifdef KRB
-	if ( cfg->krbtkt ) {
+	if ( cfg->krbtkt == 1 ) {
 	    apr_table_set( r->subprocess_env, "KRB5CCNAME", si.si_krb5tkt );
 #ifdef GSS
-	if ( cfg->gss ) {
+	if ( cfg->gss == 1 ) {
 	    if ( gss_krb5_ccache_name( &minor_status, si.si_krb5tkt, NULL )
 		    != GSS_S_COMPLETE ) {
 		cosign_log( APLOG_ERR,
@@ -371,7 +346,7 @@ cosign_auth( request_rec *r )
 	}
 #endif /* GSS */
 #ifdef KRB4
-	if ( cfg->krb524 ) {
+	if ( cfg->krb524 == 1 ) {
 	    apr_table_set( r->subprocess_env, "KRBTKFILE", si.si_krb4tkt );
 	    krb_set_tkt_string( si.si_krb4tkt );
 	}
@@ -385,7 +360,7 @@ cosign_auth( request_rec *r )
 
 set_cookie:
     /* let them thru regardless if this is "public" */
-    if ( cfg->public ) {
+    if ( cfg->public == 1 ) {
         return( DECLINED );
     }
     if ( set_cookie_and_redirect( r, cfg ) != 0 ) {
@@ -402,112 +377,108 @@ set_cookie:
     }
 
 }
+    static cosign_host_config *
+cosign_merge_cfg( cmd_parms *params, void *mconfig )
+{
+    cosign_host_config          *cfg, *scfg;
+
+    scfg = (cosign_host_config *) ap_get_module_config(
+                params->server->module_config, &cosign_module );
+    if ( params->path == NULL ) {
+        return( scfg );
+    }
+
+    cfg = (cosign_host_config *)mconfig;
+    if ( cfg->siteentry == NULL ) {
+        cfg->siteentry = apr_pstrdup( params->pool, scfg->siteentry );
+    }
+    if ( cfg->public == -1 ) {
+        cfg->public = scfg->public;
+    }
+    if ( cfg->protect == -1 ) {
+        cfg->protect = scfg->protect;
+    }
+
+    cfg->filterdb = apr_pstrdup( params->pool, scfg->filterdb );
+    cfg->proxydb = apr_pstrdup( params->pool, scfg->proxydb );
+    cfg->tkt_prefix = apr_pstrdup( params->pool, scfg->tkt_prefix );
+
+    if ( cfg->redirect == NULL ) {
+        cfg->redirect = apr_pstrdup( params->pool, scfg->redirect );
+    }
+    if ( cfg->host == NULL ) {
+        cfg->host = apr_pstrdup( params->pool, scfg->host );
+    }
+    if ( cfg->posterror == NULL ) {
+        cfg->posterror = apr_pstrdup( params->pool, scfg->posterror );
+    }
+    if ( cfg->port == 0 ) {
+        cfg->port = scfg->port;
+    }
+    if ( cfg->cl == NULL ) {
+        cfg->cl = scfg->cl;
+    }
+    if ( cfg->ctx == NULL ) {
+        cfg->ctx = scfg->ctx;
+    }
+
+    if ( cfg->proxy == -1 ) {
+        cfg->proxy = scfg->proxy;
+    }
+    if ( cfg->http == -1 ) {
+        cfg->http = scfg->http;
+    }
+
+    cfg->expiretime = scfg->expiretime;
+
+    if ( cfg->krbtkt == -1 ) {
+        cfg->krbtkt = scfg->krbtkt;
+    }
+#ifdef GSS
+    if ( cfg->gss == -1 ) {
+        cfg->gss = scfg->gss;
+    }
+#endif /* GSS */
+#ifdef KRB4
+    if ( cfg->krb524 == -1 ) {
+        cfg->krb524 = scfg->krb524;
+    }
+#endif /* KRB4 */
+#endif /* KRB */
+
+    return( cfg );
+}
 
     static const char *
 set_cosign_protect( cmd_parms *params, void *mconfig, int flag )
 {
-    cosign_host_config		*cfg, *scfg;
+    cosign_host_config		*cfg;
 
-    scfg = (cosign_host_config *) ap_get_module_config(
-		params->server->module_config, &cosign_module );
-    if ( params->path == NULL ) {
-	cfg = scfg;
-    } else {
-	cfg = (cosign_host_config *)mconfig;
-	cfg->redirect = apr_pstrdup( params->pool, scfg->redirect );
-	cfg->filterdb = apr_pstrdup( params->pool, scfg->filterdb );
-	cfg->proxydb = apr_pstrdup( params->pool, scfg->proxydb);
-	cfg->tkt_prefix = apr_pstrdup( params->pool, scfg->tkt_prefix );
-	if ( cfg->siteentry != NULL ) {
-	    cfg->siteentry = apr_pstrdup( params->pool, scfg->siteentry );
-	}
-	cfg->public = scfg->public;
-	cfg->posterror = apr_pstrdup( params->pool, scfg->posterror );
-	cfg->host = apr_pstrdup( params->pool, scfg->host );
-	cfg->cl = scfg->cl;
-	cfg->port = scfg->port; 
-	cfg->ctx = scfg->ctx;
-	if ( cfg->service == NULL ) {
-	    cfg->service = apr_pstrdup( params->pool, scfg->service );
-	}
-	cfg->proxy = scfg->proxy;
-	cfg->http = scfg->http;
-	cfg->expiretime = scfg->expiretime;
-#ifdef KRB
-	cfg->krbtkt = scfg->krbtkt; 
-#ifdef GSS
-	cfg->gss = scfg->gss;
-#endif /* GSS */
-#ifdef KRB4
-	cfg->krb524 = scfg->krb524;
-#endif /* KRB4 */
-#endif /* KRB */
+    cfg = cosign_merge_cfg( params, mconfig );
 
-    }
-
-    cfg->protect = flag; 
-    cfg->configured = 1; 
+    cfg->protect = flag;
+    cfg->configured = 1;
     return( NULL );
 }
 
     static const char *
 set_cosign_post_error( cmd_parms *params, void *mconfig, char *arg )
 {
-    cosign_host_config		*cfg;
+    cosign_host_config          *cfg;
 
-    if ( params->path == NULL ) {
-	cfg = (cosign_host_config *) ap_get_module_config(
-		params->server->module_config, &cosign_module );
-    } else {
-	return( "CosignPostErrorRedirect not valid per dir!" );
-    }
-
-    if ( cfg->posterror != NULL ) {
-	return( "Only one Error Redirecion URL per configuration allowed." );
-    }
+    cfg = cosign_merge_cfg( params, mconfig );
 
     cfg->posterror = apr_pstrdup( params->pool, arg );
+    cfg->configured = 1;
     return( NULL );
 }
 
     static const char *
 set_cosign_service( cmd_parms *params, void *mconfig, char *arg )
 {
-    cosign_host_config		*cfg, *scfg;
+    cosign_host_config          *cfg;
 
-
-    scfg = (cosign_host_config *) ap_get_module_config(
-		params->server->module_config, &cosign_module );
-    if ( params->path == NULL ) {
-	cfg = scfg;
-    } else {
-	cfg = (cosign_host_config *)mconfig;
-	cfg->redirect = apr_pstrdup( params->pool, scfg->redirect );
-	cfg->filterdb = apr_pstrdup( params->pool, scfg->filterdb );
-	cfg->proxydb = apr_pstrdup( params->pool, scfg->proxydb);
-	cfg->tkt_prefix = apr_pstrdup( params->pool, scfg->tkt_prefix );
-	if ( cfg->siteentry != NULL ) {
-	    cfg->siteentry = apr_pstrdup( params->pool, scfg->siteentry );
-	}
-	cfg->public = scfg->public;
-	cfg->posterror = apr_pstrdup( params->pool, scfg->posterror );
-	cfg->host = apr_pstrdup( params->pool, scfg->host );
-	cfg->cl = scfg->cl;
-	cfg->port = scfg->port; 
-	cfg->ctx = scfg->ctx;
-	cfg->proxy = scfg->proxy;
-	cfg->http = scfg->http;
-	cfg->expiretime = scfg->expiretime;
-#ifdef KRB
-	cfg->krbtkt = scfg->krbtkt; 
-#ifdef GSS
-	cfg->gss = scfg->gss;
-#endif /* GSS */
-#ifdef KRB4
-	cfg->krb524 = scfg->krb524;
-#endif /* KRB4 */
-#endif /* KRB */
-    }
+    cfg = cosign_merge_cfg( params, mconfig );
 
     cfg->service = apr_psprintf( params->pool,"cosign-%s", arg );
     cfg->configured = 1;
@@ -517,46 +488,11 @@ set_cosign_service( cmd_parms *params, void *mconfig, char *arg )
     static const char *
 set_cosign_siteentry( cmd_parms *params, void *mconfig, char *arg )
 {
-    cosign_host_config          *cfg, *scfg;
+    cosign_host_config          *cfg;
 
-    scfg = (cosign_host_config *) ap_get_module_config(
-                params->server->module_config, &cosign_module );
-    if ( params->path == NULL ) {
-        cfg = scfg;
-    } else {
-        cfg = (cosign_host_config *)mconfig;
-	cfg->public = scfg->public;
-        cfg->redirect = apr_pstrdup( params->pool, scfg->redirect );
-        cfg->filterdb = apr_pstrdup( params->pool, scfg->filterdb );
-        cfg->proxydb = apr_pstrdup( params->pool, scfg->proxydb );
-        cfg->tkt_prefix = apr_pstrdup( params->pool, scfg->tkt_prefix );
-        cfg->posterror = apr_pstrdup( params->pool, scfg->posterror );
-        cfg->host = apr_pstrdup( params->pool, scfg->host );
-        cfg->cl = scfg->cl;
-        cfg->port = scfg->port;
-        cfg->ctx = scfg->ctx;
-        cfg->proxy = scfg->proxy;
-        cfg->http = scfg->http;
-	cfg->expiretime = scfg->expiretime;
-        if ( cfg->service == NULL ) {
-            cfg->service = apr_pstrdup( params->pool, scfg->service );
-        }
-#ifdef KRB
-        cfg->krbtkt = scfg->krbtkt;
-#ifdef GSS
-        cfg->gss = scfg->gss;
-#endif /* GSS */
-#ifdef KRB4
-        cfg->krb524 = scfg->krb524;
-#endif /* KRB4 */
-#endif /* KRB */
-    }
+    cfg = cosign_merge_cfg( params, mconfig );
 
-    if ( strcasecmp( arg, "none" ) != 0 ) {
-        cfg->siteentry = apr_pstrdup( params->pool, arg );
-    } else {
-        cfg->siteentry = NULL;
-    }
+    cfg->siteentry = apr_pstrdup( params->pool, arg );
     cfg->configured = 1;
     return( NULL );
 }
@@ -564,42 +500,9 @@ set_cosign_siteentry( cmd_parms *params, void *mconfig, char *arg )
     static const char *
 set_cosign_public( cmd_parms *params, void *mconfig, int flag )
 {
-    cosign_host_config          *cfg, *scfg;
+    cosign_host_config          *cfg;
 
-    scfg = (cosign_host_config *) ap_get_module_config(
-                params->server->module_config, &cosign_module );
-    if ( params->path == NULL ) {
-        cfg = scfg;
-    } else {
-        cfg = (cosign_host_config *)mconfig;
-        if ( cfg->siteentry != NULL ) {
-           cfg->siteentry = apr_pstrdup( params->pool, scfg->siteentry );
-        }
-        cfg->redirect = apr_pstrdup( params->pool, scfg->redirect );
-        cfg->filterdb = apr_pstrdup( params->pool, scfg->filterdb );
-        cfg->proxydb = apr_pstrdup( params->pool, scfg->proxydb );
-        cfg->tkt_prefix = apr_pstrdup( params->pool, scfg->tkt_prefix );
-        cfg->posterror = apr_pstrdup( params->pool, scfg->posterror );
-        cfg->host = apr_pstrdup( params->pool, scfg->host );
-        cfg->cl = scfg->cl;
-        cfg->port = scfg->port;
-        cfg->ctx = scfg->ctx;
-        cfg->proxy = scfg->proxy;
-        cfg->http = scfg->http;
-	cfg->expiretime = scfg->expiretime;
-        if ( cfg->service == NULL ) {
-            cfg->service = apr_pstrdup( params->pool, scfg->service );
-        }
-#ifdef KRB
-        cfg->krbtkt = scfg->krbtkt;
-#ifdef GSS
-        cfg->gss = scfg->gss;
-#endif /* GSS */
-#ifdef KRB4
-        cfg->krb524 = scfg->krb524;
-#endif /* KRB4 */
-#endif /* KRB */
-    }
+    cfg = cosign_merge_cfg( params, mconfig );
 
     cfg->public = flag;
     cfg->configured = 1;
@@ -609,43 +512,31 @@ set_cosign_public( cmd_parms *params, void *mconfig, int flag )
     static const char *
 set_cosign_port( cmd_parms *params, void *mconfig, char *arg )
 {
-    cosign_host_config		*cfg;
-    struct connlist		*cur;
-    unsigned short		portarg;
-
-    if ( params->path == NULL ) {
-	cfg = (cosign_host_config *) ap_get_module_config(
-		params->server->module_config, &cosign_module );
-    } else {
-	return( "CosignPort not valid per dir!" );
-    }
+    cfg = cosign_merge_cfg( params, mconfig );
 
     portarg = strtol( arg, (char **)NULL, 10 );
     cfg->port = htons( portarg );
 
     for ( cur = cfg->cl; cur != NULL; cur = cur->conn_next ) {
-	cur->conn_sin.sin_port = cfg->port;
+        if ( cfg->port == 0 ) {
+            cur->conn_sin.sin_port = htons( 6663 );
+        } else {
+            cur->conn_sin.sin_port = cfg->port;
+        }
     }
+    cfg->configured = 1;
     return( NULL );
 }
 
     static const char *
 set_cosign_redirect( cmd_parms *params, void *mconfig, char *arg )
 {
-    cosign_host_config		*cfg;
+    cosign_host_config          *cfg;
 
-    if ( params->path == NULL ) {
-	cfg = (cosign_host_config *) ap_get_module_config(
-		params->server->module_config, &cosign_module );
-    } else {
-	return( "CosignRedirect not valid per dir!" );
-    }
-
-    if ( cfg->redirect != NULL ) {
-	return( "Only one redirect per configuration allowed." );
-    }
+    cfg = cosign_merge_cfg( params, mconfig );
 
     cfg->redirect = apr_pstrdup( params->pool, arg );
+    cfg->configured = 1;
     return( NULL );
 }
 
@@ -705,16 +596,12 @@ krb524_cosign_tickets( cmd_parms *params, void *mconfig, int flag )
 {
     cosign_host_config		*cfg;
 
-    if ( params->path == NULL ) {
-	cfg = (cosign_host_config *) ap_get_module_config(
-		params->server->module_config, &cosign_module );
-    } else {
-	return( "Ticket conversion policy to be set on a per host basis." );
-    }
+    cfg = cosign_merge_cfg( params, mconfig );
 
-    cfg->krb524 = flag; 
-    cfg->configured = 1; 
+    cfg->krb524 = flag;
+    cfg->configured = 1;
     return( NULL );
+
 }
 #endif /* KRB4 */
 
@@ -724,12 +611,7 @@ set_cosign_gss( cmd_parms *params, void *mconfig, int flag )
 {
     cosign_host_config		*cfg;
 
-    if ( params->path == NULL ) {
-	cfg = (cosign_host_config *) ap_get_module_config(
-		params->server->module_config, &cosign_module );
-    } else {
-	return( "GSS setup policy needs to be set on a per host basis." );
-    }
+    cfg = cosign_merge_cfg( params, mconfig );
 
     cfg->gss = flag; 
     cfg->configured = 1; 
@@ -742,12 +624,7 @@ set_cosign_tickets( cmd_parms *params, void *mconfig, int flag )
 {
     cosign_host_config		*cfg;
 
-    if ( params->path == NULL ) {
-	cfg = (cosign_host_config *) ap_get_module_config(
-		params->server->module_config, &cosign_module );
-    } else {
-	return( "Kerberos ticket policy needs to be set on a per host basis." );
-    }
+    cfg = cosign_merge_cfg( params, mconfig );
 
     cfg->krbtkt = flag; 
     cfg->configured = 1; 
@@ -760,12 +637,7 @@ set_cosign_proxy_cookies( cmd_parms *params, void *mconfig, int flag )
 {
     cosign_host_config          *cfg;
 
-    if ( params->path == NULL ) {
-        cfg = (cosign_host_config *) ap_get_module_config(
-                params->server->module_config, &cosign_module );
-    } else {
-        return( "Proxy cookie policy needs to be set on a per host basis." );
-    }
+    cfg = cosign_merge_cfg( params, mconfig );
 
     cfg->proxy = flag;
     cfg->configured = 1;
@@ -778,12 +650,7 @@ set_cosign_certs( cmd_parms *params, void *mconfig,
 {
     cosign_host_config		*cfg;
 
-    if ( params->path == NULL ) {
-	cfg = (cosign_host_config *) ap_get_module_config(
-		params->server->module_config, &cosign_module );
-    } else {
-	return( "Certificates need to be set on a per host basis." );
-    }
+    cfg = cosign_merge_cfg( params, mconfig );
 
     cfg->key = apr_pstrdup( params->pool, one );
     cfg->cert = apr_pstrdup( params->pool, two );
@@ -851,16 +718,7 @@ set_cosign_host( cmd_parms *params, void *mconfig, char *arg )
     char			*err;
     cosign_host_config		*cfg;
 
-    if ( params->path == NULL ) {
-	cfg = (cosign_host_config *) ap_get_module_config(
-		params->server->module_config, &cosign_module );
-    } else {
-	return( "CosignHostname not valid per dir!" );
-    }
-
-    if ( cfg->host != NULL ) {
-	return( "There can be only one host per configuration!" );
-    }
+    cfg = cosign_merge_cfg( params, mconfig );
 
     cfg->host = apr_pstrdup( params->pool, arg );
     if (( he = gethostbyname( cfg->host )) == NULL ) {
@@ -876,7 +734,11 @@ set_cosign_host( cmd_parms *params, void *mconfig, char *arg )
 		apr_palloc( params->pool, sizeof( struct connlist ));
 	memset( &new->conn_sin, 0, sizeof( struct sockaddr_in ));
 	new->conn_sin.sin_family = AF_INET;
-	new->conn_sin.sin_port = cfg->port;
+	if ( cfg->port == 0 ) {
+            new->conn_sin.sin_port = htons( 6663 );
+        } else {
+            new->conn_sin.sin_port = cfg->port;
+        }
 	memcpy( &new->conn_sin.sin_addr.s_addr,
 		he->h_addr_list[ i ], ( unsigned int)he->h_length );
 	new->conn_sn = NULL;
@@ -892,12 +754,7 @@ set_cosign_http( cmd_parms *params, void *mconfig, int flag )
 {
     cosign_host_config          *cfg;
 
-    if ( params->path == NULL ) {
-        cfg = (cosign_host_config *) ap_get_module_config(
-                params->server->module_config, &cosign_module );
-    } else {
-    return( "If you want to run Cosign using http, you must do it this way for the whole server.");
-    }
+    cfg = cosign_merge_cfg( params, mconfig );
 
     cfg->http = flag;
     cfg->configured = 1;
@@ -913,6 +770,7 @@ set_cosign_expiretime( cmd_parms *params, void *mconfig, char *arg )
         cfg = (cosign_host_config *) ap_get_module_config(
                 params->server->module_config, &cosign_module );
     } else {
+        /* maybe we need to rethink this */
         return( "Service cookie expiration policy applies server-wide.");
     }
 
@@ -924,7 +782,7 @@ set_cosign_expiretime( cmd_parms *params, void *mconfig, char *arg )
 static command_rec cosign_cmds[ ] =
 {
         AP_INIT_TAKE1( "CosignPostErrorRedirect", set_cosign_post_error,
-        NULL, RSRC_CONF,
+        NULL, RSRC_CONF | ACCESS_CONF,
         "the URL to deliver bad news about POSTed data" ),
 
         AP_INIT_TAKE1( "CosignService", set_cosign_service,
@@ -936,15 +794,15 @@ static command_rec cosign_cmds[ ] =
         "turn cosign off on a location or directory basis" ),
 
         AP_INIT_TAKE1( "CosignRedirect", set_cosign_redirect,
-        NULL, RSRC_CONF, 
+        NULL, RSRC_CONF | ACCESS_CONF, 
         "the URL to register service cookies with cosign" ),
 
         AP_INIT_TAKE1( "CosignPort", set_cosign_port,
-        NULL, RSRC_CONF, 
+        NULL, RSRC_CONF | ACCESS_CONF, 
         "the port to register service cookies with cosign" ),
 
         AP_INIT_TAKE1( "CosignHostname", set_cosign_host,
-        NULL, RSRC_CONF, 
+        NULL, RSRC_CONF | ACCESS_CONF, 
         "the name of the cosign hosts(s)" ),
 
         AP_INIT_TAKE1( "CosignFilterDB", set_cosign_filterdb,
@@ -968,32 +826,33 @@ static command_rec cosign_cmds[ ] =
         "make authentication optional for protected sites" ),
 
         AP_INIT_FLAG( "CosignHttpOnly", set_cosign_http,
-        NULL, RSRC_CONF, 
+        NULL, RSRC_CONF | ACCESS_CONF, 
         "redirect to http instead of https on the local server" ),
+
+        AP_INIT_TAKE3( "CosignCrypto", set_cosign_certs,
+        NULL, RSRC_CONF | ACCESS_CONF, 
+        "crypto for use in talking to cosign host" ),
+
+        AP_INIT_FLAG( "CosignGetProxyCookies", set_cosign_proxy_cookies,
+        NULL, RSRC_CONF | ACCESS_CONF, 
+        "whether or not to get proxy cookies" ),
 
 	AP_INIT_TAKE1( "CosignCookieExpireTime", set_cosign_expiretime,
 	NULL, RSRC_CONF,
 	"time (in seconds) after which we will issue a new service cookie" ),
 
-        AP_INIT_TAKE3( "CosignCrypto", set_cosign_certs,
-        NULL, RSRC_CONF, 
-        "crypto for use in talking to cosign host" ),
-
-        AP_INIT_FLAG( "CosignGetProxyCookies", set_cosign_proxy_cookies,
-        NULL, RSRC_CONF, 
-        "whether or not to get proxy cookies" ),
 #ifdef KRB
         AP_INIT_FLAG( "CosignGetKerberosTickets", set_cosign_tickets,
-        NULL, RSRC_CONF, 
+        NULL, RSRC_CONF | ACCESS_CONF, 
         "whether or not to get kerberos tickets" ),
 #ifdef GSS
         AP_INIT_FLAG( "CosignKerberosSetupGSS", set_cosign_gss,
-        NULL, RSRC_CONF, 
+        NULL, RSRC_CONF | ACCESS_CONF, 
         "whether or not to setup GSSAPI for k5" ),
 #endif /* GSS */
 #ifdef KRB4
         AP_INIT_FLAG( "CosignKerberos524", krb524_cosign_tickets,
-        NULL, RSRC_CONF, 
+        NULL, RSRC_CONF | ACCESS_CONF, 
         "whether or not to convert kerberos 5 tickets to k4" ),
 #endif /* KRB4 */
 #endif /* KRB */
