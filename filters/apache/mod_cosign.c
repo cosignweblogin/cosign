@@ -376,6 +376,14 @@ cosign_merge_cfg( cmd_parms *params, void *mconfig )
 {
     cosign_host_config		*cfg, *scfg;
 
+    /*
+     * apache's built-in (request time) merge is for directories only or
+     * servers only, there's no way to inherit server config in a directory.
+     * So we do that here. Do note that becuase this is a config time merge,
+     * this has a side effect of requiring all server-wide directives to
+     * preecede the directory or location specific ones in the config file.
+     */
+
     scfg = (cosign_host_config *) ap_get_module_config(
 		params->server->module_config, &cosign_module );
     if ( params->path == NULL ) {
