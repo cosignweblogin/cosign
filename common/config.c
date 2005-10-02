@@ -101,38 +101,60 @@ authlist_find( char *hostname )
 x509_substitute( char *pattern, int len, char *buf,
 	int nmatch, regmatch_t matches[], char *source )
 {
-    char	*p, *q;
-    int		i, j;
+    char	*p, *b, *bufend, *numend;
+    int		i, matchlen;
 
-    /* need to do bounds checking */
+    bufend = buf + len;
 
-    for ( p = pattern, q = buf; *p != '\0'; p++ ) {
-	if ( *p == '$' ) {
-	    p++;
-	    if ( *p == '\0' || *p == '$' ) {
-		*q++ = '$';
+    for ( p = pattern, b = buf; *p != '\0'; p++ ) {
+	if ( *p++ == '$' ) {
+	    if ( *p == '\0' ) {
+		return( -1 );
 	    }
-	    if ( isdigit( *p )) {
-		/* need to write our own? */
-		i = strtol( p, NULL, 10 );
-		if ( i >= nmatch ) {
-		    *q++ = '$';
-		    *q++ = *p;
-		    continue;
+
+	    if ( *p == '$' ) {
+		if ( b + 1 >= bufend ) {
+		    return( -1 );
 		}
-		j = matches[ i ].rm_eo - matches[ i ].rm_so;
-		strncpy( q, source + matches[ i ].rm_so, j );
-		q += j;
-	    } else {
-		*q++ = '$';
-		*q++ = *p;
+		*b++ = '$';
+		continue;
 	    }
+
+	    i = strtol( p, &numend, 10 );
+	    if ( p == numend ) {
+		if ( b + 1 >= bufend ) {
+		    return( -1 );
+		}
+		*b++ = '$';
+		continue;
+	    }
+	    if ( i >= nmatch ) {
+		if ( b + 1 + ( numend - p ) >= bufend ) {
+		    return( -1 );
+		}
+		*b++ = '$';
+		strncpy( b, p, numend - p );
+		b += numend - p;
+		continue;
+	    }
+	    matchlen = matches[ i ].rm_eo - matches[ i ].rm_so;
+	    if ( b + matchlen >= bufend ) {
+		return( -1 );
+	    }
+	    strncpy( b, source + matches[ i ].rm_so, matchlen );
+	    b += matchlen;
 	} else {
-	    *q++ = *p;
+	    if ( b + 1 >= bufend ) {
+		return( -1 );
+	    }
+	    *b++ = *p;
 	}
     }
 
-    *q = '\0';
+    if ( b + 1 >= bufend ) {
+	return( -1 );
+    }
+    *b = '\0';
     return( 0 );
 }
 
