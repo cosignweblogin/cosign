@@ -17,7 +17,7 @@ FRIEND_MYSQL_DB = @frienddbhost@
 FRIEND_MYSQL_LOGIN = @frienddblogin@
 FRIEND_MYSQL_PASSWD = @frienddbpasswd@
 
-INCPATH=     @CPPFLAGS@ @KINC@ @MYSQLINC@ -I../common -I../libsnet -I../libcgi 
+INCPATH=     @CPPFLAGS@ @KINC@ @MYSQLINC@ -I../common -I../libsnet -I../libcgi
 OPTOPTS=     @OPTOPTS@
 CC=          @CC@
 DEFS=        @TLSDEFS@ @SQLDEFS@ @KRBDEFS@

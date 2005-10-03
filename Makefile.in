@@ -27,7 +27,7 @@ DISTDIR=../cosign-${VERSION}
 
 dist   : distclean
 	mkdir ${DISTDIR}
-	tar chfFFX - EXCLUDE . | ( cd ${DISTDIR}; tar xvf - )
+	tar -c -f - -X EXCLUDE . | tar xpf - -C ${DISTDIR}
 	echo ${VERSION} > ${DISTDIR}/VERSION
 
 distclean: clean
