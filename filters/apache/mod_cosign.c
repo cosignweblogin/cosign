@@ -405,6 +405,9 @@ cosign_merge_cfg( cmd_parms *params, void *mconfig )
     cfg->proxydb = ap_pstrdup( params->pool, scfg->proxydb );
     cfg->tkt_prefix = ap_pstrdup( params->pool, scfg->tkt_prefix );
 
+    if ( cfg->service == NULL ) {
+	cfg->service = ap_pstrdup( params->pool, scfg->service );
+    }
     if ( cfg->redirect == NULL ) {
 	cfg->redirect = ap_pstrdup( params->pool, scfg->redirect );
     }
