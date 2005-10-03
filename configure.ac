@@ -120,7 +120,7 @@ if test x_$GCC = x_yes; then
     OPTOPTS=${OPTOPTS:-"-Wall -Wmissing-prototypes"}
 fi
 AC_SUBST(OPTOPTS)
-
+SET_NO_SASL
 AC_CONFIG_SUBDIRS(libsnet)
 
 AC_CONFIG_FILES([Makefile

@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 #include <sys/time.h>
 #include <sys/types.h>
 #include <sys/param.h>
@@ -91,7 +92,7 @@ main( int argc, char *argv[] )
     }
 
     if ( cosign_config( cosign_conf ) < 0 ) {
-	fprintf( stderr, "Couldn't read %s\n", config_conf );
+	fprintf( stderr, "Couldn't read %s\n", cosign_conf );
         exit( 1 );
     }
     logout_configure();

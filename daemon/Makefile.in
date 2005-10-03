@@ -15,7 +15,7 @@ COSIGNTICKETCACHE=@ticketcache@
 
 COSIGNSYSLOG=LOG_DAEMON
 
-INCPATH=        @CPPFLAGS@ -I../libsnet -I../common
+INCPATH=        @CPPFLAGS@ -I../common -I../libsnet 
 OPTOPTS=        @OPTOPTS@
 CC=             @CC@
 DEFS=           @TLSDEFS@ -D_COSIGN_TICKET_CACHE=\"${COSIGNTICKETCACHE}\"

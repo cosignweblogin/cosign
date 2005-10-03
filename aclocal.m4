@@ -223,3 +223,9 @@ AC_DEFUN([CHECK_LIBMYSQL],
     AC_SUBST(HAVE_MYSQL)
     AC_MSG_RESULT($ac_cv_path_mysql)
 ])
+
+AC_DEFUN([SET_NO_SASL],
+[
+    ac_configure_args="$ac_configure_extra_args --with-sasl=no";
+    AC_MSG_RESULT(Disabled SASL)
+])
