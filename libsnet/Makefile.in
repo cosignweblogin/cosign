@@ -1,3 +1,8 @@
+SHELL=/bin/sh
+
+srcdir=@srcdir@
+VPATH=@srcdir@
+
 prefix      =	@prefix@
 libdir      =	@libdir@
 includedir  =	@includedir@
@@ -6,14 +11,12 @@ SRC  = snet.c
 OBJ  = snet.o
 LOBJ = snet.lo
 
-INCPATH=	@CPPFLAGS@
-DEFS=		@TLSDEFS@
+INCPATH=	@CPPFLAGS@ -I.
+DEFS=		
 OPTOPTS=	@OPTOPTS@
 CFLAGS=		${DEFS} ${OPTOPTS} ${INCPATH}
 PROFILED=	@PROFILED@
 CC=		@CC@	
-LIBS=		@LIBS@
-LDFLAGS=	@LDFLAGS@ ${LIBS}
 
 INSTALL=	@INSTALL@
 AWK=		@AWK@
@@ -30,25 +33,27 @@ DISTDIR=	../libsnet-${VERSION}
 	$(LIBTOOL) --mode=compile \
 	  $(CC) -c $(CFLAGS) $<
 	@if test x_$(PROFILED) = x_true ; then echo "building profiled $@" ; \
-	  ( cd profiled ; ../$(LIBTOOL) --mode=compile \
-	  $(CC) -c $(CFLAGS) -p -I.. ../$< >/dev/null 2>&1 ) ; fi
+	  ( mkdir -p profiled; cd profiled ; ../$(LIBTOOL) --mode=compile \
+	  $(CC) -c $(CFLAGS) -p -I.. -I$(srcdir) `if [ -f $< ]; then echo $<; \
+	  else echo ../$<; fi` >/dev/null 2>&1 ) ; fi
 
 .c.lo:
 	$(LIBTOOL) --mode=compile \
 	  $(CC) -c $(CFLAGS) $<
 	@if test x_$(PROFILED) = x_true ; then echo "building profiled $@" ; \
-	  ( cd profiled ; ../$(LIBTOOL) --mode=compile \
-	  $(CC) -c $(CFLAGS) -p -I.. ../$< >/dev/null 2>&1 ) ; fi
+	  ( mkdir -p profiled; cd profiled ; ../$(LIBTOOL) --mode=compile \
+	  $(CC) -c $(CFLAGS) -p -I.. -I$(srcdir) `if [ -f $< ]; then echo $<; \
+	  else echo ../$<; fi` >/dev/null 2>&1 ) ; fi
 
 
 all:		libsnet.la
 
 libsnet.la:	$(OBJ) $(LOBJ)
 	$(LIBTOOL) --mode=link \
-	  $(CC) $(LDFLAGS) -o libsnet.la $(LOBJ) -rpath $(libdir) -version-info 0:0:0
+	  $(CC) -o libsnet.la $(LOBJ) -rpath $(libdir) -version-info 0:0:0
 	@if test x_$(PROFILED) = x_true ; then echo "building profiled $@" ; \
 	  ( cd profiled ; ../$(LIBTOOL) --mode=link \
-	  $(CC) $(LDFLAGS) -o libsnet_p.la $(LOBJ) -rpath $(libdir) \
+	  $(CC) -o libsnet_p.la $(LOBJ) -rpath $(libdir) \
 	  -version-info 0:0:0 >/dev/null 2>&1 ) ; fi
 
 install:	all
@@ -66,9 +71,9 @@ install:	all
 	  $(libdir)/libsnet_p.la >/dev/null 2>&1 ) ; fi
 
 clean:
-	rm -f *.o *.lo libsnet.la
+	rm -f *.o *.lo libsnet.la profiled/libsnet_p.la profiled/snet.lo
 	rm -f *.bak *[Ee]rrs tags
-	rm -rf .libs profiled/.libs profiled/*.lo profiled/*.la profiled/*.o
+	rm -rf .libs profiled/.libs
 
 dist:		distclean
 	mkdir ${DISTDIR}
@@ -76,7 +81,7 @@ dist:		distclean
 	echo ${VERSION} > ${DISTDIR}/VERSION
 
 distclean:	clean
-	rm -f config.log config.status config.cache Makefile libtool
+	rm -f config.log config.status config.cache Makefile libtool config.h
 	rm -rf autom4te.cache
 
 tags:		${SRC}
