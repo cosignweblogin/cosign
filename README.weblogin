@@ -148,8 +148,10 @@ Creating cosign.conf file:
   set   cosignhost      	cosign-test.umich.edu
   set	cosigndb		/var/somewhere/cosign
   set	cosigncadir		/var/cosign/certs/CA
+  set	cosigntmpldir		/usr/local/cosign/templates
   set	cosignticketcache	/var/cosign/cgi/tickets
   set	cosigndticketcache	/var/cosign/daemon/tickets
+  set	cosignx509krbtkts	on
   set	cosignkeytab		/etc/keytab.cosign
   set	cosignlogouturl		http://cosign.edu
   set	cosignloopurl		http://cosign.edu/looping.html

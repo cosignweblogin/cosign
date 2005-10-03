@@ -194,9 +194,13 @@ f_login( SNET *sn, int ac, char *av[], SNET *pushersn )
     unsigned int        len, rc;
     extern int		errno;
 
-    /* LOGIN login_cookie ip principal realm */
+    /*
+     * C: LOGIN login_cookie ip principal realm
+     * S: 200 LOGIN successful: Cookie Stored.
+     */
 
-    /* C: LOGIN login_cookie ip principal realm "kerberos"
+    /*
+     * C: LOGIN login_cookie ip principal realm "kerberos"
      * S: 300 LOGIN: Send length then file.
      * C: [length]
      * C: [data]
@@ -797,7 +801,15 @@ f_check( SNET *sn, int ac, char *av[], SNET *pushersn )
     int			status;
     double		rate;
 
-    /* CHECK (service/login)cookie */
+    /*
+     * C: CHECK servicecookie
+     * S: 231 ip principal realm
+     */
+
+    /*
+     * C: CHECK logincookie
+     * S: 232 ip principal realm
+     */
 
     if (( al->al_key != CGI ) && ( al->al_key != SERVICE )) {
 	syslog( LOG_ERR, "f_check: %s not allowed", al->al_hostname );

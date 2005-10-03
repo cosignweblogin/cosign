@@ -55,6 +55,7 @@ struct cosigncfg {
 #define	COSIGNKEYKEY		"cosignkey"
 #define COSIGNTICKKEY		"cosignticketcache"
 #define COSIGNDTICKKEY		"cosigndticketcache"
+#define COSIGNTMPLDIRKEY	"cosigntmpldir"
 #define COSIGNHOSTKEY		"cosignhost"
 #define COSIGNKEYTABKEY		"cosignkeytab"
 #define	COSIGNLOGOUTURLKEY	"cosignlogouturl"

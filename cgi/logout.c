@@ -19,16 +19,12 @@
 #include "network.h"
 #include "subfile.h"
 
-#define ERROR_HTML	"../templates/error.html"
-#define REDIRECT_HTML	"../templates/redirect.html"
-#define SERVICE_MENU    "../templates/service-menu.html"
-#define VERIFY_LOGOUT   "../templates/verify-logout.html"
-
 extern char	*cosign_version;
 char		*cosign_host =_COSIGN_HOST;
 char    	*certfile = _COSIGN_TLS_CERT;
 char		*cryptofile = _COSIGN_TLS_KEY;
-char		*cadir =_COSIGN_TLS_CADIR;
+char		*cadir = _COSIGN_TLS_CADIR;
+char		*tmpldir = _COSIGN_TMPL_DIR;
 char		*cosign_conf = _COSIGN_CONF;
 
 unsigned short	cosign_port;
@@ -71,6 +67,9 @@ logout_configure()
     if (( val = cosign_config_get( COSIGNCADIRKEY )) != NULL ) {
         cadir = val;
     }
+    if (( val = cosign_config_get( COSIGNTMPLDIRKEY )) != NULL ) {
+        tmpldir = val;
+    }
     if (( val = cosign_config_get( COSIGNPORTKEY )) != NULL ) {
         cosign_port = htons( atoi( val )); 
     } else {
@@ -84,11 +83,21 @@ main( int argc, char *argv[] )
     char		*tmpl = VERIFY_LOGOUT;
     char		*cookie = NULL, *data, *ip_addr, *qs;
     struct connlist	*head;
-    char		*script = "/cgi-bin/logout";
+    char		*script;
 
     if ( argc == 2 && ( strncmp( argv[ 1 ], "-V", 2 ) == 0 )) {
 	printf( "%s\n", cosign_version );
 	exit( 0 );
+    }
+
+    if ( cosign_config( cosign_conf ) < 0 ) {
+	fprintf( stderr, "Couldn't read %s\n", config_conf );
+        exit( 1 );
+    }
+    logout_configure();
+    if ( chdir( tmpldir ) < 0 ) {
+	perror( tmpldir );
+	exit( 1 );
     }
 
     if (( ip_addr = getenv( "REMOTE_ADDR" )) == NULL ) {
@@ -106,16 +115,6 @@ main( int argc, char *argv[] )
         subfile( tmpl, sl, 0 );
 	exit( 0 );
     }
-
-    if ( cosign_config( cosign_conf ) < 0 ) {
-        sl[ SL_TITLE ].sl_data = "Error: System Error";
-        sl[ SL_ERROR ].sl_data = "We were unable to parse the "
-		"configuration file";
-        tmpl = ERROR_HTML;
-        subfile( tmpl, sl, 0 );
-        exit( 0 );
-    }
-    logout_configure();
 
     if ( cgi_info( CGI_GET, cl ) == 0 ) {
 	/* this is not a POST, display verify screen */

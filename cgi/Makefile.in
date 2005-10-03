@@ -9,6 +9,7 @@ COSIGNKEY=@cosignkey@
 COSIGNHOST = @cosignhost@
 COSIGNLOGOUTURL = @cosignlogouturl@
 COSIGNLOOPURL = @cosignloopurl@
+COSIGNTMPLDIR = @prefix@/templates
 COSIGNTICKETCACHE = @ticketcache@
 COSIGNCONF= @cosignconf@
 KEYTABPATH = @keytabpath@
@@ -55,6 +56,7 @@ cgi.o:	cgi.c
 	-D_COSIGN_TLS_CERT=\"${COSIGNCERT}\" \
 	-D_COSIGN_TLS_KEY=\"${COSIGNKEY}\" \
 	-D_COSIGN_CONF=\"${COSIGNCONF}\" \
+	-D_COSIGN_TMPL_DIR=\"${COSIGNTMPLDIR}\" \
 	-c cgi.c
 
 cosign.cgi: cgi.o login.o $(OBJ)
@@ -64,10 +66,11 @@ logout.o:	logout.c
 	${CC} ${CFLAGS} \
 	-D_COSIGN_HOST=\"${COSIGNHOST}\" \
 	-D_COSIGN_LOGOUT_URL=\"${COSIGNLOGOUTURL}\" \
-	-D_COSIGN_CONF=\"${COSIGNCONF}\" \
 	-D_COSIGN_TLS_CADIR=\"${COSIGNCADIR}\" \
 	-D_COSIGN_TLS_CERT=\"${COSIGNCERT}\" \
 	-D_COSIGN_TLS_KEY=\"${COSIGNKEY}\" \
+	-D_COSIGN_CONF=\"${COSIGNCONF}\" \
+	-D_COSIGN_TMPL_DIR=\"${COSIGNTMPLDIR}\" \
 	-c logout.c
 
 logout: logout.o $(OBJ)

@@ -36,6 +36,7 @@ char		*title = "Authentication Required";
 char		*cryptofile = _COSIGN_TLS_KEY;
 char		*certfile = _COSIGN_TLS_CERT;
 char		*cadir = _COSIGN_TLS_CADIR;
+char		*tmpldir = _COSIGN_TMPL_DIR;
 char		*loop_page = _COSIGN_LOOP_URL;
 int		x509krbtkts = 0;
 SSL_CTX 	*ctx = NULL;
@@ -145,6 +146,9 @@ kcgi_configure()
     if (( val = cosign_config_get( COSIGNCADIRKEY )) != NULL ) {
 	cadir = val;
     }
+    if (( val = cosign_config_get( COSIGNTMPLDIRKEY )) != NULL ) {
+	tmpldir = val;
+    }
     if (( val = cosign_config_get( COSIGNX509TKTSKEY )) != NULL ) {
 	if ( strcasecmp( val, "on" ) == 0 ) {
 	    x509krbtkts = 1;
@@ -196,15 +200,14 @@ main( int argc, char *argv[] )
     }
 
     if ( cosign_config( cosign_conf ) < 0 ) {
-	sl[ SL_TITLE ].sl_data = "Error: Server Configuration";
-	sl[ SL_ERROR ].sl_data = "We were unable to parse the "
-		"configuration file";
-	tmpl = ERROR_HTML;
-	subfile( tmpl, sl, 0 );
-	exit( 0 );
+	fprintf( stderr, "Couldn't read %s\n", cosign_conf );
+	exit( 1 );
     }
     kcgi_configure();
-
+    if ( chdir( tmpldir ) < 0 ) {
+	perror( tmpldir );
+	exit( 1 );
+    }
 
     if (( script = getenv( "SCRIPT_NAME" )) == NULL ) {
 	sl[ SL_TITLE ].sl_data = "Error: Server Configuration";

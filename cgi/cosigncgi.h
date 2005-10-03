@@ -12,7 +12,9 @@ struct connlist * connlist_setup( char *, unsigned short );
 #define COSIGN_RETRY            1
 #define COSIGN_LOGGED_OUT       2
 
-#define LOGIN_ERROR_HTML        "../templates/login_error.html"
-#define ERROR_HTML     		"../templates/error.html"
-#define LOGIN_HTML      	"../templates/login.html"
-#define REAUTH_HTML     	"../templates/reauth.html"
+#define LOGIN_ERROR_HTML        "login_error.html"
+#define ERROR_HTML     		"error.html"
+#define LOGIN_HTML      	"login.html"
+#define REAUTH_HTML     	"reauth.html"
+#define REDIRECT_HTML		"redirect.html"
+#define VERIFY_LOGOUT		"verify-logout.html"
