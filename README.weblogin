@@ -6,9 +6,18 @@ Before you begin:
     Your web server should have SSL enabled.
 
     If you want to use Kerberos, you will need MIT krb5-1.2.7 or
-    later.
+    later. The Cosign Kerberos login cgi can use either an MIT KDC
+    or a Microsoft Active Directory KDC.
 
     You will need OpenSSL 0.9.7a or newer.
+
+    Cosign can optionally work with kct
+    (http://www.citi.umich.edu/projects/kerb_pki/) and 
+    Shibboleth (http://shibboleth.internet2.edu/).
+
+    Guest account functionality, provided by cosign friend, requires 
+    MySQL. Download and further details for friend provided at
+    http://weblogin.org
 
     The cosign filters and the weblogin server use SSL mutual
     authentication.  It may be easier & cheaper to run your own CA
@@ -158,7 +167,9 @@ Creating cosign.conf file:
   set	cosignnettimeout	300 (time in seconds for net connections)
   set	cosignport		6664
 
-  #these three options are for use with "friend" only
+  #these three options are for use with "friend" only ( which is now a
+  #seperate release, though the cgi in this release must be built with
+  #friend support on.
 
   set	mysqldb			friend.cosign.edu
   set	mysqluser		superfriend

@@ -32,7 +32,7 @@ AC_DEFUN([CHECK_SSL],
     esac
 
     CPPFLAGS="$CPPFLAGS -I$ac_cv_path_ssl/include";
-    TLSDEFS=-DTLS;
+    TLSDEFS=-DHAVE_LIBSSL;
     AC_SUBST(TLSDEFS)
     LIBS="$LIBS -lssl -lcrypto";
     LDFLAGS="$LDFLAGS -L$ac_cv_path_ssl/lib";

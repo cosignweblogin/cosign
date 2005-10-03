@@ -93,6 +93,11 @@ Configure Apache ( U of M specific example ):
     NOTE: trailing slash is required on CosignRedirect! The redirects
     won't work correctly without it.
 
+    ANOTHER NOTE: most mod_cosign options can be configured on a
+    per-directory basis. In order to have this flexibility, the
+    server-wide configurations must be listed "first" in the httpd.conf
+    file, before any per-directory configuration options.
+
 Stop and Start Apache
 
 See README.scripts for a cron job that prunes old cookies from the filter's
