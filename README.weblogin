@@ -239,6 +239,26 @@ Rate Logging:
     ( or pass ) was 1.2 per second. More information follows in the
     cosignd(8) and monster(8) man pages.
 
+x509 logins:
+
+    The configuration for the x509 logins is in cosign.conf. It takes the
+    key word cert and has the following 5 fields:
+
+# keyword issuer_dn subject_dn login realm
+cert    "/C=US/ST=Michigan/L=Ann Arbor/O=University of Michigan/OU=ITCS/CN=UM We
+b CA/emailAddress=webmaster@umich.edu" ".*emailAddress=\\(.*\\)@umich\\.edu" $1
+UMICH.EDU
+
+    The first field after the keyword ( aka the issuer_dn ) must be an
+    exact match. The next field, subject_dn, is a regular expression. Keep
+    in mind the configuration file parser interprets backslashes,
+    so in this example we have "esacaped" our backslashes. The first
+    one escapes the second one which is then passed onto the regular
+    expression parser.
+
+    A sixth field, "type", is optional and currently reserved for future
+    multi-factor functionality.
+
 Testing your certificates:
 
     Make sure that the certs you have are able to be used as both
