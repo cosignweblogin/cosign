@@ -236,8 +236,8 @@ main( int argc, char *argv[] )
 	remote_user = login;
 	if ( x509krbtkts ) {
 	    if (( krbtkt_path = getenv( "KRB5CCNAME" )) == NULL ) {
-		fprintf( stderr, "x509 Kerberos ticket transfer is on,
-			but no tickets were found in the environment\n" );
+		fprintf( stderr, "x509 Kerberos ticket transfer is on,"
+			" but no tickets were found in the environment\n" );
 	    }
 	}
     } else {
