@@ -128,7 +128,7 @@ cosign_login_mysql( struct connlist *head, char *id, char *passwd,
 	    exit( 0 );
 	}
     }
-    snprintf( sql, sizeof( sql ), "SELECT account_name, passwd FROM friends WHERE account_name = '%s'", id );
+    snprintf( sql, sizeof( sql ), "SELECT login, passwd FROM friend WHERE login = '%s' AND passwd is NOT NULL", id );
 
     if( mysql_real_query( &friend_db, sql, strlen( sql ))) {
 	fprintf( stderr, mysql_error( &friend_db ));
