@@ -45,7 +45,7 @@ static int	set_cookie_and_redirect( request_rec *, cosign_host_config * );
 module AP_MODULE_DECLARE_DATA cosign_module;
 
     static void *
-cosign_create_config( pool *p )
+cosign_create_config( apr_pool_t *p )
 {
     cosign_host_config *cfg;
 
@@ -441,6 +441,7 @@ cosign_merge_cfg( cmd_parms *params, void *mconfig )
 
     cfg->expiretime = scfg->expiretime;
 
+#ifdef KRB
     if ( cfg->krbtkt == -1 ) {
         cfg->krbtkt = scfg->krbtkt;
     }
@@ -522,6 +523,10 @@ set_cosign_public( cmd_parms *params, void *mconfig, int flag )
     static const char *
 set_cosign_port( cmd_parms *params, void *mconfig, char *arg )
 {
+    cosign_host_config  *cfg;
+    int			 portarg;
+    struct connlist	 *cur;
+
     cfg = cosign_merge_cfg( params, mconfig );
 
     portarg = strtol( arg, (char **)NULL, 10 );
