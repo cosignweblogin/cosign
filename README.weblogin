@@ -239,6 +239,16 @@ Rate Logging:
     ( or pass ) was 1.2 per second. More information follows in the
     cosignd(8) and monster(8) man pages.
 
+Re-Authentication:
+
+    The central server can be configured so that a given service name will
+    require a user to re-authenticate ( if this is not an initial login ).
+    To enable re-authentication, the keyword is cookie and the setup in
+    cosign.conf is:
+
+	#keyword	service name		"function"
+	cookie		cosign-securemail	reauth
+
 x509 logins:
 
     The configuration for the x509 logins is in cosign.conf. It takes the

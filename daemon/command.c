@@ -262,7 +262,7 @@ f_login( SNET *sn, int ac, char *av[], SNET *pushersn )
     }
 
     if (( fd = open( tmppath, O_CREAT|O_EXCL|O_WRONLY, 0644 )) < 0 ) {
-	syslog( LOG_ERR, "f_login: open: %m" );
+	syslog( LOG_ERR, "f_login: open: %s: %m", tmppath );
 	return( -1 );
     }
 
@@ -653,7 +653,7 @@ do_register( char *login, char *scookie )
     }
 
     if (( fd = open( tmppath, O_CREAT|O_EXCL|O_WRONLY, 0644 )) < 0 ) {
-	syslog( LOG_ERR, "do_register: open: %m" );
+	syslog( LOG_ERR, "do_register: open: %s: %m", tmppath );
 	return( -1 );
     }
 
