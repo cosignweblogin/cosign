@@ -297,12 +297,11 @@ f_login( SNET *sn, int ac, char *av[], SNET *pushersn )
 	return( -1 );
     }
 
-    /* use it here */
-    if ( link( tmppath, av[ 1 ] ) != 0 ) {
+    if ( link( tmppath, path ) != 0 ) {
 	if ( errno == EEXIST ) {
 	    /* double action policy?? */
 	    syslog( LOG_ERR, "f_login: file already exists: %s", av[ 1 ]);
-	    if ( read_cookie( av[ 1 ], &ci ) != 0 ) {
+	    if ( read_cookie( path, &ci ) != 0 ) {
 		syslog( LOG_ERR, "f_login: read_cookie" );
 		snet_writef( sn, "%d LOGIN error: Sorry\r\n", 503 );
 		goto file_err2;
