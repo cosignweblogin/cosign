@@ -16,6 +16,7 @@
 #include <utime.h>
 
 #include "cparse.h"
+#include "mkcookie.h"
 
     int
 do_logout( char *path )

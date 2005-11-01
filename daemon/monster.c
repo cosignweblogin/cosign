@@ -23,6 +23,7 @@
 #include <snet.h>
 
 #include "cparse.h"
+#include "mkcookie.h"
 #include "logname.h"
 #include "rate.h"
 #include "monster.h"

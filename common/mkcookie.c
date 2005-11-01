@@ -1,3 +1,4 @@
+#include <string.h>
 #include <stdio.h>
 #include <openssl/rand.h>
 
@@ -22,4 +23,74 @@ mkcookie( int len, char *buf )
 
     fbase64_e( tmp, randbytes, buf );
     return( 0 );
+}
+
+
+    int
+mkcookiepath( char *prefix, int hashlen, char *cookie, char *buf, int len )
+{
+    char	*p;
+    int		prefixlen, cookielen;
+
+    if ( strchr( cookie, '/' ) != NULL ) {
+        return( -1 );
+    }
+
+    if (( cookielen = strlen( cookie )) >= MAXCOOKIELEN ) {
+        return( -1 );
+    }
+
+    if (( p = strchr( cookie, '=' )) == NULL ) {
+	return( -1 );
+    }
+    prefixlen = p - cookie;
+
+    if (( cookielen - prefixlen ) <= 2 ) {
+	return( -1 );
+    }
+
+    if ( hashlen == 0 ) {
+	if ( prefix == NULL ) {
+	    if ( snprintf( buf, len, "%s", cookie ) >= len ) {
+		return( -1 );
+	    }
+	    return( 0 );
+	} else {
+	    if ( snprintf( buf, len, "%s/%s", prefix, cookie ) >= len ) {
+		return( -1 );
+	    }
+	    return( 0 );
+	}
+    }
+
+    if ( hashlen == 1 ) {
+	if ( prefix == NULL ) {
+	    if ( snprintf( buf, len, "%c/%s", p[ 1 ], cookie ) >= len ) {
+		return( -1 );
+	    }
+	    return( 0 );
+	} else {
+	    if ( snprintf( buf, len, "%s/%c/%s",
+		    prefix, p[ 1 ], cookie ) >= len ) {
+		return( -1 );
+	    }
+	    return( 0 );
+	}
+    }
+
+    if ( hashlen == 2 ) {
+	if ( prefix == NULL ) {
+	    if ( snprintf( buf, len, "%c%c/%s",
+		    p[ 1 ], p[ 2 ], cookie ) >= len ) {
+		return( -1 );
+	    }
+	    return( 0 );
+	} else {
+	    if ( snprintf( buf, len, "%s/%c%c/%s",
+		    prefix, p[ 1 ], p[ 2 ], cookie ) >= len ) {
+		return( -1 );
+	    }
+	    return( 0 );
+	}
+    }
 }

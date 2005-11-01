@@ -14,6 +14,7 @@ typedef struct {
     char		*key;
     char		*cadir;
     char		*filterdb;
+    int			hashlen;
     char		*proxydb;
     char		*tkt_prefix;
     int                 http;

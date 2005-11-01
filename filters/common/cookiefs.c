@@ -23,8 +23,9 @@
 
 #include <snet.h>
 #include "sparse.h"
-#include "cosign.h"
+#include "mkcookie.h"
 #include "log.h"
+#include "cosign.h"
 
 #define IDLETIME	60
 
@@ -44,14 +45,8 @@ cosign_cookie_valid( cosign_host_config *cfg, char *cookie, struct sinfo *si,
 	return( COSIGN_ERROR );
     }
 
-    if ( strchr( cookie, '/' ) != NULL ) {
-	cosign_log( APLOG_ERR, s,
-	            "mod_cosign: cosign_cookie_valid: cookie contains '/'" );
-	return( COSIGN_ERROR );
-    }
-
-    if ( snprintf( path, sizeof( path ), "%s/%s", cfg->filterdb, cookie ) >=
-	    sizeof( path )) {
+    if ( mkcookiepath( cfg->filterdb, cfg->hashlen, cookie,
+	    path, sizeof( path )) < 0 ) {
 	cosign_log( APLOG_ERR, s, "mod_cosign: cosign_cookie_valid: "
 		    "cookie path too long" );
 	return( COSIGN_ERROR );
@@ -139,7 +134,6 @@ cosign_cookie_valid( cosign_host_config *cfg, char *cookie, struct sinfo *si,
     }
 
     /* store local copy of scookie (service cookie) */
-    /* XXX get path to store here */
     if ( snprintf( tmppath, sizeof( tmppath ), "%s/%x%x.%i", cfg->filterdb,
 	    (int)tv.tv_sec, (int)tv.tv_usec, (int)getpid()) >=
 	    sizeof( tmppath )) {

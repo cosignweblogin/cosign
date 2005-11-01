@@ -40,6 +40,7 @@
 
 extern int			idle_out_time;
 extern int			grey_time;
+extern int			hashlen;
 extern struct timeval		cosign_net_timeout;
 extern struct sockaddr_in	cosign_sin;
 extern char			*cosign_tickets;
@@ -58,7 +59,7 @@ static int	f_time( SNET *, int, char *[], SNET * );
 static int	f_daemon( SNET *, int, char *[], SNET * );
 static int	f_starttls( SNET *, int, char *[], SNET * );
 
-static int	do_register( char *, char * );
+static int	do_register( char *, char *, char * );
 static int	retr_ticket( SNET *, char * );
 static int	retr_proxy( SNET *, char *, SNET * );
 
@@ -184,7 +185,7 @@ f_starttls( SNET *sn, int ac, char *av[], SNET *pushersn )
 f_login( SNET *sn, int ac, char *av[], SNET *pushersn )
 {
     FILE		*tmpfile;
-    char		tmppath[ MAXCOOKIELEN ];
+    char		tmppath[ MAXCOOKIELEN ], path[ MAXPATHLEN ];
     char		tmpkrb[ 16 ], krbpath [ MAXPATHLEN ];
     char                *sizebuf, *line;
     char                buf[ 8192 ];
@@ -237,15 +238,9 @@ f_login( SNET *sn, int ac, char *av[], SNET *pushersn )
 	}
     }
 
-    if ( strchr( av[ 1 ], '/' ) != NULL ) {
-	syslog( LOG_ERR, "f_login: cookie name contains '/'" );
-	snet_writef( sn, "%d LOGIN: Invalid cookie name.\r\n", 501 );
-	return( 1 );
-    }
-
-    if ( strlen( av[ 1 ] ) >= MAXCOOKIELEN ) {
-	syslog( LOG_ERR, "f_login: cookie too long" );
-	snet_writef( sn, "%d LOGIN: Cookie too long.\r\n", 502 );
+    if ( mkcookiepath( NULL, hashlen, av[ 1 ], path, sizeof( path )) < 0 ) {
+	syslog( LOG_ERR, "f_login: mkcookiepath error" );
+	snet_writef( sn, "%d LOGIN: Invalid cookie path.\r\n", 501 );
 	return( 1 );
     }
 
@@ -302,6 +297,7 @@ f_login( SNET *sn, int ac, char *av[], SNET *pushersn )
 	return( -1 );
     }
 
+    /* use it here */
     if ( link( tmppath, av[ 1 ] ) != 0 ) {
 	if ( errno == EEXIST ) {
 	    /* double action policy?? */
@@ -483,7 +479,7 @@ f_time( SNET *sn, int ac, char *av[], SNET *pushersn )
     struct timeval	tv;
     int			timestamp, state;
     int			total = 0, fail = 0;
-    char		*line;
+    char		*line, path[ MAXPATHLEN ];
 
     /* TIME */
     /* 3xx */
@@ -521,23 +517,18 @@ f_time( SNET *sn, int ac, char *av[], SNET *pushersn )
 	    continue;
 	}
 
-	if ( strchr( av[ 0 ], '/' ) != NULL ) {
-	    syslog( LOG_ERR, "f_time: cookie name contains '/'" );
-	    continue;
-	}
-
 	if ( strncmp( av[ 0 ], "cosign=", 7 ) != 0 ) {
 	    syslog( LOG_ERR, "f_time: cookie name malformat" );
 	    continue;
 	}
 
-	if ( strlen( av[ 0 ] ) >= MAXCOOKIELEN ) {
-	    syslog( LOG_ERR, "f_time: cookie name too long" );
+	if ( mkcookiepath( NULL, hashlen, av[ 0 ], path, sizeof( path )) < 0 ) {
+	    syslog( LOG_ERR, "f_time: path name malformat" );
 	    continue;
 	}
 
 	total++;
-	if ( stat( av[ 0 ], &st ) != 0 ) {
+	if ( stat( path, &st ) != 0 ) {
 	    /* record a missing cookie here */
 	    fail++;
 	    continue;
@@ -546,13 +537,13 @@ f_time( SNET *sn, int ac, char *av[], SNET *pushersn )
 	timestamp = atoi( av[ 1 ] ); 
 	if ( timestamp > st.st_mtime ) {
 	    new_time.modtime = timestamp;
-	    utime( av[ 0 ], &new_time );
+	    utime( path, &new_time );
 	}
 
 	state = atoi( av[ 2 ] );
 	if (( state == 0 ) && (( st.st_mode & S_ISGID ) != 0 )) {
-	    if ( do_logout( av[ 0 ] ) < 0 ) {
-		syslog( LOG_ERR, "f_time: %s should be logged out!", av[ 0 ] );
+	    if ( do_logout( path ) < 0 ) {
+		syslog( LOG_ERR, "f_time: %s should be logged out!", path );
 	    }
 	}
     }
@@ -569,6 +560,7 @@ f_time( SNET *sn, int ac, char *av[], SNET *pushersn )
 f_logout( SNET *sn, int ac, char *av[], SNET *pushersn )
 {
     struct cinfo	ci;
+    char		path[ MAXPATHLEN ];
 
     /* LOGOUT login_cookie ip */
 
@@ -585,19 +577,13 @@ f_logout( SNET *sn, int ac, char *av[], SNET *pushersn )
 	return( 1 );
     }
 
-    if ( strchr( av[ 1 ], '/' ) != NULL ) {
-	syslog( LOG_ERR, "f_logout: cookie name contains '/'" );
-	snet_writef( sn, "%d LOGOUT: Invalid cookie name.\r\n", 511 );
+    if ( mkcookiepath( NULL, hashlen, av[ 1 ], path, sizeof( path )) < 0 ) {
+	syslog( LOG_ERR, "f_login: mkcookiepath error" );
+	snet_writef( sn, "%d LOGIN: Invalid cookie path.\r\n", 511 );
 	return( 1 );
     }
 
-    if ( strlen( av[ 1 ] ) >= MAXCOOKIELEN ) {
-	syslog( LOG_ERR, "f_logout: %s cookie too long", al->al_hostname );
-	snet_writef( sn, "%d LOGOUT: Cookie too long\r\n", 512 );
-	return( 1 );
-    }
-
-    if ( read_cookie( av[ 1 ], &ci ) != 0 ) {
+    if ( read_cookie( path, &ci ) != 0 ) {
 	syslog( LOG_ERR, "f_logout: read_cookie" );
 	snet_writef( sn, "%d LOGOUT error: Sorry\r\n", 513 );
 	return( 1 );
@@ -610,8 +596,8 @@ f_logout( SNET *sn, int ac, char *av[], SNET *pushersn )
 	return( 1 );
     }
 
-    if ( do_logout( av[ 1 ] ) < 0 ) {
-	syslog( LOG_ERR, "f_logout: %s: %m", av[ 1 ] );
+    if ( do_logout( path ) < 0 ) {
+	syslog( LOG_ERR, "f_logout: %s: %m", path );
 	return( -1 );
     }
 
@@ -633,7 +619,7 @@ f_logout( SNET *sn, int ac, char *av[], SNET *pushersn )
  * 1 = already registered
  */
     int
-do_register( char *login, char *scookie )
+do_register( char *login, char *login_p, char *scookie_p )
 {
     int			fd, rc;
     char		tmppath[ MAXCOOKIELEN ];
@@ -676,7 +662,7 @@ do_register( char *login, char *scookie )
 	return( -1 );
     }
 
-    if ( link( tmppath, scookie ) != 0 ) {
+    if ( link( tmppath, scookie_p ) != 0 ) {
 	if ( errno == EEXIST ) {
 	    rc = 1;
 	} else {
@@ -694,7 +680,7 @@ do_register( char *login, char *scookie )
 	return( -1 );
     }
 
-    utime( login, NULL );
+    utime( login_p, NULL );
 
     return( 0 );
 }
@@ -705,6 +691,7 @@ f_register( SNET *sn, int ac, char *av[], SNET *pushersn )
     struct cinfo	ci;
     struct timeval	tv;
     int			rc;
+    char		lpath[ MAXPATHLEN ], spath[ MAXPATHLEN ];
 
     /* REGISTER login_cookie ip service_cookie */
 
@@ -722,21 +709,19 @@ f_register( SNET *sn, int ac, char *av[], SNET *pushersn )
 	return( 1 );
     }
 
-    if ( strchr( av[ 1 ], '/' ) != NULL || 
-	    strchr( av[ 3 ], '/' ) != NULL ) {
-	syslog( LOG_ERR, "f_register: cookie name contains '/'" );
-	snet_writef( sn, "%d REGISTER: Invalid cookie name.\r\n", 521 );
+    if ( mkcookiepath( NULL, hashlen, av[ 1 ], lpath, sizeof( lpath )) < 0 ) {
+	syslog( LOG_ERR, "f_register: mkcookiepath login cookie error" );
+	snet_writef( sn, "%d REGISTER: Invalid cookie path.\r\n", 521 );
 	return( 1 );
     }
 
-    if ( strlen( av[ 1 ] ) >= MAXCOOKIELEN ||
-	    strlen( av[ 3 ] ) >= MAXCOOKIELEN ) {
-	syslog( LOG_ERR, "f_register: cookie name too long." );
-	snet_writef( sn, "%d REGISTER: Cookie too long\r\n", 522 );
+    if ( mkcookiepath( NULL, hashlen, av[ 3 ], spath, sizeof( spath )) < 0 ) {
+	syslog( LOG_ERR, "f_register: mkcookiepath service cookie error" );
+	snet_writef( sn, "%d REGISTER: Invalid cookie path.\r\n", 522 );
 	return( 1 );
     }
 
-    if ( read_cookie( av[ 1 ], &ci ) != 0 ) {
+    if ( read_cookie( lpath, &ci ) != 0 ) {
 	snet_writef( sn, "%d REGISTER error: Sorry\r\n", 523 );
 	return( 1 );
     }
@@ -760,14 +745,14 @@ f_register( SNET *sn, int ac, char *av[], SNET *pushersn )
 	    return( 1 );
 	}
 	snet_writef( sn, "%d REGISTER: Idle logged out\r\n", 421 );
-	if ( do_logout( av[ 1 ] ) < 0 ) {
-	    syslog( LOG_ERR, "f_register: %s: %m", av[ 1 ] );
+	if ( do_logout( lpath ) < 0 ) {
+	    syslog( LOG_ERR, "f_register: %s: %m", lpath );
 	    return( -1 );
 	}
 	return( 1 );
     }
 
-    if (( rc = do_register( av[ 1 ], av[ 3 ] )) < 0 ) {
+    if (( rc = do_register( av[ 1 ], lpath, spath )) < 0 ) {
 	return( -1 );
     }
 
@@ -797,7 +782,7 @@ f_check( SNET *sn, int ac, char *av[], SNET *pushersn )
 {
     struct cinfo 	ci;
     struct timeval	tv;
-    char		login[ MAXCOOKIELEN ];
+    char		login[ MAXCOOKIELEN ], path[ MAXPATHLEN ];
     int			status;
     double		rate;
 
@@ -824,21 +809,15 @@ f_check( SNET *sn, int ac, char *av[], SNET *pushersn )
 	return( 1 );
     }
 
-    if ( strchr( av[ 1 ], '/' ) != NULL ) {
-	syslog( LOG_ERR, "f_check: cookie name contains '/'" );
+    if ( mkcookiepath( NULL, hashlen, av[ 1 ], path, sizeof( path )) < 0 ) {
+	syslog( LOG_ERR, "f_check: mkcookiepath error." );
 	snet_writef( sn, "%d CHECK: Invalid cookie name.\r\n", 531 );
-	return( 1 );
-    }
-
-    if ( strlen( av[ 1 ] ) >= MAXCOOKIELEN ) {
-	syslog( LOG_ERR, "f_check: service cookie too long." );
-	snet_writef( sn, "%d CHECK: Service Cookie too long\r\n", 532 );
 	return( 1 );
     }
 
     if ( strncmp( av[ 1 ], "cosign-", 7 ) == 0 ) {
 	status = 231;
-	if ( service_to_login( av[ 1 ], login ) != 0 ) {
+	if ( service_to_login( path, login ) != 0 ) {
 	    if (( rate = rate_tick( &checkunknown )) != 0.0 ) {
 		syslog( LOG_NOTICE, "STATS CHECK %s: UNKNOWN %.5f / sec",
 			inet_ntoa( cosign_sin.sin_addr), rate );
@@ -846,16 +825,20 @@ f_check( SNET *sn, int ac, char *av[], SNET *pushersn )
 	    snet_writef( sn, "%d CHECK: cookie not in db!\r\n", 533 );
 	    return( 1 );
 	}
+	if ( mkcookiepath( NULL, hashlen, login, path, sizeof( path )) < 0 ) {
+	    syslog( LOG_ERR, "f_check: mkcookiepath error." );
+	    snet_writef( sn, "%d CHECK: Invalid cookie name.\r\n", 532 );
+	    return( 1 );
+	}
     } else if ( strncmp( av[ 1 ], "cosign=", 7 ) == 0 ) {
 	status = 232;
-	strcpy( login, av[ 1 ] );
     } else {
 	syslog( LOG_ERR, "f_check: unknown cookie prefix." );
 	snet_writef( sn, "%d CHECK: unknown cookie prefix!\r\n", 432 );
 	return( 1 );
     }
 
-    if ( read_cookie( login, &ci ) != 0 ) {
+    if ( read_cookie( path, &ci ) != 0 ) {
 	if (( rate = rate_tick( &checkunknown )) != 0.0 ) {
 	    syslog( LOG_NOTICE, "STATS CHECK %s: UNKNOWN %.5f / sec",
 		    inet_ntoa( cosign_sin.sin_addr), rate);
@@ -872,7 +855,6 @@ f_check( SNET *sn, int ac, char *av[], SNET *pushersn )
 	snet_writef( sn, "%d CHECK: Already logged out\r\n", 430 );
 	return( 1 );
     }
-
 
     /* check for idle timeout, and if so, log'em out */
     if ( gettimeofday( &tv, NULL ) != 0 ){
@@ -894,7 +876,7 @@ f_check( SNET *sn, int ac, char *av[], SNET *pushersn )
 		    inet_ntoa( cosign_sin.sin_addr), rate);
 	}
 	snet_writef( sn, "%d CHECK: Idle logged out\r\n", 431 );
-	if ( do_logout( login ) < 0 ) {
+	if ( do_logout( path ) < 0 ) {
 	    syslog( LOG_ERR, "f_check: %s: %m", login );
 	    return( -1 );
 	}
@@ -902,7 +884,7 @@ f_check( SNET *sn, int ac, char *av[], SNET *pushersn )
     }
 
     /* prevent idle out if we are actually using it */
-    utime( login, NULL );
+    utime( path, NULL );
 
     if (( rate = rate_tick( &checkpass )) != 0.0 ) {
 	syslog( LOG_NOTICE, "STATS CHECK %s: PASS %.5f / sec",
@@ -918,8 +900,10 @@ f_retr( SNET *sn, int ac, char *av[], SNET *pushersn )
 {
     struct cinfo        ci;
     struct timeval      tv;
+    char		lpath[ MAXPATHLEN ], spath[ MAXPATHLEN ];
     char		login[ MAXCOOKIELEN ];
 
+    /* XXX what should this be? */
     if (( al->al_key != SERVICE ) || ( al->al_key == CGI )) {
 	syslog( LOG_ERR, "f_retr: %s not allowed", al->al_hostname );
 	snet_writef( sn, "%d RETR: %s not allowed to retreive.\r\n",
@@ -933,24 +917,24 @@ f_retr( SNET *sn, int ac, char *av[], SNET *pushersn )
 	return( 1 );
     }
 
-    if ( strchr( av[ 1 ], '/' ) != NULL ) {
-	syslog( LOG_ERR, "f_retr: cookie name contains '/'" );
+    if ( mkcookiepath( NULL, hashlen, av[ 1 ], spath, sizeof( spath )) < 0 ) {
+	syslog( LOG_ERR, "f_retr: mkcookiepath error" );
 	snet_writef( sn, "%d RETR: Invalid cookie name.\r\n", 541 );
 	return( 1 );
     }
 
-    if ( strlen( av[ 1 ] ) >= MAXCOOKIELEN ) {
-	syslog( LOG_ERR, "f_retr: service cookie too long." );
-	snet_writef( sn, "%d RETR: Service Cookie too long\r\n", 542 );
-	return( 1 );
-    }
-
-    if ( service_to_login( av[ 1 ], login ) != 0 ) {
+    if ( service_to_login( spath, login ) != 0 ) {
 	snet_writef( sn, "%d RETR: cookie not in db!\r\n", 543 );
 	return( 1 );
     }
 
-    if ( read_cookie( login, &ci ) != 0 ) {
+    if ( mkcookiepath( NULL, hashlen, login, lpath, sizeof( lpath )) < 0 ) {
+	syslog( LOG_ERR, "f_retr: mkcookiepath error" );
+	snet_writef( sn, "%d RETR: Invalid cookie name.\r\n", 541 );
+	return( 1 );
+    }
+
+    if ( read_cookie( lpath, &ci ) != 0 ) {
 	snet_writef( sn, "%d RETR: Who me? Dunno.\r\n", 544 );
 	return( 1 );
     }
@@ -972,7 +956,7 @@ f_retr( SNET *sn, int ac, char *av[], SNET *pushersn )
 	    return( 1 );
 	}
 	snet_writef( sn, "%d RETR: Idle logged out\r\n", 441 );
-	if ( do_logout( login ) < 0 ) {
+	if ( do_logout( lpath ) < 0 ) {
 	    syslog( LOG_ERR, "f_retr: %s: %m", login );
 	    return( -1 );
 	}
@@ -993,8 +977,8 @@ f_retr( SNET *sn, int ac, char *av[], SNET *pushersn )
     static int
 retr_proxy( SNET *sn, char *login, SNET *pushersn )
 {
-    char		cookiebuf[ 128 ];
-    char		tmppath[ MAXCOOKIELEN ];
+    char		cookiebuf[ 128 ], lpath[ MAXPATHLEN ];
+    char		cbuf[ MAXCOOKIELEN ], spath[ MAXPATHLEN ];
     struct proxies	*proxy;
     int			rc;
 
@@ -1012,24 +996,33 @@ retr_proxy( SNET *sn, char *login, SNET *pushersn )
 
     for ( proxy = al->al_proxies; proxy != NULL; proxy = proxy->pr_next ) {
 	if ( mkcookie( sizeof( cookiebuf ), cookiebuf ) != 0 ) {
+	    syslog( LOG_ERR, "retr_proxy: mkcookie error" );
 	    return( -1 );
 	}
 
-	if ( snprintf( tmppath, sizeof( tmppath ), "%s=%s",
-		proxy->pr_cookie, cookiebuf ) >= sizeof( tmppath )) {
-	    syslog( LOG_ERR, "retr_proxy: tmppath too long" );
+	if ( snprintf( cbuf, sizeof( cbuf ), "%s=%s",
+		proxy->pr_cookie, cookiebuf ) >= sizeof( cbuf )) {
+	    syslog( LOG_ERR, "retr_proxy: full cookie too long" );
 	    return( -1 );
 	}
 
-	if (( rc = do_register( login, tmppath )) < 0 ) {
+	if ( mkcookiepath( NULL, hashlen, cbuf, spath, sizeof( spath )) < 0 ) {
+	    syslog( LOG_ERR, "retr_proxy: mkcookiepath error" );
+	    return( 1 );
+	}
+
+	if ( mkcookiepath( NULL, hashlen, login, lpath, sizeof( lpath )) < 0 ) {
+	    syslog( LOG_ERR, "retr_proxy: mkcookiepath error" );
+	    return( 1 );
+	}
+	if (( rc = do_register( login, lpath, spath )) < 0 ) {
 	    continue;
 	}
 
 	if (( pushersn != NULL ) && ( !replicated )) {
-	    snet_writef( pushersn, "REGISTER %s - %s\r\n",
-		    login, tmppath );
+	    snet_writef( pushersn, "REGISTER %s - %s\r\n", login, cbuf );
 	}
-	snet_writef( sn, "%d-%s %s\r\n", 241, tmppath, proxy->pr_hostname );
+	snet_writef( sn, "%d-%s %s\r\n", 241, cbuf, proxy->pr_hostname );
     }
     snet_writef( sn, "%d Cookies registered and sent\r\n", 241 );
 

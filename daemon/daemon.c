@@ -42,6 +42,7 @@ extern char	*cosign_version;
 int		tlsopt = 0;
 int		idle_out_time = 60 * 60 * 2;
 int		grey_time = 60 * 30;
+int		hashlen = 0;
 char		*cosign_dir = _COSIGN_DIR;
 char		*cosign_tickets = _COSIGN_TICKET_CACHE;
 char		*cosign_conf = _COSIGN_CONF;
@@ -104,6 +105,12 @@ daemon_configure()
 	syslog( LOG_INFO, "config: overriding default port of (%d)"
 		" to config value of '%s'", cosign_port, val );
 	cosign_port = htons( atoi( val ));
+    }
+
+    if (( val = cosign_config_get( COSIGNDBHASHLENKEY )) != NULL ) {
+	syslog( LOG_INFO, "config: overriding default db hashlen of (%d)"
+		" to config value of '%s'", hashlen, val );
+	hashlen = atoi( val );
     }
 }
 
