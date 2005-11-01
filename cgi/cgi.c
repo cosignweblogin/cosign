@@ -383,6 +383,7 @@ main( int argc, char *argv[] )
 	    *p = '\0';
 	    if (( scookie = service_find( service )) != NULL ) {
 		if ( scookie->sl_flag & SL_REAUTH ) {
+		    *p = '=';
 		    if (( sl[ SL_LOGIN ].sl_data =
 			    cosign_check( head, cookie )) == NULL ) {
 			sl[ SL_ERROR ].sl_data = "You are not logged in. "
@@ -391,7 +392,6 @@ main( int argc, char *argv[] )
 		    }
 		    sl[ SL_TITLE ].sl_data = "REAUTH TITLE";
 		    sl[ SL_ERROR ].sl_data = "REAUTH ERROR.";
-		    *p = '=';
 		    tmpl = REAUTH_HTML;
 		    subfile( tmpl, sl, 0 );
 		    exit( 0 );
