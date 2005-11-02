@@ -135,7 +135,8 @@ main( int ac, char *av[] )
     struct sockaddr_in	sin;
     struct servent	*se;
     SNET		*pushersn = NULL;
-    int			c, s, err = 0, fd, sinlen;
+    int			c, s, err = 0, fd;
+    socklen_t		sinlen;
     int			dontrun = 0, fds[ 2 ];
     int			reuseaddr = 1, status;
     pid_t		pid;

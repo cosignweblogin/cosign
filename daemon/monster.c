@@ -36,11 +36,15 @@ int		hard_timeout = 60 * 60 * 12;
 int		loggedout_cache = 60 * 60 * 2;
 int             debug = 0;
 int		login_gone;
+int		hashlen = 0;
 extern char	*cosign_version;
+
+int		login_total, service_total, service_gone;
 
 static void (*logger)( char * ) = NULL;
 
-int eat_cookie( char *, struct timeval, time_t *, int * );
+static int eat_cookie( char *, struct timeval *, time_t *, int * );
+static void do_dir( char *, struct connlist *, struct timeval * );
 
 char    	*cosign_dir = _COSIGN_DIR;
 char		*cryptofile = _COSIGN_TLS_KEY;
@@ -92,25 +96,32 @@ monster_configure()
     } else {
 	cosign_port = htons( 6663 );
     }
+
+    if (( val = cosign_config_get( COSIGNDBHASHLENKEY )) != NULL ) {
+	syslog( LOG_INFO, "config: overriding default dbhashlen of (%lu)"
+		" to config value of '%s'", hashlen, val );
+	hashlen = atoi( val );
+    }
 }
+
 
     int
 main( int ac, char **av )
 {
-    DIR			*dirp;
-    struct dirent	*de;
     struct timeval	tv, now;
     struct hostent	*he;
     struct connlist	*head = NULL,*new = NULL, *temp, *yacur = NULL;
     struct connlist	**tail = NULL, **cur;
-    char                login[ MAXCOOKIELEN ], hostname[ MAXHOSTNAMELEN ];
-    time_t		itime = 0;
+    char		hostname[ MAXHOSTNAMELEN ];
+    char		hashdir[ 3 ];
+    char		*sixtyfourchars = "abcdefghijklmnopqrstuvwxyz"
+    					"ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+					"0123456789+-";
     char		*prog, *line;
-    int			c, i, err = 0, state = 0;
-    int			login_total, service_total, service_gone;
-    int			rc;
+    int			c, i, err = 0;
     char           	*cosign_host = NULL;
     char		*cosign_conf = _COSIGN_CONF;
+    char		*p, *q;
     int                 facility = _COSIGN_LOG, level = LOG_INFO;
     SSL_CTX		*m_ctx = NULL;
     extern int          optind;
@@ -322,11 +333,6 @@ main( int ac, char **av )
     sleep( interval );
     login_total = service_total = login_gone = service_gone = 0;
 
-    if (( dirp = opendir( "." )) == NULL ) {
-	syslog( LOG_ERR, "%s: %m", cosign_dir);
-	exit( -1 );
-    }
-
     if ( gettimeofday( &now, NULL ) != 0 ){
 	syslog( LOG_ERR, "gettimeofday: %m" );
 	exit( -1 );
@@ -409,47 +415,33 @@ next:
 	cur = &(*cur)->cl_next;
     }
 
-    while (( de = readdir( dirp )) != NULL ) {
-	/* is a login cookie */
-	if ( strncmp( de->d_name, "cosign=", 7 ) == 0 ) {
-	    login_total++;
-	    if (( rc = eat_cookie( de->d_name, now, &itime, &state )) < 0 ) {
-		syslog( LOG_ERR, "eat_cookie failure: %s", de->d_name );
-		continue;
-	    }
-	    for ( yacur = head; yacur != NULL; yacur = yacur->cl_next ) {
-		if (( itime > yacur->cl_last_time ) &&
-			( yacur->cl_sn != NULL )) {
-		    if ( snet_writef( yacur->cl_sn, "%s %d %d\r\n",
-			    de->d_name, itime, state ) < 0 ) {
-			if ( snet_close( yacur->cl_sn ) != 0 ) {
-			    syslog( LOG_ERR, "snet_close: 11: %m" );
-			}
-			yacur->cl_sn = NULL;
-			continue;
-		    }
-		}
-	    }
-	} else if ( strncmp( de->d_name, "cosign-", 7 ) == 0 ) {
-	    service_total++;
-	    if ( service_to_login( de->d_name, login ) != 0 ) {
-		continue;
-	    }
-	    if (( rc = eat_cookie( login, now, &itime, &state )) < 0 ) {
-		syslog( LOG_ERR, "eat_cookie failure: %s", login );
-		continue;
-	    }
-	    if ( rc == 0 ) {
-		if ( unlink( de->d_name ) != 0 ) {
-		    syslog( LOG_ERR, "%s: 12: %m", de->d_name );
-		}
-		service_gone++;
-	    }
-	} else {
-	    continue;
+    switch ( hashlen ) {
+    case 0 :
+	do_dir( ".", head, &now );
+	break;
+    
+    case 1 :
+	for ( p = sixtyfourchars; *p != '\0'; p++ ) {
+	    hashdir[ 0 ] = *p;
+	    hashdir[ 1 ] = '\0';
+	    do_dir( hashdir, head, &now );
 	}
+	break;
+
+    case 2 :
+	for ( p = sixtyfourchars; *p != '\0'; p++ ) {
+	    for ( q = sixtyfourchars; *q != '\0'; q++ ) {
+		hashdir[ 0 ] = *p;
+		hashdir[ 1 ] = *q;
+		hashdir[ 2 ] = '\0';
+		do_dir( hashdir, head, &now );
+	    }
+	}
+
+    default :
+	syslog( LOG_ERR, "Illegal hashlen %d", hashlen );
+	exit( 1 );
     }
-    closedir( dirp );
 
     for ( yacur = head; yacur != NULL; yacur = yacur->cl_next ) {
 	if ( yacur->cl_sn != NULL ) {
@@ -482,8 +474,83 @@ next:
 	} /* end forever loop */
 }
 
+    void
+do_dir( char *dir, struct connlist *head, struct timeval *now )
+{
+    DIR			*dirp;
+    struct dirent	*de;
+    char		path[ MAXPATHLEN ];
+    char		lpath[ MAXPATHLEN ];
+    struct connlist	*yacur;
+    char                login[ MAXCOOKIELEN ];
+    int			state = 0;
+    time_t		itime = 0;
+    int			rc;
+
+    if (( dirp = opendir( dir )) == NULL ) {
+	syslog( LOG_ERR, "%s: %m", cosign_dir);
+	exit( 1 );
+    }
+    while (( de = readdir( dirp )) != NULL ) {
+	/* is a login cookie */
+
+	if ( mkcookiepath( NULL, hashlen, de->d_name,
+		path, sizeof( path )) < 0 ) {
+	    syslog( LOG_ERR, "do_dir: mkcookiepath error." );
+	    exit( 1 );
+	}
+
+	if ( strncmp( de->d_name, "cosign=", 7 ) == 0 ) {
+	    login_total++;
+
+	    if (( rc = eat_cookie( path, now, &itime, &state )) < 0 ) {
+		syslog( LOG_ERR, "eat_cookie failure: %s", path );
+		continue;
+	    }
+	    for ( yacur = head; yacur != NULL; yacur = yacur->cl_next ) {
+		if (( itime > yacur->cl_last_time ) &&
+			( yacur->cl_sn != NULL )) {
+		    if ( snet_writef( yacur->cl_sn, "%s %d %d\r\n",
+			    de->d_name, itime, state ) < 0 ) {
+			if ( snet_close( yacur->cl_sn ) != 0 ) {
+			    syslog( LOG_ERR, "snet_close: 11: %m" );
+			}
+			yacur->cl_sn = NULL;
+			continue;
+		    }
+		}
+	    }
+	} else if ( strncmp( de->d_name, "cosign-", 7 ) == 0 ) {
+	    service_total++;
+	    if ( service_to_login( path, login ) != 0 ) {
+		continue;
+	    }
+
+	    if ( mkcookiepath( NULL, hashlen, login,
+		    lpath, sizeof( lpath )) < 0 ) {
+		syslog( LOG_ERR, "do_dir: mkcookiepath error." );
+		exit( 1 );
+	    }
+
+	    if (( rc = eat_cookie( lpath, now, &itime, &state )) < 0 ) {
+		syslog( LOG_ERR, "eat_cookie failure: %s", login );
+		continue;
+	    }
+	    if ( rc == 0 ) {
+		if ( unlink( path ) != 0 ) {
+		    syslog( LOG_ERR, "%s: 12: %m", path );
+		}
+		service_gone++;
+	    }
+	} else {
+	    continue;
+	}
+    }
+    closedir( dirp );
+}
+
     int
-eat_cookie( char *name, struct timeval now, time_t *itime, int *state )
+eat_cookie( char *name, struct timeval *now, time_t *itime, int *state )
 {
     struct cinfo	ci = { 0, 0, "\0","\0","\0", "\0","\0", 0, };
     int			rc, create = 0;
@@ -506,18 +573,18 @@ eat_cookie( char *name, struct timeval now, time_t *itime, int *state )
     }
 
     /* logged out plus extra non-fail overtime */
-    if ( !ci.ci_state && (( now.tv_sec - ci.ci_itime ) > loggedout_cache )) {
+    if ( !ci.ci_state && (( now->tv_sec - ci.ci_itime ) > loggedout_cache )) {
 	goto delete_stuff;
     }
 
     /* idle out, plus gray window, plus non-failover */
-    if (( now.tv_sec - ci.ci_itime )  > idle_cache ) {
+    if (( now->tv_sec - ci.ci_itime )  > idle_cache ) {
 	goto delete_stuff;
     }
 
     /* hard timeout */
     create = atoi( ci.ci_ctime );
-    if (( now.tv_sec - create )  > hard_timeout ) {
+    if (( now->tv_sec - create )  > hard_timeout ) {
 	goto delete_stuff;
     }
 
