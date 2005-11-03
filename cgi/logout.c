@@ -138,19 +138,23 @@ main( int argc, char *argv[] )
         exit( 1 );
     }
 
-    if (( cl[ CL_VERIFY ].cl_data == NULL ) ||
-	    ( *cl[ CL_VERIFY ].cl_data == '\0' )) {
-	/* user clicked a submit button but not the one named 'Verify' */
-	printf( "Location: https://%s/\n\n", cosign_host );
-	exit( 0 );
-    }
-
     if (( cl[ CL_URL ].cl_data != NULL ) ||
 	    ( *cl[ CL_URL ].cl_data != '\0' )) {
 	/* oh the places you'll go */
         if ( strncmp( cl[ CL_URL ].cl_data, "http", 4 ) == 0 ) {
 	    sl[ SL_URL ].sl_data = cl[ CL_URL ].cl_data;
 	}
+    }
+
+    /*
+     * Check that the 'Verify' post was sent.  If not, display the verify
+     * screen again.
+     */
+    if (( cl[ CL_VERIFY ].cl_data == NULL ) ||
+	    ( *cl[ CL_VERIFY ].cl_data == '\0' )) {
+	sl[ SL_TITLE ].sl_data = "Logout Requested (again?)";
+	subfile ( tmpl, sl, 0 );
+	exit( 0 );
     }
 
     /* read user's cosign cookie and LOGOUT */
