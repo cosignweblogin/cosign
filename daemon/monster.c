@@ -98,7 +98,7 @@ monster_configure()
     }
 
     if (( val = cosign_config_get( COSIGNDBHASHLENKEY )) != NULL ) {
-	syslog( LOG_INFO, "config: overriding default dbhashlen of (%lu)"
+	syslog( LOG_INFO, "config: overriding default dbhashlen of (%d)"
 		" to config value of '%s'", hashlen, val );
 	hashlen = atoi( val );
     }
@@ -496,8 +496,7 @@ do_dir( char *dir, struct connlist *head, struct timeval *now )
 
 	if ( mkcookiepath( NULL, hashlen, de->d_name,
 		path, sizeof( path )) < 0 ) {
-	    syslog( LOG_ERR, "do_dir: mkcookiepath error." );
-	    exit( 1 );
+	    continue;
 	}
 
 	if ( strncmp( de->d_name, "cosign=", 7 ) == 0 ) {
