@@ -1,0 +1,273 @@
+.TH cosign.conf "5" "October 2005" "umweb" "File Formats Manual"
+.SH NAME
+.B cosign.conf
+\- Cookie Sign-On Daemons and CGI configuration file
+.SH SYNOPSIS
+.B _COSIGN_CONF
+.sp
+.SH DESCRIPTION
+The _COSIGN_CONF file is a general purpose configuration file for
+cosign.cgi, the logout cgi, cosignd, and monster. It is a whitespace delimited
+line-oriented file. The first argument is always a keyword, followed by
+a value, followed by optional per-keyword additional values. The
+keywords
+.B service
+and
+.B cgi
+are unique to cosignd. The keywords
+.B set
+and
+.B include
+are used by both daemons and both cgis. Finally the keywords
+.B cookie,
+.B cert
+and
+.B pam
+(reserved for future use) are used by cosign.cgi.
+.sp
+.SH CGI and SERVICE
+Each line contains a keyword, which is the role of the client in the
+cosign system -
+.B cgi
+or
+.B service.
+Next is the subject CN (common name). The third argument, which is a
+flag [P,T,PT,0] to signify if the host with the listed subject CN can
+ask for Kerberos tickets (T), proxy cookies (P), both(PT), or none (0) .
+If proxy cookies are authorized (P), the fourth argument is the name of
+a file that contains the hostname and servicename for the proxy cookies,
+one per line, white space delimited (see Example). Lines that are blank or
+begin with '#' are ignored. '*' is a wildcard and will match any string.
+.sp 
+A client's CN must match a line in the configuration file, otherwise it
+is not permitted to talk to cosignd. All clients must call STARTTLS
+before any other commands can be issued. Clients can only issue commands
+associated with their keyword.
+.sp
+The keyword
+.B CGI
+allows clients to use the
+.B LOGIN,
+.B CHECK,
+.B REGISTER,
+.B RETRIEVE,
+.B TIME,
+.B DAEMON,
+and
+.B LOGOUT
+commands. 
+.sp
+The keyword
+.B service
+allows clients to use the
+.B CHECK
+and
+.B RETRIEVE
+commands (see cosignd(8)).
+.sp
+.SH "SET" CONFIG FILE OPTIONS - SHARED
+The following configuration file options are recognised for use with the
+keyword
+.B SET.
+Configuration file options override the default compile time settings, but are in turn overridden by any command line options as specified.
+.TP 19
+.BI cosigncadir
+The location where CA certificates in hashed form after expected to reside for validating client ceriticates. This is overridden by the
+.B \-x
+command line option, and the default is _COSIGN_TLS_CADIR
+.TP 19
+.BI cosigncert
+The location of the SSL server certificate for use by this program. This is overridden by the
+.B \-y
+command line option and the defualt is _COSIGN_TLS_CERT
+.TP 19
+.BI cosignkey
+The location of the SSL key file for use by this program. This is overridden by the
+.B \-z
+command line option and the default is _COSIGN_TLS_KEY
+.SH "SET" CONFIG FILE OPTIONS - DAEMON
+.TP 19
+.BI cosigndb
+The cosign daemon directory, where all cookies (cosign= and cosign-serv=) will be stored. This is overridden by the
+.B \-D
+command line option and the default is _COSIGN_DIR
+.TP 19
+.BI cosigndbhashlen
+This is the length of the subdirectory hash in cosignd's cookie cache
+_COSIGN_DIR. The default is 0, which means all cookies are written to
+the top level of _COSIGN_DIR. A value of 1 means cosignd will use 64
+subdirectories, that is a-z, A-Z, 0-9, +, and - (this is only 38 on a
+case-insensitive filesystem) to store the cookie cache. A value of 2
+means cosignd will use 4096 subdirectories, similar to thr previous
+example but with 2 character directory names (this is only 1444 on a
+case-insensitive filesystem) to store the cookie cache. These
+subdirectories must be created by the administrator (see
+SCRIPTS/dbhash).
+.TP 19
+.BI cosignhost
+The hostname to replicate to. This "turns on" cosignd's replication.
+This is overridden by the
+.B \-h
+command line option and the default is off and "NULL"
+.TP 19
+.BI cosigndticketcache
+The path to the directory where cosignd stores the kerberos tickets sent
+by cosign.cgi. If nothing is set here, the default value is _COSIGN_TICKET_CACHE
+.TP 19
+.BI cosignnettimeout
+This is the amount of time alotted by cosignd for each network
+transaction. The default is 4 minutes.
+.TP 19
+.BI cosignport
+This is the port on which cosignd listens. The default is 6663.
+.sp
+.SH "SET" CONFIG FILE OPTIONS - CGIs
+.TP 19
+.BI cosignticketcache
+The path to the directory where cosign.cgi stores the kerberos tickets
+it generates upon successful kerberos login. These tickets are deleted
+once the ticket has been successfully transfered to cosignd. This
+setting is also the default path for the directory where cosignd stores
+its tickets, and the default is _COSIGN_TICKET_CACHE
+.TP 19
+.BI cosigntmpldir
+The path to the directory where cosign.cgi gets the templates for
+drawing the screen. This is therefore the working directory for
+cosign.cgi. The default is _COSIGN_TMPL_DIR
+.TP 19
+.BI cosignx509krbtkts
+This can be set to "on" or "off." Governs whether an x509 login should
+attempt to transfer kerberos tickets. The default is "off"
+.TP 19
+.BI cosignkeytab
+This is the path to the keytab file keytab with the principal of "cosign" and
+the instance of the hostname of the machine that the cgi will run on. This
+keytab is used during authentication to verify that KDC spoofing is not
+happening  <http://www.securityfocus.com/bid/1616> and must therefore be
+readable by the UID the CGI runs as (usually the same as your web server).
+The path to this file can be set at compile time using the
+ --with-keytabpath=FILE configure option, during runtime with this
+cosignkeytab setting or
+.I krb5_kt_default_name(3)
+will be used at run time to identify the default keytab file for the uid
+running the CGI. The default it "NULL"
+.TP 19
+.BI cosignlogouturl
+This is the URL the logout cgi will redirect a user to upon successful
+completion of logout. It can be overriden by passing a URL on the query
+string to the logout cgi, as in
+http://cosign.edu/cosign-bin/logout?http://go.here.now.edu
+and the default is _COSIGN_LOGOUT_URL.
+.TP 19
+.BI cosignloopurl
+This is the page a browser is redirected to when cosign.cgi detects
+there is a loop. The complied-in defaults define a loop as visiting
+cosign.cgi more than 10 (MAXLOOPCOUNT) times in 30 (LOOPWINDOW) seconds.
+The default is _COSIGN_LOOP_URL
+.sp
+.SH "SET" CONFIG FILE OPTIONS - CGI with Cosign Friend
+The following three options are for use with Cosign Friend which is now a
+separate release, though the cgi in this release of Cosign must be built
+with friend support on.
+.TP 19
+.BI mysqldb
+The hostname of friend's database server. The default is _FRIEND_MYSQL_DB
+.TP 19
+.BI mysqluser
+The login name to access the friend database. The default is
+_FRIEND_MYSQL_LOGIN
+.TP 19
+.BI mysqlpasswd
+The password to access the friend database. The default is
+_FRIEND_MYSQL_PASSWD
+.sp
+.SH INCLUDE
+The keyword
+.I include
+allows an administrator to build a cosign configuration file by
+aggregating the contents of several smaller files. The first argument is
+the keyword followed by the path to the file to include.
+.sp
+.SH COOKIE
+The keyword 
+.I cookie
+takes 2 arguments - a service cookie prefix (eg. cosign-mail) and an
+"function". The only currently defined function is "reauth" but
+more options may be added when the cgi's functionality is extended. This
+keyword is currently used to denote a cosign service that requires
+reauthentication before a
+.B REGISTER
+can succeed.
+.sp
+.SH CERT
+The keyword
+.I cert
+is used to authenticate a user with an x509 certificate. It
+takes 5 fields - keyword, issuer_dn, subject_dn, login, and realm (see Example).The first field after the keyword (aka the issuer_dn ) must be an exact match.
+The next field, subject_dn, is a regular expression.  Keep in mind the
+configuration file parser interprets backslashes, so in the following example
+ we have "esacaped" our backslashes. The first one escapes the second one which is then passed onto the regular expression parser.  
+.sp
+A sixth field, "type", is optional and currently reserved for future
+multi-factor functionality.
+.sp
+.SH EXAMPLES
+The following example of _COSIGN_CONF defines 2 cgis and several
+services. It also overrides the built in values for the cosign key file
+and where cosignd stores kerberos tickets.
+.sp
+.RS
+.nf
+#
+# keyword 	subject cn		tickets/proxy proxyfile
+#
+cgi		cosignserver.umich.edu
+cgi		cosignserver.test.umich.edu	P 	/etc/cosign/test.conf
+service		servicea.web.umich.edu		0
+service		serviceb.web.umich.edu		0
+service		portaltest.web.umich.edu	PT /etc/cosign/portal.conf
+service		campusmail.umich.edu		T	
+service		alumni.web.mgoblue.com		0
+service		*.web.umich.edu			0
+#
+# keyword        path to file
+#
+include		/etc/cosign/another.conf
+#
+# keyword        configuration key            value
+#
+set		cosigndticketcache	/some/place
+set		cosignkey		/some/key
+#
+# keyword        service name            "function"
+#
+cookie          cosign-securemail       reauth
+#
+# keyword issuer_dn subject_dn login realm
+#
+cert    "/C=US/ST=Michigan/L=Ann Arbor/O=University of Michigan/OU=ITCS/CN=UM We b CA/emailAddress=webmaster@umich.edu" ".*emailAddress=\\(.*\\)@umich\\.edu" $1 UMICH.EDU
+.fi
+.RE
+.sp
+This is an example of the file that controls which proxy credentials a server
+can
+.B RETRIEVE.
+.sp
+.RS
+.nf
+	
+    #
+    # domain name		service-name
+    #
+
+    campusmail.umich.edu	cosign-campusmail
+    news.web.umich.edu		cosign-webnews
+.fi
+.RE
+.sp
+.SH FILES
+_COSIGN_CONF
+.sp
+.SH SEE ALSO
+.sp
+http://weblogin.org, cosignd(8)

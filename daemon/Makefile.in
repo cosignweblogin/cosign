@@ -12,6 +12,12 @@ COSIGNCERT=@cosigncert@
 COSIGNKEY=@cosignkey@
 COSIGNHOST = @cosignhost@
 COSIGNTICKETCACHE=@ticketcache@
+COSIGNLOGOUTURL = @cosignlogouturl@
+COSIGNLOOPURL = @cosignloopurl@
+COSIGNTMPLDIR = @prefix@/templates
+FRIEND_MYSQL_DB = @frienddbhost@
+FRIEND_MYSQL_LOGIN = @frienddblogin@
+FRIEND_MYSQL_PASSWD = @frienddbpasswd@
 
 COSIGNSYSLOG=LOG_DAEMON
 
@@ -37,7 +43,7 @@ COSIGNOBJ= daemon.o command.o cparse.o logname.o \
 	../common/config.o ../common/mkcookie.o ../common/rate.o \
 	../common/wildcard.o ../version.o
 TARGETS=	cosignd monster
-MANTARGETS=	cosignd.8 monster.8
+MANTARGETS=	cosignd.8 monster.8 cosign.conf.5
 
 all : ${TARGETS}
 
@@ -78,6 +84,13 @@ man : FRC
 	    -e 's@_COSIGN_TLS_CADIR@${COSIGNCADIR}@g' \
 	    -e 's@_COSIGN_TLS_CERT@${COSIGNCERT}@g' \
 	    -e 's@_COSIGN_TLS_KEY@${COSIGNKEY}@g' \
+	    -e 's@_COSIGN_TICKET_CACHE@${COSIGNTICKETCACHE}@g' \
+	    -e 's@_COSIGN_TMPL_DIR@${COSIGNTMPLDIR}@g' \
+	    -e 's@_COSIGN_LOGOUT_URL@${COSIGNLOGOUTURL}@g' \
+	    -e 's@_COSIGN_LOOP_URL@${COSIGNLOOPURL}@g' \
+	    -e 's@_FRIEND_MYSQL_DB@${FRIEND_MYSQL_DB}@g' \
+	    -e 's@_FRIEND_MYSQL_LOGIN@${FRIEND_MYSQL_LOGIN}@g' \
+	    -e 's@_FRIEND_MYSQL_PASSWD@${FRIEND_MYSQL_PASSWD}@g' \
 	    $$i > tmp/man/$$i; \
 	done
 
@@ -88,6 +101,8 @@ install : all man
 	${INSTALL} -m 0755 -c monster ${SBINDIR}/
 	-mkdir -p ${prefix}
 	-mkdir -p ${MANDIR}
+	-mkdir ${MANDIR}/man5
+	${INSTALL} -m 0644 -c tmp/man/cosign.conf.5 ${MANDIR}/man5/
 	-mkdir ${MANDIR}/man8
 	${INSTALL} -m 0644 -c tmp/man/cosignd.8 ${MANDIR}/man8/
 	${INSTALL} -m 0644 -c tmp/man/monster.8 ${MANDIR}/man8/
