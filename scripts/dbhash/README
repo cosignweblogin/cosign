@@ -1,0 +1,30 @@
+mkhashdirs:
+
+mkhashdirs takes one argument, either a "1" or a "2". You should make
+cosign's cookie database your working directory before you run this script.
+1 will get you 64 directories, or 38 on a case-insensitive filesystem
+like MacOS X. 2 will get you 4096 directories, or 1444 on a
+case-insensitive filesystem.
+
+So if I want 64 sub-directories and my cookie cache directory is
+/var/cosign/daemon, I'd type the following:
+
+example% cd /var/cosign/daemon
+example% ~/src/cosign/scripts/dbhash/mkhashdirs 1
+
+movehashdirs:
+
+movehashdirs is your upgrade path between an un-hashed cosign cookie
+database and one with 64 (38) or 4096 (1444) subdirectories. If you're
+going to upgrade to a hashed database and you don't run this script, all
+of you users will be instantly logged out. This script takes either "1"
+or "2" and will move cookies from the top level (/var/cosign/daemon,
+say) to their respective subdirectories. 
+
+So if I want to move my sizeable cookie database into a first level
+hashed cookie databsae (1), I'd type the following:
+
+example% cd /var/cosign/daemon
+example% ~/src/cosign/scripts/dbhash/movehashdirs 1
+
+

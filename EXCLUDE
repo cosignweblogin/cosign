@@ -37,6 +37,7 @@ libsnet/CVS
 libsnet/profiled/CVS
 scripts/CVS
 scripts/cron/CVS
+scripts/dbhash/CVS
 scripts/hello/CVS
 scripts/logout/CVS
 scripts/startup/CVS
