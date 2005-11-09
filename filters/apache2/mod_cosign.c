@@ -64,6 +64,7 @@ cosign_create_config( apr_pool_t *p )
     cfg->cert = NULL;
     cfg->cadir = NULL;
     cfg->filterdb = _FILTER_DB;
+    cfg->hashlen = 0;
     cfg->proxydb = _PROXY_DB;
     cfg->tkt_prefix = _COSIGN_TICKET_CACHE;
     cfg->http = -1;
@@ -407,6 +408,7 @@ cosign_merge_cfg( cmd_parms *params, void *mconfig )
     }
 
     cfg->filterdb = apr_pstrdup( params->pool, scfg->filterdb );
+    cfg->hashlen =  scfg->hashlen;
     cfg->proxydb = apr_pstrdup( params->pool, scfg->proxydb );
     cfg->tkt_prefix = apr_pstrdup( params->pool, scfg->tkt_prefix );
 
@@ -568,6 +570,25 @@ set_cosign_filterdb( cmd_parms *params, void *mconfig, char *arg )
     }
 
     cfg->filterdb = apr_pstrdup( params->pool, arg );
+    return( NULL );
+}
+
+    static const char *
+set_cosign_hashlen( cmd_parms *params, void *mconfig, char *arg )
+{
+    cosign_host_config          *cfg;
+
+    if ( params->path == NULL ) {
+        cfg = (cosign_host_config *) ap_get_module_config(
+                params->server->module_config, &cosign_module );
+    } else {
+        return( "CosignFilterHashLength not valid per dir!" );
+    }
+
+    cfg->hashlen = strtol( arg, (char **)NULL, 10 );
+    if (( cfg->hashlen < 0 ) || ( cfg->hashlen > 2 )) {
+        return( "CosignFilterHashLength must be 0, 1, or 2.");
+    }
     return( NULL );
 }
 
@@ -823,6 +844,10 @@ static command_rec cosign_cmds[ ] =
         AP_INIT_TAKE1( "CosignFilterDB", set_cosign_filterdb,
         NULL, RSRC_CONF, 
         "the path to the cosign filter DB" ),
+
+        AP_INIT_TAKE1( "CosignFilterHashLength", set_cosign_hashlen,
+        NULL, RSRC_CONF, 
+        "0, 1, or 2 - if you want the filter db stored in subdirs" ),
 
         AP_INIT_TAKE1( "CosignProxyDB", set_cosign_proxydb,
         NULL, RSRC_CONF, 
