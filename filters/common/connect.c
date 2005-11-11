@@ -27,12 +27,6 @@
 
 #include <snet.h>
 
-#ifdef KRB4
-#include <kerberosIV/krb.h>
-#include <krb5.h>
-#include "krb524.h"
-#endif /* KRB4 */
-
 #include "sparse.h"
 #include "cosign.h"
 #include "argcargv.h"
@@ -142,10 +136,6 @@ netcheck_cookie( char *scookie, struct sinfo *si, struct connlist *conn,
 
 #ifdef KRB
     *si->si_krb5tkt = '\0';
-#ifdef KRB4
-    *si->si_krb4tkt = '\0';
-#endif /* KRB4 */
-
 #endif /* KRB */
     return( COSIGN_OK );
 }
@@ -289,16 +279,6 @@ netretr_ticket( char *scookie, struct sinfo *si, SNET *sn, int convert,
     ssize_t             rr;
     struct timeval      tv;
     extern int		errno;
-#ifdef KRB4
-    char                krb4path [ MAXPATHLEN ];
-    krb5_principal	kclient, kserver;
-    krb5_ccache		kccache;
-    krb5_creds		increds, *v5creds = NULL;
-    krb5_error_code 	kerror;
-    krb5_context 	kcontext;
-    CREDENTIALS		v4creds;
-
-#endif /* KRB4 */
 
     /* clear it, in case we can't get it later */
     *si->si_krb5tkt = '\0';
@@ -400,117 +380,12 @@ netretr_ticket( char *scookie, struct sinfo *si, SNET *sn, int convert,
     }
     strcpy( si->si_krb5tkt, krbpath );
 
-#ifdef KRB4
-    /* clear it, in case we can't get it later */
-    *si->si_krb4tkt = '\0';
-
-    if ( convert != 1 ) {
-	return( COSIGN_OK );
-    }
-    if ( mkcookie( sizeof( tmpkrb ), tmpkrb ) != 0 ) {
-	cosign_log( APLOG_ERR, s,
-		"mod_cosign: netretr_ticket: mkcookie failed" );
-	goto error1;
-    }
-
-    if ( snprintf( krb4path, sizeof( krb4path ), "%s/%s",
-	    tkt_prefix, tmpkrb ) >= sizeof( krb4path )) {
-	cosign_log( APLOG_ERR, s,
-		"mod_cosign: netretr_ticket: krb4path too long" );
-	return( COSIGN_ERROR );
-    }
-    krb_set_tkt_string( krb4path );
-
-    if (( kerror = krb5_init_context( &kcontext )) != KSUCCESS ) {
-	cosign_log( APLOG_ERR, s, "mod_cosign: krb5_init_context: %s", 
-		(char *)error_message( kerror ));
-	goto error1;
-    }
-
-    krb524_init_ets( kcontext );
-    if (( kerror = krb5_cc_resolve( kcontext, krbpath, &kccache )) !=
-	    KSUCCESS ) {
-	cosign_log( APLOG_ERR, s, "mod_cosign: krb5_cc_resolve: %s", 
-		(char *)error_message( kerror ));
-	goto error1;
-    }
-
-    if (( kerror = krb5_cc_get_principal( kcontext, kccache, &kclient )) !=
-	    KSUCCESS ) {
-	cosign_log( APLOG_ERR, s, "mod_cosign: krb5_cc_get_princ: %s", 
-		(char *)error_message( kerror ));
-	goto error1;
-    }
-    if (( kerror = krb5_build_principal( kcontext, &kserver,
-	    krb5_princ_realm( kcontext, kclient)->length,
-	    krb5_princ_realm( kcontext, kclient)->data, "krbtgt",
-	    krb5_princ_realm( kcontext, kclient)->data, NULL)) != KSUCCESS ) {
-	cosign_log( APLOG_ERR, s, "mod_cosign: krb5_build_princ: %s", 
-		(char *)error_message( kerror ));
-	goto error1;
-    }
-
-    memset((char *) &increds, 0, sizeof(increds));
-    increds.client = kclient;
-    increds.server = kserver;
-    increds.times.endtime = 0;
-    increds.keyblock.enctype = ENCTYPE_DES_CBC_CRC;
-    if (( kerror = krb5_get_credentials( kcontext, 0, kccache,
-	    &increds, &v5creds )) != KSUCCESS ) {
-	cosign_log( APLOG_ERR, s, "mod_cosign: krb5_get_credentials: %s", 
-		(char *)error_message( kerror ));
-	goto error1;
-    }
-
-    if (( kerror = krb524_convert_creds_kdc( kcontext, v5creds, &v4creds )) !=
-	    KSUCCESS ) {
-	cosign_log( APLOG_ERR, s, "mod_cosign: krb524: %s",
-		(char *)error_message( kerror ));
-	goto error1;
-    }
-
-    /* initialize ticket cache */
-    if (( kerror = in_tkt( v4creds.pname, v4creds.pinst )) != KSUCCESS ) {
-	cosign_log( APLOG_ERR, s,
-		"mod_cosign: in_tkt: %s", (char *)error_message( kerror ));
-	goto error1;
-    }
-
-    if (( kerror = krb_save_credentials( v4creds.service, v4creds.instance,
-	    v4creds.realm, v4creds.session, v4creds.lifetime, v4creds.kvno,
-	    &(v4creds.ticket_st), v4creds.issue_date )) != KSUCCESS ) {
-	cosign_log( APLOG_ERR, s, "mod_cosign: krb_save_cred: %s",
-		(char *)error_message( kerror ));
-	goto error1;
-    }
-
-    if ( strlen( krb4path ) >= sizeof( si->si_krb4tkt )) {
-	cosign_log( APLOG_ERR, s,
-		"mod_cosign: netretr_ticket: krb4tkt path too long" );
-	goto error1;
-    }
-    strcpy( si->si_krb4tkt, krb4path );
-
-    memset( &v4creds, 0, sizeof( v4creds ));
-    if ( v5creds ) {
-	krb5_free_creds( kcontext, v5creds );
-    }
-    increds.client = 0;
-    krb5_free_cred_contents( kcontext, &increds );
-    krb5_cc_close( kcontext, kccache );
-    krb5_free_context( kcontext );
-
-#endif /* KRB4 */
-
     return( COSIGN_OK );
 
 error2:
     close( fd );
 error1:
     unlink( krbpath );
-#ifdef KRB4
-    unlink( krb4path );
-#endif /* KRB4 */
     return( COSIGN_ERROR );
 }
 #endif /* KRB */

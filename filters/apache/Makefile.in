@@ -15,16 +15,17 @@ COSIGNTICKETCACHE=	@ticketcache@
 
 #   additional user defines, includes and libraries
 
-INCPATH=        @CPPFLAGS@ @APXS_INCLUDE@ -I../../libsnet @K4INC@ @GSSINC@ -I../../common/
+INCPATH=        @CPPFLAGS@ @APXS_INCLUDE@ -I../../libsnet @GSSINC@ -I../../common/ -I../common/
 OPTOPTS=        @OPTOPTS@
-DEFS=           @TLSDEFS@ @KRBDEFS@ @K4DEFS@ @GSSDEFS@ @filteraddrcheck@ -D_PROXY_DB=\"${PROXYDB}\" -D_FILTER_DB=\"${FILTERDB}\" -D_COSIGN_TICKET_CACHE=\"${COSIGNTICKETCACHE}\"
-LIBS=           -lsnet @K4LIBS@ @GSSLIBS@ @ADDLIBS@
-LDFLAGS=        -L../../libsnet/.libs @K4LDFLAGS@ @GSSLDFLAGS@ @ADDLDFLAGS@ @LDFLAGS@ ${LIBS}
+DEFS=           @TLSDEFS@ @KRBDEFS@ @GSSDEFS@ @filteraddrcheck@ -D_PROXY_DB=\"${PROXYDB}\" -D_FILTER_DB=\"${FILTERDB}\" -D_COSIGN_TICKET_CACHE=\"${COSIGNTICKETCACHE}\"
+LIBS=           -lsnet @GSSLIBS@ @ADDLIBS@
+LDFLAGS=        -L../../libsnet/.libs @GSSLDFLAGS@ @ADDLDFLAGS@ @LDFLAGS@ ${LIBS}
 
 CFLAGS=         ${DEFS} ${OPTOPTS} @CFLAGS@ @APXS_CFLAGS@ @APXS_CFLAGS_SHLIB@ ${INCPATH}
 
 
-OBJ=	mod_cosign.o connect.o cookiefs.o sparse.o \
+OBJ=	mod_cosign.o \
+	../common/connect.o ../common/cookiefs.o ../common/sparse.o \
 	../../common/argcargv.o ../../common/fbase64.o \
 	../../common/mkcookie.o ../../common/rate.o ../../version.o
 

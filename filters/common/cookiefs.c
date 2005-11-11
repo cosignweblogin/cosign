@@ -80,9 +80,6 @@ cosign_cookie_valid( cosign_host_config *cfg, char *cookie, struct sinfo *si,
 
 #ifdef KRB
 	if ( cfg->krbtkt ) {
-#ifdef KRB4
-	    strcpy( si->si_krb4tkt, lsi.si_krb4tkt );
-#endif /* krb4 */
 	    strcpy( si->si_krb5tkt, lsi.si_krb5tkt );
 	}
 #endif /* KRB */
@@ -122,9 +119,6 @@ cosign_cookie_valid( cosign_host_config *cfg, char *cookie, struct sinfo *si,
 
 #ifdef KRB
 	if ( cfg->krbtkt ) {
-#ifdef KRB4
-	    strcpy( si->si_krb4tkt, lsi.si_krb4tkt );
-#endif /* krb4 */
 	    strcpy( si->si_krb5tkt, lsi.si_krb5tkt );
 	}
 #endif /* KRB */
@@ -162,9 +156,6 @@ cosign_cookie_valid( cosign_host_config *cfg, char *cookie, struct sinfo *si,
 #ifdef KRB
     if ( rs ) {
 	fprintf( tmpfile, "k%s\n", si->si_krb5tkt );
-#ifdef KRB4
-	fprintf( tmpfile, "K%s\n", si->si_krb4tkt );
-#endif /* KRB4 */
     }
 #endif /* KRB */
 

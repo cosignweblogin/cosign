@@ -19,9 +19,6 @@
 #include <gssapi/gssapi.h>
 #include <gssapi/gssapi_krb5.h>
 #endif /* GSS */
-#ifdef KRB4
-#include <kerberosIV/krb.h>
-#endif /* KRB4 */
 #endif /* KRB */
 
 #include <openssl/ssl.h>
@@ -70,9 +67,6 @@ cosign_create_config( pool *p )
 #ifdef GSS
     cfg->gss = -1;
 #endif /* GSS */
-#ifdef KRB4
-    cfg->krb524 = -1;
-#endif /* KRB4 */
 #endif /* KRB */
     return( cfg );
 }
@@ -340,12 +334,6 @@ cosign_auth( request_rec *r )
 	    }
 	}
 #endif /* GSS */
-#ifdef KRB4
-	if ( cfg->krb524 == 1 ) {
-	    ap_table_set( r->subprocess_env, "KRBTKFILE", si.si_krb4tkt );
-	    krb_set_tkt_string( si.si_krb4tkt );
-	}
-#endif /* KRB4 */
 	}
 #endif /* KRB */
 	return( DECLINED );
@@ -447,11 +435,6 @@ cosign_merge_cfg( cmd_parms *params, void *mconfig )
 	cfg->gss = scfg->gss;
     }
 #endif /* GSS */
-#ifdef KRB4
-    if ( cfg->krb524 == -1 ) {
-	cfg->krb524 = scfg->krb524;
-    }
-#endif /* KRB4 */
 #endif /* KRB */
 
     return( cfg );
@@ -620,20 +603,6 @@ set_cosign_tkt_prefix( cmd_parms *params, void *mconfig, char *arg )
 }
 
 #ifdef KRB
-#ifdef KRB4
-    static const char *
-krb524_cosign_tickets( cmd_parms *params, void *mconfig, int flag )
-{
-    cosign_host_config		*cfg;
-
-    cfg = cosign_merge_cfg( params, mconfig );
-
-    cfg->krb524 = flag; 
-    cfg->configured = 1; 
-    return( NULL );
-}
-#endif /* KRB4 */
-
 #ifdef GSS
     static const char *
 set_cosign_gss( cmd_parms *params, void *mconfig, int flag )
@@ -899,11 +868,6 @@ static command_rec cosign_cmds[ ] =
         NULL, RSRC_CONF | ACCESS_CONF, FLAG,
         "whether or not to setup GSSAPI for k5" },
 #endif /* GSS */
-#ifdef KRB4
-        { "CosignKerberos524", krb524_cosign_tickets,
-        NULL, RSRC_CONF | ACCESS_CONF, FLAG,
-        "whether or not to convert kerberos 5 tickets to k4" },
-#endif /* KRB4 */
 #endif /* KRB */
 
         { NULL }

@@ -71,11 +71,6 @@ read_scookie( char *path, struct sinfo *si, server_rec *s )
 	case 'k':
 	    strcpy( si->si_krb5tkt, p );
 	    break;
-#ifdef KRB4
-	case 'K':
-	    strcpy( si->si_krb4tkt, p );
-	    break;
-#endif /* KRB4 */
 #endif /* KRB */
 
 	default:

@@ -4,10 +4,7 @@ struct sinfo {
     char	si_realm[ 256 ];	/* longer than need be */
 #ifdef KRB
     char	si_krb5tkt[ MAXPATHLEN ];
-#ifdef KRB4
-    char	si_krb4tkt[ MAXPATHLEN ];
 #endif /* KRB */
-#endif /* KRB4 */
     time_t	si_itime;
 };
 
