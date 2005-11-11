@@ -84,46 +84,19 @@ Things to know about the CGI:
 Creating cosign.conf file:
 
     The last thing you need to do before starting up your cosign server
-    is create the cosign.conf file: 
-
-#
-# keyword           subject cn           tickets/proxy proxyfile
-#
-  cgi        cosignserver.umich.edu
-  service    alumni.web.mgoblue.com        0
-  service    *.web.umich.edu               0
-
-    You may also override any of the following compile time options with
-    the keyword "set" and the key/value pair:
-
-  set   cosigncert      	/etc/apache/certs/cosign-test.cert
-  set   cosignkey       	/etc/apache/certs/cosign-test.key
-  set   cosignhost      	cosign-test.umich.edu
-  set	cosigndb		/var/somewhere/cosign
-  set	cosigncadir		/var/cosign/certs/CA
-  set	cosignlogouturl		http://cosign.edu
-  set	cosignloopurl		http://cosign.edu/looping.html
-  set	cosignnettimeout	300 (time in seconds for net connections)
-  set	cosignport		6664
-
-  #these three options are for use with "friend" only
-
-  set	mysqldb			friend.cosign.edu
-  set	mysqluser		superfriend
-  set	mysqlpasswd		ThisIsABadPassword
-
-    The default location for this file is /etc/cosign.conf.  See the
-    cosignd man page for more information.
+    is create the cosign.conf file. Please see cosign.conf(5) for
+    details.
 
 Scripts
 
     See the scripts/ directory in the cosign source distribution for an
     example cosignd startup script, a cron job to clean up your cookie
     database (if you are not using replication), and several example
-    logout scripts.
+    logout scripts. There are also scripts provided to create and
+    convert the directories in the cosign database if you choose to use
+    directory hashing.
 
 ./configure options:
-
 
     --with-cosignhost=NAME  	default=cosign.example.edu
     --with-cosignlogouturl=URL	default=http://cosign.example.edu

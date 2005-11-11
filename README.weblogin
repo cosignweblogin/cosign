@@ -75,15 +75,7 @@ To build the central cosign server ( the weblogin server ):
 
     Also, if you're using Kerberos, you'll probably want a keytab
     with the principal of "cosign" and the instance of the hostname
-    of the machine that the cgi will run on.  This keytab is used
-    during authentication to verify that KDC spoofing is not happening
-    <http://www.securityfocus.com/bid/1616> and must therefore be
-    readable by the UID the CGI runs as (usually the same as your
-    web server).  The path to this file can be set at compile time
-    using the --with-keytabpath=FILE configure option, during runtime
-    with the cosignkeytab setting (see below) or krb5_kt_default_name(3)
-    will be used at run time to identify the default keytab file
-    for the uid running the CGI.
+    of the machine that the cgi will run on. See cosign.conf(5).
 
 Configuring Apache:
 

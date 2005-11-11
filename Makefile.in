@@ -1,14 +1,15 @@
 CC=	@CC@
-ALL=	common libsnet @FILTERS@ libcgi cgi html daemon 
+ALL=	common libsnet filters/common @FILTERS@ libcgi cgi html daemon 
 TARGETS= cgi html daemon @FILTERS@
-FILTERS= @FILTERS@
+FILTERS= @FILTERS@ filters/common
 CFLAGS=
 
 filters:	@FILTERS@
 all:		filters
 everything:	${ALL}
 
-cgi daemon filters/apache filters/apache2:	version.o common libsnet
+cgi daemon:	version.o common libsnet
+filters/apache filters/apache2:	version.o common filters/common libsnet
 cgi:	libcgi
 
 ${ALL}:	version.o FRC
@@ -34,7 +35,8 @@ distclean: clean
 	( cd libsnet ; make distclean )
 	rm -f config.log config.status config.cache Makefile \
 	  libcgi/Makefile cgi/Makefile html/Makefile daemon/Makefile \
-	  filters/apache/Makefile filters/apache2/Makefile common/Makefile
+	  filters/apache/Makefile filters/apache2/Makefile \
+	  filters/common/Makefile common/Makefile
 	rm -rf autom4te.cache
 
 install: @FILTERS@

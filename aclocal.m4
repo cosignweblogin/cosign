@@ -120,25 +120,6 @@ AC_DEFUN([CHECK_APACHE2],
 
 ])
 
-AC_DEFUN([CHECK_KRB4],
-[
-    AC_MSG_CHECKING(for krb4)
-    if test ! -e "$ac_cv_path_krb" ; then
-        AC_MSG_ERROR(krb4 require krb5 libraries)
-    fi
-    K4DEFS=-DKRB4;
-    AC_SUBST(K4DEFS)
-    K4INC="-I$ac_cv_path_krb/include";
-    AC_SUBST(K4INC)
-    K4LIBS="-lkrb4 -lkrb524 -lkrb5 -lk5crypto -lcom_err";
-    AC_SUBST(K4LIBS)
-    K4LDFLAGS="-L$ac_cv_path_krb/lib";
-    AC_SUBST(K4LDFLAGS)
-    HAVE_KRB4=yes
-    AC_SUBST(HAVE_KRB4)
-    AC_MSG_RESULT($ac_cv_path_krb)
-])
-
 AC_DEFUN([CHECK_GSS],
 [
     AC_MSG_CHECKING(for gss)

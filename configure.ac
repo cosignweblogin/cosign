@@ -29,9 +29,6 @@ AC_SUBST(filteraddrcheck)
 
 AC_ARG_ENABLE(mysql, AC_HELP_STRING([--enable-mysql=path_to_mysql], [enable mysql for guest login support in the cgi]), CHECK_LIBMYSQL, AC_MSG_RESULT( mysql not enabled))
 
-AC_ARG_WITH(krb4, AC_HELP_STRING([--with-krb4], [enable apache filter
-to get Kerberos IV tickets]), CHECK_KRB4, AC_MSG_RESULT( kerberos IV not enabled))
-
 AC_ARG_WITH(gss, AC_HELP_STRING([--with-gss], [enable apache filter
 to set up GSSAPI ]), CHECK_GSS, AC_MSG_RESULT( GSSAPI not enabled))
 
@@ -129,6 +126,7 @@ AC_CONFIG_FILES([Makefile
                  html/Makefile
                  daemon/Makefile
                  $FILTER_CONFIG_FILES
+		 filters/common/Makefile
                  libcgi/Makefile])
 
 AC_OUTPUT
