@@ -6,6 +6,7 @@ daemon/CVS
 filters/CVS
 filters/apache/CVS
 filters/apache2/CVS
+filters/common/CVS
 friend
 friend/CVS
 friend/php
