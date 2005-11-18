@@ -39,7 +39,7 @@ int		login_gone;
 int		hashlen = 0;
 extern char	*cosign_version;
 
-int		login_total, service_total, service_gone;
+int		login_total, login_sent, service_total, service_gone;
 
 static void (*logger)( char * ) = NULL;
 
@@ -331,7 +331,7 @@ main( int ac, char **av )
 	for (;;) {
 
     sleep( interval );
-    login_total = service_total = login_gone = service_gone = 0;
+    login_total = service_total = login_gone = service_gone = login_sent = 0;
 
     if ( gettimeofday( &now, NULL ) != 0 ){
 	syslog( LOG_ERR, "gettimeofday: %m" );
@@ -469,8 +469,8 @@ next:
 	}
 
     }
-    syslog( LOG_NOTICE, "STATS MONSTER: %d/%d login %d/%d service",
-	    login_gone, login_total, service_gone, service_total );
+    syslog( LOG_NOTICE, "STATS MONSTER: %d/%d/%d login %d/%d service",
+	    login_gone, login_sent, login_total, service_gone, service_total );
 	} /* end forever loop */
 }
 
@@ -509,6 +509,7 @@ do_dir( char *dir, struct connlist *head, struct timeval *now )
 	    for ( yacur = head; yacur != NULL; yacur = yacur->cl_next ) {
 		if (( itime > yacur->cl_last_time ) &&
 			( yacur->cl_sn != NULL )) {
+		    login_sent++;
 		    if ( snet_writef( yacur->cl_sn, "%s %d %d\r\n",
 			    de->d_name, itime, state ) < 0 ) {
 			if ( snet_close( yacur->cl_sn ) != 0 ) {
