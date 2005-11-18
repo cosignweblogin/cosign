@@ -26,10 +26,14 @@ rate_get( struct rate *r )
 	seconds += 1;
     }
 
+    /*
+     * if the rate is > 100 / sec, we don't log anything?
+     * should allow fractions of a second.
+     */
     if ( seconds <= 0 ) {
 	return( (double)0 );
     }
-    return( (double)(RATE_INTERVAL - 1) / seconds );
+    return( (double)(r->r_count - 1) / seconds );
 }
 
     double
