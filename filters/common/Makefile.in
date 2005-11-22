@@ -1,8 +1,8 @@
 ################## Some of this may need to be edited ##################
 
-INCPATH=        @APXS_INCLUDE@ @APXS2_INCLUDE@ @CPPFLAGS@ -I../../libsnet -I/usr/include -I../../common
+INCPATH=        @APXS_INCLUDE@ @APXS2_INCLUDE@ @CPPFLAGS@ @GSSINC@ -I../../libsnet -I/usr/include -I../../common
 CC=             @CC@
-DEFS=		@APXS2DEFS@ @TLSDEFS@
+DEFS=		@APXS2DEFS@ @TLSDEFS@ @KRBDEFS@ @GSSDEFS@ @filteraddrcheck@
 CFLAGS=         ${DEFS} ${OPTOPTS} @CFLAGS@ @APXS_CFLAGS@ @APXS_CFLAGS_SHLIB@ @APXS2_CFLAGS@ @APXS2_CFLAGS_SHLIB@ ${INCPATH}
 
 ################ Nothing below should need editing ###################
