@@ -445,7 +445,7 @@ f_daemon( SNET *sn, int ac, char *av[], SNET *pushersn )
     if ( al->al_key != CGI ) {
 	syslog( LOG_ERR, "%s is not a daemon", al->al_hostname );
 	snet_writef( sn, "%d DAEMON: %s not a daemon.\r\n",
-		460, al->al_hostname );
+		470, al->al_hostname );
 	return( 1 );
     }
 
