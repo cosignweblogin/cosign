@@ -312,7 +312,9 @@ pusherparent( int ppipe )
 		} else if ( WIFSIGNALED( status )) {
 		    syslog( LOG_ERR, "CHILD %d died on signal %d", pid,
 			    WTERMSIG( status ));
-		    exit( 1 );
+		    if ( WTERMSIG( status ) != SIGHUP ) {
+			exit( 1 );
+		    }
 		} else {
 		    syslog( LOG_ERR, "CHILD %d died", pid );
 		    exit( 1 );
