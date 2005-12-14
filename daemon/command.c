@@ -902,8 +902,7 @@ f_retr( SNET *sn, int ac, char *av[], SNET *pushersn )
     char		lpath[ MAXPATHLEN ], spath[ MAXPATHLEN ];
     char		login[ MAXCOOKIELEN ];
 
-    /* XXX what should this be? */
-    if (( al->al_key != SERVICE ) || ( al->al_key == CGI )) {
+    if (( al->al_key != CGI ) && ( al->al_key != SERVICE )) {
 	syslog( LOG_ERR, "f_retr: %s not allowed", al->al_hostname );
 	snet_writef( sn, "%d RETR: %s not allowed to retrieve.\r\n",
 		442, al->al_hostname );
