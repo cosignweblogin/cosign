@@ -728,7 +728,7 @@ f_register( SNET *sn, int ac, char *av[], SNET *pushersn )
     if ( ci.ci_state == 0 ) {
 	syslog( LOG_ERR,
 		"f_register: %s logged out, can't register", ci.ci_user );
-	snet_writef( sn, "%d REGISTER: Already logged out\r\n", 420 );
+	snet_writef( sn, "%d REGISTER: Already logged out\r\n", 421 );
 	return( 1 );
     }
 
@@ -743,7 +743,7 @@ f_register( SNET *sn, int ac, char *av[], SNET *pushersn )
 	    snet_writef( sn, "%d REGISTER: Idle Grey Window\r\n", 521 );
 	    return( 1 );
 	}
-	snet_writef( sn, "%d REGISTER: Idle logged out\r\n", 421 );
+	snet_writef( sn, "%d REGISTER: Idle logged out\r\n", 422 );
 	if ( do_logout( lpath ) < 0 ) {
 	    syslog( LOG_ERR, "f_register: %s: %m", lpath );
 	    return( -1 );
@@ -762,7 +762,7 @@ f_register( SNET *sn, int ac, char *av[], SNET *pushersn )
 	return( rc );
     }
 
-    snet_writef( sn, "%d REGISTER successful: Cookie Stored \r\n", 220 );
+    snet_writef( sn, "%d REGISTER successful: Cookie Stored.\r\n", 220 );
     if (( pushersn != NULL ) && ( !replicated )) {
 	snet_writef( pushersn, "REGISTER %s %s %s\r\n",
 		av[ 1 ], av[ 2 ], av [ 3 ] );
@@ -905,7 +905,7 @@ f_retr( SNET *sn, int ac, char *av[], SNET *pushersn )
     /* XXX what should this be? */
     if (( al->al_key != SERVICE ) || ( al->al_key == CGI )) {
 	syslog( LOG_ERR, "f_retr: %s not allowed", al->al_hostname );
-	snet_writef( sn, "%d RETR: %s not allowed to retreive.\r\n",
+	snet_writef( sn, "%d RETR: %s not allowed to retrieve.\r\n",
 		442, al->al_hostname );
 	return( 1 );
     }

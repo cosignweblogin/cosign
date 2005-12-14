@@ -32,7 +32,7 @@ and state
 ]
 .sp
 .SH DESCRIPTION
-Monster serves two separate functions. In all cases, it is the mechanisim by
+Monster serves two separate functions. In all cases, it is the mechanism by
 which old cookies and tickets can be deleted when they are no longer needed.
 In addition, in a replicated cosign environment, monster can be used to
 propagate the time stamps and state of the login cookies.
@@ -59,7 +59,7 @@ corresponding Kerberos tickets. When monster encounters a service
 cookie, it looks up the corresponding login cookie and checks for
 timeouts as specified above. If any are encountered, it deletes the
 login cookie as well as the service cookie. If the service cookie's
-corrresonding login cookie has already been deleted, the service cookie is
+corresponding login cookie has already been deleted, the service cookie is
 also deleted.
 .sp
 If replication is enabled, monster also updates the other cosignds with
@@ -75,7 +75,7 @@ many of these cookies were deleted. The line appears as follows:
 STATS MONSTER: 1/6 login 2/4 service
 .sp
 This means Monster analyzed 6 login cookies and 4 service cookies, and
-deleted 1 login cooke and 2 service cookies.
+deleted 1 login cookie and 2 service cookies.
 .SH TERMINOLOGY
 .TP 19
 .B login-cookie
