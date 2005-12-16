@@ -140,13 +140,21 @@ f_notauth( SNET *sn, int ac, char *av[], SNET *pushersn )
 f_starttls( SNET *sn, int ac, char *av[], SNET *pushersn )
 {
 
-    int				rc;
+    int				rc, version;
     X509			*peer;
     char			buf[ 1024 ];
 
-    if ( ac != 1 ) {
+    if (( ac != 1 ) && ( ac != 2 )) {
 	snet_writef( sn, "%d Syntax error\r\n", 501 );
 	return( 1 );
+    }
+
+    if ( ac == 2 ) {
+	if (( atoi( av[ 1 ] )) != 2 ) {
+	    snet_writef( sn, "%d Unknown version number\r\n", 502 );
+	    return( 1 );
+	}
+	version = 2;
     }
 
     snet_writef( sn, "%d Ready to start TLS\r\n", 220 );
@@ -177,6 +185,9 @@ f_starttls( SNET *sn, int ac, char *av[], SNET *pushersn )
 
     commands = auth_commands;
     ncommands = sizeof( auth_commands ) / sizeof( auth_commands[ 0 ] );
+    if ( version == 2 ) {
+	snet_writef( sn, "%d TLS successfully started.\r\n", 221 );
+    }
     return( 0 );
 }
 
