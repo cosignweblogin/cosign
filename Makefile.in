@@ -1,7 +1,7 @@
 CC=	@CC@
 ALL=	common libsnet filters/common @FILTERS@ libcgi cgi html daemon 
 TARGETS= cgi html daemon @FILTERS@
-FILTERS= @FILTERS@ 
+FILTERS= @FILTERS@
 CFLAGS=
 
 filters:	@FILTERS@

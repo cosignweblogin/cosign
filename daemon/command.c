@@ -106,7 +106,6 @@ struct rate	checkfail = { 0 };
 struct rate	checkunknown = { 0 };
 
 int	replicated = 0; /* we are not talking to ourselves */
-int	protocol = 0; 
 int	ncommands = sizeof( unauth_commands ) / sizeof(unauth_commands[ 0 ] );
 
     int
@@ -145,17 +144,9 @@ f_starttls( SNET *sn, int ac, char *av[], SNET *pushersn )
     X509			*peer;
     char			buf[ 1024 ];
 
-    if (( ac != 1 ) && ( ac != 2 )) {
+    if ( ac != 1 ) {
 	snet_writef( sn, "%d Syntax error\r\n", 501 );
 	return( 1 );
-    }
-
-    if ( ac == 2 ) {
-	if (( atoi( av[ 1 ] )) != 2 ) {
-	    snet_writef( sn, "%d Unknown version number\r\n", 502 );
-	    return( 1 );
-	}
-	protocol = 2;
     }
 
     snet_writef( sn, "%d Ready to start TLS\r\n", 220 );
@@ -186,9 +177,6 @@ f_starttls( SNET *sn, int ac, char *av[], SNET *pushersn )
 
     commands = auth_commands;
     ncommands = sizeof( auth_commands ) / sizeof( auth_commands[ 0 ] );
-    if ( protocol == 2 ) {
-	snet_writef( sn, "%d TLS successfully started.\r\n", 221 );
-    }
     return( 0 );
 }
 
@@ -201,19 +189,19 @@ f_login( SNET *sn, int ac, char *av[], SNET *pushersn )
     char		tmpkrb[ 16 ], krbpath [ MAXPATHLEN ];
     char                *sizebuf, *line;
     char                buf[ 8192 ];
-    int			fd, i, krb = 0, err = 1;
+    int			fd, krb = 0, err = 1;
     struct timeval	tv;
     struct cinfo	ci;
     unsigned int        len, rc;
     extern int		errno;
 
     /*
-     * C: LOGIN login_cookie ip principal factor [factor2]
+     * C: LOGIN login_cookie ip principal realm
      * S: 200 LOGIN successful: Cookie Stored.
      */
 
     /*
-     * C: LOGIN login_cookie ip principal factor "kerberos"
+     * C: LOGIN login_cookie ip principal realm "kerberos"
      * S: 300 LOGIN: Send length then file.
      * C: [length]
      * C: [data]
@@ -227,15 +215,14 @@ f_login( SNET *sn, int ac, char *av[], SNET *pushersn )
 	return( 1 );
     }
 
-    if ( ac < 5 ) {
+    if (( ac != 5 ) && ( ac != 6 )) {
 	snet_writef( sn, "%d LOGIN: Wrong number of args.\r\n", 500 );
 	return( 1 );
     }
 
-    if ( ac >= 6 ) {
-	if ( strcmp( av[ ac - 1 ], "kerberos" ) == 0 ) {
+    if ( ac == 6 ) {
+	if ( strcmp( av[ 5 ], "kerberos" ) == 0 ) {
 	    krb = 1;
-	    ac--;
 	    if ( mkcookie( sizeof( tmpkrb ), tmpkrb ) != 0 ) {
 		syslog( LOG_ERR, "f_login: mkcookie error." );
 		return( -1 );
@@ -245,6 +232,9 @@ f_login( SNET *sn, int ac, char *av[], SNET *pushersn )
 		syslog( LOG_ERR, "f_login: krbpath too long." );
 		return( -1 );
 	    }
+	} else {
+	    snet_writef( sn, "%d LOGIN: Ticket type not supported.\r\n", 507 );
+	    return( 1 );
 	}
     }
 
@@ -254,7 +244,7 @@ f_login( SNET *sn, int ac, char *av[], SNET *pushersn )
 	return( 1 );
     }
 
-    if ( gettimeofday( &tv, NULL ) != 0 ) {
+    if ( gettimeofday( &tv, NULL ) != 0 ){
 	syslog( LOG_ERR, "f_login: gettimeofday: %m" );
 	return( -1 );
     }
@@ -280,7 +270,7 @@ f_login( SNET *sn, int ac, char *av[], SNET *pushersn )
 	return( -1 );
     }
 
-    fprintf( tmpfile, "v2\n" );
+    fprintf( tmpfile, "v0\n" );
     fprintf( tmpfile, "s1\n" );	 /* 1 is logged in, 0 is logged out */
     if ( strlen( av[ 2 ] ) >= sizeof( ci.ci_ipaddr )) {
 	goto file_err;
@@ -293,13 +283,7 @@ f_login( SNET *sn, int ac, char *av[], SNET *pushersn )
     if ( strlen( av[ 4 ] ) >= sizeof( ci.ci_realm )) {
 	goto file_err;
     }
-
-    fprintf( tmpfile, "r%s", av[ 4 ] );
-    for ( i = 5; i < ac; i++ ) {
-	fprintf( tmpfile, " %s", av[ i ] );
-    }
-    fprintf( tmpfile, "\n" );
-
+    fprintf( tmpfile, "r%s\n", av[ 4 ] );
     fprintf( tmpfile, "t%lu\n", tv.tv_sec );
     if ( krb ) {
 	fprintf( tmpfile, "k%s\n", krbpath );
@@ -1049,7 +1033,7 @@ retr_ticket( SNET *sn, char *krbpath )
     struct stat		st;
     int			fd;
     ssize_t             readlen;
-    char                buf[8192];
+    char                buf[ 8192 ];
     struct timeval      tv;
 
     /* S: 240 Retrieving file
