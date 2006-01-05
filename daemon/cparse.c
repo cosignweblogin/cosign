@@ -129,7 +129,7 @@ read_cookie( char *path, struct cinfo *ci )
 
     ci->ci_version = atoi( p );
 
-    if ( ci->ci_version != 0 ) {
+    if ( ci->ci_version != 2 ) {
 	syslog( LOG_ERR, "read_cookie: file version mismatch" );
 	goto error;
     }

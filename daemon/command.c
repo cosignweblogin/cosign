@@ -197,11 +197,14 @@ f_starttls( SNET *sn, int ac, char *av[], SNET *pushersn )
 f_login( SNET *sn, int ac, char *av[], SNET *pushersn )
 {
     FILE		*tmpfile;
+    ACAV		*facav;
     char		tmppath[ MAXCOOKIELEN ], path[ MAXPATHLEN ];
     char		tmpkrb[ 16 ], krbpath [ MAXPATHLEN ];
     char                *sizebuf, *line;
     char                buf[ 8192 ];
-    int			fd, i, krb = 0, err = 1;
+    char		**fv;
+    int			fd, i, j, fc;
+    int			krb = 0, err = 1, addfactors = 0;
     struct timeval	tv;
     struct cinfo	ci;
     unsigned int        len, rc;
@@ -254,6 +257,23 @@ f_login( SNET *sn, int ac, char *av[], SNET *pushersn )
 	return( 1 );
     }
 
+    if ( read_cookie( path, &ci ) == 0 ) {
+	addfactors = 1;
+	if ( ci.ci_state == 0 ) {
+	    syslog( LOG_ERR,
+		    "f_login: %s already logged out", av[ 1 ] );
+	    snet_writef( sn, "%d LOGIN: Already logged out\r\n", 505 );
+	    return( 1 );
+	}
+	if ( strcmp( av[ 3 ], ci.ci_user ) != 0 ) {
+	    syslog( LOG_ERR, "%s in cookie %s does not match %s",
+		    ci.ci_user, av[ 1 ], av[ 3 ] );
+	    snet_writef( sn,
+		"%d user name given does not match cookie\r\n", 402 );
+	    return( 1 );
+	}
+    }
+
     if ( gettimeofday( &tv, NULL ) != 0 ) {
 	syslog( LOG_ERR, "f_login: gettimeofday: %m" );
 	return( -1 );
@@ -294,58 +314,74 @@ f_login( SNET *sn, int ac, char *av[], SNET *pushersn )
 	goto file_err;
     }
 
-    fprintf( tmpfile, "r%s", av[ 4 ] );
-    for ( i = 5; i < ac; i++ ) {
-	fprintf( tmpfile, " %s", av[ i ] );
+    if ( addfactors ) {
+	if (( facav = acav_alloc()) == NULL ) {
+	    syslog( LOG_ERR, "acav_alloc: %m" );
+	    goto file_err;
+	}
+	if (( fc = acav_parse( facav, ci.ci_realm, &fv )) < 0 ) {
+	    syslog( LOG_ERR, "acav_parse: %m" );
+	    goto file_err;
+	}
+	fprintf( tmpfile, "r%s", fv[ 0 ] );
+	for ( i = 1; i < fc; i++ ) {
+	    fprintf( tmpfile, " %s", fv[ i ] );
+	}
+	for ( i = 4; i < ac; i++ ) {
+	    for ( j = 0; j < fc; j++ ) {
+		if ( strcmp( fv[ j ], av[ i ] ) == 0 ) {
+		    break;
+		}
+	    }
+	    if ( j >= fc ) {
+		fprintf( tmpfile, " %s", av[ i ] );
+	    }
+	}
+    } else {
+	fprintf( tmpfile, "r%s", av[ 4 ] );
+	for ( i = 5; i < ac; i++ ) {
+	    fprintf( tmpfile, " %s", av[ i ] );
+	}
     }
     fprintf( tmpfile, "\n" );
 
-    fprintf( tmpfile, "t%lu\n", tv.tv_sec );
+    if ( addfactors ) {
+	fprintf( tmpfile, "t%lu\n", ci.ci_itime);
+    } else {
+	fprintf( tmpfile, "t%lu\n", tv.tv_sec );
+    }
+
     if ( krb ) {
-	fprintf( tmpfile, "k%s\n", krbpath );
+	if ( addfactors ) {
+	    fprintf( tmpfile, "k%s\n", ci.ci_krbtkt );
+	} else {
+	    fprintf( tmpfile, "k%s\n", krbpath );
+	}
     }
 
     if ( fclose ( tmpfile ) != 0 ) {
 	if ( unlink( tmppath ) != 0 ) {
-	    syslog( LOG_ERR, "f_login: unlink: %m" );
+	    syslog( LOG_ERR, "f_login: unlink %s: %m", tmppath );
 	}
 	syslog( LOG_ERR, "f_login: fclose: %m" );
 	return( -1 );
     }
 
-    if ( link( tmppath, path ) != 0 ) {
-	if ( errno == EEXIST ) {
-	    /* double action policy?? */
-	    syslog( LOG_ERR, "f_login: file already exists: %s", av[ 1 ]);
-	    if ( read_cookie( path, &ci ) != 0 ) {
-		syslog( LOG_ERR, "f_login: read_cookie" );
-		snet_writef( sn, "%d LOGIN error: Sorry\r\n", 503 );
-		goto file_err2;
-	    }
-	    if ( ci.ci_state == 0 ) {
-		syslog( LOG_ERR,
-			"f_login: %s already logged out", av[ 1 ] );
-		snet_writef( sn, "%d LOGIN: Already logged out\r\n", 505 );
-		goto file_err2;
-	    }
-	    if ( strcmp( av[ 3 ], ci.ci_user ) != 0 ) {
-		syslog( LOG_ERR, "%s in cookie %s does not match %s",
-			ci.ci_user, av[ 1 ], av[ 3 ] );
-		snet_writef( sn,
-			"%d user name given does not match cookie\r\n", 402 );
-		goto file_err2;
-	    }
-	    snet_writef( sn,
-		    "%d LOGIN: Cookie already exists\r\n", 201 );
+    if ( addfactors ) {
+	if ( rename( tmppath, path ) != 0 ) {
+	    syslog( LOG_ERR, "f_login: rename %s to %s: %m", tmppath, path );
+	    err = -1;
 	    goto file_err2;
 	}
-	syslog( LOG_ERR, "f_login: link: %m" );
-	err = -1;
-	goto file_err2;
-    }
-
-    if ( unlink( tmppath ) != 0 ) {
-	syslog( LOG_ERR, "f_login: unlink: %m" );
+    } else {
+	if ( link( tmppath, path ) != 0 ) {
+	    syslog( LOG_ERR, "f_login: link %s to %s: %m", tmppath, path );
+	    err = -1;
+	    goto file_err2;
+	}
+	if ( unlink( tmppath ) != 0 ) {
+	    syslog( LOG_ERR, "f_login: unlink %s: %m", tmppath );
+	}
     }
 
     if ( !krb ) {
@@ -1049,7 +1085,7 @@ retr_ticket( SNET *sn, char *krbpath )
     struct stat		st;
     int			fd;
     ssize_t             readlen;
-    char                buf[8192];
+    char                buf[ 8192 ];
     struct timeval      tv;
 
     /* S: 240 Retrieving file
@@ -1148,7 +1184,8 @@ command( int fd, SNET *pushersn )
 	}
     }
 
-    snet_writef( snet, "%d COokie SIGNer ready\r\n", 220 );
+
+    snet_writef( snet, "%d 2 Cookie SIGNer ready\r\n", 220 );
 
     tv = cosign_net_timeout;
 

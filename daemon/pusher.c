@@ -22,12 +22,14 @@
 #include "rate.h"
 #include "monster.h"
 #include "cparse.h"
+#include "mkcookie.h"
 
 extern char		*cosign_version;
 extern char		*replhost;
 extern unsigned short	cosign_port;
 extern SSL_CTX		*ctx;
 extern struct timeval	cosign_net_timeout;
+extern int		hashlen;
 
 static struct connlist	*replhead;
 static int		reconfig = 0;
@@ -372,8 +374,8 @@ pusherparent( int ppipe )
 pusher( int cpipe, struct connlist *cur )
 {
     SNET		*csn;
-    unsigned char	buf[ 8192 ];
-    char		*line, **av;
+    char		buf[ 8192 ];
+    char		*line, **av, path[ MAXPATHLEN ];
     int			rc, ac, krb = 0, fd = 0;
     ssize_t             rr, size = 0;
     struct timeval	tv;
@@ -470,13 +472,18 @@ pusher( int cpipe, struct connlist *cur )
         goto error;
     }
 
-    if (( rc = read_cookie( av[ 1 ], &ci )) < 0 ) {
-	syslog( LOG_ERR, "read_cookie error: %s", av[ 1 ] );
+    if ( mkcookiepath( NULL, hashlen, av[ 1 ], path, sizeof( path )) < 0 ) {
+	syslog( LOG_ERR, "pusher: mkcookiepath error: %s", av[ 1 ] );
+        goto error;
+    }
+
+    if (( rc = read_cookie( path, &ci )) != 0 ) {
+	syslog( LOG_ERR, "pusher: read_cookie error: %s", path );
 	continue;
     }
 
     if (( fd = open( ci.ci_krbtkt, O_RDONLY, 0 )) < 0 ) {
-        syslog( LOG_ERR, "pusher: open: %m" );
+        syslog( LOG_ERR, "pusher: open %s: %m", ci.ci_krbtkt );
         goto error;
     }
 
