@@ -626,21 +626,6 @@ set_cosign_tkt_prefix( cmd_parms *params, void *mconfig, char *arg )
 
 
 #ifdef KRB
-#ifdef KRB4
-    static const char *
-krb524_cosign_tickets( cmd_parms *params, void *mconfig, int flag )
-{
-    cosign_host_config		*cfg;
-
-    cfg = cosign_merge_cfg( params, mconfig );
-
-    cfg->krb524 = flag;
-    cfg->configured = 1;
-    return( NULL );
-
-}
-#endif /* KRB4 */
-
 #ifdef GSS
     static const char *
 set_cosign_gss( cmd_parms *params, void *mconfig, int flag )
@@ -861,7 +846,7 @@ static command_rec cosign_cmds[ ] =
         NULL, RSRC_CONF | ACCESS_CONF, 
         "\"none\" or URL to redirect for users who successfully authenticate" ),
 
-        AP_INIT_TAKE1( "CosignAllowPublicAccess", set_cosign_public,
+        AP_INIT_FLAG( "CosignAllowPublicAccess", set_cosign_public,
         NULL, RSRC_CONF | ACCESS_CONF, 
         "make authentication optional for protected sites" ),
 
@@ -890,11 +875,6 @@ static command_rec cosign_cmds[ ] =
         NULL, RSRC_CONF | ACCESS_CONF, 
         "whether or not to setup GSSAPI for k5" ),
 #endif /* GSS */
-#ifdef KRB4
-        AP_INIT_FLAG( "CosignKerberos524", krb524_cosign_tickets,
-        NULL, RSRC_CONF | ACCESS_CONF, 
-        "whether or not to convert kerberos 5 tickets to k4" ),
-#endif /* KRB4 */
 #endif /* KRB */
 
         { NULL }
