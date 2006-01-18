@@ -67,6 +67,10 @@ read_scookie( char *path, struct sinfo *si, server_rec *s )
 	case 'r':
 	    strcpy( si->si_realm, p );
 	    break;
+
+	case 'f':
+	    strcpy( si->si_factor, p );
+	    break;
 #ifdef KRB
 	case 'k':
 	    strcpy( si->si_krb5tkt, p );

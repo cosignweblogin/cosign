@@ -27,6 +27,7 @@
 
 #include <snet.h>
 
+#include "argcargv.h"
 #include "sparse.h"
 #include "mkcookie.h"
 #include "cosign.h"
@@ -44,6 +45,9 @@ cosign_create_config( pool *p )
     cfg = (cosign_host_config *)ap_pcalloc( p, sizeof( cosign_host_config ));
     cfg->service = NULL;
     cfg->siteentry = NULL;
+    cfg->reqfv = NULL;
+    cfg->reqfc = -1;
+    cfg->suffix = NULL;
     cfg->public = -1;
     cfg->redirect = NULL;
     cfg->posterror = NULL;
@@ -96,8 +100,10 @@ cosign_init( server_rec *s, pool *p )
     int
 set_cookie_and_redirect( request_rec *r, cosign_host_config *cfg )
 {
-    char		*dest, *my_cookie, *full_cookie, *ref;
+    char		*dest, *my_cookie;
+    char		*full_cookie, *ref, *reqfact;
     char		cookiebuf[ 128 ];
+    int			i;
     unsigned int	port;
     struct timeval	now;
 
@@ -160,8 +166,20 @@ set_cookie_and_redirect( request_rec *r, cosign_host_config *cfg )
 	}
     }
 
-    /* we need to remove this semi-colon eventually */
-    dest = ap_psprintf( r->pool, "%s?%s;&%s", cfg->redirect, my_cookie, ref );
+    if ( cfg->reqfc > 0 ) {
+	reqfact = ap_pstrcat( r->pool, "factors=", cfg->reqfv[ 0 ], NULL );
+	for ( i = 1; i < cfg->reqfc; i++ ) {
+	    reqfact = ap_pstrcat( r->pool, reqfact, ",",
+		    cfg->reqfv[ i ], NULL );
+	}
+	dest = ap_psprintf( r->pool,
+		"%s?%s&%s&%s", cfg->redirect, reqfact, my_cookie, ref );
+	reqfact = ap_pstrcat( r->pool, "factors=", cfg->reqfv[ 0 ], NULL );
+    } else {
+	/* we need to remove this semi-colon eventually */
+	dest = ap_psprintf( r->pool,
+		"%s?%s;&%s", cfg->redirect, my_cookie, ref );
+    }
     ap_table_set( r->headers_out, "Location", dest );
     return( 0 );
 }
@@ -368,7 +386,7 @@ cosign_merge_cfg( cmd_parms *params, void *mconfig )
     /*
      * apache's built-in (request time) merge is for directories only or
      * servers only, there's no way to inherit server config in a directory.
-     * So we do that here. Do note that becuase this is a config time merge,
+     * So we do that here. Do note that because this is a config time merge,
      * this has a side effect of requiring all server-wide directives to
      * preecede the directory or location specific ones in the config file.
      */
@@ -383,6 +401,17 @@ cosign_merge_cfg( cmd_parms *params, void *mconfig )
     if ( cfg->siteentry == NULL ) {
 	cfg->siteentry = ap_pstrdup( params->pool, scfg->siteentry );
     }
+
+    if ( cfg->reqfv == NULL ) {
+	cfg->reqfv = scfg->reqfv; 
+    }
+    if ( cfg->reqfc == -1 ) {
+	cfg->reqfc = scfg->reqfc; 
+    }
+    if ( cfg->suffix == NULL ) {
+	cfg->suffix = ap_pstrdup( params->pool, scfg->suffix );
+    }
+
     if ( cfg->public == -1 ) {
 	cfg->public = scfg->public; 
     }
@@ -488,7 +517,57 @@ set_cosign_siteentry( cmd_parms *params, void *mconfig, char *arg )
     return( NULL );
 }
 
-        static const char *
+    static const char *
+set_cosign_factor( cmd_parms *params, void *mconfig, char *arg )
+{
+    cosign_host_config		*cfg;
+    ACAV			*acav;
+    int				ac, i;
+    char			**av;
+
+    cfg = cosign_merge_cfg( params, mconfig );
+
+fprintf( stderr, "factor arg is %s!\n", arg );
+
+    if (( acav = acav_alloc()) == NULL ) {
+	cosign_log( APLOG_ERR, params->server, "mod_cosign: set_cosign_factor:"
+		" acav_alloc failed" );
+	exit( 1 );
+    }
+
+    if (( ac = acav_parse( acav, arg, &av )) < 0 ) {
+	cosign_log( APLOG_ERR, params->server, "mod_cosign: set_cosign_factor:"
+		" acav_parse failed" );
+	exit( 1 );
+    }
+
+    /* should null terminate av */
+    cfg->reqfv = ap_palloc( params->pool, ac * sizeof( char * ));
+    for ( i = 0; i < ac; i++ ) {
+	cfg->reqfv[ i ] = ap_pstrdup( params->pool, av[ i ] );
+    }
+    cfg->reqfc = ac;
+
+    acav_free( acav );
+
+
+    cfg->configured = 1;
+    return( NULL );
+}
+
+    static const char *
+set_cosign_factorsuffix( cmd_parms *params, void *mconfig, char *arg )
+{
+    cosign_host_config		*cfg;
+
+    cfg = cosign_merge_cfg( params, mconfig );
+
+    cfg->suffix = ap_pstrdup( params->pool, arg );
+    cfg->configured = 1;
+    return( NULL );
+}
+
+    static const char *
 set_cosign_public( cmd_parms *params, void *mconfig, int flag )
 {
     cosign_host_config		*cfg;
@@ -838,6 +917,14 @@ static command_rec cosign_cmds[ ] =
 	{ "CosignSiteEntry", set_cosign_siteentry,
 	NULL, RSRC_CONF | ACCESS_CONF, TAKE1,
 	"\"none\" or URL to redirect for users who successfully authenticate" },
+
+	{ "CosignRequireFactor", set_cosign_factor,
+	NULL, RSRC_CONF | ACCESS_CONF, RAW_ARGS,
+	"the authentication factors that must be satisfied" },
+
+	{ "CosignIgnoreFactorSuffix", set_cosign_factorsuffix,
+	NULL, RSRC_CONF | ACCESS_CONF, TAKE1,
+	"the factor suffix to be ignored when testing for compliance" },
 
 	{ "CosignAllowPublicAccess", set_cosign_public,
 	NULL, RSRC_CONF | ACCESS_CONF, FLAG,

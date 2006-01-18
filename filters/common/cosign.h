@@ -2,6 +2,9 @@ typedef struct {
     char                *host;
     char                *service;
     char		*siteentry;
+    char		**reqfv;
+    int			reqfc;
+    char		*suffix;
     int			public;
     char                *redirect;
     char                *posterror;

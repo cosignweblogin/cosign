@@ -27,9 +27,9 @@
 
 #include <snet.h>
 
+#include "argcargv.h"
 #include "sparse.h"
 #include "cosign.h"
-#include "argcargv.h"
 #include "mkcookie.h"
 #include "rate.h"
 #include "log.h"
@@ -38,24 +38,23 @@
 #define MIN(a,b)        ((a)<(b)?(a):(b))
 #endif 
 
-static int connect_sn( struct connlist *, SSL_CTX *, char *, server_rec *);
+static int connect_sn( struct connlist *, cosign_host_config *, server_rec * );
 static int close_sn( struct connlist *, server_rec * );
 static void (*logger)( char * ) = NULL;
 
 static struct timeval		timeout = { 10 * 60, 0 };
 
+int				cosign_protocol = 0;
 static struct rate   		checkpass = { 0 };
 static struct rate   		checkfail = { 0 };
 static struct rate   		checkunknown = { 0 };
 static double             	rate;
-
     static int
 netcheck_cookie( char *scookie, struct sinfo *si, struct connlist *conn,
-	server_rec *s )
+	server_rec *s, cosign_host_config *cfg )
 {
-    int			ac;
-    char		*line;
-    char		**av;
+    int			i, j, ac, fc = cfg->reqfc;
+    char		*line, **av, **fv = cfg->reqfv;
     struct timeval      tv;
     SNET		*sn = conn->conn_sn;
     extern int		errno;
@@ -108,7 +107,7 @@ netcheck_cookie( char *scookie, struct sinfo *si, struct connlist *conn,
 	return( COSIGN_ERROR );
     }
 
-    if (( ac = argcargv( line, &av )) != 4 ) {
+    if (( ac = argcargv( line, &av )) < 4 ) {
 	cosign_log( APLOG_ERR, s,
 		"mod_cosign: netcheck_cookie: wrong num of args: %s", line );
 	return( COSIGN_ERROR );
@@ -127,13 +126,48 @@ netcheck_cookie( char *scookie, struct sinfo *si, struct connlist *conn,
 	return( COSIGN_ERROR );
     }
     strcpy( si->si_user, av[ 2 ] );
+
+    if ( cosign_protocol == 2 ) {
+	for ( i = 0; i < fc; i++ ) {
+	    for ( j = 3; j < ac; j++ ) {
+		if ( strcmp( fv[ i ], av[ j ] ) == 0 ) {
+		    break;
+		}
+	    }
+	    if ( j >= ac ) {
+		/* a required factor wasn't in the check line */
+		break;
+	    }
+	}
+	if ( i < fc ) {
+	    /* we broke out early */
+	    cosign_log( APLOG_ERR, s,
+		"mod_cosign: netcheck_cookie: we broke out early" );
+	    return( COSIGN_RETRY );
+	}
+
+	*si->si_factor = '\0';
+	for ( i = 3; i < ac; i++ ) {
+	    /* plus N for space? */
+	    if ( strlen( av[ i ] ) + 1 >
+		    sizeof( si->si_factor) - strlen( si->si_factor )) {
+		cosign_log( APLOG_ERR, s,
+			"mod_cosign: netcheck: factor %s too long", av[ i ] );
+	    }
+	    (void)strncat( si->si_factor, av[ i ],
+                 sizeof( si->si_factor ) - strlen( si->si_factor ) - 1 );
+	    if ( i != ( ac - 1 )) {
+		(void)strcat( si->si_factor, " " );
+	    }
+	}
+    }
+
     if ( strlen( av[ 3 ] ) >= sizeof( si->si_realm )) {
 	cosign_log( APLOG_ERR, s,
 		"mod_cosign: netcheck_cookie: realm too long" );
 	return( COSIGN_ERROR );
     }
-    strcpy( si->si_realm, av[ 3 ] );
-
+	strcpy( si->si_realm, av[ 3 ] );
 #ifdef KRB
     *si->si_krb5tkt = '\0';
 #endif /* KRB */
@@ -268,8 +302,8 @@ netretr_proxy( char *scookie, struct sinfo *si, SNET *sn, char *proxydb,
 
 #ifdef KRB
     static int
-netretr_ticket( char *scookie, struct sinfo *si, SNET *sn, int convert,
-	char *tkt_prefix,  server_rec *s )
+netretr_ticket( char *scookie, struct sinfo *si, SNET *sn, char *tkt_prefix,
+	server_rec *s )
 {
     char		*line;
     char                tmpkrb[ 16 ], krbpath [ MAXPATHLEN ];
@@ -421,7 +455,7 @@ cosign_check_cookie( char *scookie, struct sinfo *si, cosign_host_config *cfg,
 	    continue;
 	}
 
-	switch ( rc = netcheck_cookie( scookie, si, *cur, s )) {
+	switch ( rc = netcheck_cookie( scookie, si, *cur, s, cfg )) {
 	case COSIGN_OK :
 	case COSIGN_LOGGED_OUT :
 	    goto done;
@@ -448,11 +482,11 @@ cosign_check_cookie( char *scookie, struct sinfo *si, cosign_host_config *cfg,
 	if ( (*cur)->conn_sn != NULL ) {
 	    continue;
 	}
-	if (( rc = connect_sn( *cur, cfg->ctx, cfg->host, s )) != 0 ) {
+	if (( rc = connect_sn( *cur, cfg, s )) != 0 ) {
 	    continue;
 	}
 
-	switch ( rc = netcheck_cookie( scookie, si, *cur, s )) {
+	switch ( rc = netcheck_cookie( scookie, si, *cur, s, cfg )) {
 	case COSIGN_OK :
 	case COSIGN_LOGGED_OUT :
 	    goto done;
@@ -490,7 +524,7 @@ done:
 	return( COSIGN_RETRY );
     } else {
 	if (( first ) && ( cfg->proxy == 1 )) {
-	    if ( netretr_proxy ( scookie, si, cfg->cl->conn_sn,
+	    if ( netretr_proxy( scookie, si, cfg->cl->conn_sn,
 		    cfg->proxydb, s ) != COSIGN_OK ) {
 		cosign_log( APLOG_ERR, s, "mod_cosign: choose_conn: " 
 			"can't retrieve proxy cookies" );
@@ -498,7 +532,7 @@ done:
 	}
 #ifdef KRB
 	if (( first ) && ( cfg->krbtkt == 1 )) {
-	    if ( netretr_ticket( scookie, si, cfg->cl->conn_sn, cfg->krb524,
+	    if ( netretr_ticket( scookie, si, cfg->cl->conn_sn, 
 		    cfg->tkt_prefix, s ) != COSIGN_OK ) {
 		cosign_log( APLOG_ERR, s, "mod_cosign: choose_conn: " 
 			"can't retrieve kerberos ticket" );
@@ -510,11 +544,10 @@ done:
 }
 
     static int
-connect_sn( struct connlist *cl, SSL_CTX *ctx, char *host, 
-	server_rec *s )
+connect_sn( struct connlist *cl, cosign_host_config *cfg, server_rec *s )
 {
-    int			sock, zero = 0;
-    char		*line, buf[ 1024 ];
+    int			sock, zero = 0, ac = 0;
+    char		*line, buf[ 1024 ], **av;
     X509		*peer;
     struct timeval      tv;
     struct protoent	*proto;
@@ -556,9 +589,35 @@ connect_sn( struct connlist *cl, SSL_CTX *ctx, char *host,
 	cosign_log( APLOG_ERR, s, "mod_cosign: connect_sn: %s", line );
 	goto done;
     }
-    if ( snet_writef( cl->conn_sn, "STARTTLS\r\n" ) < 0 ) {
-	cosign_log( APLOG_ERR, s, "mod_cosign: connect_sn: starttls failed" );
+
+    if (( ac = argcargv( line, &av )) < 4 ) {
+	cosign_log( APLOG_ERR, s, "mod_cosign: argcargv: %s", line );
 	goto done;
+    }
+    if (( cosign_protocol = strtol( av[ 1 ], (char **)NULL, 10 )) != 2 ) {
+	if ( cfg->reqfc < 0  ) {
+	    cosign_log( APLOG_ERR, s,
+		    "mod_cosign: required v2 protocol unsupported by server" );
+	    goto done;
+	}
+	cosign_log( APLOG_ERR, s, "mod_cosign: falling back to v0" );
+	cosign_protocol = 0;
+    } else {
+	cosign_protocol = 2 ;
+    }
+
+    if ( cosign_protocol == 2 ) {
+	if ( snet_writef( cl->conn_sn, "STARTTLS 2\r\n" ) < 0 ) {
+	    cosign_log( APLOG_ERR, s,
+		    "mod_cosign: connect_sn: starttls 2 failed" );
+	    goto done;
+	}
+    } else {
+	if ( snet_writef( cl->conn_sn, "STARTTLS\r\n" ) < 0 ) {
+	    cosign_log( APLOG_ERR, s,
+		    "mod_cosign: connect_sn: starttls failed" );
+	    goto done;
+	}
     }
 
     tv = timeout;
@@ -566,12 +625,13 @@ connect_sn( struct connlist *cl, SSL_CTX *ctx, char *host,
 	cosign_log( APLOG_ERR, s,
 		"mod_cosign: connect_sn: snet_getline_multi failed" );
 	goto done;
-    } if ( *line != '2' ) {
+    }
+    if ( *line != '2' ) {
 	cosign_log( APLOG_ERR, s, "mod_cosign: connect_sn: %s", line );
 	goto done;
     }
 
-    if ( snet_starttls( cl->conn_sn, ctx, 0 ) != 1 ) {
+    if ( snet_starttls( cl->conn_sn, cfg->ctx, 0 ) != 1 ) {
 	cosign_log( APLOG_ERR, s, "mod_cosign: snet_starttls: %s",
 		ERR_error_string( ERR_get_error(), NULL ));
 	goto done;
@@ -587,12 +647,24 @@ connect_sn( struct connlist *cl, SSL_CTX *ctx, char *host,
     X509_free( peer );
 
     /* cn and host must match */
-    if ( strcasecmp( buf, host ) != 0 ) {
+    if ( strcasecmp( buf, cfg->host ) != 0 ) {
 	cosign_log( APLOG_ERR, s, "mod_cosign: connect_sn: cn=%s & host=%s " 
-		"don't match!", buf, host );
+		"don't match!", buf, cfg->host );
 	goto done;
     }
 
+    if ( cosign_protocol == 2 ) {
+	tv = timeout;
+	if (( line = snet_getline_multi( cl->conn_sn, logger, &tv )) == NULL ) {
+	    cosign_log( APLOG_ERR, s,
+		    "mod_cosign: connect_sn: snet_getline_multi failed" );
+	    goto done;
+	}
+	if ( *line != '2' ) {
+	    cosign_log( APLOG_ERR, s, "mod_cosign: starttls 2: %s", line );
+	    goto done;
+	}
+    }
 
     return( 0 );
 done:
