@@ -203,7 +203,7 @@ f_login( SNET *sn, int ac, char *av[], SNET *pushersn )
     char                *sizebuf, *line;
     char                buf[ 8192 ];
     char		**fv;
-    int			fd, i, j, fc;
+    int			fd, i, j, fc, already_krb = 0;
     int			krb = 0, err = 1, addfactors = 0;
     struct timeval	tv;
     struct cinfo	ci;
@@ -352,8 +352,10 @@ f_login( SNET *sn, int ac, char *av[], SNET *pushersn )
     }
 
     if ( krb ) {
-	if ( addfactors ) {
+	/* XXX what happens when we double click? */
+	if (( addfactors ) && ( ci.ci_krbtkt != NULL )) {
 	    fprintf( tmpfile, "k%s\n", ci.ci_krbtkt );
+	    already_krb = 1;
 	} else {
 	    fprintf( tmpfile, "k%s\n", krbpath );
 	}
@@ -384,7 +386,7 @@ f_login( SNET *sn, int ac, char *av[], SNET *pushersn )
 	}
     }
 
-    if ( !krb ) {
+    if (( !krb ) || ( already_krb )) {
 	snet_writef( sn, "%d LOGIN successful: Cookie Stored.\r\n", 200 );
 	if (( pushersn != NULL ) && ( !replicated )) {
 	    snet_writef( pushersn, "LOGIN %s %s %s %s\r\n",
@@ -834,6 +836,7 @@ f_check( SNET *sn, int ac, char *av[], SNET *pushersn )
     struct cinfo 	ci;
     struct timeval	tv;
     char		login[ MAXCOOKIELEN ], path[ MAXPATHLEN ];
+    char		*p;
     int			status;
     double		rate;
 
@@ -941,8 +944,21 @@ f_check( SNET *sn, int ac, char *av[], SNET *pushersn )
 	syslog( LOG_NOTICE, "STATS CHECK %s: PASS %.5f / sec",
 		inet_ntoa( cosign_sin.sin_addr), rate);
     }
-    snet_writef( sn,
-	    "%d %s %s %s\r\n", status, ci.ci_ipaddr, ci.ci_user, ci.ci_realm );
+
+    if ( protocol == 2 ) {
+	snet_writef( sn, "%d %s %s %s\r\n",
+		status, ci.ci_ipaddr, ci.ci_user, ci.ci_realm );
+    } else {
+	/* if there is more than one realm, we just give the first */
+	if (( p = strtok( ci.ci_realm, " " )) != NULL ) {
+	    snet_writef( sn, "%d %s %s %s\r\n",
+		    status, ci.ci_ipaddr, ci.ci_user, p );
+	} else {
+	    snet_writef( sn, "%d %s %s %s\r\n",
+		    status, ci.ci_ipaddr, ci.ci_user, ci.ci_realm );
+	}
+
+    }
     return( 0 );
 }
 

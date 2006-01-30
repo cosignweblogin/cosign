@@ -54,7 +54,7 @@ netcheck_cookie( char *scookie, struct sinfo *si, struct connlist *conn,
 	server_rec *s, cosign_host_config *cfg )
 {
     int			i, j, ac, fc = cfg->reqfc;
-    char		*line, **av, **fv = cfg->reqfv;
+    char		*p, *line, **av, **fv = cfg->reqfv;
     struct timeval      tv;
     SNET		*sn = conn->conn_sn;
     extern int		errno;
@@ -132,6 +132,16 @@ netcheck_cookie( char *scookie, struct sinfo *si, struct connlist *conn,
 	    for ( j = 3; j < ac; j++ ) {
 		if ( strcmp( fv[ i ], av[ j ] ) == 0 ) {
 		    break;
+		}
+		if (( p = strstr( av[ j ], cfg->suffix )) != NULL ) {
+		    if (( strlen( p )) == ( strlen( cfg->suffix ))) {
+			p = '\0';
+			if ( strcmp( fv[ i ], av[ j ] ) == 0 ) {
+			    /* add *cfg->suffix back in to p */
+			    *p = *cfg->suffix;
+			    break;
+			}
+		    }
 		}
 	    }
 	    if ( j >= ac ) {

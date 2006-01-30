@@ -28,7 +28,6 @@ typedef struct {
     int			gss;
 #endif /* GSS */
     int			krbtkt;
-    int			krb524;
 #endif /* KRB */
 } cosign_host_config;
 

@@ -198,7 +198,7 @@ storecookie:
     fprintf( tmpfile, "i%s\n", si->si_ipaddr );
     fprintf( tmpfile, "p%s\n", si->si_user );
     fprintf( tmpfile, "r%s\n", si->si_realm );
-    if ( cosign_protocol == 2 ) {
+    if (( cosign_protocol == 2 ) && ( cfg->reqfc > 0 )) {
 	fprintf( tmpfile, "f%s\n", si->si_factor );
     }
 
