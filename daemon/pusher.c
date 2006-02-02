@@ -31,7 +31,7 @@ extern SSL_CTX		*ctx;
 extern struct timeval	cosign_net_timeout;
 extern int		hashlen;
 
-static struct connlist	*replhead;
+static struct connlist	*replhead = NULL;
 static int		reconfig = 0;
 static int		childsig = 0;
 
@@ -86,11 +86,23 @@ pusherhosts( void )
 {
     int			i;
     struct hostent	*he;
-    struct connlist	**tail = NULL, *new = NULL;
+    struct connlist	**tail, *new, *cur, *next;
 
     if (( he = gethostbyname( replhost )) == NULL ) {
 	return( 1 );
     }
+
+    /*
+     * Get rid of the old list, close descriptors, etc.
+     */
+    for ( cur = replhead; cur != NULL; cur = next ) {
+	if ( cur->cl_psn != NULL ) {
+	    snet_close( cur->cl_psn );
+	}
+	next = cur->cl_next;
+	free( cur );
+    }
+
     tail = &replhead;
     for ( i = 0; he->h_addr_list[ i ] != NULL; i++ ) {
 	if (( new = ( struct connlist * )
@@ -254,11 +266,13 @@ pusherparent( int ppipe )
 		    continue;
 		}
 
+syslog( LOG_DEBUG, "reload pusher kill %d %s", cur->cl_pid, cosign_version );
 		if ( kill( cur->cl_pid, SIGHUP ) < 0 ) {
 		    syslog( LOG_ERR, "pusherhup: %m" );
 		}
 	    }
 
+syslog( LOG_DEBUG, "reload pusher pusherhosts %s", cosign_version );
 	    if ( pusherhosts() != 0 ) {
 		syslog( LOG_ERR, "unhappy with lookup of %s", replhost );
 		exit( 1 );

@@ -425,16 +425,20 @@ main( int ac, char *av[] )
 	/* ssl stuff here later, but for now this is HUP */
 	if ( reconfig > 0 ) {
 	    reconfig = 0;
+
+syslog( LOG_DEBUG, "reload cosign_config %s", cosign_version );
 	    if ( cosign_config( cosign_conf ) < 0 ) {
 		syslog( LOG_ERR, "%s: re-read failed, continuing with"
 			" old config", cosign_conf );
 	    }
 
+syslog( LOG_DEBUG, "reload cosign_ssl %s", cosign_version );
 	    if ( cosign_ssl( cryptofile, certfile, cadir, &ctx ) != 0 ) {
 		syslog( LOG_ERR, "%s: ssl re-config failed, continuing with"
 			" old ssl config", cosign_conf );
 	    }
 
+syslog( LOG_DEBUG, "reload kill %s", cosign_version );
 	    if ( kill( pusherpid, SIGHUP ) < 0 ) {
 		syslog( LOG_CRIT, "kill pusherpid: %m" );
 		exit( 1 );

@@ -204,7 +204,7 @@ f_login( SNET *sn, int ac, char *av[], SNET *pushersn )
     char                buf[ 8192 ];
     char		**fv;
     int			fd, i, j, fc, already_krb = 0;
-    int			krb = 0, err = 1, addfactors = 0;
+    int			krb = 0, err = 1, addfactors = 0, newfactors = 0;
     struct timeval	tv;
     struct cinfo	ci;
     unsigned int        len, rc;
@@ -335,7 +335,18 @@ f_login( SNET *sn, int ac, char *av[], SNET *pushersn )
 	    }
 	    if ( j >= fc ) {
 		fprintf( tmpfile, " %s", av[ i ] );
+		newfactors = 1;
 	    }
+	}
+	if ( newfactors == 0 ) {
+	    snet_writef( sn, "%d LOGIN Cookie Already Stored.\r\n", 202 );
+	    if ( fclose ( tmpfile ) != 0 ) {
+		syslog( LOG_ERR, "f_login: fclose: %m" );
+	    }
+	    if ( unlink( tmppath ) != 0 ) {
+		syslog( LOG_ERR, "f_login: unlink %s: %m", tmppath );
+	    }
+	    return( 0 );
 	}
     } else {
 	fprintf( tmpfile, "r%s", av[ 4 ] );
@@ -352,7 +363,6 @@ f_login( SNET *sn, int ac, char *av[], SNET *pushersn )
     }
 
     if ( krb ) {
-	/* XXX what happens when we double click? */
 	if (( addfactors ) && ( ci.ci_krbtkt != NULL )) {
 	    fprintf( tmpfile, "k%s\n", ci.ci_krbtkt );
 	    already_krb = 1;
