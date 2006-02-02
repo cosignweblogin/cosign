@@ -151,7 +151,7 @@ netcheck:
 	    return( COSIGN_ERROR );
 	}
 
-	if (( cosign_protocol == 2 ) && ( cfg->reqfc > 0 )) {
+	if ( cosign_protocol == 2 ) {
 	    if ( strcmp( si->si_factor, lsi.si_factor ) != 0 ) {
 		addfactors = 1;
 		goto storecookie;
@@ -198,7 +198,7 @@ storecookie:
     fprintf( tmpfile, "i%s\n", si->si_ipaddr );
     fprintf( tmpfile, "p%s\n", si->si_user );
     fprintf( tmpfile, "r%s\n", si->si_realm );
-    if (( cosign_protocol == 2 ) && ( cfg->reqfc > 0 )) {
+    if ( cosign_protocol == 2 ) {
 	fprintf( tmpfile, "f%s\n", si->si_factor );
     }
 

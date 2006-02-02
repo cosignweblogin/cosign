@@ -339,7 +339,7 @@ cosign_auth( request_rec *r )
 	r->connection->ap_auth_type = "Cosign";
 	ap_table_set( r->subprocess_env, "COSIGN_SERVICE", cfg->service );
 	ap_table_set( r->subprocess_env, "REMOTE_REALM", si.si_realm );
-	if (( cosign_protocol == 2 ) && ( cfg->reqfc > 0 )) {
+	if ( cosign_protocol == 2 ) {
 	    ap_table_set( r->subprocess_env, "COSIGN_FACTOR", si.si_factor );
 	}
 #ifdef KRB

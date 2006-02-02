@@ -156,19 +156,22 @@ netcheck_cookie( char *scookie, struct sinfo *si, struct connlist *conn,
 	    return( COSIGN_RETRY );
 	}
 
-	*si->si_factor = '\0';
-	for ( i = 3; i < ac; i++ ) {
-	    /* plus N for space? */
-	    if ( strlen( av[ i ] ) + 1 >
-		    sizeof( si->si_factor) - strlen( si->si_factor )) {
+	if ( strlen( av[ 3 ] ) + 1 > sizeof( si->si_factor )) {
+	    cosign_log( APLOG_ERR, s,
+		    "mod_cosign: netcheck: factor %s too long", av[ 3 ] );
+	    return( COSIGN_ERROR );
+	}
+	strcpy( si->si_factor, av[ 3 ] );
+
+	for ( i = 4; i < ac; i++ ) {
+	    if ( strlen( av[ i ] ) + 1 + 1 >
+		    sizeof( si->si_factor ) - strlen( si->si_factor )) {
 		cosign_log( APLOG_ERR, s,
 			"mod_cosign: netcheck: factor %s too long", av[ i ] );
+		return( COSIGN_ERROR );
 	    }
-	    (void)strncat( si->si_factor, av[ i ],
-                 sizeof( si->si_factor ) - strlen( si->si_factor ) - 1 );
-	    if ( i != ( ac - 1 )) {
-		(void)strcat( si->si_factor, " " );
-	    }
+	    strcat( si->si_factor, " " );
+	    strcat( si->si_factor, av[ i ] );
 	}
     }
 
