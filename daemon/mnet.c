@@ -30,12 +30,13 @@
 static void (*logger)( char * ) = NULL;
 
 extern struct timeval	cosign_net_timeout;
+int			cosign_protocol = 0;
 
     int
 connect_sn( struct connlist *cl, SSL_CTX *ctx, char *host, int delay )
 {
-    int			s, err = -1;
-    char		*line, buf[ 1024 ];
+    int			s, ac, err = -1;
+    char		*line, **av, buf[ 1024 ];
     X509		*peer;
     struct timeval      tv;
     struct protoent	*proto;
@@ -75,9 +76,27 @@ connect_sn( struct connlist *cl, SSL_CTX *ctx, char *host, int delay )
 	syslog( LOG_ERR, "connect_sn: %s", line );
 	goto done;
     }
-    if ( snet_writef( cl->cl_sn, "STARTTLS\r\n" ) < 0 ) {
-	syslog( LOG_ERR, "connect_sn: starttls is kaplooey" );
-	goto done;
+    if (( ac = argcargv( line, &av )) < 4 ) {
+        syslog( LOG_ERR, "connect_sn: argcargv: %s", line );
+        goto done;
+    }
+    if (( cosign_protocol = strtol( av[ 1 ], (char **)NULL, 10 )) != 2 ) {
+        syslog( LOG_ERR, "connect_sn: falling back to v0" );
+        cosign_protocol = 0;
+    } else {
+        cosign_protocol = 2 ;
+    }
+
+    if ( cosign_protocol == 2 ) {
+        if ( snet_writef( cl->cl_sn, "STARTTLS 2\r\n" ) < 0 ) {
+            syslog( LOG_ERR, "connect_sn: starttls 2 failed" );
+            goto done;
+        }
+    } else {
+        if ( snet_writef( cl->cl_sn, "STARTTLS\r\n" ) < 0 ) {
+            syslog( LOG_ERR, "connect_sn: starttls failed" );
+            goto done;
+        }
     }
 
     tv = cosign_net_timeout;
@@ -112,7 +131,20 @@ connect_sn( struct connlist *cl, SSL_CTX *ctx, char *host, int delay )
 	err = -2;
 	goto done;
     }
+
+    if ( cosign_protocol == 2 ) {
+        tv = cosign_net_timeout;
+        if (( line = snet_getline_multi( cl->cl_sn, logger, &tv )) == NULL ) {
+	    syslog( LOG_ERR, "connect_sn: snet_getline_multi failed" );
+            goto done;
+        }
+        if ( *line != '2' ) {
+            syslog( LOG_ERR, "connect_sn: starttls 2: %s", line );
+            goto done;
+        }
+    }
     return( 0 );
+
 done:
     if ( snet_close( cl->cl_sn ) != 0 ) {
 	syslog( LOG_ERR, "connect_sn: snet_close failed" );
