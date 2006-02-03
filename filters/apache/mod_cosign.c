@@ -173,7 +173,6 @@ set_cookie_and_redirect( request_rec *r, cosign_host_config *cfg )
 	}
 	dest = ap_psprintf( r->pool,
 		"%s?%s&%s&%s", cfg->redirect, reqfact, my_cookie, ref );
-	reqfact = ap_pstrcat( r->pool, "factors=", cfg->reqfv[ 0 ], NULL );
     } else {
 	/* we need to remove this semi-colon eventually */
 	dest = ap_psprintf( r->pool,
@@ -403,7 +402,6 @@ cosign_merge_cfg( cmd_parms *params, void *mconfig )
     if ( cfg->siteentry == NULL ) {
 	cfg->siteentry = ap_pstrdup( params->pool, scfg->siteentry );
     }
-
     if ( cfg->reqfv == NULL ) {
 	cfg->reqfv = scfg->reqfv; 
     }
@@ -413,7 +411,6 @@ cosign_merge_cfg( cmd_parms *params, void *mconfig )
     if ( cfg->suffix == NULL ) {
 	cfg->suffix = ap_pstrdup( params->pool, scfg->suffix );
     }
-
     if ( cfg->public == -1 ) {
 	cfg->public = scfg->public; 
     }
@@ -447,7 +444,6 @@ cosign_merge_cfg( cmd_parms *params, void *mconfig )
     if ( cfg->ctx == NULL ) {
 	cfg->ctx = scfg->ctx;
     }
-
     if ( cfg->proxy == -1 ) {
 	cfg->proxy = scfg->proxy;
     }
@@ -529,8 +525,6 @@ set_cosign_factor( cmd_parms *params, void *mconfig, char *arg )
 
     cfg = cosign_merge_cfg( params, mconfig );
 
-fprintf( stderr, "factor arg is %s!\n", arg );
-
     if (( acav = acav_alloc()) == NULL ) {
 	cosign_log( APLOG_ERR, params->server, "mod_cosign: set_cosign_factor:"
 		" acav_alloc failed" );
@@ -551,7 +545,6 @@ fprintf( stderr, "factor arg is %s!\n", arg );
     cfg->reqfc = ac;
 
     acav_free( acav );
-
 
     cfg->configured = 1;
     return( NULL );

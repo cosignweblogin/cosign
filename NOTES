@@ -1,6 +1,5 @@
 apache2: directives, redirect, COSIGN_FACTOR
 daemon: startls 2 for replication
-to review: strncat, double ticket transfers
 ----
 keyword notauth for cosign.conf(5)
 ----

@@ -28,15 +28,16 @@
 #include <openssl/ssl.h>
 #include <openssl/err.h>
 
-
 #include <snet.h>
 
+#include "argcargv.h"
 #include "sparse.h"
 #include "mkcookie.h"
 #include "cosign.h"
 #include "log.h"
 
 static int	set_cookie_and_redirect( request_rec *, cosign_host_config * );
+extern int      cosign_protocol;
 
 /* Our exported link to Apache. */
 module AP_MODULE_DECLARE_DATA cosign_module;
@@ -49,6 +50,9 @@ cosign_create_config( apr_pool_t *p )
     cfg = (cosign_host_config *)apr_pcalloc( p, sizeof( cosign_host_config ));
     cfg->service = NULL;
     cfg->siteentry = NULL;
+    cfg->reqfv = NULL;
+    cfg->reqfc = -1;
+    cfg->suffix = NULL;
     cfg->public = -1;
     cfg->redirect = NULL;
     cfg->posterror = NULL;
@@ -102,8 +106,10 @@ cosign_init(apr_pool_t *p, apr_pool_t *plog, apr_pool_t *ptemp, server_rec *s)
     int
 set_cookie_and_redirect( request_rec *r, cosign_host_config *cfg )
 {
-    char		*dest, *my_cookie, *full_cookie, *ref;
+    char		*dest, *my_cookie;
+    char                *full_cookie, *ref, *reqfact;
     char		cookiebuf[ 128 ];
+    int                 i;
     unsigned int	port;
     struct timeval      now;
 
@@ -167,7 +173,19 @@ set_cookie_and_redirect( request_rec *r, cosign_host_config *cfg )
     }
 
     /* we need to remove this semi-colon eventually */
-    dest = apr_psprintf( r->pool, "%s?%s;&%s", cfg->redirect, my_cookie, ref );
+    if ( cfg->reqfc > 0 ) {
+        reqfact = apr_pstrcat( r->pool, "factors=", cfg->reqfv[ 0 ], NULL );
+        for ( i = 1; i < cfg->reqfc; i++ ) {
+            reqfact = apr_pstrcat( r->pool, reqfact, ",",
+                    cfg->reqfv[ i ], NULL );
+        }
+        dest = apr_psprintf( r->pool,
+                "%s?%s&%s&%s", cfg->redirect, reqfact, my_cookie, ref );
+    } else {
+        /* we need to remove this semi-colon eventually */
+        dest = apr_psprintf( r->pool,
+                "%s?%s;&%s", cfg->redirect, my_cookie, ref );
+    }
     apr_table_set( r->headers_out, "Location", dest );
     return( 0 );
 }
@@ -328,6 +346,9 @@ cosign_auth( request_rec *r )
 	r->ap_auth_type = "Cosign";
 	apr_table_set( r->subprocess_env, "COSIGN_SERVICE", cfg->service );
 	apr_table_set( r->subprocess_env, "REMOTE_REALM", si.si_realm );
+	if ( cosign_protocol == 2 ) {
+	    apr_table_set( r->subprocess_env, "COSIGN_FACTOR", si.si_factor );
+        }
 #ifdef KRB
 	if ( cfg->krbtkt == 1 ) {
 	    apr_table_set( r->subprocess_env, "KRB5CCNAME", si.si_krb5tkt );
@@ -388,6 +409,15 @@ cosign_merge_cfg( cmd_parms *params, void *mconfig )
     if ( cfg->siteentry == NULL ) {
         cfg->siteentry = apr_pstrdup( params->pool, scfg->siteentry );
     }
+    if ( cfg->reqfv == NULL ) {
+        cfg->reqfv = scfg->reqfv;
+    }
+    if ( cfg->reqfc == -1 ) {
+        cfg->reqfc = scfg->reqfc;
+    }
+    if ( cfg->suffix == NULL ) {
+        cfg->suffix = apr_pstrdup( params->pool, scfg->suffix );
+    }
     if ( cfg->public == -1 ) {
         cfg->public = scfg->public;
     }
@@ -421,7 +451,6 @@ cosign_merge_cfg( cmd_parms *params, void *mconfig )
     if ( cfg->ctx == NULL ) {
         cfg->ctx = scfg->ctx;
     }
-
     if ( cfg->proxy == -1 ) {
         cfg->proxy = scfg->proxy;
     }
@@ -492,6 +521,54 @@ set_cosign_siteentry( cmd_parms *params, void *mconfig, char *arg )
     cfg->configured = 1;
     return( NULL );
 }
+
+    static const char *
+set_cosign_factor( cmd_parms *params, void *mconfig, char *arg )
+{
+    cosign_host_config          *cfg;
+    ACAV                        *acav;
+    int                         ac, i;
+    char                        **av;
+
+    cfg = cosign_merge_cfg( params, mconfig );
+
+    if (( acav = acav_alloc()) == NULL ) {
+        cosign_log( APLOG_ERR, params->server, "mod_cosign: set_cosign_factor:"
+                " acav_alloc failed" );
+        exit( 1 );
+    }
+
+    if (( ac = acav_parse( acav, arg, &av )) < 0 ) {
+        cosign_log( APLOG_ERR, params->server, "mod_cosign: set_cosign_factor:"
+                " acav_parse failed" );
+        exit( 1 );
+    }
+
+    /* should null terminate av */
+    cfg->reqfv = apr_palloc( params->pool, ac * sizeof( char * ));
+    for ( i = 0; i < ac; i++ ) {
+        cfg->reqfv[ i ] = apr_pstrdup( params->pool, av[ i ] );
+    }
+    cfg->reqfc = ac;
+
+    acav_free( acav );
+
+    cfg->configured = 1;
+    return( NULL );
+}
+
+    static const char *
+set_cosign_factorsuffix( cmd_parms *params, void *mconfig, char *arg )
+{
+    cosign_host_config          *cfg;
+
+    cfg = cosign_merge_cfg( params, mconfig );
+
+    cfg->suffix = apr_pstrdup( params->pool, arg );
+    cfg->configured = 1;
+    return( NULL );
+}
+
 
     static const char *
 set_cosign_public( cmd_parms *params, void *mconfig, int flag )
@@ -606,7 +683,6 @@ set_cosign_tkt_prefix( cmd_parms *params, void *mconfig, char *arg )
     cfg->tkt_prefix = apr_pstrdup( params->pool, arg );
     return( NULL );
 }
-
 
 #ifdef KRB
 #ifdef GSS
@@ -828,6 +904,14 @@ static command_rec cosign_cmds[ ] =
         AP_INIT_TAKE1( "CosignSiteEntry", set_cosign_siteentry,
         NULL, RSRC_CONF | ACCESS_CONF, 
         "\"none\" or URL to redirect for users who successfully authenticate" ),
+
+        AP_INIT_RAW_ARGS( "CosignRequireFactor", set_cosign_factor,
+        NULL, RSRC_CONF | ACCESS_CONF, 
+        "the authentication factors that must be satisfied" ),
+
+        AP_INIT_TAKE1( "CosignIgnoreFactorSuffix", set_cosign_factorsuffix,
+        NULL, RSRC_CONF | ACCESS_CONF, 
+        "the factor suffix to be ignored when testing for compliance" ),
 
         AP_INIT_FLAG( "CosignAllowPublicAccess", set_cosign_public,
         NULL, RSRC_CONF | ACCESS_CONF, 

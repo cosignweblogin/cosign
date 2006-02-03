@@ -133,16 +133,17 @@ netcheck_cookie( char *scookie, struct sinfo *si, struct connlist *conn,
 		if ( strcmp( fv[ i ], av[ j ] ) == 0 ) {
 		    break;
 		}
+		    if ( cfg->suffix != NULL ) {
 		if (( p = strstr( av[ j ], cfg->suffix )) != NULL ) {
 		    if (( strlen( p )) == ( strlen( cfg->suffix ))) {
-			p = '\0';
+			*p = '\0';
 			if ( strcmp( fv[ i ], av[ j ] ) == 0 ) {
-			    /* add *cfg->suffix back in to p */
 			    *p = *cfg->suffix;
 			    break;
 			}
 		    }
 		}
+		    }
 	    }
 	    if ( j >= ac ) {
 		/* a required factor wasn't in the check line */
@@ -608,7 +609,7 @@ connect_sn( struct connlist *cl, cosign_host_config *cfg, server_rec *s )
 	goto done;
     }
     if (( cosign_protocol = strtol( av[ 1 ], (char **)NULL, 10 )) != 2 ) {
-	if ( cfg->reqfc < 0  ) {
+	if ( cfg->reqfc > 0  ) {
 	    cosign_log( APLOG_ERR, s,
 		    "mod_cosign: required v2 protocol unsupported by server" );
 	    goto done;
