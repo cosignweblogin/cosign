@@ -1,5 +1,7 @@
-apache2: directives, redirect, COSIGN_FACTOR
-daemon: startls 2 for replication
+cgi:
+login POST
+
+
 ----
 keyword notauth for cosign.conf(5)
 ----

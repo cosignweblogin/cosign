@@ -66,6 +66,10 @@ static struct subfile_list sl[] = {
         { 'c', SUBF_STR_ESC, NULL },
 #define SL_ERROR	4
         { 'e', SUBF_STR, NULL },
+#define SL_RFACTOR	5
+        { 'f', SUBF_STR, NULL },
+#define SL_DFACTOR	6
+        { 'd', SUBF_STR, NULL },
         { '\0', 0, NULL },
 };
 
@@ -177,7 +181,7 @@ main( int argc, char *argv[] )
     char        		new_cookie[ 255 ];
     char			*data, *ip_addr;
     char			*cookie = NULL, *method, *script, *qs;
-    char			*misc = NULL, *p;
+    char			*misc = NULL, *factor = NULL, *p;
     char			*ref = NULL, *service = NULL, *login = NULL;
     char			*remote_user = NULL;
     char			*tmpl = LOGIN_HTML;
@@ -259,7 +263,22 @@ main( int argc, char *argv[] )
 	    rebasic = 1;
 	    p = strtok( NULL, "&" );
 	}
-	
+
+	if ( strncmp( p, "factors=", 8 ) == 0 ) {
+	    if (( factor = strchr( p, '=' )) == NULL ) {
+		sl[ SL_TITLE ].sl_data = "Error: malformatted factors";
+		sl[ SL_ERROR ].sl_data = "Unable to determine required "
+			"factors from query string.";
+		tmpl = ERROR_HTML;
+		subfile( tmpl, sl, 0 );
+		exit( 0 );
+	    }
+	    factor++;
+	    sl[ SL_RFACTOR ].sl_data = factor;
+	    p = strtok( NULL, "&" );
+	}
+
+fprintf( stderr, "after p is %s\n", p );
 	if ( p != NULL ) {
 	    service = p;
 	    len = strlen( service );
