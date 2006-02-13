@@ -33,10 +33,10 @@ SSL_CTX         *ctx = NULL;
 
 struct cgi_list cl[] = {
 #define CL_VERIFY	0
-        { "verify", NULL },
+        { "verify", CGI_TYPE_STRING, NULL },
 #define CL_URL 		1
-        { "url", NULL },
-        { NULL, NULL },
+        { "url", CGI_TYPE_STRING, NULL },
+        { NULL, CGI_TYPE_UNDEF, NULL },
 };
 
 static struct subfile_list sl[] = {
@@ -81,8 +81,10 @@ logout_configure()
     int
 main( int argc, char *argv[] )
 {
+    CGIHANDLE		*cgi;
     char		*tmpl = VERIFY_LOGOUT;
     char		*cookie = NULL, *data, *ip_addr, *qs;
+    char		*method = NULL;
     struct connlist	*head;
     char		*script;
 
@@ -117,12 +119,19 @@ main( int argc, char *argv[] )
 	exit( 0 );
     }
 
-    if ( cgi_info( CGI_GET, cl ) == 0 ) {
+    if (( method = getenv( "REQUEST_METHOD" )) == NULL ) {
+	sl[ SL_TITLE ].sl_data = "Error: Server Error";
+        sl[ SL_ERROR ].sl_data = "REQUEST_METHOD not set";
+	tmpl = ERROR_HTML;
+	subfile( tmpl, sl, 0 );
+	exit( 0 );
+    }
+
+    if ( strcmp( method, "GET" ) == 0 ) {
 	/* this is not a POST, display verify screen */
 	if ((( qs = getenv( "QUERY_STRING" )) != NULL ) &&
 		( *qs != '\0' ) &&
 		( strncmp( qs, "http", 4 ) == 0 )) {
-
 	    /* query string looks like a url preserve it */
 	    sl[ SL_URL ].sl_data = strdup( qs );
 	}
@@ -132,14 +141,21 @@ main( int argc, char *argv[] )
 	exit( 0 );
     }
 
-    if ( cgi_info( CGI_STDIN, cl ) != 0 ) {
+    if (( cgi = cgi_init()) == NULL ){
+        sl[ SL_TITLE ].sl_data = "Error: Server Error";
+        sl[ SL_ERROR ].sl_data = "cgi_init failed";
+        tmpl = ERROR_HTML;
+        subfile( tmpl, sl, 0 );
+	exit( 0 );
+    }
+
+    if ( cgi_post( cgi, cl ) != 0 ) {
 	/* an actual logout must be the result of a POST, see? */
-        fprintf( stderr, "%s: cgi_info failed\n", script );
+        fprintf( stderr, "%s: cgi_post failed\n", script );
         exit( 1 );
     }
 
-    if (( cl[ CL_URL ].cl_data != NULL ) ||
-	    ( *cl[ CL_URL ].cl_data != '\0' )) {
+    if ( cl[ CL_URL ].cl_data != NULL ) {
 	/* oh the places you'll go */
         if ( strncmp( cl[ CL_URL ].cl_data, "http", 4 ) == 0 ) {
 	    sl[ SL_URL ].sl_data = cl[ CL_URL ].cl_data;
@@ -150,8 +166,7 @@ main( int argc, char *argv[] )
      * Check that the 'Verify' post was sent.  If not, display the verify
      * screen again.
      */
-    if (( cl[ CL_VERIFY ].cl_data == NULL ) ||
-	    ( *cl[ CL_VERIFY ].cl_data == '\0' )) {
+    if ( cl[ CL_VERIFY ].cl_data == NULL ) {
 	sl[ SL_TITLE ].sl_data = "Logout Requested (again?)";
 	subfile ( tmpl, sl, 0 );
 	exit( 0 );

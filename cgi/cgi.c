@@ -43,16 +43,16 @@ SSL_CTX 	*ctx = NULL;
 
 struct cgi_list cl[] = {
 #define CL_LOGIN	0
-        { "login", NULL },
+        { "login", CGI_TYPE_STRING, NULL },
 #define CL_PASSWORD	1
-        { "password", NULL },
+        { "password", CGI_TYPE_STRING, NULL },
 #define CL_REF		2
-        { "ref", NULL },
+        { "ref", CGI_TYPE_STRING, NULL },
 #define CL_SERVICE	3
-        { "service", NULL },
+        { "service", CGI_TYPE_STRING, NULL },
 #define CL_REAUTH	4
-        { "reauth", NULL },
-        { NULL, NULL },
+        { "reauth", CGI_TYPE_STRING, NULL },
+        { NULL, CGI_TYPE_UNDEF, NULL },
 };
 
 static struct subfile_list sl[] = {
@@ -190,6 +190,7 @@ main( int argc, char *argv[] )
     struct servicelist		*scookie;
     struct timeval		tv;
     struct connlist		*head;
+    CGIHANDLE			*cgi;
 
     if ( argc == 2 ) {
 	if ( strcmp( argv[ 1 ], "-V" ) == 0 ) {
@@ -278,7 +279,6 @@ main( int argc, char *argv[] )
 	    p = strtok( NULL, "&" );
 	}
 
-fprintf( stderr, "after p is %s\n", p );
 	if ( p != NULL ) {
 	    service = p;
 	    len = strlen( service );
@@ -477,26 +477,30 @@ fprintf( stderr, "after p is %s\n", p );
 	exit( 0 );
     }
 
-    if ( cgi_info( CGI_STDIN, cl ) != 0 ) {
+    if (( cgi = cgi_init()) == NULL ) {
+        sl[ SL_TITLE ].sl_data = "Error: Server Error";
+        sl[ SL_ERROR ].sl_data = "cgi_init failed";
+	tmpl = ERROR_HTML;
+        subfile( tmpl, sl, 0 );
+        exit( 0 );
+    }  
+
+    if ( cgi_post( cgi, cl ) != 0 ) {
 	exit( 1 );
     }
 
-    if (( cl[ CL_REF ].cl_data != NULL ) &&
-	    ( *cl[ CL_REF ].cl_data != '\0' )) {
+    if ( cl[ CL_REF ].cl_data != NULL ) {
         ref = sl[ SL_REF ].sl_data = cl[ CL_REF ].cl_data;
     }
-    if (( cl[ CL_SERVICE ].cl_data != NULL ) &&
-	    ( *cl[ CL_SERVICE ].cl_data != '\0' )) {
+    if ( cl[ CL_SERVICE ].cl_data != NULL ) {
 	service = sl[ SL_SERVICE ].sl_data = cl[ CL_SERVICE ].cl_data;
     }
-    if (( cl[ CL_REAUTH ].cl_data != NULL ) &&
-	    ( *cl[ CL_REAUTH ].cl_data != '\0' ) &&
+    if (( cl[ CL_REAUTH ].cl_data != NULL ) && 
 	    ( strcmp( cl[ CL_REAUTH ].cl_data, "true" ) == 0 )) {
 	reauth = 1;
     }
 
-    if (( cl[ CL_LOGIN ].cl_data == NULL ) ||
-	    ( *cl[ CL_LOGIN ].cl_data == '\0' )) {
+    if ( cl[ CL_LOGIN ].cl_data == NULL ) {
 	sl[ SL_TITLE ].sl_data = "Authentication Required";
 	sl[ SL_ERROR ].sl_data = "Please enter your login and password.";
 	subfile( tmpl, sl, 1 );
@@ -504,8 +508,7 @@ fprintf( stderr, "after p is %s\n", p );
     }
     login = sl[ SL_LOGIN ].sl_data = cl[ CL_LOGIN ].cl_data;
 
-    if (( cl[ CL_PASSWORD ].cl_data == NULL ) ||
-	    ( *cl[ CL_PASSWORD ].cl_data == '\0' )) {
+    if ( cl[ CL_PASSWORD ].cl_data == NULL ) {
 	sl[ SL_TITLE ].sl_data = "Missing Password";
 	sl[ SL_ERROR ].sl_data = "Unable to login because password is "
 		"a required field.";

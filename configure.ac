@@ -9,8 +9,6 @@ AC_CONFIG_SRCDIR([version.c])
 AC_PROG_AWK
 AC_PROG_CC
 AC_PROG_INSTALL
-AC_PROG_LEX
-AC_PROG_YACC
 
 AC_CANONICAL_HOST 
 
@@ -119,6 +117,7 @@ fi
 AC_SUBST(OPTOPTS)
 SET_NO_SASL
 AC_CONFIG_SUBDIRS(libsnet)
+AC_CONFIG_SUBDIRS(libcgi)
 
 AC_CONFIG_FILES([Makefile
                  cgi/Makefile
@@ -126,7 +125,6 @@ AC_CONFIG_FILES([Makefile
                  html/Makefile
                  daemon/Makefile
                  $FILTER_CONFIG_FILES
-		 filters/common/Makefile
-                 libcgi/Makefile])
+		 filters/common/Makefile])
 
 AC_OUTPUT

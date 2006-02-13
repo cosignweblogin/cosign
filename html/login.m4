@@ -49,7 +49,7 @@ include(`header.html')
 				</td>
 			    </tr>
 			    <tr>
-				<td align="right"><input name="login" value="login" alt="login" type="image" src="/cosign/images/login_anim_fd.gif" width="83" height="34" border="0"></td>
+				<td align="right"><input name="imageField" type="image" src="/cosign/images/login_anim_fd.gif" width="83" height="34" border="0"></td>
 			    </tr>
 			</table>
 		    </td>
