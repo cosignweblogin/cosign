@@ -3,6 +3,12 @@
  * All Rights Reserved.  See COPYRIGHT.
  */
 
+struct userinfo
+{
+	char	ui_login[ 131 ];
+	char	ui_factor[ 256 ];
+};
+
 struct login_param
 {
     char	*lp_cookie;
@@ -28,12 +34,13 @@ struct reg_param
 
 struct check_param
 {
-    char	*cp_cookie;
-    char	cp_user[ 131 ];
+    char		*cp_cookie;
+    struct userinfo	*cp_ui;
 };
+
 
 int cosign_login( struct connlist *, char *, char *, char *, char *, char * );
 int cosign_logout( struct connlist *, char *, char * );
 int cosign_register( struct connlist *, char *, char *, char * );
-char *cosign_check( struct connlist *, char * );
+int cosign_check( struct connlist *, char *, struct userinfo * );
 int ssl_setup(char *, char *, char * );

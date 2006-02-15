@@ -157,6 +157,7 @@ cosign_choose_conn( struct connlist *head, void *netparams,
     }
     return( -1 );
 }
+
     int
 cosign_login( struct connlist *conn, char *cookie, char *ip, char *user,
 	char *realm, char *krb )
@@ -427,25 +428,25 @@ net_register( SNET *sn, void *vrp )
     }
 }
 
-    char *
-cosign_check( struct connlist *conn, char *cookie )
+    int
+cosign_check( struct connlist *conn, char *cookie, struct userinfo *ui )
 {
     static struct check_param cp;
 
     cp.cp_cookie = cookie;
-    *cp.cp_user = '\0';
+    cp.cp_ui = ui;
 
     if ( cosign_choose_conn( conn, &cp, net_check ) < 0 ) {
-	return( NULL );
+	return( -1 );
     }
 
-    return( cp.cp_user );
+    return( 0 );
 }
 
     static int
 net_check( SNET *sn, void *vcp )
 {
-    int                 ac;
+    int                 ac, i;
     char		*line;
     char                **av;
     struct timeval	tv;
@@ -464,15 +465,38 @@ net_check( SNET *sn, void *vcp )
 
     switch( *line ) {
     case '2':
-	if (( ac = argcargv( line, &av )) != 4 ) {
+	if (( ac = argcargv( line, &av )) < 4 ) {
 	    fprintf( stderr, "net_check: wrong num of args: %s\n", line);
 	    return( COSIGN_ERROR );
 	}
-	if ( strlen( av[ 2 ] ) >= sizeof( cp->cp_user )) {
+	if ( strlen( av[ 2 ] ) >= sizeof( cp->cp_ui->ui_login )) {
 	    fprintf( stderr, "net_check: username %s too long", av[ 2 ] );
 	    return( COSIGN_ERROR );
 	}
-	strcpy( cp->cp_user, av[ 2 ] );
+	strcpy( cp->cp_ui->ui_login, av[ 2 ] );
+
+	if ( cosign_protocol == 0 ) {
+	    *cp->cp_ui->ui_factor = '\0';
+	    return( COSIGN_OK );
+	}
+
+	/* protocol v2 */
+	if ( strlen( av[ 3 ] ) + 1 > sizeof( cp->cp_ui->ui_factor )) {
+	    fprintf( stderr, "net_check: factor %s too long", av[ 3 ] );
+            return( COSIGN_ERROR );
+        }
+        strcpy( cp->cp_ui->ui_factor, av[ 3 ] );
+
+        for ( i = 4; i < ac; i++ ) {
+            if ( strlen( av[ i ] ) + 1 + 1 >
+                    sizeof( cp->cp_ui->ui_factor ) - strlen(
+		    cp->cp_ui->ui_factor )) {
+		fprintf( stderr, "net_check: factor %s too long", av[ i ] );
+                return( COSIGN_ERROR );
+            }
+            strcat( cp->cp_ui->ui_factor, "," );
+            strcat( cp->cp_ui->ui_factor, av[ i ] );
+        }
 	return( COSIGN_OK );
 
     case '4':

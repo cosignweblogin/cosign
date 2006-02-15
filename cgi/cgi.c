@@ -190,6 +190,7 @@ main( int argc, char *argv[] )
     struct servicelist		*scookie;
     struct timeval		tv;
     struct connlist		*head;
+    struct userinfo		ui;
     CGIHANDLE			*cgi;
 
     if ( argc == 2 ) {
@@ -403,12 +404,13 @@ main( int argc, char *argv[] )
 	    if (( scookie = service_find( service )) != NULL ) {
 		if ( scookie->sl_flag & SL_REAUTH ) {
 		    *p = '=';
-		    if (( sl[ SL_LOGIN ].sl_data =
-			    cosign_check( head, cookie )) == NULL ) {
+		    if ( cosign_check( head, cookie, &ui ) != 0 ) {
 			sl[ SL_ERROR ].sl_data = "You are not logged in. "
 				"Please log in now.";
 			goto loginscreen;
 		    }
+		    sl[ SL_LOGIN ].sl_data = ui.ui_login;
+		    sl[ SL_DFACTOR ].sl_data = ui.ui_factor;
 		    sl[ SL_TITLE ].sl_data = "REAUTH TITLE";
 		    sl[ SL_ERROR ].sl_data = "REAUTH ERROR.";
 		    tmpl = REAUTH_HTML;
@@ -420,7 +422,7 @@ main( int argc, char *argv[] )
 	}
 
 	if (( rc = cosign_register( head, cookie, ip_addr, service )) < 0 ) {
-	    if ( cosign_check( head, cookie ) == NULL ) {
+	    if ( cosign_check( head, cookie, &ui ) != 0 ) {
 		sl[ SL_ERROR ].sl_data = "You are not logged in. "
 			"Please log in now.";
 		goto loginscreen;
@@ -450,7 +452,7 @@ main( int argc, char *argv[] )
     }
 
     if ( strcmp( method, "POST" ) != 0 ) {
-	if ( cosign_check( head, cookie ) == NULL ) {
+	if ( cosign_check( head, cookie, &ui ) != 0 ) {
 	    if ( rebasic && cosign_login( head, cookie, ip_addr, remote_user,
 			realm, krbtkt_path ) < 0 ) {
 		fprintf( stderr, "cosign_login: basic login failed\n" ) ;
@@ -554,7 +556,7 @@ main( int argc, char *argv[] )
     if ( service ) {
         if (( rc = cosign_register( head, cookie, ip_addr, service )) < 0 ) {
 	    /* this should not be possible... do it anyway? */
-            if ( cosign_check( head, cookie ) == NULL ) {
+            if ( cosign_check( head, cookie, &ui ) != 0 ) {
                 sl[ SL_TITLE ].sl_data = "Authentication Required";
                 goto loginscreen;
             }
