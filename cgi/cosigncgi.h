@@ -4,6 +4,13 @@ struct connlist {
     struct connlist     *conn_next;
 };
 
+struct subparams {
+    char	*sp_ref;
+    char	*sp_service;
+    char	*sp_factor;
+    int		sp_reauth;
+};
+
 int	mkcookie( int, char * );
 struct connlist * connlist_setup( char *, unsigned short );
 

@@ -47,6 +47,8 @@ static struct subfile_list sl[] = {
         { 'r', SUBF_STR_ESC, NULL },
 #define SL_ERROR	4
         { 'e', SUBF_STR, NULL },
+#define SL_RFACTOR		5
+        { 'f', SUBF_STR_ESC, NULL },
         { '\0', 0, NULL },
 };
 
@@ -90,7 +92,7 @@ lcgi_configure()
 # ifdef SQL_FRIEND
     void
 cosign_login_mysql( struct connlist *head, char *id, char *passwd,
-	char *ip_addr, char *cookie, char *ref, char *service, int reauth )
+	char *ip_addr, char *cookie, struct subparam *sp )
 {
     MYSQL_RES		*res;
     MYSQL_ROW		row;
@@ -160,6 +162,9 @@ cosign_login_mysql( struct connlist *head, char *id, char *passwd,
 	if ( service != NULL ) {
 	    sl[ SL_SERVICE ].sl_data = service;
 	}
+	if ( factor != NULL ) {
+	    sl[ SL_RFACTOR ].sl_data = factor;
+	}
 	if ( reauth ) {
 	    tmpl = REAUTH_HTML;
 	} else {
@@ -183,6 +188,9 @@ cosign_login_mysql( struct connlist *head, char *id, char *passwd,
 	}
 	if ( service != NULL ) {
 	    sl[ SL_SERVICE ].sl_data = service;
+	}
+	if ( factor != NULL ) {
+	    sl[ SL_RFACTOR ].sl_data = factor;
 	}
 	sl[ SL_ERROR ].sl_data = "Unable to login because guest password "
 	    "is incorrect.";
@@ -221,7 +229,7 @@ cosign_login_mysql( struct connlist *head, char *id, char *passwd,
 #ifdef KRB
     void
 cosign_login_krb5( struct connlist *head, char *id, char *passwd,
-	char *ip_addr, char *cookie, char *ref, char *service, int reauth )
+	char *ip_addr, char *cookie, struct subparams *sp )
 {
     krb5_error_code             kerror = 0;
     krb5_context                kcontext;
@@ -300,16 +308,19 @@ cosign_login_krb5( struct connlist *head, char *id, char *passwd,
 	if ( kerror == KRB5KRB_AP_ERR_BAD_INTEGRITY ) {
 	    sl[ SL_ERROR ].sl_data = "Password incorrect.  Is [caps lock] on?";
 	    sl[ SL_TITLE ].sl_data = "Password Incorrect";
-	    if ( reauth ) {
+	    if ( sp->sp_reauth ) {
 		tmpl = REAUTH_HTML;
 	    } else {
 		tmpl = LOGIN_ERROR_HTML;
 	    }
-	    if ( ref != NULL ) {
-		sl[ SL_REF ].sl_data = ref;
+	    if ( sp->sp_ref != NULL ) {
+		sl[ SL_REF ].sl_data = sp->sp_ref;
 	    }
-	    if ( service != NULL ) {
-		sl[ SL_SERVICE ].sl_data = service;
+	    if ( sp->sp_service != NULL ) {
+		sl[ SL_SERVICE ].sl_data = sp->sp_service;
+	    }
+	    if ( sp->sp_factor != NULL ) {
+		sl[ SL_RFACTOR ].sl_data = sp->sp_factor;
 	    }
 	    sl[ SL_LOGIN ].sl_data = id;
 	    subfile( tmpl, sl, 1 );
@@ -364,7 +375,7 @@ cosign_login_krb5( struct connlist *head, char *id, char *passwd,
 	krb5_free_principal( kcontext, sprinc );
     }
 
-    if ( reauth ) {
+    if ( sp->sp_reauth ) {
 	return;
     }
 

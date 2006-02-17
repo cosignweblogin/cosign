@@ -52,6 +52,8 @@ struct cgi_list cl[] = {
         { "service", CGI_TYPE_STRING, NULL },
 #define CL_REAUTH	4
         { "reauth", CGI_TYPE_STRING, NULL },
+#define CL_RFACTOR	5
+        { "required", CGI_TYPE_STRING, NULL },
         { NULL, CGI_TYPE_UNDEF, NULL },
 };
 
@@ -181,7 +183,8 @@ main( int argc, char *argv[] )
     char        		new_cookie[ 255 ];
     char			*data, *ip_addr;
     char			*cookie = NULL, *method, *script, *qs;
-    char			*misc = NULL, *factor = NULL, *p;
+    char			*misc = NULL, *factor = NULL, *p, *r, *s;
+    char			*require, *satisfied, *reqp, *satp;
     char			*ref = NULL, *service = NULL, *login = NULL;
     char			*remote_user = NULL;
     char			*tmpl = LOGIN_HTML;
@@ -191,6 +194,7 @@ main( int argc, char *argv[] )
     struct timeval		tv;
     struct connlist		*head;
     struct userinfo		ui;
+    struct subparams		sp = { '\0', '\0', '\0', 0 };
     CGIHANDLE			*cgi;
 
     if ( argc == 2 ) {
@@ -411,6 +415,7 @@ main( int argc, char *argv[] )
 		    }
 		    sl[ SL_LOGIN ].sl_data = ui.ui_login;
 		    sl[ SL_DFACTOR ].sl_data = ui.ui_factor;
+		    sl[ SL_RFACTOR ].sl_data = factor;
 		    sl[ SL_TITLE ].sl_data = "REAUTH TITLE";
 		    sl[ SL_ERROR ].sl_data = "REAUTH ERROR.";
 		    tmpl = REAUTH_HTML;
@@ -421,13 +426,34 @@ main( int argc, char *argv[] )
 	    *p = '=';
 	}
 
-	if (( rc = cosign_register( head, cookie, ip_addr, service )) < 0 ) {
-	    if ( cosign_check( head, cookie, &ui ) != 0 ) {
-		sl[ SL_ERROR ].sl_data = "You are not logged in. "
-			"Please log in now.";
-		goto loginscreen;
-	    }
+	if ( cosign_check( head, cookie, &ui ) != 0 ) {
+	    sl[ SL_ERROR ].sl_data = "You are not logged in. "
+		    "Please log in now.";
+	    goto loginscreen;
+	}
 
+	require = strdup( factor );
+	satisfied = strdup( ui.ui_factor );
+	for ( r = strtok_r( require, ",", &reqp ); r != NULL;
+		r = strtok_r( NULL, ",", &reqp )) {
+	    for ( s = strtok_r( satisfied, ",", &satp ); s != NULL;
+		    s = strtok_r( NULL, ",", &satp )) {
+		if ( strcmp( r, s ) == 0 ) {
+		    break;
+		}
+	    }
+	    if ( s == NULL ) {
+		break;
+	    }
+	}
+	if ( r != NULL ) {
+	    sl[ SL_ERROR ].sl_data = "You need more factors. "
+		    "Please log in more now.";
+	    sl[ SL_DFACTOR ].sl_data = ui.ui_factor;
+	    goto loginscreen;
+	}
+
+	if (( rc = cosign_register( head, cookie, ip_addr, service )) < 0 ) {
 	    fprintf( stderr, "%s: cosign_register failed\n", script );
 	    sl[ SL_TITLE ].sl_data = "Error: Register Failed";
 	    sl[ SL_ERROR ].sl_data = "We were unable to contact "
@@ -492,14 +518,17 @@ main( int argc, char *argv[] )
     }
 
     if ( cl[ CL_REF ].cl_data != NULL ) {
-        ref = sl[ SL_REF ].sl_data = cl[ CL_REF ].cl_data;
+        sp.sp_ref = sl[ SL_REF ].sl_data = cl[ CL_REF ].cl_data;
     }
     if ( cl[ CL_SERVICE ].cl_data != NULL ) {
-	service = sl[ SL_SERVICE ].sl_data = cl[ CL_SERVICE ].cl_data;
+	sp.sp_service = sl[ SL_SERVICE ].sl_data = cl[ CL_SERVICE ].cl_data;
+    }
+    if ( cl[ CL_RFACTOR ].cl_data != NULL ) {
+	sp.sp_factor = sl[ SL_RFACTOR ].sl_data = cl[ CL_RFACTOR ].cl_data;
     }
     if (( cl[ CL_REAUTH ].cl_data != NULL ) && 
 	    ( strcmp( cl[ CL_REAUTH ].cl_data, "true" ) == 0 )) {
-	reauth = 1;
+	sp.sp_reauth = reauth = 1;
     }
 
     if ( cl[ CL_LOGIN ].cl_data == NULL ) {
@@ -526,7 +555,7 @@ main( int argc, char *argv[] )
     if ( strchr( login, '@' ) != NULL ) {
 # ifdef SQL_FRIEND
 	cosign_login_mysql( head, login, cl[ CL_PASSWORD ].cl_data,
-		ip_addr, cookie, ref, service, reauth );
+		ip_addr, cookie, &sp );
 # else
 	/* no @ unless we're friendly. */
 	sl[ SL_ERROR ].sl_data = sl[ SL_TITLE ].sl_data = "Your login id may not contain an '@'";
@@ -543,7 +572,7 @@ main( int argc, char *argv[] )
 # ifdef KRB
 	/* not a friend, must be kerberos */
 	cosign_login_krb5( head, login, cl[ CL_PASSWORD ].cl_data,
-		ip_addr, cookie, ref, service, reauth );
+		ip_addr, cookie, &sp );
 # else /* KRB */
 	sl[ SL_TITLE ].sl_data = "Error: Server Configuration";
 	sl[ SL_ERROR ].sl_data = "No Login Method Configured";
