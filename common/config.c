@@ -21,10 +21,29 @@
 #include "config.h"
 #include "argcargv.h"
 
-struct authlist		*authlist = NULL, *new_authlist;
-struct servicelist	*servicelist = NULL;
-struct certlist		*certlist = NULL;
-struct cosigncfg 	*cfg = NULL, *new_cfg;
+struct certlist {
+    char		*cl_issuer;
+    char		*cl_subject;
+    char		*cl_login;
+    char		*cl_realm;
+    char		*cl_type;
+    struct certlist	*cl_next;
+};
+
+struct cosigncfg {
+    char 		*cc_key;
+    char 		**cc_value;
+    unsigned int 	cc_numval;
+    struct cosigncfg 	*cc_next;
+};
+
+static struct authlist		*authlist = NULL, *new_authlist;
+static struct factorlist 	*factorlist = NULL;
+static struct servicelist	*servicelist = NULL;
+static struct certlist		*certlist = NULL;
+static struct cosigncfg 	*cfg = NULL, *new_cfg;
+
+char			*suffix = NULL;
 
     static void
 config_free( struct cosigncfg **p )
@@ -298,12 +317,13 @@ read_config( char *path )
 {
     SNET		*sn;
     char		**av, *line;
-    int			ac, i;
+    int			ac, i, j;
     int			linenum = 0;
     struct cosigncfg	*cc_new, **cc_cur;
     struct authlist 	*al_new, **al_cur;
     struct servicelist	*sl_new, **sl_cur;
     struct certlist	*cl_new, **cl_cur;
+    struct factorlist	*fl_new, **fl_cur;
 
     if (( sn = snet_open( path, O_RDONLY, 0, 0 )) == NULL ) {
 	perror( path );
@@ -440,7 +460,77 @@ read_config( char *path )
 
 	    cl_new->cl_next = *cl_cur;
 	    *cl_cur = cl_new;
+
+	} else if ( strcmp( av[ 0 ], "factor" ) == 0 ) {
+	    if ( ac < 3 ) {
+		fprintf( stderr, "line %d:"
+			" keyword factor takes at least 2 args\n",
+			linenum );
+		return( -1 );
+	    }
+
+	    if (( fl_new = malloc( sizeof( struct factorlist ))) == NULL ) {
+		perror( "malloc" );
+		return( -1 );
+	    }
+	    if (( fl_new->fl_path = strdup( av[ 1 ] )) == NULL ) {
+		perror( "malloc" );
+		return( -1 );
+	    }
+	    fl_new->fl_flag = 0;
+	    for ( i = 2; *av[ i ] == '-'; i++ ) {
+		if ( strcmp( av[ i ], "-2" ) == 0 ) {
+		    fl_new->fl_flag = 2;
+		} else {
+		    fprintf( stderr, "line %d:"
+			    " unknown flag %s to keyword factor\n",
+			    linenum, av[ i ] );
+		    return( -1 );
+		}
+	    }
+	    if (( ac - i ) < 1 ) {
+		fprintf( stderr, "line %d:"
+			" keyword factor requires at least one form field\n",
+			linenum );
+		return( -1 );
+	    }
+	    if (( ac - i ) > FL_MAXFORMFIELDS - 1 ) {
+		fprintf( stderr, "line %d:"
+			" too many form fields (%d > %d) to keyword factor\n",
+			linenum, ac - i, FL_MAXFORMFIELDS - 1 );
+		return( -1 );
+	    }
+	    for ( j = 0; i < ac; i++, j++ ) {
+		if (( fl_new->fl_formfield[ j ] = strdup( av[ i ] )) == NULL ) {
+		    perror( "malloc" );
+		    return( -1 );
+		}
+	    }
+	    fl_new->fl_formfield[ j ] == NULL;
+
+	    for ( fl_cur = &factorlist; (*fl_cur) != NULL;
+		    fl_cur = &(*fl_cur)->fl_next )
+		;
+
+	    fl_new->fl_next = *fl_cur;
+	    *fl_cur = fl_new;
+
+	} else if ( strcmp( av[ 0 ], "suffix" ) == 0 ) {
+	    if ( suffix != NULL ) {
+		fprintf( stderr, "line %d: keyword suffix already set to %s\n",
+			linenum, suffix );
+		return( -1 );
+	    }
+	    if (( suffix = strdup( av[ 1 ] )) == NULL ) {
+		perror( "malloc" );
+		return( -1 );
+	    }
+
 	} else {
+	    /*
+	     * The rest of these all create an entry to be inserted into
+	     * the new_authlist.
+	     */
 	    if ( strcmp( av[ 0 ], "cgi" ) == 0 ) {
 		if ( ac != 2 ) {
 		    fprintf( stderr, "line %d: keyword cgi takes 2 args\n",

@@ -13,15 +13,6 @@
 
 #define SL_REAUTH	(1<<0)
 
-struct certlist {
-    char		*cl_issuer;
-    char		*cl_subject;
-    char		*cl_login;
-    char		*cl_realm;
-    char		*cl_type;
-    struct certlist	*cl_next;
-};
-
 struct servicelist {
     char		*sl_cookie;
     int			sl_flag;
@@ -36,17 +27,18 @@ struct authlist {
     struct authlist	*al_next;
 };
 
+#define FL_MAXFORMFIELDS	5
+struct factorlist {
+    char		*fl_path;
+    int			fl_flag;
+    char		*fl_formfield[ FL_MAXFORMFIELDS ];
+    struct factorlist	*fl_next;
+};
+
 struct proxies {
     char		*pr_hostname;
     char		*pr_cookie;
     struct proxies	*pr_next;
-};
-
-struct cosigncfg {
-    char 		*cc_key;
-    char 		**cc_value;
-    unsigned int 	cc_numval;
-    struct cosigncfg 	*cc_next;
 };
 
 #define COSIGNDBKEY		"cosigndb"
