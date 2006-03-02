@@ -27,7 +27,7 @@ struct authlist {
     struct authlist	*al_next;
 };
 
-#define FL_MAXFORMFIELDS	5
+#define FL_MAXFORMFIELDS	6
 struct factorlist {
     char		*fl_path;
     int			fl_flag;

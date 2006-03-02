@@ -93,4 +93,5 @@ mkcookiepath( char *prefix, int hashlen, char *cookie, char *buf, int len )
 	    return( 0 );
 	}
     }
+    return( -1 );
 }

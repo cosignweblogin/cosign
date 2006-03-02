@@ -45,7 +45,6 @@ acav_parse( ACAV *acav, char *line, char **argv[] )
 {
     int		ac;
     int		state;
-    int		len;
 
     if ( acav == NULL ) {
 	if ( acavg == NULL ) {
