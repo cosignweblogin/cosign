@@ -29,6 +29,7 @@
 #define MAXCOOKIETIME	86400	 /* Valid life of session cookie: 24 hours */
 
 extern char	*cosign_version;
+extern char	*suffix;
 unsigned short	cosign_port;
 char		*cosign_host = _COSIGN_HOST;
 char 		*cosign_conf = _COSIGN_CONF;
@@ -182,7 +183,7 @@ main( int argc, char *argv[] )
     char                	new_cookiebuf[ 128 ];
     char        		new_cookie[ 255 ];
     char			*data, *ip_addr;
-    char			*cookie = NULL, *method, *script, *qs;
+    char			*cookie = NULL, *method, *script, *qs, *sufp;
     char			*misc = NULL, *factor = NULL, *p, *r, *s;
     char			*require, *satisfied, *reqp, *satp;
     char			*ref = NULL, *service = NULL, *login = NULL;
@@ -441,6 +442,18 @@ main( int argc, char *argv[] )
 		if ( strcmp( r, s ) == 0 ) {
 		    break;
 		}
+		    if ( suffix != NULL ) {
+                if (( sufp = strstr( s, suffix )) != NULL ) {
+                    if (( strlen( sufp )) == ( strlen( suffix ))) {
+                        *sufp = '\0';
+                        if ( strcmp( r, s ) == 0 ) {
+                            *sufp = *suffix;
+                            break;
+                        }
+                    }
+                }
+                    }
+
 	    }
 	    if ( s == NULL ) {
 		break;
