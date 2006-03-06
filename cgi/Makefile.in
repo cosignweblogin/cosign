@@ -44,10 +44,6 @@ login.o:	login.c
 	-D_FRIEND_MYSQL_PASSWD=\"${FRIEND_MYSQL_PASSWD}\" \
 	-c login.c
 
-network.o:	network.c
-	${CC} ${CFLAGS} \
-	-c network.c
-
 cgi.o:	cgi.c
 	${CC} ${CFLAGS} \
 	-D_COSIGN_HOST=\"${COSIGNHOST}\" \
@@ -59,8 +55,8 @@ cgi.o:	cgi.c
 	-D_COSIGN_TMPL_DIR=\"${COSIGNTMPLDIR}\" \
 	-c cgi.c
 
-cosign.cgi: cgi.o login.o $(OBJ)
-	${CC} -o cosign.cgi cgi.o login.o $(OBJ) $(LDFLAGS)
+cosign.cgi: cgi.o login.o factor.o $(OBJ)
+	${CC} -o cosign.cgi cgi.o login.o factor.o $(OBJ) $(LDFLAGS)
 
 logout.o:	logout.c
 	${CC} ${CFLAGS} \

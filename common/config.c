@@ -38,7 +38,7 @@ struct cosigncfg {
 };
 
 static struct authlist		*authlist = NULL, *new_authlist;
-static struct factorlist 	*factorlist = NULL;
+struct factorlist	 	*factorlist = NULL;
 static struct servicelist	*servicelist = NULL;
 static struct certlist		*certlist = NULL;
 static struct cosigncfg 	*cfg = NULL, *new_cfg;
@@ -116,7 +116,7 @@ authlist_find( char *hostname )
     return( cur );
 }
 
-    int
+    static int
 x509_substitute( char *pattern, int len, char *buf,
 	int nmatch, regmatch_t matches[], char *source )
 {
@@ -506,7 +506,7 @@ read_config( char *path )
 		    return( -1 );
 		}
 	    }
-	    fl_new->fl_formfield[ j ] == NULL;
+	    fl_new->fl_formfield[ j ] = NULL;
 
 	    for ( fl_cur = &factorlist; (*fl_cur) != NULL;
 		    fl_cur = &(*fl_cur)->fl_next )

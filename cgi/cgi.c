@@ -22,6 +22,7 @@
 #include "config.h"
 #include "login.h"
 #include "subfile.h"
+#include "factor.h"
 
 #define SERVICE_MENU	"/services/"
 #define LOOPWINDOW      30 
@@ -30,6 +31,7 @@
 
 extern char	*cosign_version;
 extern char	*suffix;
+extern struct factorlist	*factorlist;
 unsigned short	cosign_port;
 char		*cosign_host = _COSIGN_HOST;
 char 		*cosign_conf = _COSIGN_CONF;
@@ -55,6 +57,12 @@ struct cgi_list cl[] = {
         { "reauth", CGI_TYPE_STRING, NULL },
 #define CL_RFACTOR	5
         { "required", CGI_TYPE_STRING, NULL },
+        { NULL, CGI_TYPE_UNDEF, NULL },
+        { NULL, CGI_TYPE_UNDEF, NULL },
+        { NULL, CGI_TYPE_UNDEF, NULL },
+        { NULL, CGI_TYPE_UNDEF, NULL },
+        { NULL, CGI_TYPE_UNDEF, NULL },
+        { NULL, CGI_TYPE_UNDEF, NULL },
         { NULL, CGI_TYPE_UNDEF, NULL },
 };
 
@@ -180,6 +188,7 @@ main( int argc, char *argv[] )
     int				rc, cookietime = 0, cookiecount = 0;
     int				rebasic = 0, len, server_port;
     int				reauth = 0;
+    int				i;
     char                	new_cookiebuf[ 128 ];
     char        		new_cookie[ 255 ];
     char			*data, *ip_addr;
@@ -191,10 +200,12 @@ main( int argc, char *argv[] )
     char			*tmpl = LOGIN_HTML;
     char			*subject_dn = NULL, *issuer_dn = NULL;
     char			*realm = NULL, *krbtkt_path = NULL;
+    char			**ff, *msg = NULL;
     struct servicelist		*scookie;
+    struct factorlist		*fl;
     struct timeval		tv;
     struct connlist		*head;
-    struct userinfo		ui;
+    struct userinfo		ui = { { '\0' }, { '\0' } };
     struct subparams		sp = { '\0', '\0', '\0', 0 };
     CGIHANDLE			*cgi;
 
@@ -236,8 +247,7 @@ main( int argc, char *argv[] )
     issuer_dn = getenv( "SSL_CLIENT_I_DN" );
 
     if ( subject_dn && issuer_dn ) {
-	if ( x509_translate( subject_dn, issuer_dn, &login, &realm )
-		!= 0 ) {
+	if ( x509_translate( subject_dn, issuer_dn, &login, &realm ) != 0 ) {
 	    sl[ SL_TITLE ].sl_data = "Error: X509 failed";
 	    sl[ SL_ERROR ].sl_data = "x509 issues";
 	    tmpl = ERROR_HTML;
@@ -419,8 +429,7 @@ main( int argc, char *argv[] )
 		    sl[ SL_RFACTOR ].sl_data = factor;
 		    sl[ SL_TITLE ].sl_data = "REAUTH TITLE";
 		    sl[ SL_ERROR ].sl_data = "REAUTH ERROR.";
-		    tmpl = REAUTH_HTML;
-		    subfile( tmpl, sl, 0 );
+		    subfile( REAUTH_HTML, sl, 0 );
 		    exit( 0 );
 		}
 	    }
@@ -442,18 +451,17 @@ main( int argc, char *argv[] )
 		if ( strcmp( r, s ) == 0 ) {
 		    break;
 		}
-		    if ( suffix != NULL ) {
-                if (( sufp = strstr( s, suffix )) != NULL ) {
-                    if (( strlen( sufp )) == ( strlen( suffix ))) {
-                        *sufp = '\0';
-                        if ( strcmp( r, s ) == 0 ) {
-                            *sufp = *suffix;
-                            break;
-                        }
-                    }
-                }
-                    }
-
+		if ( suffix != NULL ) {
+		    if (( sufp = strstr( s, suffix )) != NULL ) {
+			if (( strlen( sufp )) == ( strlen( suffix ))) {
+			    *sufp = '\0';
+			    if ( strcmp( r, s ) == 0 ) {
+				*sufp = *suffix;
+				break;
+			    }
+			}
+		    }
+		}
 	    }
 	    if ( s == NULL ) {
 		break;
@@ -461,7 +469,7 @@ main( int argc, char *argv[] )
 	}
 	if ( r != NULL ) {
 	    sl[ SL_ERROR ].sl_data = "You need more factors. "
-		    "Please log in more now.";
+		    "Please log in MORE.";
 	    sl[ SL_DFACTOR ].sl_data = ui.ui_factor;
 	    goto loginscreen;
 	}
@@ -526,6 +534,28 @@ main( int argc, char *argv[] )
         exit( 0 );
     }  
 
+    /* insert factor form fields into cl */
+    for ( fl = factorlist; fl != NULL; fl = fl->fl_next ) {
+	for ( ff = fl->fl_formfield; *ff != NULL; ff++ ) {
+	    for ( i = 0; i < ( sizeof( cl ) / sizeof( cl[ 0 ] )) - 1; i++ ) {
+		if ( cl[ i ].cl_key == NULL ) {
+		    cl[ i ].cl_key = *ff;
+		    cl[ i ].cl_type = CGI_TYPE_STRING;
+		    break;
+		}
+		if ( strcmp( *ff, cl[ i ].cl_key ) == 0 ) {
+		    break;
+		}
+	    }
+	    if ( cl[ i ].cl_key == NULL ) {
+		sl[ SL_TITLE ].sl_data = "Error: Server Configuration";
+		sl[ SL_ERROR ].sl_data = "Too many form fields configured.";
+		subfile( ERROR_HTML, sl, 0 );
+		exit( 0 );
+	    }
+	}
+    }
+
     if ( cgi_post( cgi, cl ) != 0 ) {
 	exit( 1 );
     }
@@ -544,26 +574,20 @@ main( int argc, char *argv[] )
 	sp.sp_reauth = reauth = 1;
     }
 
-    if ( cl[ CL_LOGIN ].cl_data == NULL ) {
-	sl[ SL_TITLE ].sl_data = "Authentication Required";
-	sl[ SL_ERROR ].sl_data = "Please enter your login and password.";
-	subfile( tmpl, sl, 1 );
-	exit( 0 );
-    }
-    login = sl[ SL_LOGIN ].sl_data = cl[ CL_LOGIN ].cl_data;
-
-    if ( cl[ CL_PASSWORD ].cl_data == NULL ) {
-	sl[ SL_TITLE ].sl_data = "Missing Password";
-	sl[ SL_ERROR ].sl_data = "Unable to login because password is "
-		"a required field.";
-	if ( reauth ) {
-	    tmpl = REAUTH_HTML;
-	} else {
-	    tmpl = LOGIN_ERROR_HTML;
+    if ( cosign_check( head, cookie, &ui ) == 0 ) {
+	login = sl[ SL_LOGIN ].sl_data = cl[ CL_LOGIN ].cl_data = ui.ui_login;
+    } else {
+	if ( cl[ CL_LOGIN ].cl_data == NULL ) {
+	    sl[ SL_TITLE ].sl_data = "Authentication Required";
+	    sl[ SL_ERROR ].sl_data = "Please enter your login and password.";
+	    subfile( reauth ? REAUTH_HTML : LOGIN_ERROR_HTML, sl, 1 );
+	    exit( 0 );
 	}
-	subfile( tmpl, sl, 1 );
-	exit( 0 );
+	login = sl[ SL_LOGIN ].sl_data = cl[ CL_LOGIN ].cl_data;
     }
+
+#if defined( SQL_FRIEND ) || defined( KRB )
+	if ( cl[ CL_PASSWORD ].cl_data != NULL ) {
 
     if ( strchr( login, '@' ) != NULL ) {
 # ifdef SQL_FRIEND
@@ -571,13 +595,11 @@ main( int argc, char *argv[] )
 		ip_addr, cookie, &sp );
 # else
 	/* no @ unless we're friendly. */
-	sl[ SL_ERROR ].sl_data = sl[ SL_TITLE ].sl_data = "Your login id may not contain an '@'";
-	if ( reauth ) {
-	    tmpl = REAUTH_HTML;
-	} else {
-	    tmpl = LOGIN_ERROR_HTML;
-	}
-	subfile( tmpl, sl, 1 );
+	sl[ SL_TITLE ].sl_data = "Authentication Required "
+		"(inappropriate '@' in account name)";
+	sl[ SL_ERROR ].sl_data = "Password or Account Name incorrect. "
+		"Is [caps lock] on?";
+	subfile( reauth ? REAUTH_HTML : LOGIN_ERROR_HTML, sl, 1 );
 	exit( 0 );
 
 # endif  /* SQL_FRIEND */
@@ -587,12 +609,62 @@ main( int argc, char *argv[] )
 	cosign_login_krb5( head, login, cl[ CL_PASSWORD ].cl_data,
 		ip_addr, cookie, &sp );
 # else /* KRB */
-	sl[ SL_TITLE ].sl_data = "Error: Server Configuration";
-	sl[ SL_ERROR ].sl_data = "No Login Method Configured";
-	tmpl = ERROR_HTML;
-	subfile( tmpl, sl, 0 );
+	sl[ SL_TITLE ].sl_data = "Authentication Required "
+		"(no '@' in account name)";
+	sl[ SL_ERROR ].sl_data = "Password or Account Name incorrect. "
+		"Is [caps lock] on?";
+	subfile( reauth ? REAUTH_HTML : LOGIN_ERROR_HTML, sl, 1 );
 	exit( 0 );
 # endif /* KRB */
+    }
+
+	}
+#endif /* SQL_FRIEND || KRB */
+
+    /*
+     * compare factor form fields with posted form fields, call
+     * authenticators accordingly.
+     */
+    for ( fl = factorlist; fl != NULL; fl = fl->fl_next ) {
+	for ( ff = fl->fl_formfield; *ff != NULL; ff++ ) {
+	    for ( i = 0; cl[ i ].cl_key != NULL; i++ ) {
+		if ( strcmp( *ff, cl[ i ].cl_key ) == 0 ) {
+		    break;
+		}
+	    }
+	    if ( cl[ i ].cl_key == NULL ) {
+		break;
+	    }
+	}
+	if ( *ff != NULL ) {
+	    continue;
+	}
+
+	if (( fl->fl_flag == 2 ) && ( *ui.ui_login == '\0' ) &&
+		( cosign_check( head, cookie, &ui ) != 0 )) {
+	    sl[ SL_TITLE ].sl_data = "Authentication Required";
+	    sl[ SL_ERROR ].sl_data = "Primary factor before secondary factors,"
+		    " PLEASE!";
+	    subfile( reauth ? REAUTH_HTML : LOGIN_ERROR_HTML, sl, 1 );
+	    exit( 0 );
+	}
+
+	if ( execfactor( fl, cl, &msg ) != 0 ) {
+	    sl[ SL_TITLE ].sl_data = "Authentication Required";
+	    sl[ SL_ERROR ].sl_data = msg;
+	    subfile( reauth ? REAUTH_HTML : LOGIN_ERROR_HTML, sl, 1 );
+	    exit( 0 );
+	}
+
+	if ( cosign_login( head, cookie, ip_addr, login, msg, NULL ) < 0 ) {
+	}
+    }
+
+    if ( *ui.ui_login == '\0' && cosign_check( head, cookie, &ui ) != 0 ) {
+	sl[ SL_TITLE ].sl_data = "Authentication Required";
+	sl[ SL_ERROR ].sl_data = "Please enter your login and password.";
+	subfile( reauth ? REAUTH_HTML : LOGIN_ERROR_HTML, sl, 1 );
+	exit( 0 );
     }
 
     if ( service ) {
