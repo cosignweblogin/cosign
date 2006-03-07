@@ -576,6 +576,7 @@ main( int argc, char *argv[] )
 
     if ( cosign_check( head, cookie, &ui ) == 0 ) {
 	login = sl[ SL_LOGIN ].sl_data = cl[ CL_LOGIN ].cl_data = ui.ui_login;
+	sl[ SL_DFACTOR ].sl_data = ui.ui_factor;
     } else {
 	if ( cl[ CL_LOGIN ].cl_data == NULL ) {
 	    sl[ SL_TITLE ].sl_data = "Authentication Required";
@@ -618,6 +619,10 @@ main( int argc, char *argv[] )
 # endif /* KRB */
     }
 
+    if ( cosign_check( head, cookie, &ui ) == 0 ) {
+	sl[ SL_DFACTOR ].sl_data = ui.ui_factor;
+    }
+
 	}
 #endif /* SQL_FRIEND || KRB */
 
@@ -640,8 +645,7 @@ main( int argc, char *argv[] )
 	    continue;
 	}
 
-	if (( fl->fl_flag == 2 ) && ( *ui.ui_login == '\0' ) &&
-		( cosign_check( head, cookie, &ui ) != 0 )) {
+	if (( fl->fl_flag == 2 ) && ( *ui.ui_login == '\0' )) {
 	    sl[ SL_TITLE ].sl_data = "Authentication Required";
 	    sl[ SL_ERROR ].sl_data = "Primary factor before secondary factors,"
 		    " PLEASE!";
@@ -658,9 +662,13 @@ main( int argc, char *argv[] )
 
 	if ( cosign_login( head, cookie, ip_addr, login, msg, NULL ) < 0 ) {
 	}
+
+	if ( cosign_check( head, cookie, &ui ) == 0 ) {
+	    sl[ SL_DFACTOR ].sl_data = ui.ui_factor;
+	}
     }
 
-    if ( *ui.ui_login == '\0' && cosign_check( head, cookie, &ui ) != 0 ) {
+    if ( *ui.ui_login == '\0' ) {
 	sl[ SL_TITLE ].sl_data = "Authentication Required";
 	sl[ SL_ERROR ].sl_data = "Please enter your login and password.";
 	subfile( reauth ? REAUTH_HTML : LOGIN_ERROR_HTML, sl, 1 );
