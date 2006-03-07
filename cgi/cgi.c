@@ -637,7 +637,7 @@ main( int argc, char *argv[] )
 		    break;
 		}
 	    }
-	    if ( cl[ i ].cl_key == NULL ) {
+	    if ( cl[ i ].cl_key == NULL || cl[ i ].cl_data == NULL ) {
 		break;
 	    }
 	}
