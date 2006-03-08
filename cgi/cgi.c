@@ -442,36 +442,42 @@ main( int argc, char *argv[] )
 	    goto loginscreen;
 	}
 
-	require = strdup( factor );
-	satisfied = strdup( ui.ui_factor );
-	for ( r = strtok_r( require, ",", &reqp ); r != NULL;
-		r = strtok_r( NULL, ",", &reqp )) {
-	    for ( s = strtok_r( satisfied, ",", &satp ); s != NULL;
-		    s = strtok_r( NULL, ",", &satp )) {
-		if ( strcmp( r, s ) == 0 ) {
-		    break;
-		}
-		if ( suffix != NULL ) {
-		    if (( sufp = strstr( s, suffix )) != NULL ) {
-			if (( strlen( sufp )) == ( strlen( suffix ))) {
-			    *sufp = '\0';
-			    if ( strcmp( r, s ) == 0 ) {
-				*sufp = *suffix;
-				break;
+	if ( factor != NULL ) {
+	    require = strdup( factor );
+	    for ( r = strtok_r( require, ",", &reqp ); r != NULL;
+		    r = strtok_r( NULL, ",", &reqp )) {
+		satisfied = strdup( ui.ui_factor );
+		for ( s = strtok_r( satisfied, ",", &satp ); s != NULL;
+			s = strtok_r( NULL, ",", &satp )) {
+fprintf( stderr, "cmp: r: %s s: %s\n", r, s );
+		    if ( strcmp( r, s ) == 0 ) {
+			break;
+		    }
+		    if ( suffix != NULL ) {
+			if (( sufp = strstr( s, suffix )) != NULL ) {
+			    if (( strlen( sufp )) == ( strlen( suffix ))) {
+				*sufp = '\0';
+				if ( strcmp( r, s ) == 0 ) {
+				    *sufp = *suffix;
+				    break;
+				}
 			    }
 			}
 		    }
 		}
+		if ( s == NULL ) {
+		    break;
+		}
 	    }
-	    if ( s == NULL ) {
-		break;
+	    if ( r != NULL ) {
+		sl[ SL_LOGIN ].sl_data = ui.ui_login;
+		sl[ SL_ERROR ].sl_data = "You need more factors. "
+			"Please log in MORE.";
+		sl[ SL_DFACTOR ].sl_data = ui.ui_factor;
+		sl[ SL_RFACTOR ].sl_data = factor;
+		subfile( reauth ? REAUTH_HTML : LOGIN_ERROR_HTML, sl, 1 );
+		exit( 0 );
 	    }
-	}
-	if ( r != NULL ) {
-	    sl[ SL_ERROR ].sl_data = "You need more factors. "
-		    "Please log in MORE.";
-	    sl[ SL_DFACTOR ].sl_data = ui.ui_factor;
-	    goto loginscreen;
 	}
 
 	if (( rc = cosign_register( head, cookie, ip_addr, service )) < 0 ) {

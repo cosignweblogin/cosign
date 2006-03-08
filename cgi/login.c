@@ -92,7 +92,7 @@ lcgi_configure()
 # ifdef SQL_FRIEND
     void
 cosign_login_mysql( struct connlist *head, char *id, char *passwd,
-	char *ip_addr, char *cookie, struct subparam *sp )
+	char *ip_addr, char *cookie, struct subparams *sp )
 {
     MYSQL_RES		*res;
     MYSQL_ROW		row;
@@ -156,16 +156,16 @@ cosign_login_mysql( struct connlist *head, char *id, char *passwd,
 		"Is [caps lock] on?";
 	sl[ SL_TITLE ].sl_data = "Authentication Required "
 		"( guest account error )";
-	if ( ref != NULL ) {
-	    sl[ SL_REF ].sl_data = ref;
+	if ( sp->sp_ref != NULL ) {
+	    sl[ SL_REF ].sl_data = sp->sp_ref;
 	}
-	if ( service != NULL ) {
-	    sl[ SL_SERVICE ].sl_data = service;
+	if ( sp->sp_service != NULL ) {
+	    sl[ SL_SERVICE ].sl_data = sp->sp_service;
 	}
-	if ( factor != NULL ) {
-	    sl[ SL_RFACTOR ].sl_data = factor;
+	if ( sp->sp_factor != NULL ) {
+	    sl[ SL_RFACTOR ].sl_data = sp->sp_factor;
 	}
-	if ( reauth ) {
+	if ( sp->sp_reauth ) {
 	    tmpl = REAUTH_HTML;
 	} else {
 	    tmpl = LOGIN_ERROR_HTML;
@@ -183,20 +183,20 @@ cosign_login_mysql( struct connlist *head, char *id, char *passwd,
 	mysql_close( &friend_db );
 
 	/* this is a valid friend account but password failed */
-	if ( ref != NULL ) {
-	    sl[ SL_REF ].sl_data = ref;
+	if ( sp->sp_ref != NULL ) {
+	    sl[ SL_REF ].sl_data = sp->sp_ref;
 	}
-	if ( service != NULL ) {
-	    sl[ SL_SERVICE ].sl_data = service;
+	if ( sp->sp_service != NULL ) {
+	    sl[ SL_SERVICE ].sl_data = sp->sp_service;
 	}
-	if ( factor != NULL ) {
-	    sl[ SL_RFACTOR ].sl_data = factor;
+	if ( sp->sp_factor != NULL ) {
+	    sl[ SL_RFACTOR ].sl_data = sp->sp_factor;
 	}
 	sl[ SL_ERROR ].sl_data = "Unable to login because guest password "
 	    "is incorrect.";
 	sl[ SL_TITLE ].sl_data = "Authentication Required "
 	    "( guest password incorrect )";
-	if ( reauth ) {
+	if ( sp->sp_reauth ) {
 	    tmpl = REAUTH_HTML;
 	} else {
 	    tmpl = LOGIN_ERROR_HTML;
@@ -209,7 +209,7 @@ cosign_login_mysql( struct connlist *head, char *id, char *passwd,
     mysql_free_result( res );
     mysql_close( &friend_db );
 
-    if ( reauth ) {
+    if ( sp->sp_reauth ) {
 	return;
     }
 
