@@ -184,6 +184,9 @@ f_starttls( SNET *sn, int ac, char *av[], SNET *pushersn )
 	exit( 1 );
     }
 
+    syslog( LOG_INFO, "STARTTLS %s %d %s",
+	    inet_ntoa( cosign_sin.sin_addr ), protocol, buf );
+
     commands = auth_commands;
     ncommands = sizeof( auth_commands ) / sizeof( auth_commands[ 0 ] );
     if ( protocol == 2 ) {
