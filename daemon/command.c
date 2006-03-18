@@ -1213,8 +1213,7 @@ command( int fd, SNET *pushersn )
 	}
     }
 
-
-    snet_writef( snet, "%d 2 Cookie SIGNer ready\r\n", 220 );
+    snet_writef( snet, "%d 2 Collaborative Web Single Sign-On\r\n", 220 );
 
     tv = cosign_net_timeout;
 
