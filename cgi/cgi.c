@@ -425,10 +425,14 @@ main( int argc, char *argv[] )
 			goto loginscreen;
 		    }
 		    sl[ SL_LOGIN ].sl_data = ui.ui_login;
+		    /*
+		     * XXX Reauth required factors must be removed from
+		     * SL_DFACTOR and added to SL_RFACTOR.
+		     */
 		    sl[ SL_DFACTOR ].sl_data = ui.ui_factor;
 		    sl[ SL_RFACTOR ].sl_data = factor;
-		    sl[ SL_TITLE ].sl_data = "REAUTH TITLE";
-		    sl[ SL_ERROR ].sl_data = "REAUTH ERROR.";
+		    sl[ SL_TITLE ].sl_data = "Re-Authentication Required";
+		    sl[ SL_ERROR ].sl_data = "Please Re-Authenticate.";
 		    subfile( REAUTH_HTML, sl, 0 );
 		    exit( 0 );
 		}
@@ -666,7 +670,18 @@ fprintf( stderr, "cmp: r: %s s: %s\n", r, s );
 	    exit( 0 );
 	}
 
+	/*
+	 * XXX Don't call cosign_login() is the factor in question is
+	 * already satisfied.
+	 */
+
 	if ( cosign_login( head, cookie, ip_addr, login, msg, NULL ) < 0 ) {
+	    sl[ SL_ERROR ].sl_data = "We were unable to contact the "
+		    "authentication server. Please try again later.";
+	    sl[ SL_TITLE ].sl_data = "Error: Please try later";
+	    tmpl = ERROR_HTML;
+	    subfile( tmpl, sl, 0 );
+	    exit( 0 );
 	}
 
 	if ( cosign_check( head, cookie, &ui ) == 0 ) {
@@ -682,6 +697,11 @@ fprintf( stderr, "cmp: r: %s s: %s\n", r, s );
     }
 
     if ( service ) {
+	/*
+	 * XXX If the service requires reauth, verify that all reauth
+	 * required factors have been just satisfied.
+	 */
+
         if (( rc = cosign_register( head, cookie, ip_addr, service )) < 0 ) {
 	    /* this should not be possible... do it anyway? */
             if ( cosign_check( head, cookie, &ui ) != 0 ) {

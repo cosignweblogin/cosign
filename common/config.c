@@ -387,6 +387,10 @@ read_config( char *path )
 	    }
 
 	} else if ( strcmp( av[ 0 ], "cookie" ) == 0 ) {
+	    /*
+	     * XXX cookie ... reauth needs a list of factors which reauth
+	     * requires.
+	     */
 	    if ( ac != 3 ) {
 		fprintf( stderr, "line %d: keyword cookie takes 3 args\n",
 			linenum );
@@ -516,6 +520,11 @@ read_config( char *path )
 	    *fl_cur = fl_new;
 
 	} else if ( strcmp( av[ 0 ], "suffix" ) == 0 ) {
+	    if ( ac != 2 ) {
+		fprintf( stderr, "line %d: keyword suffix takes 1 arg\n",
+			linenum );
+		return( -1 );
+	    }
 	    if ( suffix != NULL ) {
 		fprintf( stderr, "line %d: keyword suffix already set to %s\n",
 			linenum, suffix );
