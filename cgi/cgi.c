@@ -234,8 +234,7 @@ main( int argc, char *argv[] )
     if (( script = getenv( "SCRIPT_NAME" )) == NULL ) {
 	sl[ SL_TITLE ].sl_data = "Error: Server Configuration";
 	sl[ SL_ERROR ].sl_data = "Unable to retrieve the script name";
-	tmpl = ERROR_HTML;
-	subfile( tmpl, sl, 0 );
+	subfile( ERROR_HTML, sl, 0 );
 	exit( 0 );
     }
 
@@ -250,8 +249,7 @@ main( int argc, char *argv[] )
 	if ( x509_translate( subject_dn, issuer_dn, &login, &realm ) != 0 ) {
 	    sl[ SL_TITLE ].sl_data = "Error: X509 failed";
 	    sl[ SL_ERROR ].sl_data = "x509 issues";
-	    tmpl = ERROR_HTML;
-	    subfile( tmpl, sl, 0 );
+	    subfile( ERROR_HTML, sl, 0 );
 	    exit( 0 );
 	}
 	remote_user = login;
@@ -271,8 +269,7 @@ main( int argc, char *argv[] )
 	    sl[ SL_TITLE ].sl_data = "Error: Unrecognized Service";
 	    sl[ SL_ERROR ].sl_data = "Unable to determine referring "
 		    "service from query string.";
-	    tmpl = ERROR_HTML;
-	    subfile( tmpl, sl, 0 );
+	    subfile( ERROR_HTML, sl, 0 );
 	    exit( 0 );
 	}
 
@@ -286,8 +283,7 @@ main( int argc, char *argv[] )
 		sl[ SL_TITLE ].sl_data = "Error: malformatted factors";
 		sl[ SL_ERROR ].sl_data = "Unable to determine required "
 			"factors from query string.";
-		tmpl = ERROR_HTML;
-		subfile( tmpl, sl, 0 );
+		subfile( ERROR_HTML, sl, 0 );
 		exit( 0 );
 	    }
 	    factor++;
@@ -304,8 +300,7 @@ main( int argc, char *argv[] )
 	    if ( strncmp( service, "cosign-", 7 ) != 0 ) {
 		sl[ SL_TITLE ].sl_data = "Error: Unrecognized Service";
 		sl[ SL_ERROR ].sl_data = "Bad service in query string.";
-		tmpl = ERROR_HTML;
-		subfile( tmpl, sl, 0 );
+		subfile( ERROR_HTML, sl, 0 );
 		exit( 0 );
 	    }
 	    sl[ SL_SERVICE ].sl_data = service;
@@ -314,8 +309,7 @@ main( int argc, char *argv[] )
 		sl[ SL_TITLE ].sl_data = "Error: malformatted referrer";
 		sl[ SL_ERROR ].sl_data = "Unable to determine referring "
 			"service from query string.";
-		tmpl = ERROR_HTML;
-		subfile( tmpl, sl, 0 );
+		subfile( ERROR_HTML, sl, 0 );
 		exit( 0 );
 	    }
 	    sl[ SL_REF ].sl_data = ref;
@@ -337,8 +331,7 @@ main( int argc, char *argv[] )
 	    sl[ SL_TITLE ].sl_data = "Error: Cookies Required";
 	    sl[ SL_ERROR ].sl_data = "This service requires that "
 		    "cookies be enabled.";
-	    tmpl = ERROR_HTML;
-	    subfile( tmpl, sl, 0 );
+	    subfile( ERROR_HTML, sl, 0 );
 	    exit( 0 );
 	}
 	goto loginscreen;
@@ -355,8 +348,7 @@ main( int argc, char *argv[] )
 	if ( gettimeofday( &tv, NULL ) != 0 ) {
 	    sl[ SL_TITLE ].sl_data = "Error: Login Screen";
 	    sl[ SL_ERROR ].sl_data = "Please try again later.";
-	    tmpl = ERROR_HTML;
-	    subfile( tmpl, sl, 0 );
+	    subfile( ERROR_HTML, sl, 0 );
 	    exit( 0 );
 	}
 
@@ -376,8 +368,7 @@ main( int argc, char *argv[] )
 	sl[ SL_TITLE ].sl_data = "Error: Server Configuration";
 	sl[ SL_ERROR ].sl_data = "We were unable to contact the "
 		"authentication server.  Please try again later.";
-	tmpl = ERROR_HTML;
-	subfile( tmpl, sl, 0 );
+	subfile( ERROR_HTML, sl, 0 );
 	exit( 0 );
     }
 
@@ -388,8 +379,7 @@ main( int argc, char *argv[] )
 	sl[ SL_TITLE ].sl_data = "Error: Server Configuration";
 	sl[ SL_ERROR ].sl_data = "Failed to initialise connections "
 		"to the authentication server. Please try again later";
-	tmpl = ERROR_HTML;
-	subfile( tmpl, sl, 0 );
+	subfile( ERROR_HTML, sl, 0 );
 	exit( 0 );
     }
 
@@ -402,8 +392,7 @@ main( int argc, char *argv[] )
 	    sl[ SL_ERROR ].sl_data = "We were unable to contact the "
 		    "authentication server. Please try again later.";
 	    sl[ SL_TITLE ].sl_data = "Error: Please try later";
-	    tmpl = ERROR_HTML;
-	    subfile( tmpl, sl, 0 );
+	    subfile( ERROR_HTML, sl, 0 );
 	    exit( 0 );
 	}
 
@@ -411,8 +400,7 @@ main( int argc, char *argv[] )
 	    if (( p = strchr( service, '=' )) == NULL ) {
 		sl[ SL_TITLE ].sl_data = "Error: Unrecognized Service";
 		sl[ SL_ERROR ].sl_data = "Malformed service in query string.";
-		tmpl = ERROR_HTML;
-		subfile( tmpl, sl, 0 );
+		subfile( ERROR_HTML, sl, 0 );
 		exit( 0 );
 	    }
 	    *p = '\0';
@@ -453,7 +441,6 @@ main( int argc, char *argv[] )
 		satisfied = strdup( ui.ui_factor );
 		for ( s = strtok_r( satisfied, ",", &satp ); s != NULL;
 			s = strtok_r( NULL, ",", &satp )) {
-fprintf( stderr, "cmp: r: %s s: %s\n", r, s );
 		    if ( strcmp( r, s ) == 0 ) {
 			break;
 		    }
@@ -489,8 +476,7 @@ fprintf( stderr, "cmp: r: %s s: %s\n", r, s );
 	    sl[ SL_TITLE ].sl_data = "Error: Register Failed";
 	    sl[ SL_ERROR ].sl_data = "We were unable to contact "
 		    "the authentication server.  Please try again later.";
-	    tmpl = ERROR_HTML;
-	    subfile( tmpl, sl, 0 );
+	    subfile( ERROR_HTML, sl, 0 );
 	    exit( 0 );
 	}
 
@@ -516,8 +502,7 @@ fprintf( stderr, "cmp: r: %s s: %s\n", r, s );
 		sl[ SL_ERROR ].sl_data = "We were unable to contact the "
 			"authentication server. Please try again later.";
 		sl[ SL_TITLE ].sl_data = "Error: Please try later";
-		tmpl = ERROR_HTML;
-		subfile( tmpl, sl, 0 );
+		subfile( ERROR_HTML, sl, 0 );
 		exit( 0 );
 	    } else if ( !rebasic ) {
 		sl[ SL_ERROR ].sl_data = "You are not logged in. "
@@ -539,8 +524,7 @@ fprintf( stderr, "cmp: r: %s s: %s\n", r, s );
     if (( cgi = cgi_init()) == NULL ) {
         sl[ SL_TITLE ].sl_data = "Error: Server Error";
         sl[ SL_ERROR ].sl_data = "cgi_init failed";
-	tmpl = ERROR_HTML;
-        subfile( tmpl, sl, 0 );
+        subfile( ERROR_HTML, sl, 0 );
         exit( 0 );
     }  
 
@@ -571,10 +555,11 @@ fprintf( stderr, "cmp: r: %s s: %s\n", r, s );
     }
 
     if ( cl[ CL_REF ].cl_data != NULL ) {
-        sp.sp_ref = sl[ SL_REF ].sl_data = cl[ CL_REF ].cl_data;
+        ref = sp.sp_ref = sl[ SL_REF ].sl_data = cl[ CL_REF ].cl_data;
     }
     if ( cl[ CL_SERVICE ].cl_data != NULL ) {
-	sp.sp_service = sl[ SL_SERVICE ].sl_data = cl[ CL_SERVICE ].cl_data;
+	service = sp.sp_service =
+		sl[ SL_SERVICE ].sl_data = cl[ CL_SERVICE ].cl_data;
     }
     if ( cl[ CL_RFACTOR ].cl_data != NULL ) {
 	sp.sp_factor = sl[ SL_RFACTOR ].sl_data = cl[ CL_RFACTOR ].cl_data;
@@ -671,7 +656,7 @@ fprintf( stderr, "cmp: r: %s s: %s\n", r, s );
 	}
 
 	/*
-	 * XXX Don't call cosign_login() is the factor in question is
+	 * XXX Don't call cosign_login() if the factor in question is
 	 * already satisfied.
 	 */
 
@@ -679,8 +664,7 @@ fprintf( stderr, "cmp: r: %s s: %s\n", r, s );
 	    sl[ SL_ERROR ].sl_data = "We were unable to contact the "
 		    "authentication server. Please try again later.";
 	    sl[ SL_TITLE ].sl_data = "Error: Please try later";
-	    tmpl = ERROR_HTML;
-	    subfile( tmpl, sl, 0 );
+	    subfile( ERROR_HTML, sl, 0 );
 	    exit( 0 );
 	}
 
@@ -713,8 +697,7 @@ fprintf( stderr, "cmp: r: %s s: %s\n", r, s );
             sl[ SL_TITLE ].sl_data = "Error: Implicit Register Failed";
             sl[ SL_ERROR ].sl_data = "We were unable to contact the "
 		    "authentication server.  Please try again later.";
-            tmpl = ERROR_HTML;
-	    subfile( tmpl, sl, 0 );
+	    subfile( ERROR_HTML, sl, 0 );
             exit( 0 );
         }
     }
@@ -743,8 +726,7 @@ loginscreen:
     if ( gettimeofday( &tv, NULL ) != 0 ) {
 	sl[ SL_TITLE ].sl_data = "Error: Login Screen";
 	sl[ SL_ERROR ].sl_data = "Please try again later.";
-	tmpl = ERROR_HTML;
-	subfile( tmpl, sl, 0 );
+	subfile( ERROR_HTML, sl, 0 );
 	exit( 0 );
     }
 
@@ -769,7 +751,10 @@ loginscreen:
 	    sl[ SL_ERROR ].sl_data = "Please type your login and password "
 		    "and click the Login button to continue.";
 	}
-	subfile( tmpl, sl, 1 );
+	/*
+	 * XXX Need to update factors.
+	 */
+	subfile( reauth ? REAUTH_HTML : LOGIN_HTML, sl, 1 );
     }
     exit( 0 );
 }
