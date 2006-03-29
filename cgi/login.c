@@ -368,7 +368,7 @@ cosign_login_krb5( struct connlist *head, char *id, char *passwd,
 	}
 
 	if (( kerror = krb5_verify_init_creds(
-		kcontext, &kcreds, sprinc, keytab, NULL, NULL )) != 0 ) {
+		kcontext, &kcreds, sprinc, keytab, NULL, kvic_opts )) != 0 ) {
 	    sl[ SL_ERROR ].sl_data = (char *)error_message( kerror );
 	    sl[ SL_TITLE ].sl_data = "Ticket Verify Error";
 	    tmpl = ERROR_HTML;
