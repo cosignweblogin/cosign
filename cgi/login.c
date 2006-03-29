@@ -236,6 +236,7 @@ cosign_login_krb5( struct connlist *head, char *id, char *passwd,
     krb5_principal              kprinc;
     krb5_principal              sprinc;
     krb5_get_init_creds_opt     kopts;
+    krb5_verify_init_creds_opt 	kvic_opts[ 1 ];
     krb5_creds                  kcreds;
     krb5_ccache                 kccache;
     krb5_keytab                 keytab = 0;
@@ -344,6 +345,10 @@ cosign_login_krb5( struct connlist *head, char *id, char *passwd,
 	    exit( 0 );
 	}
 	strcpy( ktbuf, keytab_path );
+
+	/* from mdw */
+	krb5_verify_init_creds_opt_init( kvic_opts );
+	krb5_verify_init_creds_opt_set_ap_req_nofail( kvic_opts, 1 );
 
 	if (( kerror = krb5_kt_resolve( kcontext, ktbuf, &keytab )) != 0 ) {
 	    sl[ SL_ERROR ].sl_data = (char *)error_message( kerror );

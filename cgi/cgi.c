@@ -197,7 +197,6 @@ main( int argc, char *argv[] )
     char			*require, *satisfied, *reqp, *satp;
     char			*ref = NULL, *service = NULL, *login = NULL;
     char			*remote_user = NULL;
-    char			*tmpl = LOGIN_HTML;
     char			*subject_dn = NULL, *issuer_dn = NULL;
     char			*realm = NULL, *krbtkt_path = NULL;
     char			**ff, *msg = NULL;
