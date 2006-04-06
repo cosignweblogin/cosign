@@ -53,6 +53,7 @@ cosign_create_config( apr_pool_t *p )
     cfg->reqfv = NULL;
     cfg->reqfc = -1;
     cfg->suffix = NULL;
+    cfg->fake = -1;
     cfg->public = -1;
     cfg->redirect = NULL;
     cfg->posterror = NULL;
@@ -418,6 +419,9 @@ cosign_merge_cfg( cmd_parms *params, void *mconfig )
     if ( cfg->suffix == NULL ) {
         cfg->suffix = apr_pstrdup( params->pool, scfg->suffix );
     }
+    if ( cfg->fake == -1 ) {
+        cfg->fake = scfg->fake;
+    }
     if ( cfg->public == -1 ) {
         cfg->public = scfg->public;
     }
@@ -569,6 +573,17 @@ set_cosign_factorsuffix( cmd_parms *params, void *mconfig, char *arg )
     return( NULL );
 }
 
+    static const char *
+set_cosign_ignoresuffix( cmd_parms *params, void *mconfig, int flag )
+{
+    cosign_host_config          *cfg;
+
+    cfg = cosign_merge_cfg( params, mconfig );
+
+    cfg->fake = flag;
+    cfg->configured = 1;
+    return( NULL );
+}
 
     static const char *
 set_cosign_public( cmd_parms *params, void *mconfig, int flag )
@@ -909,9 +924,13 @@ static command_rec cosign_cmds[ ] =
         NULL, RSRC_CONF | ACCESS_CONF, 
         "the authentication factors that must be satisfied" ),
 
-        AP_INIT_TAKE1( "CosignIgnoreFactorSuffix", set_cosign_factorsuffix,
+        AP_INIT_TAKE1( "CosignFactorSuffix", set_cosign_factorsuffix,
         NULL, RSRC_CONF | ACCESS_CONF, 
-        "the factor suffix to be ignored when testing for compliance" ),
+        "the factor suffix when testing for compliance" ),
+
+        AP_INIT_FLAG( "CosignFactorSuffixIgnore", set_cosign_ignoresuffix,
+        NULL, RSRC_CONF | ACCESS_CONF, 
+        "on or off, on allows you to accept faux factors, off denies access" ),
 
         AP_INIT_FLAG( "CosignAllowPublicAccess", set_cosign_public,
         NULL, RSRC_CONF | ACCESS_CONF, 
