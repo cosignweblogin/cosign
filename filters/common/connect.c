@@ -138,8 +138,16 @@ netcheck_cookie( char *scookie, struct sinfo *si, struct connlist *conn,
 		    if (( strlen( p )) == ( strlen( cfg->suffix ))) {
 			*p = '\0';
 			if ( strcmp( fv[ i ], av[ j ] ) == 0 ) {
-			    *p = *cfg->suffix;
-			    break;
+			    if ( cfg->fake == 1 ) {
+				*p = *cfg->suffix;
+				break;
+			    } else {
+				cosign_log( APLOG_ERR, s, 
+					"mod_cosign: netcheck: factor %s "
+					"matches with suffix, but suffix " 
+					"is OFF", av[ 3 ] );
+				return( COSIGN_ERROR );
+			    }
 			}
 		    }
 		}

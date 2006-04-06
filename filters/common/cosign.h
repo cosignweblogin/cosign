@@ -5,6 +5,7 @@ typedef struct {
     char		**reqfv;
     int			reqfc;
     char		*suffix;
+    int			fake;
     int			public;
     char                *redirect;
     char                *posterror;
