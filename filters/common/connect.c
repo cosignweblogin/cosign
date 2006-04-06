@@ -145,7 +145,7 @@ netcheck_cookie( char *scookie, struct sinfo *si, struct connlist *conn,
 				cosign_log( APLOG_ERR, s, 
 					"mod_cosign: netcheck: factor %s "
 					"matches with suffix, but suffix " 
-					"is OFF", av[ 3 ] );
+					"is OFF", av[ j ] );
 				return( COSIGN_ERROR );
 			    }
 			}
