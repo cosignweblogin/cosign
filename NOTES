@@ -1,7 +1,7 @@
 cgi:
-login POST
-
-
+no legacy authenticators
+reauth
+error messages
 ----
 keyword notauth for cosign.conf(5)
 ----
