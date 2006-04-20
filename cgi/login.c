@@ -90,7 +90,7 @@ lcgi_configure()
 }
 
 # ifdef SQL_FRIEND
-    void
+    int
 cosign_login_mysql( struct connlist *head, char *id, char *passwd,
 	char *ip_addr, char *cookie, struct subparams *sp )
 {
@@ -152,27 +152,7 @@ cosign_login_mysql( struct connlist *head, char *id, char *passwd,
     }
 
     if (( row = mysql_fetch_row( res )) == NULL ) {
-	sl[ SL_ERROR ].sl_data = "Password or Account Name incorrect. "
-		"Is [caps lock] on?";
-	sl[ SL_TITLE ].sl_data = "Authentication Required "
-		"( guest account error )";
-	if ( sp->sp_ref != NULL ) {
-	    sl[ SL_REF ].sl_data = sp->sp_ref;
-	}
-	if ( sp->sp_service != NULL ) {
-	    sl[ SL_SERVICE ].sl_data = sp->sp_service;
-	}
-	if ( sp->sp_factor != NULL ) {
-	    sl[ SL_RFACTOR ].sl_data = sp->sp_factor;
-	}
-	if ( sp->sp_reauth ) {
-	    tmpl = REAUTH_HTML;
-	} else {
-	    tmpl = LOGIN_ERROR_HTML;
-	}
-	sl[ SL_LOGIN ].sl_data = id;
-	subfile ( tmpl, sl, 1 );
-	exit( 0 );
+	return( -1 );
     }
 
     /* crypt the user's password */
@@ -210,7 +190,7 @@ cosign_login_mysql( struct connlist *head, char *id, char *passwd,
     mysql_close( &friend_db );
 
     if ( sp->sp_reauth ) {
-	return;
+	return( 0 );
     }
 
     if ( cosign_login( head, cookie, ip_addr, id, "friend", NULL ) < 0 ) {
@@ -222,12 +202,12 @@ cosign_login_mysql( struct connlist *head, char *id, char *passwd,
 	subfile( tmpl, sl, 0 );
 	exit( 0 );
     }
-    return;
+    return( 0 );
 }
 #endif /* SQL_FRIEND */
 
 #ifdef KRB
-    void
+    int
 cosign_login_krb5( struct connlist *head, char *id, char *passwd,
 	char *ip_addr, char *cookie, struct subparams *sp )
 {
@@ -307,25 +287,7 @@ cosign_login_krb5( struct connlist *head, char *id, char *passwd,
 	    kprinc, passwd, NULL, NULL, 0, NULL /*keytab */, &kopts ))) {
 
 	if ( kerror == KRB5KRB_AP_ERR_BAD_INTEGRITY ) {
-	    sl[ SL_ERROR ].sl_data = "Password incorrect.  Is [caps lock] on?";
-	    sl[ SL_TITLE ].sl_data = "Password Incorrect";
-	    if ( sp->sp_reauth ) {
-		tmpl = REAUTH_HTML;
-	    } else {
-		tmpl = LOGIN_ERROR_HTML;
-	    }
-	    if ( sp->sp_ref != NULL ) {
-		sl[ SL_REF ].sl_data = sp->sp_ref;
-	    }
-	    if ( sp->sp_service != NULL ) {
-		sl[ SL_SERVICE ].sl_data = sp->sp_service;
-	    }
-	    if ( sp->sp_factor != NULL ) {
-		sl[ SL_RFACTOR ].sl_data = sp->sp_factor;
-	    }
-	    sl[ SL_LOGIN ].sl_data = id;
-	    subfile( tmpl, sl, 1 );
-	    exit( 0 );
+	    return( -1 );	/* draw login or reauth page */
 	} else {
 	    sl[ SL_ERROR ].sl_data = (char *)error_message( kerror );
 	    sl[ SL_TITLE ].sl_data = "Error";
@@ -381,7 +343,7 @@ cosign_login_krb5( struct connlist *head, char *id, char *passwd,
     }
 
     if ( sp->sp_reauth ) {
-	return;
+	return( 0 );
     }
 
     if (( kerror = krb5_cc_initialize( kcontext, kccache, kprinc )) != 0 ) {
@@ -417,7 +379,7 @@ cosign_login_krb5( struct connlist *head, char *id, char *passwd,
 	exit( 0 );
     }
 
-    return;
+    return( 0 );
 }
 
 #endif /* KRB */

@@ -89,12 +89,11 @@ loop_checker( int time, int count, char *cookie )
 {
     struct timeval	tv;
     char       		new_cookie[ 255 ];
-    char		*tmpl = ERROR_HTML;
 
     if ( gettimeofday( &tv, NULL ) != 0 ) {
 	sl[ SL_TITLE ].sl_data = "Error: Loop Breaker";
 	sl[ SL_ERROR ].sl_data = "Please try again later.";
-	subfile( tmpl, sl, 0 );
+	subfile( ERROR_HTML, sl, 0 );
 	exit( 0 );
     }
 
@@ -106,39 +105,39 @@ loop_checker( int time, int count, char *cookie )
 		"%s/%d/%d", cookie, time, count) >= sizeof( new_cookie )) {
 	    sl[ SL_TITLE ].sl_data = "Error: Loop Breaker";
 	    sl[ SL_ERROR ].sl_data = "Please try again later.";
-	    subfile( tmpl, sl, 0 );
+	    subfile( ERROR_HTML, sl, 0 );
 	    exit( 0 );
 	}
 	printf( "Set-Cookie: %s; path=/; secure\n", new_cookie );
 	return;
-    } else {
-       /* too many redirects - break the loop and give an error */
-       if ( count >= MAXLOOPCOUNT ) {
-	    time = tv.tv_sec;
-	    count = 1;
-	    if ( snprintf( new_cookie, sizeof( new_cookie ),
-		    "%s/%d/%d", cookie, time, count) >= sizeof( new_cookie )) {
-		sl[ SL_TITLE ].sl_data = "Error: Loop Breaker";
-		sl[ SL_ERROR ].sl_data = "Please try again later.";
-		subfile( tmpl, sl, 0 );
-		exit( 0 );
-	    }
-	    printf( "Location: %s\n\n", loop_page );
-	    exit( 0 );
-	} else {
-	    /* we're still in the limit, increment and keep going */
-	    count++;
-	    if ( snprintf( new_cookie, sizeof( new_cookie ),
-		    "%s/%d/%d", cookie, time, count) >= sizeof( new_cookie )) {
-		sl[ SL_TITLE ].sl_data = "Error: Loop Breaker";
-		sl[ SL_ERROR ].sl_data = "Please try again later.";
-		subfile( tmpl, sl, 0 );
-		exit( 0 );
-	    }
-	    printf( "Set-Cookie: %s; path=/; secure\n", new_cookie );
-	    return;
-	}
     }
+
+    /* too many redirects - break the loop and give an error */
+    if ( count >= MAXLOOPCOUNT ) {
+	time = tv.tv_sec;
+	count = 1;
+	if ( snprintf( new_cookie, sizeof( new_cookie ),
+		"%s/%d/%d", cookie, time, count) >= sizeof( new_cookie )) {
+	    sl[ SL_TITLE ].sl_data = "Error: Loop Breaker";
+	    sl[ SL_ERROR ].sl_data = "Please try again later.";
+	    subfile( ERROR_HTML, sl, 0 );
+	    exit( 0 );
+	}
+	printf( "Location: %s\n\n", loop_page );
+	exit( 0 );
+    }
+
+    /* we're still in the limit, increment and keep going */
+    count++;
+    if ( snprintf( new_cookie, sizeof( new_cookie ),
+	    "%s/%d/%d", cookie, time, count) >= sizeof( new_cookie )) {
+	sl[ SL_TITLE ].sl_data = "Error: Loop Breaker";
+	sl[ SL_ERROR ].sl_data = "Please try again later.";
+	subfile( ERROR_HTML, sl, 0 );
+	exit( 0 );
+    }
+    printf( "Set-Cookie: %s; path=/; secure\n", new_cookie );
+    return;
 }
 
     static void
@@ -420,8 +419,7 @@ main( int argc, char *argv[] )
 		    sl[ SL_RFACTOR ].sl_data = factor;
 		    sl[ SL_TITLE ].sl_data = "Re-Authentication Required";
 		    sl[ SL_ERROR ].sl_data = "Please Re-Authenticate.";
-		    subfile( REAUTH_HTML, sl, 0 );
-		    exit( 0 );
+		    goto loginscreen;
 		}
 	    }
 	    *p = '=';
@@ -465,8 +463,7 @@ main( int argc, char *argv[] )
 			"Please log in MORE.";
 		sl[ SL_DFACTOR ].sl_data = ui.ui_factor;
 		sl[ SL_RFACTOR ].sl_data = factor;
-		subfile( reauth ? REAUTH_HTML : LOGIN_ERROR_HTML, sl, 1 );
-		exit( 0 );
+		goto loginscreen;
 	    }
 	}
 
@@ -477,14 +474,6 @@ main( int argc, char *argv[] )
 		    "the authentication server.  Please try again later.";
 	    subfile( ERROR_HTML, sl, 0 );
 	    exit( 0 );
-	}
-
-	/* not possible right now */
-	if ( rc > 0 ) {
-	    sl[ SL_ERROR ].sl_data = "You are not logged in. "
-		    "Please log in now.";
-	    fprintf( stderr, "basically not possible\n" ) ;
-	    goto loginscreen;
 	}
 
 	loop_checker( cookietime, cookiecount, cookie );
@@ -575,8 +564,7 @@ main( int argc, char *argv[] )
 	if ( cl[ CL_LOGIN ].cl_data == NULL ) {
 	    sl[ SL_TITLE ].sl_data = "Authentication Required";
 	    sl[ SL_ERROR ].sl_data = "Please enter your login and password.";
-	    subfile( reauth ? REAUTH_HTML : LOGIN_ERROR_HTML, sl, 1 );
-	    exit( 0 );
+	    goto loginscreen;
 	}
 	login = sl[ SL_LOGIN ].sl_data = cl[ CL_LOGIN ].cl_data;
     }
@@ -586,30 +574,38 @@ main( int argc, char *argv[] )
 
     if ( strchr( login, '@' ) != NULL ) {
 # ifdef SQL_FRIEND
-	cosign_login_mysql( head, login, cl[ CL_PASSWORD ].cl_data,
-		ip_addr, cookie, &sp );
+	if ( cosign_login_mysql( head, login, cl[ CL_PASSWORD ].cl_data,
+		ip_addr, cookie, &sp ) != 0 ) {
+	    sl[ SL_ERROR ].sl_data = "Password or Account Name incorrect. "
+		    "Is [caps lock] on?";
+	    sl[ SL_TITLE ].sl_data = "Authentication Required "
+		    "( guest account error )";
+	    goto loginscreen;
+	}
 # else
 	/* no @ unless we're friendly. */
 	sl[ SL_TITLE ].sl_data = "Authentication Required "
 		"(inappropriate '@' in account name)";
 	sl[ SL_ERROR ].sl_data = "Password or Account Name incorrect. "
 		"Is [caps lock] on?";
-	subfile( reauth ? REAUTH_HTML : LOGIN_ERROR_HTML, sl, 1 );
-	exit( 0 );
+	goto loginscreen;
 
 # endif  /* SQL_FRIEND */
     } else {
 # ifdef KRB
 	/* not a friend, must be kerberos */
-	cosign_login_krb5( head, login, cl[ CL_PASSWORD ].cl_data,
-		ip_addr, cookie, &sp );
+	if ( cosign_login_krb5( head, login, cl[ CL_PASSWORD ].cl_data,
+		ip_addr, cookie, &sp ) != 0 ) {
+	    sl[ SL_ERROR ].sl_data = "Password incorrect.  Is [caps lock] on?";
+	    sl[ SL_TITLE ].sl_data = "Password Incorrect";
+	    goto loginscreen;
+	}
 # else /* KRB */
 	sl[ SL_TITLE ].sl_data = "Authentication Required "
 		"(no '@' in account name)";
 	sl[ SL_ERROR ].sl_data = "Password or Account Name incorrect. "
 		"Is [caps lock] on?";
-	subfile( reauth ? REAUTH_HTML : LOGIN_ERROR_HTML, sl, 1 );
-	exit( 0 );
+	goto loginscreen;
 # endif /* KRB */
     }
 
@@ -643,15 +639,13 @@ main( int argc, char *argv[] )
 	    sl[ SL_TITLE ].sl_data = "Authentication Required";
 	    sl[ SL_ERROR ].sl_data = "Primary factor before secondary factors,"
 		    " PLEASE!";
-	    subfile( reauth ? REAUTH_HTML : LOGIN_ERROR_HTML, sl, 1 );
-	    exit( 0 );
+	    goto loginscreen;
 	}
 
 	if ( execfactor( fl, cl, &msg ) != 0 ) {
 	    sl[ SL_TITLE ].sl_data = "Authentication Required";
 	    sl[ SL_ERROR ].sl_data = msg;
-	    subfile( reauth ? REAUTH_HTML : LOGIN_ERROR_HTML, sl, 1 );
-	    exit( 0 );
+	    goto loginscreen;
 	}
 
 	/*
@@ -675,8 +669,7 @@ main( int argc, char *argv[] )
     if ( *ui.ui_login == '\0' ) {
 	sl[ SL_TITLE ].sl_data = "Authentication Required";
 	sl[ SL_ERROR ].sl_data = "Please enter your login and password.";
-	subfile( reauth ? REAUTH_HTML : LOGIN_ERROR_HTML, sl, 1 );
-	exit( 0 );
+	goto loginscreen;
     }
 
     if ( service ) {
@@ -686,12 +679,6 @@ main( int argc, char *argv[] )
 	 */
 
         if (( rc = cosign_register( head, cookie, ip_addr, service )) < 0 ) {
-	    /* this should not be possible... do it anyway? */
-            if ( cosign_check( head, cookie, &ui ) != 0 ) {
-                sl[ SL_TITLE ].sl_data = "Authentication Required";
-                goto loginscreen;
-            }
-
             fprintf( stderr, "%s: implicit cosign_register failed\n", script );
             sl[ SL_TITLE ].sl_data = "Error: Implicit Register Failed";
             sl[ SL_ERROR ].sl_data = "We were unable to contact the "
@@ -745,15 +732,16 @@ loginscreen:
 	} else {
 	    fputs( "\n\n", stdout );
 	}
-    } else {
-	if ( sl[ SL_ERROR ].sl_data == NULL ) {
-	    sl[ SL_ERROR ].sl_data = "Please type your login and password "
-		    "and click the Login button to continue.";
-	}
-	/*
-	 * XXX Need to update factors.
-	 */
-	subfile( reauth ? REAUTH_HTML : LOGIN_HTML, sl, 1 );
+	exit( 0 );
     }
+
+    if ( sl[ SL_ERROR ].sl_data == NULL ) {
+	sl[ SL_ERROR ].sl_data = "Please type your login and password "
+		"and click the Login button to continue.";
+    }
+    /*
+     * XXX Need to update factors.
+     */
+    subfile( reauth ? REAUTH_HTML : LOGIN_ERROR_HTML, sl, 1 );
     exit( 0 );
 }
