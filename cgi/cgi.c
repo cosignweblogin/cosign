@@ -190,7 +190,7 @@ main( int argc, char *argv[] )
     int				i;
     char                	new_cookiebuf[ 128 ];
     char        		new_cookie[ 255 ];
-    char			*data, *ip_addr;
+    char			*data, *ip_addr, *tmpl = NULL;
     char			*cookie = NULL, *method, *script, *qs, *sufp;
     char			*misc = NULL, *factor = NULL, *p, *r, *s;
     char			*require, *satisfied, *reqp, *satp;
@@ -406,19 +406,8 @@ main( int argc, char *argv[] )
 		if ( scookie->sl_flag & SL_REAUTH ) {
 		    *p = '=';
 		    if ( cosign_check( head, cookie, &ui ) != 0 ) {
-			sl[ SL_ERROR ].sl_data = "You are not logged in. "
-				"Please log in now.";
 			goto loginscreen;
 		    }
-		    sl[ SL_LOGIN ].sl_data = ui.ui_login;
-		    /*
-		     * XXX Reauth required factors must be removed from
-		     * SL_DFACTOR and added to SL_RFACTOR.
-		     */
-		    sl[ SL_DFACTOR ].sl_data = ui.ui_factor;
-		    sl[ SL_RFACTOR ].sl_data = factor;
-		    sl[ SL_TITLE ].sl_data = "Re-Authentication Required";
-		    sl[ SL_ERROR ].sl_data = "Please Re-Authenticate.";
 		    goto loginscreen;
 		}
 	    }
@@ -426,8 +415,6 @@ main( int argc, char *argv[] )
 	}
 
 	if ( cosign_check( head, cookie, &ui ) != 0 ) {
-	    sl[ SL_ERROR ].sl_data = "You are not logged in. "
-		    "Please log in now.";
 	    goto loginscreen;
 	}
 
@@ -458,11 +445,8 @@ main( int argc, char *argv[] )
 		}
 	    }
 	    if ( r != NULL ) {
-		sl[ SL_LOGIN ].sl_data = ui.ui_login;
 		sl[ SL_ERROR ].sl_data = "You need more factors. "
 			"Please log in MORE.";
-		sl[ SL_DFACTOR ].sl_data = ui.ui_factor;
-		sl[ SL_RFACTOR ].sl_data = factor;
 		goto loginscreen;
 	    }
 	}
@@ -493,8 +477,6 @@ main( int argc, char *argv[] )
 		subfile( ERROR_HTML, sl, 0 );
 		exit( 0 );
 	    } else if ( !rebasic ) {
-		sl[ SL_ERROR ].sl_data = "You are not logged in. "
-			"Please log in now.";
 		goto loginscreen;
 	    }
 	}
@@ -508,6 +490,9 @@ main( int argc, char *argv[] )
 	}
 	exit( 0 );
     }
+
+    /* after here we want to report errors on the login screen */
+    tmpl = LOGIN_ERROR_HTML;
 
     if (( cgi = cgi_init()) == NULL ) {
         sl[ SL_TITLE ].sl_data = "Error: Server Error";
@@ -550,7 +535,8 @@ main( int argc, char *argv[] )
 		sl[ SL_SERVICE ].sl_data = cl[ CL_SERVICE ].cl_data;
     }
     if ( cl[ CL_RFACTOR ].cl_data != NULL ) {
-	sp.sp_factor = sl[ SL_RFACTOR ].sl_data = cl[ CL_RFACTOR ].cl_data;
+	factor = sp.sp_factor =
+		sl[ SL_RFACTOR ].sl_data = cl[ CL_RFACTOR ].cl_data;
     }
     if (( cl[ CL_REAUTH ].cl_data != NULL ) && 
 	    ( strcmp( cl[ CL_REAUTH ].cl_data, "true" ) == 0 )) {
@@ -558,8 +544,7 @@ main( int argc, char *argv[] )
     }
 
     if ( cosign_check( head, cookie, &ui ) == 0 ) {
-	login = sl[ SL_LOGIN ].sl_data = cl[ CL_LOGIN ].cl_data = ui.ui_login;
-	sl[ SL_DFACTOR ].sl_data = ui.ui_factor;
+	login = cl[ CL_LOGIN ].cl_data = ui.ui_login;
     } else {
 	if ( cl[ CL_LOGIN ].cl_data == NULL ) {
 	    sl[ SL_TITLE ].sl_data = "Authentication Required";
@@ -609,9 +594,7 @@ main( int argc, char *argv[] )
 # endif /* KRB */
     }
 
-    if ( cosign_check( head, cookie, &ui ) == 0 ) {
-	sl[ SL_DFACTOR ].sl_data = ui.ui_factor;
-    }
+    (void)cosign_check( head, cookie, &ui );
 
 	}
 #endif /* SQL_FRIEND || KRB */
@@ -661,9 +644,7 @@ main( int argc, char *argv[] )
 	    exit( 0 );
 	}
 
-	if ( cosign_check( head, cookie, &ui ) == 0 ) {
-	    sl[ SL_DFACTOR ].sl_data = ui.ui_factor;
-	}
+	(void)cosign_check( head, cookie, &ui );
     }
 
     if ( *ui.ui_login == '\0' ) {
@@ -704,44 +685,63 @@ main( int argc, char *argv[] )
     exit( 0 );
 
 loginscreen:
-    if ( mkcookie( sizeof( new_cookiebuf ), new_cookiebuf ) != 0 ) {
-	fprintf( stderr, "%s: mkcookie: failed\n", script );
-	exit( 1 );
-    }
+    if ( *ui.ui_login == '\0' ) {
 
-    if ( gettimeofday( &tv, NULL ) != 0 ) {
-	sl[ SL_TITLE ].sl_data = "Error: Login Screen";
-	sl[ SL_ERROR ].sl_data = "Please try again later.";
-	subfile( ERROR_HTML, sl, 0 );
-	exit( 0 );
-    }
-
-    snprintf( new_cookie, sizeof( new_cookie ), "cosign=%s/%lu",
-	    new_cookiebuf, tv.tv_sec );
-    printf( "Set-Cookie: %s; path=/; secure\n", new_cookie );
-
-    if ( remote_user ) {
-	if ( server_port != 443 ) {
-	    printf( "Location: https://%s:%d%s?basic",
-		    cosign_host, server_port, script );
-	} else {
-	    printf( "Location: https://%s%s?basic", cosign_host, script );
+	if ( tmpl == NULL ) {
+	    tmpl = LOGIN_HTML;
 	}
-	if (( ref != NULL ) && ( service != NULL )) {
-	    printf( "&%s&%s\n\n", service, ref );
-	} else {
-	    fputs( "\n\n", stdout );
+	if ( mkcookie( sizeof( new_cookiebuf ), new_cookiebuf ) != 0 ) {
+	    fprintf( stderr, "%s: mkcookie: failed\n", script );
+	    exit( 1 );
 	}
-	exit( 0 );
+
+	if ( gettimeofday( &tv, NULL ) != 0 ) {
+	    sl[ SL_TITLE ].sl_data = "Error: Login Screen";
+	    sl[ SL_ERROR ].sl_data = "Please try again later.";
+	    subfile( ERROR_HTML, sl, 0 );
+	    exit( 0 );
+	}
+
+	snprintf( new_cookie, sizeof( new_cookie ), "cosign=%s/%lu",
+		new_cookiebuf, tv.tv_sec );
+	printf( "Set-Cookie: %s; path=/; secure\n", new_cookie );
+
+	if ( remote_user ) {
+	    if ( server_port != 443 ) {
+		printf( "Location: https://%s:%d%s?basic",
+			cosign_host, server_port, script );
+	    } else {
+		printf( "Location: https://%s%s?basic", cosign_host, script );
+	    }
+	    if (( ref != NULL ) && ( service != NULL )) {
+		printf( "&%s&%s\n\n", service, ref );
+	    } else {
+		fputs( "\n\n", stdout );
+	    }
+	    exit( 0 );
+	}
+    } else {
+	sl[ SL_LOGIN ].sl_data = ui.ui_login;
+	if ((( scookie = service_find( service )) != NULL ) &&
+		( scookie->sl_flag & SL_REAUTH )) {
+	    /*
+	     * XXX Reauth required factors must be removed from
+	     * SL_DFACTOR and added to SL_RFACTOR.
+	     */
+	    sl[ SL_DFACTOR ].sl_data = ui.ui_factor;
+	    sl[ SL_RFACTOR ].sl_data = factor;
+	    sl[ SL_TITLE ].sl_data = "Re-Authentication Required";
+	    if ( sl[ SL_ERROR ].sl_data != NULL ) {
+		sl[ SL_ERROR ].sl_data = "Please Re-Authenticate.";
+	    }
+	    tmpl = REAUTH_HTML;
+	} else {
+	    sl[ SL_DFACTOR ].sl_data = ui.ui_factor;
+	    sl[ SL_RFACTOR ].sl_data = factor;
+	    tmpl = LOGIN_ERROR_HTML;
+	}
     }
 
-    if ( sl[ SL_ERROR ].sl_data == NULL ) {
-	sl[ SL_ERROR ].sl_data = "Please type your login and password "
-		"and click the Login button to continue.";
-    }
-    /*
-     * XXX Need to update factors.
-     */
-    subfile( reauth ? REAUTH_HTML : LOGIN_ERROR_HTML, sl, 1 );
+    subfile( tmpl, sl, 1 );
     exit( 0 );
 }
