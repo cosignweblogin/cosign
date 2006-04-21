@@ -1,0 +1,67 @@
+#rightUIcol .factorHead h2 {
+	cursor: pointer;
+}
+
+#rightUIcol .factorHead h2 span {
+	display: inline;
+	background: url(/cosign/images/dink_down.gif) center left no-repeat;
+	padding: 6px;
+}
+
+#rightUIcol .factorHead h2.dinkDown span {
+	background: url(/cosign/images/dink_down.gif) center left no-repeat;
+}
+
+#rightUIcol .factorHead h2.dink span {
+	background: url(/cosign/images/dink.gif) center left no-repeat;
+}
+
+#rightUIcol .factorHead h2.check {
+	cursor: default;
+}
+
+#rightUIcol .factorHead h2.check span {
+	background: url(/cosign/images/check.gif) center left no-repeat;
+}
+
+#rightUIcol .factorHead h2.required {
+	cursor: default;
+}
+
+#rightUIcol .factorHead h2.required span {
+	background: url(/cosign/images/circle.gif) center left no-repeat;
+}
+
+#rightUIcol .factorHead div.authComplete {
+	background-color: inherit;
+	color: #666666;
+	clear: both;
+	margin: 0px;
+	padding-left: 18px;
+}
+
+#rightUIcol .factor tr.capsLock {
+	background-color: inherit;
+	color: #cc0000;
+	font-size: 97%;
+}
+
+#leftUIcol .infoBox {
+	visibility: hidden;
+}
+
+#leftUIcol .toTop {
+	display: none;
+}
+
+#leftUIcol .hideInfo {
+	display: block;
+}
+
+.noScript {
+	display: none;
+}
+
+.jsOnly {
+	display: block;
+}

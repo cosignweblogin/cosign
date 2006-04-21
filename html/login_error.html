@@ -1,0 +1,168 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1" />
+<meta http-equiv="Pragma" content="no-cache" />
+<meta http-equiv="Expires" content="Monday, 16-Apr-73 13:10:00 GMT" />
+<title>$t</title>
+<style type="text/css" media="screen">
+/* <![CDATA[ */@import "/cosign/cosign_base.css"/**/;/* ]]> */
+</style>
+<script type="text/javascript" src="/cosign/js/prototype.js"></script>
+<script type="text/javascript" src="/cosign/js/scriptaculous.js"></script>
+<script type="text/javascript" src="/cosign/js/effects.js"></script>
+<script type="text/javascript" src="/cosign/js/cosign.js"></script>
+<script type="text/javascript">
+	var link = document.createElement('link');
+	link.setAttribute('rel', 'stylesheet');
+	link.setAttribute('type', 'text/css');
+	link.setAttribute('href', '/cosign/cosign_js.css');
+	document.getElementsByTagName('head')[0].appendChild(link);
+	window.onload = function() {
+		var cosign = new Cosign('$f');
+		cosign.setSatisfied('$d');
+		cosign.addFactor(['friend','UMICH.EDU'],'kerbTitle','kerberos');
+		cosign.addFactor('otp','otpTitle','otp');
+		cosign.addFactor('kx509','kx509Title','kx509');
+		cosign.addInfoBox('kerbInfo','kerbInfoShow','kerbInfoHide');
+		cosign.addInfoBox('otpInfo','otpInfoShow','otpInfoHide');
+		cosign.addInfoBox('kx509Info','kx509InfoShow','kx509InfoHide');
+		cosign.initUI();
+	}
+	</script>
+</head>
+<body>
+<div id="page">
+	<div id="head"> <a id="mast" href="#" title="Link to Homepage"><span>
+		<!--A small logo for when CSS is disabled goes here. <img src="#" alt="" width="16" height="16" />//-->
+		</span> <strong>Our Home Page</strong></a> </div>
+	<hr class="text" />
+	<ul class="text">
+		<li><a href="#instruct" title="Jump to the Web Login instructions [ALT + 1 Windows / CONTROL + 1 Mac]" accesskey="1">Jump
+				to the Web Login instructions</a></li>
+		<li><a href="#error" title="Jump to the error message (if present) [ALT + 2 Windows / CONTROL + 2 Mac]" accesskey="2">Jump
+				to the error message (if present)</a></li>
+		<li><a href="#kerberos" title="Jump to the ID and Password section [ALT + 3 Windows / CONTROL + 3 Mac]" accesskey="3">Jump
+				to the ID and Password section</a></li>
+		<li><a href="#otp" title="Jump to the One Time Passcode section [ALT + 4 Windows / CONTROL + 4 Mac]"  accesskey="4">Jump
+				to the One Time Passcode section</a></li>
+		<li><a href="#kx509" title="Jump to the Certificate section [ALT + 5 Windows / CONTROL + 5 Mac]" accesskey="5">Jump
+				to the Certificate section</a></li>
+	</ul>
+	<hr class="text" />
+	<div id="main">
+		<div id="uiRow">
+			<div id="leftUIcol">
+				<h1 id="instruct">Authentication Required</h1>
+				<p>Please enter your authentication information and click the &quot;Log&nbsp;In&quot; button
+					to continue.</p>
+				<p class="jsOnly">Authentication
+				sections marked with a <img
+				src="/cosign/images/circle.gif" alt="yellow circle" /> are
+					required.</p>
+				<p>By using this service you agree to adhere to our policies and guidelines.</p>
+				<p class="noScript">This page displays best when JavaScript is enabled in your web
+					browser.</p>
+				<div id="kerbInfo" class="infoBox">
+					<h4><a href="#mainInfo" class="hideInfo" id="kerbInfoHide">Hide this Information</a> <a href="#l2header" class="toTop">Back
+							to Top</a></h4>
+					<h3>Need an Account?</h3>
+					<p>Replace this text with information about obtaining an account. Lorem ipsum dolor
+						sit amet, consectetuer adipiscing elit. Nullam cursus dolor non lacus. Aenean vitae
+						orci. Mauris vulputate ornare urna.</p>
+					<h3>Forgot Your Password?</h3>
+					<p>Replace this text with information about resetting your password. Lorem ipsum
+						dolor sit amet, consectetuer adipiscing elit. Nullam cursus dolor non lacus. Aenean
+						vitae orci. Mauris vulputate ornare urna.</p>
+				</div>
+				<div id="otpInfo" class="infoBox">
+					<h4><a href="#mainInfo" class="hideInfo" id="otpInfoHide">Hide this Information</a> <a href="#l2header" class="toTop">Back
+							to Top</a></h4>
+					<h3>Get a Token</h3>
+					<p>Replace this with text about using one time passcodes. Lorem ipsum dolor sit amet,
+						consectetuer adipiscing elit. Nullam cursus dolor non lacus. Aenean vitae orci.
+						Mauris vulputate ornare urna.</p>
+				</div>
+				<div id="kx509Info" class="infoBox">
+					<h4><a href="#mainInfo" class="hideInfo" id="kx509InfoHide">Hide this Information</a> <a href="#l2header" class="toTop">Back
+							to Top</a></h4>
+					<h3>Download KX.509</h3>
+					<p>The KX.509 service provides a client/server application that uses Kerberos to
+						acquire a short-term X.509 certificate. This makes it possible for web-browsers
+						to authenticate a user to any CoSign-protected web services silently instead of
+						prompting the user for a name and password. At U-M, this service can be used by
+						those who know their Uniqname and Kerberos password.</p>
+				</div>
+			</div>
+			<form action="/cosign-bin/cosign.cgi" method="post" name="factors" id="rightUIcol">
+				<input type="hidden" name="required"
+				value="$f" />
+				<input type="hidden" name="ref"
+				value="$r" />
+				<input type="hidden" name="service"
+				value="$c" />
+				<div id="error">$e</div>
+				<div class="factorHead"> <a href="#" tabindex="10">Help</a>
+					<h2 id="kerbTitle"><span>&nbsp;</span>ID &amp; Password</h2>
+					<div class="authComplete" style="display: none;">Authentication Complete</div>
+				</div>
+				<div class="factor" id="kerberos">
+					<table>
+						<tr>
+							<td><label for="login">Login</label></td>
+							<td><input
+							id="login"
+							name="login"
+							type="text"
+							value="$l" size="18" tabindex="1" /></td>
+						</tr>
+						<tr>
+							<td><label for="password">Password</label></td>
+							<td><input id="password" name="password" type="password" value="" size="18" tabindex="2" /></td>
+						</tr>
+						<tr class="capsLock" style="display: none;">
+							<td>&nbsp;</td>
+							<td>Caps Lock is on</td>
+						</tr>
+					</table>
+					Need <a href="#kerbInfo" id="kerbInfoShow" tabindex="7">an account or password help?</a> </div>
+				<div class="factorHead"> <a href="#" tabindex="11">Help</a>
+					<h2 id="otpTitle"><span>&nbsp;</span>One Time Passcode</h2>
+					<div class="authComplete" style="display: none;">Authentication Complete</div>
+				</div>
+				<div class="factor" id="otp">
+					<table>
+						<tr>
+							<td><label for="passcode" id="pCodeLabel">Passcode</label></td>
+							<td><input id="passcode" name="passcode" type="password" value="" size="18" tabindex="3" /></td>
+						</tr>
+						<tr class="capsLock" style="display: none;">
+							<td>&nbsp;</td>
+							<td>Caps Lock is on</td>
+						</tr>
+					</table>
+					Manage your <a href="#otpInfo" id="otpInfoShow" tabindex="8">token</a> </div>
+				<div class="factorHead"> <a href="#" tabindex="12">Help</a>
+					<h2 id="kx509Title"><span>&nbsp;</span>Certificate</h2>
+					<div class="authComplete" style="display: none;">Authentication Complete</div>
+				</div>
+				<div class="factor" id="kx509">
+					<p class="note">You must have k.x-509 software installed and configured.</p>
+					<p>
+						<input name="useKX509" id="useKX509" type="checkbox" value="1" tabindex="5" />
+						<label for="useKX509">Authenticate using a certificate</label>
+					</p>
+					Download <a href="#kx509Info" id="kx509InfoShow" tabindex="9">k.x-509 software</a> </div>
+				<div id="loginButton">
+					<input type="submit" name="doLogin" value="Log In" tabindex="6" />
+				</div>
+			</form>
+			<div class="clear">&nbsp;</div>
+		</div>
+		<div id="uiBottom">&nbsp;</div>
+	</div>
+</div>
+<div id="foot">&copy; 2006 <a href="http://www.umich.edu/~regents/" title="Regents of the University of Michigan"> Regents
+		of the University of Michigan</a> </div>
+</body>
+</html>

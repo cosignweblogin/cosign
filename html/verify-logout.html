@@ -1,0 +1,45 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1" />
+<meta http-equiv="Pragma" content="no-cache" />
+<meta http-equiv="Expires" content="Monday, 16-Apr-73 13:10:00 GMT" />
+<title>$t</title>
+<style type="text/css" media="screen">
+/* <![CDATA[ */@import "/cosign/cosign_base.css"/**/;/* ]]> */
+</style>
+<script type="text/javascript" src="/cosign/js/prototype.js"></script>
+<script type="text/javascript">
+	window.onload = function() {
+		Event.observe('back', 'click', function() {history.go(-1)});
+		$('logout').focus();
+	}
+</script>
+</head>
+<body>
+<div id="page">
+	<div id="head"> <a id="mast" href="#" title="Link to Homepage"><span>
+		<!--A small logo for when CSS is disabled goes here. <img src="#" alt="" width="16" height="16" />//-->
+		</span> <strong>Our Home Page</strong></a> </div>
+	<div id="main" class="logoutUI">
+		<div id="uiRow">
+		    <form name="f" method="post" action="/cosign-bin/logout">
+			<h1>Log Out</h1>
+			<p>You are about to log out of <a href="/services/">all weblogin applications</a>.
+				Are you sure you want to do this?</p>
+			<p>
+				<input type="button" id="back" value="Go Back" />
+				<input type="submit" id="logout" name="verify" value="Log Out" />
+			</p>
+			<div class="redirect">After logout your browser
+			will redirect to: $u</div>
+			<input type="hidden" name="url" value="$u" />
+		</form>
+		</div>
+		<div id="uiBottom">&nbsp;</div>
+	</div>
+</div>
+<div id="foot">&copy; 2006 <a href="http://www.umich.edu/~regents/" title="Regents of the University of Michigan"> Regents
+		of the University of Michigan</a> </div>
+</body>
+</html>

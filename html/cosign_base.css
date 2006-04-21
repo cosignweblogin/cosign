@@ -1,0 +1,381 @@
+/* General Tags */
+body {
+	margin: 0;
+	padding: 0;
+	background-color: #fff;
+	color: inherit;
+	background: url(/cosign/images/bg_grad.png) 0 0  repeat-x;
+	font: 10px/1.3em Verdana, Arial, Helvetica, sans-serif;
+}
+
+p, dt, dd, form, input, table {
+	font-size: 100%;
+}
+
+img {
+	border: none;
+}
+
+label {
+	font-weight: bold;
+	font-size: 110%;
+	line-height: 50%;
+}
+
+td input {
+	border: 1px solid #bbb;
+	padding: 2px;
+	vertical-align: top;
+}
+
+h1 {
+	font-size: 140%;
+	line-height: 1.3em;
+	font-family: "Helvetica Neue", Helvetica, Verdana, Arial, sans-serif;
+	background-color: inherit;
+	color: #2a58ab;
+	font-weight: normal;
+	text-transform: uppercase;
+	margin-top: 0;
+	margin-bottom: 1em;
+}
+
+h1:after {
+	content: "::";
+}
+
+h2 {
+	font-family: Verdana, Arial, sans-serif;
+	text-transform: uppercase;
+	line-height: 1.3em;
+	font-weight: bold;
+	background-color: inherit;
+	color: #1B335C;
+	margin-top: 1.3em;
+}
+
+h2, h3, h4 {
+	font-size: 120%;
+}
+
+h3 {
+	font-family: Verdana, Arial, sans-serif;
+	text-transform: none;
+	line-height: 1.3em;
+	font-weight: bold;
+	background-color: inherit;
+	color: #574C07;
+}
+
+a {
+	text-decoration: none;
+	background-color: inherit;
+	color: #8097B5;
+}
+
+a:hover {
+	text-decoration: underline;
+}
+
+/* Page (head, main, foot) */
+#page {
+	width: 760px;
+	margin: 0 auto;
+}
+
+/* Header/Masthead */
+#head {
+	height: 99px;
+	position: relative;
+	padding-bottom: 3px;
+}
+
+#mast {
+	display: block;
+	text-decoration: none;
+	margin: 0;
+	padding: 0;
+	height: 99px;
+	width: 755px;
+	position: relative;
+	text-align: center;
+	background-color: inherit;
+	color: #336699;
+	line-height: 99px;
+	font-size: 100%;
+}
+
+#mast span {
+	width: 100%;
+	height: 99px;
+	position: absolute;
+	top: 0;
+	left: 0;
+	background: url(images/mast.png) 0 0 no-repeat;
+}
+
+#mast img {
+	display: none;
+}
+
+
+/* Main Content and UI Layout */
+#main {
+	padding: 18px 0 0 0;
+	margin: 0 auto 0 auto;
+	font-size: 100%;
+	width: 705px;
+	background: url(images/main_top.gif) top no-repeat;
+}
+
+#main p {
+	font-size: 110%;
+	line-height: 1.6em;
+}
+
+#main a {
+	text-decoration: underline;
+	font-weight: bold;
+	background-color: inherit;
+	color: #5F719A;
+}
+
+#main a:visited {
+	background-color: inherit;
+	color: #5F719A;
+}
+
+#main a:hover{
+	text-decoration:  none;
+	background-color: inherit;
+	color: #003870;
+}
+
+#main.logoutUI input {
+	margin-right: 25px;
+}
+
+#main.logoutUI .redirect {
+	width: 100%;
+	padding-left: 28px;
+	margin: 20px auto 18px auto;
+	color: #666;
+	background-color: inherit;
+	background: url(images/icon_sysmessage.gif) center left no-repeat;
+}
+
+#uiRow {
+	background: url(images/main_middle.gif) top repeat-y;
+	padding: 10px 39px 25px 39px;
+}
+
+#leftUIcol {
+	display: block;
+	float: left;
+	clear: right;
+	width: 59%;
+	padding: 0px 10px 0px 0px;
+	margin: 0;
+}
+
+#leftUIcol .infoBox {
+	background-color: #fcfcfc;
+	color: inherit;
+	margin: 1px 0 1em;
+	padding: 6px 12px;
+	width: 342px;
+	border: 1px dashed #9cbd52;
+}
+
+#leftUIcol .infoBox h3 {
+	background-color: inherit;
+	color: #336699;
+	margin-top: 0;
+}
+
+#leftUIcol .infoBox h4 {
+	margin: 0;
+}
+
+#leftUIcol .infoBox h4 a,
+#leftUIcol .infoBox h4 a:visited {
+	font-weight: normal;
+	background-color: inherit;
+	color: #999;
+	font-size: 90%;
+	padding: 0;
+	text-align: right;
+	text-transform: none;
+}
+
+#leftUIcol .hideInfo {
+	display: none;
+}
+
+#rightUIcol {
+	display: block;
+	float: left;
+	clear: right;
+	width: 38%;
+	position: relative;
+	margin: 0;
+}
+
+#rightUIcol .factorHead {
+	font-family: arial, verdana, sans-serif;
+	background-color: #f5f5f5;
+	color: #2a58ab;
+	white-space: nowrap;
+	border: 1px solid #ccc;
+	clear: both;
+	margin-top: 2px;
+	padding: 6px;
+}
+
+#rightUIcol .factorHead h2 {
+	margin: 0% 15% 0% 0%;
+	padding: 0;
+	font-size: 130%;
+	font-weight: bold;
+	background-color: inherit;
+	color: #336699;
+	text-transform: none;
+}
+
+#rightUIcol .factorHead h2 span {
+	display: none;
+}
+
+#rightUIcol .factorHead a,
+#rightUIcol .factorHead a:visited {
+	display: block;
+	float: right;
+	padding-top: 2px;
+	width: 15%;
+	text-align: right;
+}
+
+#rightUIcol .factor {
+	text-align: center;
+	border-right: 1px solid #ccc;
+	border-bottom: 1px solid #ccc;
+	border-left: 1px solid #ccc;
+	padding: 8px;
+}
+
+#rightUIcol .factor p {
+	margin: 2px 2px 6px 2px;
+}
+
+#rightUIcol .factor p.note {
+	padding: 2px;
+	border: 1px solid #ccc;
+}
+
+#rightUIcol .factor table {
+	text-align: left;
+	margin: 0px auto 6px auto;
+}
+
+#rightUIcol .factor td {
+	padding: 1px 2px 2px 0px;
+}
+
+#rightUIcol .switchUser {
+	font-size: 90%;
+	white-space: nowrap;
+}
+
+#uiBottom {
+	background: url(images/main_bottom.gif) top no-repeat;
+	padding: 3px 0;
+}
+
+#error {
+	border: 1px dotted #cc9999;
+	margin-bottom: 10px;
+	padding: 6px 8px 6px 28px;
+	background: url(images/icon_alert.gif) left center no-repeat;
+	background-color: #fcfcfc;
+	color: #cc0000;
+}
+
+#loginButton {
+	margin: 12px 0px 0px 0px;
+	padding: 0px;
+	font-size: 130%;
+	text-align: right;
+}
+
+/* Footer */
+
+#foot {
+	width: 760px;
+	margin: 20px auto;
+	text-align: center;
+	padding: 5px;
+	font-size: 108%;
+	border-top: 1px solid #ccc;
+}
+
+#foot,
+#foot a {
+	background-color: inherit;
+	color: #999;
+}
+
+#foot a:hover {
+	background-color: inherit;
+	color: #70a8f1;
+}
+
+
+/* Misc Styles*/
+.clear {
+	clear: both;
+	width: 1px;
+	height: 1px;
+	display: block;
+}
+
+.clear,
+.text {
+	text-indent: -876em;
+}
+
+.text {
+	position: absolute;
+}
+
+p.text a,
+a.text {
+	text-decoration: none
+}
+
+ul.text {
+	list-style: none;
+}
+
+hr.text {
+	display: none;
+}
+
+.error {
+	color: #cc0000;
+	background-color: inherit;
+}
+
+.noScript {
+	font-weight: bold;
+}
+
+.jsOnly {
+	display: none;
+}
+
+.techInfo {
+	color: #999;
+	background-color: inherit;
+	font-style: italic;
+	font-size: 90%;
+}
