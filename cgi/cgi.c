@@ -210,6 +210,30 @@ smash( char *av[] )
 }
 
     int
+match_factor( char *required, char *satisfied, char *suffix )
+{
+    char	*p;
+    int		rc;
+
+    if ( strcmp( required, satisfied ) == 0 ) {
+	return( 1 );
+    }
+    if ( suffix != NULL ) {
+	if (( p = strstr( satisfied, suffix )) != NULL ) {
+	    if (( strlen( p )) == ( strlen( suffix ))) {
+		*p = '\0';
+		rc = strcmp( required, satisfied );
+		*p = *suffix;
+		if ( rc == 0 ) {
+		    return( 1 );
+		}
+	    }
+	}
+    }
+    return( 0 );
+}
+
+    int
 main( int argc, char *argv[] )
 {
     int				rc, cookietime = 0, cookiecount = 0;
@@ -449,19 +473,8 @@ main( int argc, char *argv[] )
 	    for ( r = strtok_r( require, ",", &reqp ); r != NULL;
 		    r = strtok_r( NULL, ",", &reqp )) {
 		for ( i = 0; ui.ui_factors[ i ] != NULL; i++ ) {
-		    if ( strcmp( r, ui.ui_factors[ i ] ) == 0 ) {
+		    if ( match_factor( r, ui.ui_factors[ i ], suffix )) {
 			break;
-		    }
-		    if ( suffix != NULL ) {
-	    if (( sufp = strstr( ui.ui_factors[ i ], suffix )) != NULL ) {
-			    if (( strlen( sufp )) == ( strlen( suffix ))) {
-				*sufp = '\0';
-				if ( strcmp( r, ui.ui_factors[ i ] ) == 0 ) {
-				    *sufp = *suffix;
-				    break;
-				}
-			    }
-	    }
 		    }
 		}
 		if ( ui.ui_factors[ i ] == NULL ) {
@@ -713,8 +726,8 @@ main( int argc, char *argv[] )
 	    if ( scookie->sl_flag & SL_REAUTH ) {
 		for ( i = 0; scookie->sl_factors[ i ] != NULL; i++ ) {
 		    for ( j = 0; new_factors[ j ] != NULL; j++ ) {
-			if ( strcmp( scookie->sl_factors[ i ],
-				new_factors[ j ] ) == 0 ) {
+			if ( match_factor( scookie->sl_factors[ i ],
+				new_factors[ j ], suffix )) {
 			    break;
 			}
 		    }
