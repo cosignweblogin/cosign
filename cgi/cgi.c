@@ -428,16 +428,16 @@ main( int argc, char *argv[] )
 		exit( 0 );
 	    }
 	    *p = '\0';
-	    if (( scookie = service_find( service )) != NULL ) {
+	    scookie = service_find( service );
+	    *p = '=';
+	    if ( scookie != NULL ) {
 		if ( scookie->sl_flag & SL_REAUTH ) {
-		    *p = '=';
 		    if ( cosign_check( head, cookie, &ui ) != 0 ) {
 			goto loginscreen;
 		    }
 		    goto loginscreen;
 		}
 	    }
-	    *p = '=';
 	}
 
 	if ( cosign_check( head, cookie, &ui ) != 0 ) {
@@ -695,11 +695,21 @@ main( int argc, char *argv[] )
     }
 
     if ( service ) {
+
 	/*
 	 * If the service requires reauth, verify that all reauth
 	 * required factors have been just satisfied.
 	 */
-	if (( scookie = service_find( service )) != NULL ) {
+	if (( p = strchr( service, '=' )) == NULL ) {
+	    sl[ SL_TITLE ].sl_data = "Error: Unrecognized Service";
+	    sl[ SL_ERROR ].sl_data = "Malformed service in query string.";
+	    subfile( ERROR_HTML, sl, 0 );
+	    exit( 0 );
+	}
+	*p = '\0';
+	scookie = service_find( service );
+	*p = '=';
+	if ( scookie != NULL ) {
 	    if ( scookie->sl_flag & SL_REAUTH ) {
 		for ( i = 0; scookie->sl_factors[ i ] != NULL; i++ ) {
 		    for ( j = 0; new_factors[ j ] != NULL; j++ ) {
@@ -777,11 +787,23 @@ loginscreen:
 
     } else {
 	sl[ SL_LOGIN ].sl_data = ui.ui_login;
+	if ( scookie == NULL ) {
+	    if (( p = strchr( service, '=' )) == NULL ) {
+		sl[ SL_TITLE ].sl_data = "Error: Unrecognized Service";
+		sl[ SL_ERROR ].sl_data = "Malformed service in query string.";
+		subfile( ERROR_HTML, sl, 0 );
+		exit( 0 );
+	    }
+	    *p = '\0';
+	    scookie = service_find( service );
+	    *p = '=';
+	}
+
 	if (( scookie != NULL ) && ( scookie->sl_flag & SL_REAUTH )) {
 	    sl[ SL_DFACTOR ].sl_data = NULL;
 	    sl[ SL_RFACTOR ].sl_data = smash( scookie->sl_factors );
 	    sl[ SL_TITLE ].sl_data = "Re-Authentication Required";
-	    if ( sl[ SL_ERROR ].sl_data != NULL ) {
+	    if ( sl[ SL_ERROR ].sl_data == NULL ) {
 		sl[ SL_ERROR ].sl_data = "Please Re-Authenticate.";
 	    }
 	    tmpl = REAUTH_HTML;
