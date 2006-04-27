@@ -391,9 +391,9 @@ read_config( char *path )
 	     * XXX cookie ... reauth needs a list of factors which reauth
 	     * requires.
 	     */
-	    if ( ac != 3 ) {
-		fprintf( stderr, "line %d: keyword cookie takes 3 args\n",
-			linenum );
+	    if ( ac < 3 ) {
+		fprintf( stderr, "line %d: keyword cookie"
+			" takes at least 3 args\n", linenum );
 		return( -1 );
 	    }
 	    if ( strcmp( av[ 2 ], "reauth" ) != 0 ) {
@@ -411,6 +411,21 @@ read_config( char *path )
 		return( -1 );
 	    }
 	    sl_new->sl_flag = SL_REAUTH;
+
+	    if (( ac - 3 ) > SL_MAXFACTORS - 1 ) {
+		fprintf( stderr, "line %d:"
+			" too many factors (%d > %d) to keyword cookie\n",
+			linenum, ac - 3, SL_MAXFACTORS - 1 );
+		return( -1 );
+	    }
+	    for ( j = 0, i = 3; i < ac; i++, j++ ) {
+		if (( sl_new->sl_factors[ j ] = strdup( av[ i ] )) == NULL ) {
+		    perror( "malloc" );
+		    return( -1 );
+		}
+	    }
+	    sl_new->sl_factors[ j ] = NULL;
+
 	    sl_new->sl_next = NULL;
 
 	    for ( sl_cur = &servicelist; (*sl_cur) != NULL;
