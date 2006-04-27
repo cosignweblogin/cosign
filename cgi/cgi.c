@@ -18,8 +18,8 @@
 #include <snet.h>
 #include "cgi.h"
 #include "cosigncgi.h"
-#include "network.h"
 #include "config.h"
+#include "network.h"
 #include "login.h"
 #include "subfile.h"
 #include "factor.h"
@@ -43,6 +43,10 @@ char		*tmpldir = _COSIGN_TMPL_DIR;
 char		*loop_page = _COSIGN_LOOP_URL;
 int		x509krbtkts = 0;
 SSL_CTX 	*ctx = NULL;
+
+char			*new_factors[ COSIGN_MAXFACTORS ];
+struct userinfo		ui;
+struct subparams	sp;
 
 struct cgi_list cl[] = {
 #define CL_LOGIN	0
@@ -181,30 +185,52 @@ kcgi_configure()
     }
 }
 
+    static char *
+smash( char *av[] )
+{
+    static char	smashtext[ 1024 ];
+    int		i;
+    
+    if ( av[ 0 ] == NULL ) {
+	return( NULL );
+    }
+    if ( strlen( av[ 0 ] ) + 1 > sizeof( smashtext )) {
+	return( NULL );
+    }
+    strcpy( smashtext, av[ 0 ] );
+    for ( i = 1; av[ i ] != NULL; i++ ) {
+	if ( strlen( av[ i ] ) + 1 + 1 >
+		sizeof( smashtext ) - strlen( smashtext )) {
+	    return( NULL );
+	}
+	strcat( smashtext, "," );
+	strcat( smashtext, av[ i ] );
+    }
+    return( smashtext );
+}
+
     int
 main( int argc, char *argv[] )
 {
     int				rc, cookietime = 0, cookiecount = 0;
     int				rebasic = 0, len, server_port;
     int				reauth = 0;
-    int				i;
+    int				i, j;
     char                	new_cookiebuf[ 128 ];
     char        		new_cookie[ 255 ];
     char			*data, *ip_addr, *tmpl = NULL;
     char			*cookie = NULL, *method, *script, *qs, *sufp;
-    char			*misc = NULL, *factor = NULL, *p, *r, *s;
-    char			*require, *satisfied, *reqp, *satp;
+    char			*misc = NULL, *factor = NULL, *p, *r;
+    char			*require, *reqp;
     char			*ref = NULL, *service = NULL, *login = NULL;
     char			*remote_user = NULL;
     char			*subject_dn = NULL, *issuer_dn = NULL;
     char			*realm = NULL, *krbtkt_path = NULL;
     char			**ff, *msg = NULL;
-    struct servicelist		*scookie;
+    struct servicelist		*scookie = NULL;
     struct factorlist		*fl;
     struct timeval		tv;
     struct connlist		*head;
-    struct userinfo		ui = { { '\0' }, { '\0' } };
-    struct subparams		sp = { '\0', '\0', '\0', 0 };
     CGIHANDLE			*cgi;
 
     if ( argc == 2 ) {
@@ -422,25 +448,23 @@ main( int argc, char *argv[] )
 	    require = strdup( factor );
 	    for ( r = strtok_r( require, ",", &reqp ); r != NULL;
 		    r = strtok_r( NULL, ",", &reqp )) {
-		satisfied = strdup( ui.ui_factor );
-		for ( s = strtok_r( satisfied, ",", &satp ); s != NULL;
-			s = strtok_r( NULL, ",", &satp )) {
-		    if ( strcmp( r, s ) == 0 ) {
+		for ( i = 0; ui.ui_factors[ i ] != NULL; i++ ) {
+		    if ( strcmp( r, ui.ui_factors[ i ] ) == 0 ) {
 			break;
 		    }
 		    if ( suffix != NULL ) {
-			if (( sufp = strstr( s, suffix )) != NULL ) {
+	    if (( sufp = strstr( ui.ui_factors[ i ], suffix )) != NULL ) {
 			    if (( strlen( sufp )) == ( strlen( suffix ))) {
 				*sufp = '\0';
-				if ( strcmp( r, s ) == 0 ) {
+				if ( strcmp( r, ui.ui_factors[ i ] ) == 0 ) {
 				    *sufp = *suffix;
 				    break;
 				}
 			    }
-			}
+	    }
 		    }
 		}
-		if ( s == NULL ) {
+		if ( ui.ui_factors[ i ] == NULL ) {
 		    break;
 		}
 	    }
@@ -631,20 +655,37 @@ main( int argc, char *argv[] )
 	    goto loginscreen;
 	}
 
-	/*
-	 * XXX Don't call cosign_login() if the factor in question is
-	 * already satisfied.
-	 */
-
-	if ( cosign_login( head, cookie, ip_addr, login, msg, NULL ) < 0 ) {
-	    sl[ SL_ERROR ].sl_data = "We were unable to contact the "
-		    "authentication server. Please try again later.";
-	    sl[ SL_TITLE ].sl_data = "Error: Please try later";
-	    subfile( ERROR_HTML, sl, 0 );
-	    exit( 0 );
+	for ( i = 0; i < COSIGN_MAXFACTORS - 1; i++ ) {
+	    if ( new_factors[ i ] == NULL ) {
+		new_factors[ i ] = strdup( msg );
+		new_factors[ i + 1 ] = NULL;
+		break;
+	    }
+	    if ( strcmp( new_factors[ i ], msg ) == 0 ) {
+		break;
+	    }
 	}
 
-	(void)cosign_check( head, cookie, &ui );
+	/*
+	 * Don't call cosign_login() if the factor in question is
+	 * already satisfied.
+	 */
+	for ( i = 0; ui.ui_factors[ i ] != NULL; i++ ) {
+	    if ( strcmp( msg, ui.ui_factors[ i ] ) == 0 ) {
+		break;
+	    }
+	}
+	if ( ui.ui_factors[ i ] == NULL ) {
+	    if ( cosign_login( head, cookie, ip_addr, login, msg, NULL ) < 0 ) {
+		sl[ SL_ERROR ].sl_data = "We were unable to contact the "
+			"authentication server. Please try again later.";
+		sl[ SL_TITLE ].sl_data = "Error: Please try later";
+		subfile( ERROR_HTML, sl, 0 );
+		exit( 0 );
+	    }
+
+	    (void)cosign_check( head, cookie, &ui );
+	}
     }
 
     if ( *ui.ui_login == '\0' ) {
@@ -655,9 +696,24 @@ main( int argc, char *argv[] )
 
     if ( service ) {
 	/*
-	 * XXX If the service requires reauth, verify that all reauth
+	 * If the service requires reauth, verify that all reauth
 	 * required factors have been just satisfied.
 	 */
+	if (( scookie = service_find( service )) != NULL ) {
+	    if ( scookie->sl_flag & SL_REAUTH ) {
+		for ( i = 0; scookie->sl_factors[ i ] != NULL; i++ ) {
+		    for ( j = 0; new_factors[ j ] != NULL; j++ ) {
+			if ( strcmp( scookie->sl_factors[ i ],
+				new_factors[ j ] ) == 0 ) {
+			    break;
+			}
+		    }
+		    if ( new_factors[ j ] == NULL ) {
+			goto loginscreen;
+		    }
+		}
+	    }
+	}
 
         if (( rc = cosign_register( head, cookie, ip_addr, service )) < 0 ) {
             fprintf( stderr, "%s: implicit cosign_register failed\n", script );
@@ -686,22 +742,20 @@ main( int argc, char *argv[] )
 
 loginscreen:
     if ( *ui.ui_login == '\0' ) {
-
 	if ( tmpl == NULL ) {
 	    tmpl = LOGIN_HTML;
 	}
+
 	if ( mkcookie( sizeof( new_cookiebuf ), new_cookiebuf ) != 0 ) {
 	    fprintf( stderr, "%s: mkcookie: failed\n", script );
 	    exit( 1 );
 	}
-
 	if ( gettimeofday( &tv, NULL ) != 0 ) {
 	    sl[ SL_TITLE ].sl_data = "Error: Login Screen";
 	    sl[ SL_ERROR ].sl_data = "Please try again later.";
 	    subfile( ERROR_HTML, sl, 0 );
 	    exit( 0 );
 	}
-
 	snprintf( new_cookie, sizeof( new_cookie ), "cosign=%s/%lu",
 		new_cookiebuf, tv.tv_sec );
 	printf( "Set-Cookie: %s; path=/; secure\n", new_cookie );
@@ -720,23 +774,19 @@ loginscreen:
 	    }
 	    exit( 0 );
 	}
+
     } else {
 	sl[ SL_LOGIN ].sl_data = ui.ui_login;
-	if ((( scookie = service_find( service )) != NULL ) &&
-		( scookie->sl_flag & SL_REAUTH )) {
-	    /*
-	     * XXX Reauth required factors must be removed from
-	     * SL_DFACTOR and added to SL_RFACTOR.
-	     */
-	    sl[ SL_DFACTOR ].sl_data = ui.ui_factor;
-	    sl[ SL_RFACTOR ].sl_data = factor;
+	if (( scookie != NULL ) && ( scookie->sl_flag & SL_REAUTH )) {
+	    sl[ SL_DFACTOR ].sl_data = NULL;
+	    sl[ SL_RFACTOR ].sl_data = smash( scookie->sl_factors );
 	    sl[ SL_TITLE ].sl_data = "Re-Authentication Required";
 	    if ( sl[ SL_ERROR ].sl_data != NULL ) {
 		sl[ SL_ERROR ].sl_data = "Please Re-Authenticate.";
 	    }
 	    tmpl = REAUTH_HTML;
 	} else {
-	    sl[ SL_DFACTOR ].sl_data = ui.ui_factor;
+	    sl[ SL_DFACTOR ].sl_data = smash( ui.ui_factors );
 	    sl[ SL_RFACTOR ].sl_data = factor;
 	    tmpl = LOGIN_ERROR_HTML;
 	}

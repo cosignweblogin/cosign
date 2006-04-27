@@ -412,10 +412,10 @@ read_config( char *path )
 	    }
 	    sl_new->sl_flag = SL_REAUTH;
 
-	    if (( ac - 3 ) > SL_MAXFACTORS - 1 ) {
+	    if (( ac - 3 ) > COSIGN_MAXFACTORS - 1 ) {
 		fprintf( stderr, "line %d:"
 			" too many factors (%d > %d) to keyword cookie\n",
-			linenum, ac - 3, SL_MAXFACTORS - 1 );
+			linenum, ac - 3, COSIGN_MAXFACTORS - 1 );
 		return( -1 );
 	    }
 	    for ( j = 0, i = 3; i < ac; i++, j++ ) {

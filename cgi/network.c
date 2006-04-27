@@ -26,6 +26,7 @@
 
 #include "argcargv.h"
 #include "cosigncgi.h"
+#include "config.h"
 #include "network.h"
 
 static void (*logger)( char * ) = NULL;
@@ -476,27 +477,25 @@ net_check( SNET *sn, void *vcp )
 	strcpy( cp->cp_ui->ui_login, av[ 2 ] );
 
 	if ( cosign_protocol == 0 ) {
-	    *cp->cp_ui->ui_factor = '\0';
+	    cp->cp_ui->ui_factors[ 0 ] = NULL;
 	    return( COSIGN_OK );
 	}
 
 	/* protocol v2 */
-	if ( strlen( av[ 3 ] ) + 1 > sizeof( cp->cp_ui->ui_factor )) {
-	    fprintf( stderr, "net_check: factor %s too long", av[ 3 ] );
-            return( COSIGN_ERROR );
-        }
-        strcpy( cp->cp_ui->ui_factor, av[ 3 ] );
+	if ( strlen( av[ 1 ] ) >= sizeof( cp->cp_ui->ui_ipaddr )) {
+	    fprintf( stderr, "net_check: ip address %s too long", av[ 1 ] );
+	    return( COSIGN_ERROR );
+	}
+	strcpy( cp->cp_ui->ui_ipaddr, av[ 1 ] );
 
-        for ( i = 4; i < ac; i++ ) {
-            if ( strlen( av[ i ] ) + 1 + 1 >
-                    sizeof( cp->cp_ui->ui_factor ) - strlen(
-		    cp->cp_ui->ui_factor )) {
-		fprintf( stderr, "net_check: factor %s too long", av[ i ] );
-                return( COSIGN_ERROR );
-            }
-            strcat( cp->cp_ui->ui_factor, "," );
-            strcat( cp->cp_ui->ui_factor, av[ i ] );
-        }
+	if ( ac - 3 > COSIGN_MAXFACTORS - 1 ) {
+	    fprintf( stderr, "net_check: too many factors (%d)", ac - 3 );
+            return( COSIGN_ERROR );
+	}
+	for ( i = 3; i < ac; i++ ) {
+	    cp->cp_ui->ui_factors[ i - 3 ] = strdup( av[ i ] );
+	}
+	cp->cp_ui->ui_factors[ i - 3 ] = NULL;
 	return( COSIGN_OK );
 
     case '4':

@@ -36,6 +36,8 @@ static char	*ticket_path = _COSIGN_TICKET_CACHE;
 
 extern char	*cosign_host, *cosign_conf;
 
+extern char	*new_factors[ COSIGN_MAXFACTORS ];
+
 static struct subfile_list sl[] = {
 #define SL_LOGIN	0
         { 'l', SUBF_STR, NULL },
@@ -189,6 +191,17 @@ cosign_login_mysql( struct connlist *head, char *id, char *passwd,
     mysql_free_result( res );
     mysql_close( &friend_db );
 
+    for ( i = 0; i < COSIGN_MAXFACTORS - 1; i++ ) {
+	if ( new_factors[ i ] == NULL ) {
+	    new_factors[ i ] = "friend";
+	    new_factors[ i + 1 ] = NULL;
+	    break;
+	}
+	if ( strcmp( new_factors[ i ], "friend" ) == 0 ) {
+	    break;
+	}
+    }
+
     if ( sp->sp_reauth ) {
 	return( 0 );
     }
@@ -224,6 +237,7 @@ cosign_login_krb5( struct connlist *head, char *id, char *passwd,
     char			*tmpl = ERROR_HTML; 
     char                        ktbuf[ MAX_KEYTAB_NAME_LEN + 1 ];
     char                        tmpkrb[ 16 ], krbpath [ MAXPATHLEN ];
+    int				i;
 
     lcgi_configure();
 
@@ -340,6 +354,17 @@ cosign_login_krb5( struct connlist *head, char *id, char *passwd,
 	}
 	(void)krb5_kt_close( kcontext, keytab );
 	krb5_free_principal( kcontext, sprinc );
+    }
+
+    for ( i = 0; i < COSIGN_MAXFACTORS - 1; i++ ) {
+	if ( new_factors[ i ] == NULL ) {
+	    new_factors[ i ] = strdup( realm );
+	    new_factors[ i + 1 ] = NULL;
+	    break;
+	}
+	if ( strcmp( new_factors[ i ], realm ) == 0 ) {
+	    break;
+	}
     }
 
     if ( sp->sp_reauth ) {

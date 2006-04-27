@@ -6,7 +6,8 @@
 struct userinfo
 {
 	char	ui_login[ 131 ];
-	char	ui_factor[ 256 ];
+	char	ui_ipaddr[ 256 ];
+	char	*ui_factors[ COSIGN_MAXFACTORS ];
 };
 
 struct login_param

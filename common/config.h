@@ -13,11 +13,11 @@
 
 #define SL_REAUTH	(1<<0)
 
-#define SL_MAXFACTORS		5
+#define COSIGN_MAXFACTORS	5
 struct servicelist {
     char		*sl_cookie;
     int			sl_flag;
-    char		*sl_factors[ SL_MAXFACTORS ];
+    char		*sl_factors[ COSIGN_MAXFACTORS ];
     struct servicelist	*sl_next;
 };
 
