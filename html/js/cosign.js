@@ -38,34 +38,40 @@ Remember.prototype = {
 			var c = ca[i];
 			while ( c.charAt( 0 )==' ' ) c = c.substring( 1, c.length );
 			if ( c.indexOf( nameEQ ) == 0 ) {
-				return c.substring( nameEQ.length, c.length );
+				return {data: c.substring( nameEQ.length, c.length ), isset: true};
 			}
 		}
 
-		return '';
+		return {data: '', isset: false};
 	}
 }
 
 var Cosign = Class.create();
 Cosign.prototype = Object.extend( new Remember(), {
 	initialize: function( requiredFctrs ) {
-		this.factorCookie  = 'exposedFactors';
-		this.attribsCookie = 'miscAttributes';
-		this.factors       = Array();
-		this.infoBoxes     = Array();
-		this.requiredFctrs = Array();
-		this.cookieFactors = Array();
-		this.cookieAttribs = Array();
-		this.satisfied     = Array();
-		this.requiredFctrs = requiredFctrs.split( ',' );
-		var cookieFactors  = this.readCookie( this.factorCookie );
-		this.cookieFactors = cookieFactors.split( ',' );
-		var cookieAttribs  = this.readCookie( this.attribsCookie );
-		this.cookieAttribs = cookieAttribs.split( ',' );
+		this.factorCookie    = 'exposedFactors';
+		this.attribsCookie   = 'miscAttributes';
+		this.factors         = Array();
+		this.infoBoxes       = Array();
+		this.requiredFctrs   = Array();
+		this.cookieFactors   = Array();
+		this.cookieAttribs   = Array();
+		this.satisfied       = Array();
+		this.defaultOpen     = Array();
+		this.requiredFctrs   = requiredFctrs.split( ',' );
+		var cookieFactors    = this.readCookie( this.factorCookie );
+		this.cookieFactors   = cookieFactors.data.split( ',' );
+		this.factorCookieSet = cookieFactors.isset;
+		var cookieAttribs    = this.readCookie( this.attribsCookie );
+		this.cookieAttribs   = cookieAttribs.data.split( ',' );
 	},
 
 	setSatisfied: function( satisfied ) {
 		this.satisfied = satisfied.split( ',' );
+	},
+
+	setDefaultOpen: function( defaults ) {
+		this.defaultOpen = defaults.split( ',' );
 	},
 
 	addFactor: function ( factorName, title, factorDivID ) {
@@ -118,15 +124,20 @@ Cosign.prototype = Object.extend( new Remember(), {
 	},
 
 	toggle: function( factor ) {
-		Effect.toggle( factor.factorDivID, 'blind', {duration: 0.25} );
-		if ( $( factor.factorDivID ).style.display == 'none' ) {
-			$( factor.title ).className = 'dinkDown';
-		} else {
-			$( factor.title ).className = 'dink';
-		}
+		var blindStart = function() {
+			if ( $( factor.factorDivID ).style.display == 'none' ) {
+				$( factor.title ).className = 'dinkDown';
+			} else {
+				$( factor.title ).className = 'dink';
+			}
+		};
 
-		this.saveFactorState( factor );
-		this.closeInfo();
+		var blindFinish = function() {
+			this.saveFactorState( factor );
+			this.closeInfo();
+		}.bind(this);
+
+		Effect.toggle( factor.factorDivID, 'blind', {duration: 0.25, beforeStart: blindStart, afterFinish: blindFinish} );
 	},
 
 	// Based on http://www.howtocreate.co.uk/jslibs/capsDetect.js
@@ -174,12 +185,15 @@ Cosign.prototype = Object.extend( new Remember(), {
 		
 		var nodeList  = document.getElementsByTagName( 'input' );
 		var nodes     = $A( nodeList );
-		
+
 		nodes.each( function( node ) {
 				// The Scriptaculous Event.Observe method cannot be used here.
 				// Most browsers will not capture the event properly with it.
 				if ( node.type == 'password') {
 					node.onkeypress = function( e ){oThis.capsDetect( e )};
+					node.setAttribute( 'autocomplete', 'off' );
+				} else if ( node.type == 'text' ) {
+					node.setAttribute( 'autocomplete', 'off' );
 				}
 			});
 
@@ -197,6 +211,14 @@ Cosign.prototype = Object.extend( new Remember(), {
 				if ( ! focusSet ) {
 					focusSet = this.giveFocus( factor.value.focusBox );
 				}
+			} else if ( this.defaultOpen.inArray( factor.value.factorName ) && this.factorCookieSet == false ) {
+				Event.observe(factor.key, 'click', function(){oThis.toggle(oThis.factors[factor.key])});
+				if ( ! focusSet ) {
+					focusSet = this.giveFocus( factor.value.focusBox );
+				}
+
+				// Set a cookie for the default open factor
+				this.saveFactorState( factor.value );
 			} else {
 				Event.observe(factor.key, 'click', function(){oThis.toggle(oThis.factors[factor.key])});
 				this.hide( factor.value );
@@ -224,7 +246,7 @@ Cosign.prototype = Object.extend( new Remember(), {
 	},
 
 	saveFactorState: function( factor ) {
-		if ( $( factor.factorDivID ).style.display == 'none' && ! this.cookieFactors.inArray( factor.factorName )) {
+		if ( $( factor.factorDivID ).style.display != 'none' && ! this.cookieFactors.inArray( factor.factorName )) {
 			if ( typeof( factor.factorName ) == 'object' ) {
 				this.cookieFactors.push( factor.factorName[0] ); // Some factors have multiple names
 			} else {

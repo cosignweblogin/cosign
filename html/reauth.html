@@ -20,13 +20,15 @@
 	document.getElementsByTagName('head')[0].appendChild(link);
 	window.onload = function() {
 		var cosign = new Cosign('$f');
-		cosign.setSatisfied('$d');
+		cosign.setDefaultOpen( 'UMICH.EDU' );
 		cosign.addFactor(['friend','UMICH.EDU'],'kerbTitle','kerberos');
 		cosign.addFactor('otp','otpTitle','otp');
 		cosign.addFactor('kx509','kx509Title','kx509');
 		cosign.addInfoBox('kerbInfo','kerbInfoShow','kerbInfoHide');
 		cosign.addInfoBox('otpInfo','otpInfoShow','otpInfoHide');
 		cosign.addInfoBox('kx509Info','kx509InfoShow','kx509InfoHide');
+		cosign.setSubmitLink('switchUserL', 'switchUserForm');
+		cosign.setSubmitLink('switchUserR', 'switchUserForm');
 		cosign.initUI();
 	}
 	</script>
@@ -56,7 +58,7 @@
 				<h1 id="instruct">Re-Authentication Required</h1>
 				<p>To protect your personal information, you must verify your password. Please type
 					your password and click the Re-Authenticate button to continue.</p>
-				<p>If you are not bjensen, you may <a href="/cosign-bin/logout" id="switchUserL">Switch
+				<p>If you are not $l, you may <a href="/cosign-bin/logout" id="switchUserL">Switch
 						Users</a> and log in as yourself.</p>
 				<p class="jsOnly">Authentication
 				sections marked with a <img
@@ -96,14 +98,12 @@
 						those who know their Uniqname and Kerberos password.</p>
 				</div>
 			</div>
-			<form action="#" method="post" name="factors" id="rightUIcol">
-				<input type="hidden" name="required"
-				value="$f" />
-				<input type="hidden" name="ref"
-				value="$r" />
-				<input type="hidden" name="service"
-				value="$c" />
-				<div id="error">$e</div>
+			<form action="/cosign-bin/cosign.cgi" method="post" name="factors" id="rightUIcol">
+			<input type="hidden" name="required" value="$f" />
+			<input type="hidden" name="ref" value="$r" />
+			<input type="hidden" name="service" value="$c" />
+			<input type="hidden" name="reauth" value="true" />
+			<div id="error">$e</div>
 				<div class="factorHead"> <a href="#" tabindex="10">Help</a>
 					<h2 id="kerbTitle"><span>&nbsp;</span>ID &amp; Password</h2>
 					<div class="authComplete" style="display: none;">Authentication Complete</div>
@@ -112,7 +112,8 @@
 					<table>
 						<tr>
 							<td><label for="login">Login</label></td>
-							<td id="login">bjensen (<a href="/cosign-bin/logout" class="switchUser" id="switchUserR" tabindex="1">Switch
+							<td
+							id="login">$l (<a href="/cosign-bin/logout" class="switchUser" id="switchUserR" tabindex="1">Switch
 									Users</a>)</td>
 						</tr>
 						<tr>
@@ -163,5 +164,12 @@
 </div>
 <div id="foot">&copy; 2006 <a href="http://www.umich.edu/~regents/" title="Regents of the University of Michigan"> Regents
 		of the University of Michigan</a> </div>
+<form name="switch" id="switchUserForm" action="/cosign-bin/logout" enctype="application/x-www-form-urlencoded" method="post">
+	<input type="hidden" name="url" value="$r" />
+	<input type="hidden" name="service" value="$c" />
+	<input type="hidden" name="reauth" value="true" />
+	<input type="hidden" name="login" value="$l" />
+	<input type="hidden" name="verify" value="true" />
+</form>
 </body>
 </html>
