@@ -101,6 +101,7 @@ cosign_login_mysql( struct connlist *head, char *id, char *passwd,
     char		sql[ 225 ]; /* holds sql query + email addr */
     char		*crypted, *p;
     char		*tmpl = ERROR_HTML; 
+    int			i;
 
     lcgi_configure();
 

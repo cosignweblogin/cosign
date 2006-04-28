@@ -209,7 +209,7 @@ smash( char *av[] )
     return( smashtext );
 }
 
-    int
+    static int
 match_factor( char *required, char *satisfied, char *suffix )
 {
     char	*p;
@@ -243,7 +243,7 @@ main( int argc, char *argv[] )
     char                	new_cookiebuf[ 128 ];
     char        		new_cookie[ 255 ];
     char			*data, *ip_addr, *tmpl = NULL;
-    char			*cookie = NULL, *method, *script, *qs, *sufp;
+    char			*cookie = NULL, *method, *script, *qs;
     char			*misc = NULL, *factor = NULL, *p, *r;
     char			*require, *reqp;
     char			*ref = NULL, *service = NULL, *login = NULL;
