@@ -695,7 +695,8 @@ main( int argc, char *argv[] )
 		break;
 	    }
 	}
-	if ( ui.ui_factors[ i ] == NULL ) {
+	if (( ui.ui_factors[ i ] == NULL ) ||
+		( strcmp( ui.ui_ipaddr, ip_addr ) != 0 )) {
 	    if ( cosign_login( head, cookie, ip_addr, login, msg, NULL ) < 0 ) {
 		sl[ SL_ERROR ].sl_data = "We were unable to contact the "
 			"authentication server. Please try again later.";
@@ -833,11 +834,11 @@ loginscreen:
 	    tmpl = REAUTH_HTML;
 	} else if ( strcmp( ui.ui_ipaddr, ip_addr ) != 0 ) {
 	    sl[ SL_DFACTOR ].sl_data = NULL;
-	    sl[ SL_RFACTOR ].sl_data = smash( ui.ui_factors );
+	    sl[ SL_RFACTOR ].sl_data = ui.ui_factors[ 0 ];
 	    sl[ SL_TITLE ].sl_data = "Re-Authentication Required";
 	    if ( sl[ SL_ERROR ].sl_data == NULL ) {
-		sl[ SL_ERROR ].sl_data = "Re-Authenticate to confirm "
-			"your identity";
+		sl[ SL_ERROR ].sl_data = "Re-Authenticate to confirm"
+			" your new Internet address.";
 	    }
 	    tmpl = REAUTH_HTML;
 	} else {
