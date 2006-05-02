@@ -12,6 +12,7 @@ typedef struct {
     unsigned short      port;
     int                 protect;
     int                 configured;
+    int			checkip;
     struct connlist     *cl;
     SSL_CTX		*ctx;
     char		*cert;
@@ -42,6 +43,10 @@ struct connlist {
 #define COSIGN_OK		0
 #define COSIGN_RETRY		1
 #define COSIGN_LOGGED_OUT	2
+
+#define IPCHECK_NEVER		0
+#define IPCHECK_INITIAL		1
+#define IPCHECK_ALWAYS		2
 
 int cosign_cookie_valid( cosign_host_config *, char *, struct sinfo *, char *,
 	server_rec * );

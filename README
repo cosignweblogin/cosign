@@ -73,6 +73,15 @@ To build:
 
 Configure Apache ( U of M specific example ):
 
+    If you need a certificate, we can provide one signed by the umweb CA at
+    no cost. Self-signed certs will not work wih Cosign.
+
+    NOTE: When filling out the CSR, you will be prompted for the CN. It
+    says "Common Name (eg, YOUR name) []:" - despite what the prompt
+    says, you should type in the hostname of your webserver, eg
+    "deptwebserver.dept.umich.edu". Additionally, the state field should
+    read "Michigan" and not "MI".
+
     In the U of M environment, you'll want your directives to look like
     this:
 

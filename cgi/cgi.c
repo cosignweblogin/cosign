@@ -468,6 +468,10 @@ main( int argc, char *argv[] )
 	    goto loginscreen;
 	}
 
+	if ( strcmp( ui.ui_ipaddr, ip_addr ) != 0 ) {
+	    goto loginscreen;
+	}
+
 	if ( factor != NULL ) {
 	    require = strdup( factor );
 	    for ( r = strtok_r( require, ",", &reqp ); r != NULL;
@@ -589,6 +593,9 @@ main( int argc, char *argv[] )
 	    goto loginscreen;
 	}
 	login = sl[ SL_LOGIN ].sl_data = cl[ CL_LOGIN ].cl_data;
+    }
+    if ( strcmp( ui.ui_ipaddr, ip_addr ) != 0 ) {
+	sp.sp_ipchanged = 1;
     }
 
 #if defined( SQL_FRIEND ) || defined( KRB )
@@ -738,6 +745,10 @@ main( int argc, char *argv[] )
 	    }
 	}
 
+	if ( strcmp( ui.ui_ipaddr, ip_addr ) != 0 ) {
+	    goto loginscreen;
+	}
+
         if (( rc = cosign_register( head, cookie, ip_addr, service )) < 0 ) {
             fprintf( stderr, "%s: implicit cosign_register failed\n", script );
             sl[ SL_TITLE ].sl_data = "Error: Implicit Register Failed";
@@ -818,6 +829,15 @@ loginscreen:
 	    sl[ SL_TITLE ].sl_data = "Re-Authentication Required";
 	    if ( sl[ SL_ERROR ].sl_data == NULL ) {
 		sl[ SL_ERROR ].sl_data = "Please Re-Authenticate.";
+	    }
+	    tmpl = REAUTH_HTML;
+	} else if ( strcmp( ui.ui_ipaddr, ip_addr ) != 0 ) {
+	    sl[ SL_DFACTOR ].sl_data = NULL;
+	    sl[ SL_RFACTOR ].sl_data = smash( ui.ui_factors );
+	    sl[ SL_TITLE ].sl_data = "Re-Authentication Required";
+	    if ( sl[ SL_ERROR ].sl_data == NULL ) {
+		sl[ SL_ERROR ].sl_data = "Re-Authenticate to confirm "
+			"your identity";
 	    }
 	    tmpl = REAUTH_HTML;
 	} else {

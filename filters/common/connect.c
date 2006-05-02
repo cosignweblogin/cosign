@@ -53,7 +53,7 @@ static double             	rate;
 netcheck_cookie( char *scookie, struct sinfo *si, struct connlist *conn,
 	server_rec *s, cosign_host_config *cfg )
 {
-    int			i, j, ac, fc = cfg->reqfc;
+    int			i, j, ac, rc, fc = cfg->reqfc;
     char		*p, *line, **av, **fv = cfg->reqfv;
     struct timeval      tv;
     SNET		*sn = conn->conn_sn;
@@ -137,9 +137,10 @@ netcheck_cookie( char *scookie, struct sinfo *si, struct connlist *conn,
 		if (( p = strstr( av[ j ], cfg->suffix )) != NULL ) {
 		    if (( strlen( p )) == ( strlen( cfg->suffix ))) {
 			*p = '\0';
-			if ( strcmp( fv[ i ], av[ j ] ) == 0 ) {
+			rc = strcmp( fv[ i ], av[ j ] );
+			*p = *cfg->suffix;
+			if ( rc == 0 ) {
 			    if ( cfg->fake == 1 ) {
-				*p = *cfg->suffix;
 				break;
 			    } else {
 				cosign_log( APLOG_ERR, s, 

@@ -60,6 +60,7 @@ cosign_create_config( apr_pool_t *p )
     cfg->port = 0;
     cfg->protect = -1;
     cfg->configured = 0;
+    cfg->checkip = IPCHECK_INITIAL;
     cfg->cl = NULL;
     cfg->ctx = NULL;
     cfg->key = NULL;
@@ -431,6 +432,7 @@ cosign_merge_cfg( cmd_parms *params, void *mconfig )
 
     cfg->filterdb = apr_pstrdup( params->pool, scfg->filterdb );
     cfg->hashlen =  scfg->hashlen;
+    cfg->checkip =  scfg->checkip;
     cfg->proxydb = apr_pstrdup( params->pool, scfg->proxydb );
     cfg->tkt_prefix = apr_pstrdup( params->pool, scfg->tkt_prefix );
 
@@ -525,6 +527,26 @@ set_cosign_siteentry( cmd_parms *params, void *mconfig, char *arg )
     cfg->configured = 1;
     return( NULL );
 }
+
+    static const char *
+set_cosign_checkip( cmd_parms *params, void *mconfig, char *arg )
+{
+    cosign_host_config          *cfg;
+
+    cfg = cosign_merge_cfg( params, mconfig );
+
+    if ( strcasecmp( arg, "never" ) == 0 ) {
+        cfg->checkip = IPCHECK_NEVER;
+    } else if ( strcasecmp( arg, "initial" ) == 0 ) {
+        cfg->checkip = IPCHECK_INITIAL;
+    } else if ( strcasecmp( arg, "always" ) == 0 ) {
+        cfg->checkip = IPCHECK_ALWAYS;
+    } else {
+        return( "CosignCheckIP must be never, initial, or always.");
+    }
+    return( NULL );
+}
+
 
     static const char *
 set_cosign_factor( cmd_parms *params, void *mconfig, char *arg )
@@ -869,7 +891,7 @@ set_cosign_expiretime( cmd_parms *params, void *mconfig, char *arg )
         return( "Service cookie expiration policy applies server-wide.");
     }
 
-    cfg->expiretime = atoi(arg);
+    cfg->expiretime = strtol( arg, (char **)NULL, 10 );
     cfg->configured = 1;
     return( NULL );
 }
@@ -915,6 +937,10 @@ static command_rec cosign_cmds[ ] =
         AP_INIT_TAKE1( "CosignTicketPrefix", set_cosign_tkt_prefix,
         NULL, RSRC_CONF, 
         "the path to the cosign Kerberos ticket directory" ),
+
+	AP_INIT_TAKE1( "CosignCheckIP", set_cosign_checkip,
+        NULL, RSRC_CONF,
+        "\"never\", \"initial\", or \"always\"" ),
 
         AP_INIT_TAKE1( "CosignSiteEntry", set_cosign_siteentry,
         NULL, RSRC_CONF | ACCESS_CONF, 

@@ -207,7 +207,7 @@ f_login( SNET *sn, int ac, char *av[], SNET *pushersn )
     char                buf[ 8192 ];
     char		**fv;
     int			fd, i, j, fc, already_krb = 0;
-    int			krb = 0, err = 1, addfactors = 0, newfactors = 0;
+    int			krb = 0, err = 1, addinfo = 0, newinfo = 0;
     struct timeval	tv;
     struct cinfo	ci;
     unsigned int        len, rc;
@@ -261,7 +261,7 @@ f_login( SNET *sn, int ac, char *av[], SNET *pushersn )
     }
 
     if ( read_cookie( path, &ci ) == 0 ) {
-	addfactors = 1;
+	addinfo = 1;
 	if ( ci.ci_state == 0 ) {
 	    syslog( LOG_ERR,
 		    "f_login: %s already logged out", av[ 1 ] );
@@ -305,10 +305,17 @@ f_login( SNET *sn, int ac, char *av[], SNET *pushersn )
 
     fprintf( tmpfile, "v2\n" );
     fprintf( tmpfile, "s1\n" );	 /* 1 is logged in, 0 is logged out */
+
+    if ( addinfo ) {
+	if ( strcmp( ci.ci_ipaddr, av[ 2 ] ) != 0 ) {
+	    newinfo = 1;
+	}
+    }
     if ( strlen( av[ 2 ] ) >= sizeof( ci.ci_ipaddr )) {
 	goto file_err;
     }
     fprintf( tmpfile, "i%s\n", av[ 2 ] );
+
     if ( strlen( av[ 3 ] ) >= sizeof( ci.ci_user )) {
 	goto file_err;
     }
@@ -317,7 +324,7 @@ f_login( SNET *sn, int ac, char *av[], SNET *pushersn )
 	goto file_err;
     }
 
-    if ( addfactors ) {
+    if ( addinfo ) {
 	if (( facav = acav_alloc()) == NULL ) {
 	    syslog( LOG_ERR, "acav_alloc: %m" );
 	    goto file_err;
@@ -338,10 +345,10 @@ f_login( SNET *sn, int ac, char *av[], SNET *pushersn )
 	    }
 	    if ( j >= fc ) {
 		fprintf( tmpfile, " %s", av[ i ] );
-		newfactors = 1;
+		newinfo = 1;
 	    }
 	}
-	if ( newfactors == 0 ) {
+	if ( newinfo == 0 ) {
 	    snet_writef( sn, "%d LOGIN Cookie Already Stored.\r\n", 202 );
 	    if ( fclose ( tmpfile ) != 0 ) {
 		syslog( LOG_ERR, "f_login: fclose: %m" );
@@ -359,14 +366,14 @@ f_login( SNET *sn, int ac, char *av[], SNET *pushersn )
     }
     fprintf( tmpfile, "\n" );
 
-    if ( addfactors ) {
+    if ( addinfo ) {
 	fprintf( tmpfile, "t%lu\n", ci.ci_itime);
     } else {
 	fprintf( tmpfile, "t%lu\n", tv.tv_sec );
     }
 
     if ( krb ) {
-	if (( addfactors ) && ( ci.ci_krbtkt != NULL )) {
+	if (( addinfo ) && ( ci.ci_krbtkt != NULL )) {
 	    fprintf( tmpfile, "k%s\n", ci.ci_krbtkt );
 	    already_krb = 1;
 	} else {
@@ -382,7 +389,7 @@ f_login( SNET *sn, int ac, char *av[], SNET *pushersn )
 	return( -1 );
     }
 
-    if ( addfactors ) {
+    if ( addinfo ) {
 	if ( rename( tmppath, path ) != 0 ) {
 	    syslog( LOG_ERR, "f_login: rename %s to %s: %m", tmppath, path );
 	    err = -1;

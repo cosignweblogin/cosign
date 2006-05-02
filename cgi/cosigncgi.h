@@ -9,6 +9,7 @@ struct subparams {
     char	*sp_service;
     char	*sp_factor;
     int		sp_reauth;
+    int		sp_ipchanged;
 };
 
 int	mkcookie( int, char * );

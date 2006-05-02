@@ -17,7 +17,7 @@ COSIGNTICKETCACHE=	@ticketcache@
 
 INCPATH=        @CPPFLAGS@ @APXS_INCLUDE@ -I../../libsnet @GSSINC@ -I../../common/ -I../common/
 OPTOPTS=        @OPTOPTS@
-DEFS=           @TLSDEFS@ @KRBDEFS@ @GSSDEFS@ @filteraddrcheck@ -D_PROXY_DB=\"${PROXYDB}\" -D_FILTER_DB=\"${FILTERDB}\" -D_COSIGN_TICKET_CACHE=\"${COSIGNTICKETCACHE}\"
+DEFS=           @TLSDEFS@ @KRBDEFS@ @GSSDEFS@ -D_PROXY_DB=\"${PROXYDB}\" -D_FILTER_DB=\"${FILTERDB}\" -D_COSIGN_TICKET_CACHE=\"${COSIGNTICKETCACHE}\"
 LIBS=           -lsnet @GSSLIBS@ @ADDLIBS@
 LDFLAGS=        -L../../libsnet/.libs @GSSLDFLAGS@ @ADDLDFLAGS@ @LDFLAGS@ ${LIBS}
 

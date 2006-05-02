@@ -203,7 +203,7 @@ cosign_login_mysql( struct connlist *head, char *id, char *passwd,
 	}
     }
 
-    if ( sp->sp_reauth ) {
+    if ( sp->sp_reauth && sp->sp_ipchanged == 0 ) {
 	return( 0 );
     }
 
@@ -368,7 +368,7 @@ cosign_login_krb5( struct connlist *head, char *id, char *passwd,
 	}
     }
 
-    if ( sp->sp_reauth ) {
+    if ( sp->sp_reauth && sp->sp_ipchanged == 0 ) {
 	return( 0 );
     }
 
