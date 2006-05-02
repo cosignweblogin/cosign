@@ -137,6 +137,8 @@ Apache Configuration Options:
 	CosignFilterDB		[ the path to the cosign filter DB]
 	CosignFilterHashLength	[ 0 | 1 | 2 ]
 	    subdir hash for cosign filter DB
+	CosignCheckIP           [ never | initial | always ]
+	    check browser's IP against cosignd's ip information
 	CosignProxyDB		[ the path to the cosign proxy DB]
 	CosignAllowPublicAccess		[ on | off ]
 	    make authentication optional for protected sites

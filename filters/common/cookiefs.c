@@ -75,13 +75,12 @@ cosign_cookie_valid( cosign_host_config *cfg, char *cookie, struct sinfo *si,
     }
 
     if (( rs == 0 ) && (( tv.tv_sec - lsi.si_itime ) <= IDLETIME )) {
-	if ( cfg->checkip == IPCHECK_ALWAYS ) {
-	    if ( strcmp( ipaddr, lsi.si_ipaddr ) != 0 ) {
-		cosign_log( APLOG_ERR, s,
-			"mod_cosign: cached ip %s does not match "
-			"browser ip %s", lsi.si_ipaddr, ipaddr );
-		return( COSIGN_ERROR );
-	    }
+	if (( cfg->checkip == IPCHECK_ALWAYS ) &&
+		( strcmp( ipaddr, lsi.si_ipaddr ) != 0 )) {
+	    cosign_log( APLOG_ERR, s,
+		    "mod_cosign: cached ip %s does not match "
+		    "browser ip %s", lsi.si_ipaddr, ipaddr );
+	    return( COSIGN_ERROR );
 	}
 	strcpy( si->si_ipaddr, lsi.si_ipaddr );
 	strcpy( si->si_user, lsi.si_user );
