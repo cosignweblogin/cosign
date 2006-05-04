@@ -186,8 +186,11 @@ Re-Authentication:
 
     See cosign.conf(5).
 
-
 x509 logins:
+
+    See cosign.conf(5).
+
+External Authenticators:
 
     See cosign.conf(5).
 

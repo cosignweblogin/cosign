@@ -20,10 +20,11 @@ and
 .B include
 are used by both daemons and both cgis. Finally the keywords
 .B cookie,
-.B cert
+.B cert,
+.B factor
 and
-.B pam
-(reserved for future use) are used by cosign.cgi.
+.B suffix
+are used by cosign.cgi.
 .sp
 .SH CGI and SERVICE
 Each line contains a keyword, which is the role of the client in the
@@ -199,17 +200,64 @@ reauthentication before a
 .B REGISTER
 can succeed.
 .sp
+With Cosign 2.0, there is the option to indicate that multiple
+factors are required for reauthentication. After the function "reauth"
+there can be up to 5 factor names. When a user is asked to re-authenticate,
+s/he must supply the correct information to every factor that is
+configured here in the single POST. If the user types any information
+wrong, s/he must type in everything again.
+.sp
+If there are no factors configured for reauthentication, the cgi will
+accept any factor the user can satisfy.
+.sp
 .SH CERT
 The keyword
 .I cert
 is used to authenticate a user with an x509 certificate. It
-takes 5 fields - keyword, issuer_dn, subject_dn, login, and realm (see Example).The first field after the keyword (aka the issuer_dn ) must be an exact match.
+takes 5 fields - keyword, issuer_dn, subject_dn, login, and realm (see Example).The first field after the keyword (aka the issuer_dn) must be an exact match.
 The next field, subject_dn, is a regular expression.  Keep in mind the
 configuration file parser interprets backslashes, so in the following example
  we have "esacaped" our backslashes. The first one escapes the second one which is then passed onto the regular expression parser.  
 .sp
 A sixth field, "type", is optional and currently reserved for future
 multi-factor functionality.
+.sp
+.SH FACTOR
+The keyword
+.I factor
+is used to invoke the external authenticator API. It takes the keyword,
+the pathname to the executable, and a list of form-fields, maximum of 5
+(see Example).  If all listed form-fields contain posted data, then the
+CGI invokes the external authenticator. The value of each form-field is
+written to the external authenticator on stdin (file descriptor 0), one
+per line, in the order they are listed in the configuration. If
+authentication is successful, the external authenticator writes the
+factor name on stdout (file descriptor 1) and exits with a value of 0.
+If an error occurs, the external authenticator writes an error message
+on stdout and exits with a value of 1. All other exit values are
+reserved for future use.
+.sp
+There are currently two additional configuration options.  The -2 option
+to the factor keyword means that this factor is only checked after
+another (non -2) factor has been satisfied.  It is intended for use with
+factors that are vulnerable to denial-of-service attacks due to repeated
+authentication failures. The other configuration option uses the keyword
+.I suffix.
+.sp
+.SH SUFFIX
+The keyword
+.I suffix
+takes 2 arguments - the keyword and a string, such as "-junk" (see
+Example). This configuration
+causes cosign.cgi to remove the "-junk" suffix from any
+server-provided factors before comparison with required 
+factors.  For example, if the cgi is checking the factor "OTP", and
+ignores the suffix "-junk", and the user has authenticated 
+with the factor "OTP-junk", then the cgi's authentication factor
+requirements would be fulfilled. This option is paired with the cosign
+filter's CosignFactorSuffix and CosignFactorSuffixIgnore and is
+essentially here to support Michigan's phased roll out of one time
+passwords.
 .sp
 .SH EXAMPLES
 The following example of _COSIGN_CONF defines 2 cgis and several
@@ -246,6 +294,11 @@ cookie          cosign-securemail       reauth
 # keyword issuer_dn subject_dn login realm
 #
 cert    "/C=US/ST=Michigan/L=Ann Arbor/O=University of Michigan/OU=ITCS/CN=UM We b CA/emailAddress=webmaster@umich.edu" ".*emailAddress=\\(.*\\)@umich\\.edu" $1 UMICH.EDU
+#
+# keyword path [secondary] formfield1 [formfield2 ... formfield5]
+factor	/usr/cosign/factor/123magic.sh	-2 login passcode
+# keyword  phrase to ignore
+suffix	-junk
 .fi
 .RE
 .sp
