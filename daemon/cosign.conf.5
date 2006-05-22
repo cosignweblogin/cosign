@@ -213,14 +213,17 @@ accept any factor the user can satisfy.
 .SH CERT
 The keyword
 .I cert
-is used to authenticate a user with an x509 certificate. It
-takes 5 fields - keyword, issuer_dn, subject_dn, login, and realm (see Example).The first field after the keyword (aka the issuer_dn) must be an exact match.
-The next field, subject_dn, is a regular expression.  Keep in mind the
-configuration file parser interprets backslashes, so in the following example
- we have "esacaped" our backslashes. The first one escapes the second one which is then passed onto the regular expression parser.  
-.sp
-A sixth field, "type", is optional and currently reserved for future
-multi-factor functionality.
+is used to authenticate a user with an x509 certificate. It takes 5
+fields - keyword, issuer_dn, subject_dn, login, and factor (see
+Example).  The issuer_dn must be an exact match  of the environment
+variable SSL_CLIENT_I_DN.  The next field, subject_dn, is a regular
+expression which matches SSL_CLIENT_S_DN.  (Note that the configuration
+file parser interprets backslashes, so in the example section we have
+"escaped" our backslashes. The first backslash escapes the second
+backslash which is then passed onto the regular expression parser.)  The
+login and factor fields may contain $1, $2, and/or $3, which are
+replaced with the corresponding parenthesized subexpressions of the
+regular expression subject_dn.
 .sp
 .SH FACTOR
 The keyword
@@ -291,9 +294,11 @@ set		cosignkey		/some/key
 #
 cookie          cosign-securemail       reauth
 #
-# keyword issuer_dn subject_dn login realm
+# keyword issuer_dn subject_dn login factor
 #
-cert    "/C=US/ST=Michigan/L=Ann Arbor/O=University of Michigan/OU=ITCS/CN=UM We b CA/emailAddress=webmaster@umich.edu" ".*emailAddress=\\(.*\\)@umich\\.edu" $1 UMICH.EDU
+cert    "/C=US/ST=Michigan/L=Ann Arbor/O=University of
+Michigan/OU=ITCS/CN=UM Web CA/emailAddress=webmaster@umich.edu"
+".*emailAddress=\\\\(.*\\\\)@umich\\\\.edu" $1 UMICH.EDU
 #
 # keyword path [secondary] formfield1 [formfield2 ... formfield5]
 factor	/usr/cosign/factor/123magic.sh	-2 login passcode

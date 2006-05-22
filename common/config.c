@@ -26,7 +26,6 @@ struct certlist {
     char		*cl_subject;
     char		*cl_login;
     char		*cl_realm;
-    char		*cl_type;
     struct certlist	*cl_next;
 };
 
@@ -437,8 +436,8 @@ read_config( char *path )
 
 	} else if ( strcmp( av[ 0 ], "cert" ) == 0 ) {
 
-	    if (( ac != 5 ) && ( ac != 6 )) {
-		fprintf( stderr, "line %d: keyword cert takes 5 or 6 args\n",
+	    if ( ac != 5 ) {
+		fprintf( stderr, "line %d: keyword cert takes 5 args\n",
 			linenum );
 		return( -1 );
 	    }
@@ -462,14 +461,6 @@ read_config( char *path )
 	    if (( cl_new->cl_realm = strdup( av[ 4 ] )) == NULL ) {
 		perror( "malloc" );
 		return( -1 );
-	    }
-	    if ( ac == 6 ) {
-		if (( cl_new->cl_type = strdup( av[ 5 ] )) == NULL ) {
-		    perror( "malloc" );
-		    return( -1 );
-		}
-	    } else {
-		cl_new->cl_type = NULL;
 	    }
 	    cl_new->cl_next = NULL;
 
