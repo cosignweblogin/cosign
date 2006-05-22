@@ -290,9 +290,9 @@ include		/etc/cosign/another.conf
 set		cosigndticketcache	/some/place
 set		cosignkey		/some/key
 #
-# keyword        service name            "function"
+# keyword        service name            "function" factors to reauth
 #
-cookie          cosign-securemail       reauth
+cookie          cosign-securemail       reauth	UMICH.EDU
 #
 # keyword issuer_dn subject_dn login factor
 #
