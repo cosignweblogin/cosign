@@ -668,7 +668,6 @@ main( int argc, char *argv[] )
 		    " PLEASE!";
 	    goto loginscreen;
 	}
-
 	if ( execfactor( fl, cl, &msg ) != 0 ) {
 	    sl[ SL_TITLE ].sl_data = "Authentication Required";
 	    sl[ SL_ERROR ].sl_data = msg;
@@ -812,7 +811,7 @@ loginscreen:
 
     } else {
 	sl[ SL_LOGIN ].sl_data = ui.ui_login;
-	if ( scookie == NULL ) {
+	if (( scookie == NULL ) && ( service != NULL )) {
 	    if (( p = strchr( service, '=' )) == NULL ) {
 		sl[ SL_TITLE ].sl_data = "Error: Unrecognized Service";
 		sl[ SL_ERROR ].sl_data = "Malformed service in query string.";
