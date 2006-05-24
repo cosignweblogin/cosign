@@ -40,6 +40,8 @@ libsnet/profiled/CVS
 scripts/CVS
 scripts/cron/CVS
 scripts/dbhash/CVS
+scripts/factors/CVS
+scripts/factors/RSA/CVS
 scripts/hello
 scripts/hello/CVS
 scripts/logout/CVS

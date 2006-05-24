@@ -296,7 +296,8 @@ main( int argc, char *argv[] )
     if ( subject_dn && issuer_dn ) {
 	if ( x509_translate( subject_dn, issuer_dn, &login, &realm ) != 0 ) {
 	    sl[ SL_TITLE ].sl_data = "Error: X509 failed";
-	    sl[ SL_ERROR ].sl_data = "x509 issues";
+	    sl[ SL_ERROR ].sl_data = "There was an x.509 mutual authentication"
+		    " configuration error. Contact your administrator.";
 	    subfile( ERROR_HTML, sl, 0 );
 	    exit( 0 );
 	}
@@ -486,8 +487,8 @@ main( int argc, char *argv[] )
 		}
 	    }
 	    if ( r != NULL ) {
-		sl[ SL_ERROR ].sl_data = "You need more factors. "
-			"Please log in MORE.";
+		sl[ SL_ERROR ].sl_data = "Additional authentication"
+			" is required.";
 		goto loginscreen;
 	    }
 	}
@@ -664,8 +665,8 @@ main( int argc, char *argv[] )
 
 	if (( fl->fl_flag == 2 ) && ( *ui.ui_login == '\0' )) {
 	    sl[ SL_TITLE ].sl_data = "Authentication Required";
-	    sl[ SL_ERROR ].sl_data = "Primary factor before secondary factors,"
-		    " PLEASE!";
+	    sl[ SL_ERROR ].sl_data = "Primary authentication is required"
+		    " before secondary authentication.";
 	    goto loginscreen;
 	}
 	if ( execfactor( fl, cl, &msg ) != 0 ) {
