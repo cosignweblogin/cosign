@@ -19,6 +19,9 @@ Before you begin:
     MySQL. Download and further details for friend provided at
     http://weblogin.org
 
+    Cosign 2.0 and later can utilize arbitrary external programs for
+    authentication. See the "factor" section of cosign.conf(5).
+
     The cosign filters and the weblogin server use SSL mutual
     authentication.  It may be easier & cheaper to run your own CA
     to manage the required certificates.
@@ -33,15 +36,14 @@ Before you begin:
 
 Customizing your html:
 
-    The html & graphics are provided as examples.  You'll probably
-    want to customize them for your site.
+    The html & graphics are provided as examples.  You'll probably want
+    to customize them for your site.  Be careful with the variable
+    display strings ( of the form '$a' where 'a' can be any letter or
+    number ). These variables are replaced by the CGI during execution.
 
-    Before doing a 'make install-all', be sure to customize the
-    contents of 'html/header.html', 'html/footer.html'.  Once
-    installed, you can customize 'html/cosign.css' and the other
-    templates as well.  Be careful with the variable display strings
-    ( of the form '$a' where 'a' can be any letter or number ).
-    These variables are replaced by the CGI during execution.
+    See the comprehensive cosign scheme document at http://weblogin.org
+    for details on the templates and variable substitutions required by
+    the CGI.
 
     Also note that 'make install-all' overwrites existing html,
     templates, and graphics.
@@ -139,7 +141,8 @@ Scripts
     database (if you are not using replication), and several example
     logout scripts. There are also scripts provided to create and
     convert the directories in the cosign database if you choose to use
-    directory hashing.
+    directory hashing. Finally, there is an example of an external
+    authenticator script located in the factors sub-directory.
 
 Configure Options:
 

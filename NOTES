@@ -1,11 +1,7 @@
-test: replication
-cgi:
-no legacy authenticators
 error messages
 ----
 keyword notauth for cosign.conf(5)
 ----
-
 
 email addresses can be 256 wes sez
 MODULE:
