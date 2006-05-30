@@ -7,6 +7,7 @@ struct cinfo {
     int		ci_version;
     int		ci_state;
     char	ci_ipaddr[ 256 ];	/* longer than necessary */
+    char	ci_ipaddr_cur[ 256 ];	/* longer than necessary */
     char	ci_user[ 130 ];		/* "64@64\0" */
     char	ci_realm[ 256 ];	/* longer than necessary */
     char	ci_ctime[ 12 ];		

@@ -101,6 +101,8 @@ read_cookie( char *path, struct cinfo *ci )
 	return( -1 );
     }
 
+    memset( ci, 0, sizeof( struct cinfo ));
+    
     if ( fstat( fileno( cf ), &st ) != 0 ) {
 	syslog( LOG_ERR, "read_cookie: %s: %m", path );
 	goto error;
@@ -119,7 +121,7 @@ read_cookie( char *path, struct cinfo *ci )
 	syslog( LOG_ERR, "read_cookie: line too long" );
 	goto error;
     }
-    buf[ len -1 ] = '\0';
+    buf[ len - 1 ] = '\0';
 
     if ( *buf != 'v' ) {
 	syslog( LOG_ERR, "read_cookie: file format error" );
@@ -161,6 +163,10 @@ read_cookie( char *path, struct cinfo *ci )
 
 	case 'i':
 	    strcpy( ci->ci_ipaddr, p );
+	    break;
+
+	case 'j':
+	    strcpy( ci->ci_ipaddr_cur, p );
 	    break;
 
 	case 'p':

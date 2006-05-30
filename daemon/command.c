@@ -306,15 +306,24 @@ f_login( SNET *sn, int ac, char *av[], SNET *pushersn )
     fprintf( tmpfile, "v2\n" );
     fprintf( tmpfile, "s1\n" );	 /* 1 is logged in, 0 is logged out */
 
-    if ( addinfo ) {
-	if ( strcmp( ci.ci_ipaddr, av[ 2 ] ) != 0 ) {
-	    newinfo = 1;
-	}
-    }
     if ( strlen( av[ 2 ] ) >= sizeof( ci.ci_ipaddr )) {
 	goto file_err;
     }
-    fprintf( tmpfile, "i%s\n", av[ 2 ] );
+    if ( addinfo ) {
+	fprintf( tmpfile, "i%s\n", ci.ci_ipaddr );
+    } else {
+	fprintf( tmpfile, "i%s\n", av[ 2 ] );
+    }
+
+    if ( addinfo ) {
+	if ( strcmp( ci.ci_ipaddr_cur, av[ 2 ] ) != 0 ) {
+	    newinfo = 1;
+	}
+    }
+    if ( strlen( av[ 2 ] ) >= sizeof( ci.ci_ipaddr_cur )) {
+	goto file_err;
+    }
+    fprintf( tmpfile, "j%s\n", av[ 2 ] );
 
     if ( strlen( av[ 3 ] ) >= sizeof( ci.ci_user )) {
 	goto file_err;
@@ -967,7 +976,7 @@ f_check( SNET *sn, int ac, char *av[], SNET *pushersn )
 
     if ( protocol == 2 ) {
 	snet_writef( sn, "%d %s %s %s\r\n",
-		status, ci.ci_ipaddr, ci.ci_user, ci.ci_realm );
+		status, ci.ci_ipaddr_cur, ci.ci_user, ci.ci_realm );
     } else {
 	/* if there is more than one realm, we just give the first */
 	if (( p = strtok( ci.ci_realm, " " )) != NULL ) {

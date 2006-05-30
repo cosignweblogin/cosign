@@ -151,12 +151,13 @@ netcheck:
 	    cosign_log( APLOG_ERR, s, "mod_cosign: cosign_cookie_valid: "
 		    "network info %s does not match local info %s for "
 		    "cookie %s", si->si_ipaddr, lsi.si_ipaddr, cookie );
-	    return( COSIGN_ERROR );
+	    goto storecookie;
 	}
 	if ( strcmp( si->si_user, lsi.si_user ) != 0 ) {
 	    cosign_log( APLOG_ERR, s, "mod_cosign: cosign_cookie_valid: "
 		    "network info %s does not match local info %s for "
 		    "cookie %s", si->si_user, lsi.si_user, cookie );
+	    return( COSIGN_ERROR );
 	}
 	if ( strcmp( si->si_realm, lsi.si_realm ) != 0 ) {
 	    cosign_log( APLOG_ERR, s, "mod_cosign: cosign_cookie_valid: "

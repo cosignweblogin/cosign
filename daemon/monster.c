@@ -552,7 +552,7 @@ do_dir( char *dir, struct connlist *head, struct timeval *now )
     int
 eat_cookie( char *name, struct timeval *now, time_t *itime, int *state )
 {
-    struct cinfo	ci = { 0, 0, "\0","\0","\0", "\0","\0", 0, };
+    struct cinfo	ci = { 0, 0, "\0", "\0", "\0","\0", "\0","\0", 0, };
     int			rc, create = 0;
     extern int		errno;
 
