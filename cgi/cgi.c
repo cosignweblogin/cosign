@@ -837,7 +837,7 @@ loginscreen:
 	    sl[ SL_RFACTOR ].sl_data = ui.ui_factors[ 0 ];
 	    sl[ SL_TITLE ].sl_data = "Re-Authentication Required";
 	    if ( sl[ SL_ERROR ].sl_data == NULL ) {
-		sl[ SL_ERROR ].sl_data = "Re-Authenticate to confirm"
+		sl[ SL_ERROR ].sl_data = "Re-authenticate to confirm"
 			" your new Internet address.";
 	    }
 	    tmpl = REAUTH_HTML;
