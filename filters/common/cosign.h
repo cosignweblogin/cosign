@@ -23,6 +23,7 @@ typedef struct {
     char		*proxydb;
     char		*tkt_prefix;
     int                 http;
+    int                 noappendport;
     int			proxy;
     int			expiretime;
 #ifdef KRB

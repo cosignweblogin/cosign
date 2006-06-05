@@ -65,6 +65,7 @@ cosign_create_config( pool *p )
     cfg->proxydb = _PROXY_DB;
     cfg->tkt_prefix = _COSIGN_TICKET_CACHE;
     cfg->http = -1;
+    cfg->noappendport = -1;
     cfg->proxy = -1;
     cfg->expiretime = 86400; /* 24 hours */
 #ifdef KRB
@@ -148,7 +149,8 @@ set_cookie_and_redirect( request_rec *r, cosign_host_config *cfg )
     } else {
 	/* live dangerously, we're redirecting to http */
 	if ( cfg->http == 1 ) {
-	    if (( port = ap_get_server_port( r )) == 80 ) {
+	    if ((( port = ap_get_server_port( r )) == 80 ) ||
+		    ( cfg->noappendport == 1 )) {
 		ref = ap_psprintf( r->pool, "http://%s%s", 
 			ap_get_server_name( r ), r->unparsed_uri );
 	    } else {
@@ -157,7 +159,8 @@ set_cookie_and_redirect( request_rec *r, cosign_host_config *cfg )
 	    }
 	/* live securely, redirecting to https */
 	} else {
-	    if (( port = ap_get_server_port( r )) == 443 ) {
+	    if ((( port = ap_get_server_port( r )) == 443 ) ||
+		    ( cfg->noappendport == 1 )) {
 		ref = ap_psprintf( r->pool, "https://%s%s", 
 			ap_get_server_name( r ), r->unparsed_uri );
 	    } else {
@@ -455,6 +458,9 @@ cosign_merge_cfg( cmd_parms *params, void *mconfig )
     }
     if ( cfg->http == -1 ) {
 	cfg->http = scfg->http;
+    }
+    if ( cfg->noappendport == -1 ) {
+	cfg->noappendport = scfg->noappendport;
     }
 
     cfg->expiretime = scfg->expiretime; 
@@ -873,6 +879,18 @@ set_cosign_http( cmd_parms *params, void *mconfig, int flag )
 }
 
     static const char *
+set_cosign_noappendport( cmd_parms *params, void *mconfig, int flag )
+{
+    cosign_host_config		*cfg;
+
+    cfg = cosign_merge_cfg( params, mconfig );
+
+    cfg->noappendport = flag; 
+    cfg->configured = 1; 
+    return( NULL );
+}
+
+    static const char *
 set_cosign_expiretime( cmd_parms *params, void *mconfig, char *arg )
 {
     cosign_host_config		*cfg;
@@ -973,6 +991,10 @@ static command_rec cosign_cmds[ ] =
         { "CosignHttpOnly", set_cosign_http,
         NULL, RSRC_CONF | ACCESS_CONF, FLAG,
         "redirect to http instead of https on the local server" },
+
+        { "CosignNoAppendRedirectPort", set_cosign_noappendport,
+        NULL, RSRC_CONF | ACCESS_CONF, FLAG,
+        "for SSL load balancers - redirect with no added port to the URL" },
 
         { "CosignCrypto", set_cosign_certs,
         NULL, RSRC_CONF | ACCESS_CONF, TAKE3,
