@@ -562,7 +562,7 @@ connect_sn( struct connlist *conn )
         goto done;
     }
     if (( cosign_protocol = strtol( av[ 1 ], (char **)NULL, 10 )) != 2 ) {
-        fprintf( stderr, "connect_sn: falling back to v0" );
+        fprintf( stderr, "connect_sn: falling back to v0\n" );
         cosign_protocol = 0;
     } else {
         cosign_protocol = 2 ;
