@@ -388,6 +388,9 @@ f_login( SNET *sn, int ac, char *av[], SNET *pushersn )
 	} else {
 	    fprintf( tmpfile, "k%s\n", krbpath );
 	}
+    } else if ( ci.ci_krbtkt != NULL ) {
+	fprintf( tmpfile, "k%s\n", ci.ci_krbtkt );
+	already_krb = 1;
     }
 
     if ( fclose ( tmpfile ) != 0 ) {
