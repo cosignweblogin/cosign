@@ -626,8 +626,9 @@ main( int argc, char *argv[] )
 	/* not a friend, must be kerberos */
 	if ( cosign_login_krb5( head, login, cl[ CL_PASSWORD ].cl_data,
 		ip_addr, cookie, &sp ) != 0 ) {
-	    sl[ SL_ERROR ].sl_data = "Password incorrect.  Is [caps lock] on?";
-	    sl[ SL_TITLE ].sl_data = "Password Incorrect";
+	    sl[ SL_ERROR ].sl_data = "Password or Account Name incorrect. "
+		"Is [caps lock] on?";
+	    sl[ SL_TITLE ].sl_data = "Password or Account Name Incorrect";
 	    goto loginscreen;
 	}
 # else /* KRB */
