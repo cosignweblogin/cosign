@@ -301,7 +301,8 @@ cosign_login_krb5( struct connlist *head, char *id, char *passwd,
     if (( kerror = krb5_get_init_creds_password( kcontext, &kcreds, 
 	    kprinc, passwd, NULL, NULL, 0, NULL /*keytab */, &kopts ))) {
 
-	if (( kerror == KRB5KRB_AP_ERR_BAD_INTEGRITY ) || 
+	if (( kerror == KRB5KRB_AP_ERR_BAD_INTEGRITY ) ||
+		( kerror == KRB5KDC_ERR_PREAUTH_FAILED ) ||
 		( kerror == KRB5KDC_ERR_C_PRINCIPAL_UNKNOWN )) {
 	    return( -1 );	/* draw login or reauth page */
 	} else {
