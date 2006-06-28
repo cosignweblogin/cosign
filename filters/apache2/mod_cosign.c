@@ -399,7 +399,7 @@ cosign_merge_cfg( cmd_parms *params, void *mconfig )
 
     /* apache's built-in (request time) merge is for directories only or
      * servers only, there's no way to inherit server config in a directory.
-     * So we do that here. Do note that becuase this is a config time merge,
+     * So we do that here. Do note that because this is a config time merge,
      * this has a side effect of requiring all server-wide directives to
      * preecede the directory or location specific ones in the config file.
      */
