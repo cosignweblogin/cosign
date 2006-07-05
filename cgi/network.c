@@ -55,7 +55,7 @@ connlist_setup( char *host, unsigned short port )
     struct connlist	*head, *new, **tail;
 
     if (( he = gethostbyname( host )) == NULL ) {
-        fprintf( stderr, "%s no wanna give hostnames\n", host );
+        fprintf( stderr, "%s: gethostname() failed\n", host );
         return( NULL );
     }
     tail = &head;
