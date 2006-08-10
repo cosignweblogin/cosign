@@ -147,12 +147,6 @@ netcheck:
 
     if ( rs == 0 ) {
 	/* check net info against local info */
-	if ( strcmp( si->si_ipaddr, lsi.si_ipaddr ) != 0 ) {
-	    cosign_log( APLOG_ERR, s, "mod_cosign: cosign_cookie_valid: "
-		    "network info %s does not match local info %s for "
-		    "cookie %s", si->si_ipaddr, lsi.si_ipaddr, cookie );
-	    goto storecookie;
-	}
 	if ( strcmp( si->si_user, lsi.si_user ) != 0 ) {
 	    cosign_log( APLOG_ERR, s, "mod_cosign: cosign_cookie_valid: "
 		    "network info %s does not match local info %s for "
@@ -164,6 +158,12 @@ netcheck:
 		    "network info %s does not match local info %s for "
 		    "cookie %s", si->si_realm, lsi.si_realm, cookie );
 	    return( COSIGN_ERROR );
+	}
+	if ( strcmp( si->si_ipaddr, lsi.si_ipaddr ) != 0 ) {
+	    cosign_log( APLOG_ERR, s, "mod_cosign: cosign_cookie_valid: "
+		    "network info %s does not match local info %s for "
+		    "cookie %s", si->si_ipaddr, lsi.si_ipaddr, cookie );
+	    goto storecookie;
 	}
 
 	if ( cosign_protocol == 2 ) {
