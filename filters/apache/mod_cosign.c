@@ -973,7 +973,7 @@ static command_rec cosign_cmds[ ] =
 	"\"none\" or URL to redirect for users who successfully authenticate" },
 
 	{ "CosignRequireFactor", set_cosign_factor,
-	NULL, RSRC_CONF | ACCESS_CONF, RAW_ARGS,
+	NULL, RSRC_CONF | OR_AUTHCFG, RAW_ARGS,
 	"the authentication factors that must be satisfied" },
 
 	{ "CosignFactorSuffix", set_cosign_factorsuffix,

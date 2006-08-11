@@ -966,7 +966,7 @@ static command_rec cosign_cmds[ ] =
         "\"none\" or URL to redirect for users who successfully authenticate" ),
 
         AP_INIT_RAW_ARGS( "CosignRequireFactor", set_cosign_factor,
-        NULL, RSRC_CONF | ACCESS_CONF, 
+        NULL, RSRC_CONF | OR_AUTHCFG, 
         "the authentication factors that must be satisfied" ),
 
         AP_INIT_TAKE1( "CosignFactorSuffix", set_cosign_factorsuffix,
