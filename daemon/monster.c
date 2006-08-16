@@ -323,7 +323,7 @@ main( int ac, char **av )
     /*
      * Start logging.
      */
-    openlog( prog, LOG_NOWAIT|LOG_PID, facility );
+    openlog( prog, LOG_NDELAY|LOG_NOWAIT|LOG_PID, facility );
     setlogmask( LOG_UPTO( level ));
 
     syslog( LOG_INFO, "restart %s", cosign_version );

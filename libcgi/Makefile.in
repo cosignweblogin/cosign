@@ -1,6 +1,6 @@
 CC= @CC@
 DEFS= @debug@
-CFLAGS= -Wall -Wstrict-prototypes -g $(DEFS)
+CFLAGS= -g $(DEFS)
 SRC= cgi.c
 OBJ= cgi.o
 

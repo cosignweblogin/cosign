@@ -9,6 +9,9 @@
 #include <netinet/in.h>
 #include <openssl/ssl.h>
 #include <netinet/in.h>
+# ifdef SQL_FRIEND
+#include <crypt.h>
+# endif
 #include <ctype.h>
 
 #ifdef KRB
@@ -55,7 +58,6 @@ static struct subfile_list sl[] = {
 };
 
 # ifdef SQL_FRIEND
-#include <crypt.h>
 #include <mysql.h>
 
 static MYSQL	friend_db;
