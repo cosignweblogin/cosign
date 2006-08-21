@@ -73,7 +73,7 @@ main( int argc, char *argv[] )
 	break;
 	
     case ACM_NEXT_CODE_REQUIRED:
-	printf( "Your MToken is locked.\n" );
+	printf( "Your MToken is locked/disabled, please contact an MToken Administrator.\n" );
 	break;
 	
     case ACM_NEW_PIN_REQUIRED:
