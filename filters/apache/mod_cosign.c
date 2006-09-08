@@ -820,7 +820,8 @@ set_cosign_certs( cmd_parms *params, void *mconfig,
 		cfg->key, ERR_error_string( ERR_get_error(), NULL ));
 	exit( 1 );
     }
-    SSL_CTX_set_verify( cfg->ctx, SSL_VERIFY_PEER, NULL );
+    SSL_CTX_set_verify( cfg->ctx,
+	    SSL_VERIFY_PEER | SSL_VERIFY_FAIL_IF_NO_PEER_CERT, NULL );
 
     return( NULL );
 }
