@@ -741,6 +741,8 @@ main( int argc, char *argv[] )
 			}
 		    }
 		    if ( new_factors[ j ] == NULL ) {
+			sl[ SL_ERROR ].sl_data = "Please complete"
+				" all required fields to re-authenticate.";
 			goto loginscreen;
 		    }
 		}
