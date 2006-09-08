@@ -80,7 +80,7 @@ cosign_cookie_valid( cosign_host_config *cfg, char *cookie, struct sinfo *si,
 	    cosign_log( APLOG_ERR, s,
 		    "mod_cosign: cached ip %s does not match "
 		    "browser ip %s", lsi.si_ipaddr, ipaddr );
-	    return( COSIGN_ERROR );
+	    goto netcheck;
 	}
 	strcpy( si->si_ipaddr, lsi.si_ipaddr );
 	strcpy( si->si_user, lsi.si_user );
@@ -137,14 +137,6 @@ netcheck:
 	return( COSIGN_RETRY );
     }
 
-    if (( cfg->checkip == IPCHECK_ALWAYS ) &&
-	    ( strcmp( ipaddr, si->si_ipaddr ) != 0 )) {
-	cosign_log( APLOG_ERR, s,
-		"mod_cosign: server ip info %s does not match "
-		"browser ip %s", si->si_ipaddr, ipaddr );
-	return( COSIGN_ERROR );
-    }
-
     if ( rs == 0 ) {
 	/* check net info against local info */
 	if ( strcmp( si->si_user, lsi.si_user ) != 0 ) {
@@ -160,6 +152,13 @@ netcheck:
 	    return( COSIGN_ERROR );
 	}
 	if ( strcmp( si->si_ipaddr, lsi.si_ipaddr ) != 0 ) {
+	    if (( cfg->checkip == IPCHECK_ALWAYS ) &&
+		    ( strcmp( ipaddr, si->si_ipaddr ) != 0 )) {
+		cosign_log( APLOG_ERR, s,
+			"mod_cosign: server ip info %s does not match "
+			"browser ip %s", si->si_ipaddr, ipaddr );
+		return( COSIGN_ERROR );
+	    }
 	    cosign_log( APLOG_ERR, s, "mod_cosign: cosign_cookie_valid: "
 		    "network info %s does not match local info %s for "
 		    "cookie %s", si->si_ipaddr, lsi.si_ipaddr, cookie );
@@ -187,8 +186,6 @@ netcheck:
 	return( COSIGN_OK );
     }
 
-storecookie:
-    /* store local copy of scookie (service cookie) */
     if (( cfg->checkip == IPCHECK_INITIAL ) &&
 	    ( strcmp( ipaddr, si->si_ipaddr ) != 0 )) {
 	cosign_log( APLOG_ERR, s,
@@ -196,6 +193,9 @@ storecookie:
 		"browser ip %s", si->si_ipaddr, ipaddr );
 	return( COSIGN_ERROR );
     }
+
+    /* store local copy of scookie (service cookie) */
+storecookie:
     if ( snprintf( tmppath, sizeof( tmppath ), "%s/%x%x.%i", cfg->filterdb,
 	    (int)tv.tv_sec, (int)tv.tv_usec, (int)getpid()) >=
 	    sizeof( tmppath )) {
