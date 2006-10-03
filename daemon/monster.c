@@ -437,6 +437,7 @@ next:
 		do_dir( hashdir, head, &now );
 	    }
 	}
+	break;
 
     default :
 	syslog( LOG_ERR, "Illegal hashlen %d", hashlen );
