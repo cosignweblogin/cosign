@@ -62,11 +62,21 @@ main( int argc, char *argv[] )
 	faker[ len - 1 ] = '\0';
 
 	if ( strcmp( login, faker ) == 0 ) {
+#if 0
 	    printf( "You must supply a valid MToken tokencode.\n" );
 	    exit( 1 );
+#else
+	    printf( "mtoken-junk\n" );
+	    exit( 0 );
+#endif
 	}
     }
 
+#if 0
     printf( "mtoken-junk\n" );
     exit( 0 );
+#else
+    printf( "You must supply a valid MToken tokencode.\n" );
+    exit( 1 );
+#endif
 }
