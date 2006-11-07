@@ -14,6 +14,10 @@
 #include <httpd.h>
 #include <http_log.h>
 
+#include <openssl/ssl.h>
+#include <openssl/err.h>
+#include <snet.h>
+
 #include "sparse.h"
 #include "log.h"
 
@@ -22,39 +26,29 @@
     int
 read_scookie( char *path, struct sinfo *si, server_rec *s )
 {
-    FILE	*sf;
+    SNET	*sn;
     struct stat	st;
-    char	buf[ MAXLEN ];
-    char	*p;
-    int		len;
+    char	*p, *line;
 
-    if (( sf = fopen( path, "r" )) == NULL ) {
+    if (( sn = snet_open( path, O_RDONLY, 0, 0 )) == NULL ) {
 	if ( errno != ENOENT ) {
 	    perror( path );
 	}
 	return( 1 );
     }
 
-    if ( fstat( fileno( sf ), &st ) != 0 ) {
-	(void)fclose( sf );
+    if ( fstat( snet_fd( sn ), &st ) != 0 ) {
+	(void)snet_close( sn );
 	perror( path );
 	return( -1 );
     }
 
     si->si_itime = st.st_mtime;
 
-    while( fgets( buf, MAXLEN, sf ) != NULL ) {
-	len = strlen( buf );
-	if ( buf[ len - 1 ] != '\n' ) {
-	    (void)fclose( sf );
-	    cosign_log( APLOG_ERR, s,
-		    "mod_cosign: read_scookie: line too long");
-	    return( -1 );
-	}
-	buf[ len -1 ] = '\0';
-	p = buf + 1;
+    while (( line = snet_getline( sn, NULL )) != NULL ) {
+	p = line + 1;
 
-	switch( *buf ) {
+	switch( line[0] ) {
 
 	case 'i':
 	    strcpy( si->si_ipaddr, p );
@@ -79,16 +73,15 @@ read_scookie( char *path, struct sinfo *si, server_rec *s )
 
 	default:
 	    cosign_log( APLOG_ERR, s,
-		    "mod_cosign: read_scookie: unknown key %c", *buf );
-	    (void)fclose( sf );
+		    "mod_cosign: read_scookie: unknown key %c", line[0] );
+	    (void)snet_close( sn );
 	    return( -1 );
 	}
     }
 
-    if ( fclose( sf ) != 0 ) {
+    if ( snet_close( sn ) != 0 ) {
 	cosign_log( APLOG_ERR, s, "mod_cosign: read_scookie: %s", path );
 	return( -1 );
     }
     return( 0 );
 }
-
