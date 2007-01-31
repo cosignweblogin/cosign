@@ -65,51 +65,35 @@ daemon_configure()
     char	 *val;
 
     if (( val = cosign_config_get( COSIGNDBKEY )) != NULL ) {
-	syslog( LOG_INFO, "config: overriding default DB location(%s)"
-		" to config value of '%s'", cosign_dir, val );
 	cosign_dir = val;
     }
 
     if (( val = cosign_config_get( COSIGNDTICKKEY )) != NULL ) {
-	syslog( LOG_INFO, "config: overriding default ticket location(%s)"
-		" to config value of '%s'", cosign_tickets, val );
 	cosign_tickets = val;
     }
 
     if (( val = cosign_config_get( COSIGNCADIRKEY )) != NULL ) {
-	syslog( LOG_INFO, "config: overriding default CA dir(%s)"
-		" to config value of '%s'", cadir, val );
 	cadir = val;
     }
 
     if (( val = cosign_config_get( COSIGNCERTKEY )) != NULL ) {
-	syslog( LOG_INFO, "config: overriding default ssl cert location(%s)"
-		" to config value of '%s'", certfile, val );
 	certfile = val;
     }
 
     if (( val = cosign_config_get( COSIGNKEYKEY )) != NULL ) {
-	syslog( LOG_INFO, "config: overriding default ssl key location(%s)"
-		" to config value of '%s'", cryptofile, val );
 	cryptofile = val;
     }
 
     if (( val = cosign_config_get( COSIGNTIMEOUTKEY )) != NULL ) {
-	syslog( LOG_INFO, "config: overriding default net timeout of (%lu)"
-		" to config value of '%s'", cosign_net_timeout.tv_sec, val );
 	cosign_net_timeout.tv_sec = atoi( val );
 	cosign_net_timeout.tv_usec = 0;
     }
 
     if (( val = cosign_config_get( COSIGNPORTKEY )) != NULL ) {
-	syslog( LOG_INFO, "config: overriding default port of (%d)"
-		" to config value of '%s'", cosign_port, val );
 	cosign_port = htons( atoi( val ));
     }
 
     if (( val = cosign_config_get( COSIGNDBHASHLENKEY )) != NULL ) {
-	syslog( LOG_INFO, "config: overriding default db hashlen of (%d)"
-		" to config value of '%s'", hashlen, val );
 	hashlen = atoi( val );
     }
 }
@@ -431,6 +415,8 @@ syslog( LOG_DEBUG, "reload cosign_config %s", cosign_version );
 		syslog( LOG_ERR, "%s: re-read failed, continuing with"
 			" old config", cosign_conf );
 	    }
+
+	    /* XXX need to reprocess command line args here */
 
 syslog( LOG_DEBUG, "reload cosign_ssl %s", cosign_version );
 	    if ( cosign_ssl( cryptofile, certfile, cadir, &ctx ) != 0 ) {
