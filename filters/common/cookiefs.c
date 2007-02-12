@@ -205,14 +205,20 @@ storecookie:
     }
 
     if (( fd = open( tmppath, O_CREAT|O_EXCL|O_WRONLY, 0644 )) < 0 ) {
+	cosign_log( APLOG_ERR, s, "mod_cosign: cosign_cookie_valid: "
+		"could not open %s", tmppath );
 	perror( tmppath );
 	return( COSIGN_ERROR );
     }
 
     if (( tmpfile = fdopen( fd, "w" )) == NULL ) {
 	if ( unlink( tmppath ) != 0 ) {
+            cosign_log( APLOG_ERR, s, "mod_cosign: cosign_cookie_valid: "
+		"could not unlink %s", tmppath ); 
 	    perror( tmppath );
 	}
+        cosign_log( APLOG_ERR, s, "mod_cosign: cosign_cookie_valid: "
+	    "could not fdopen %s", tmppath ); 
 	perror( tmppath );
 	return( COSIGN_ERROR );
     }
@@ -232,27 +238,39 @@ storecookie:
 
     if ( fclose ( tmpfile ) != 0 ) {
 	if ( unlink( tmppath ) != 0 ) {
+            cosign_log( APLOG_ERR, s, "mod_cosign: cosign_cookie_valid: "
+	        "could not unlink(2) %s", tmppath ); 
 	    perror( tmppath );
 	}
+        cosign_log( APLOG_ERR, s, "mod_cosign: cosign_cookie_valid: "
+	    "could not fclose %s", tmppath ); 
 	perror( tmppath );
 	return( COSIGN_ERROR );
     }
 
     if ( !newfile ) {
         if ( rename( tmppath, path ) != 0 ) {
+            cosign_log( APLOG_ERR, s, "mod_cosign: cosign_cookie_valid: "
+	        "could not rename %s", tmppath ); 
 	    perror( tmppath );
 	    return( COSIGN_ERROR );
         }
     } else {
 	if ( link( tmppath, path ) != 0 ) {
 	    if ( unlink( tmppath ) != 0 ) {
+                cosign_log( APLOG_ERR, s, "mod_cosign: cosign_cookie_valid: "
+	            "could not unlink(3) %s", tmppath ); 
 		perror( tmppath );
 	    }
+            cosign_log( APLOG_ERR, s, "mod_cosign: cosign_cookie_valid: "
+	        "could not link %s to %s", tmppath, path ); 
 	    perror( tmppath );
 	    return( COSIGN_ERROR );
 	}
 
 	if ( unlink( tmppath ) != 0 ) {
+            cosign_log( APLOG_ERR, s, "mod_cosign: cosign_cookie_valid: "
+	        "could not unlink(4) %s", tmppath ); 
 	    perror( tmppath );
 	}
     }

@@ -1,0 +1,342 @@
+2.0.1
+	cgi: preauth failed and expired password are now re-tryable errors
+	daemon: krbtktpath is now maintained upon subsequent logins
+	filters: fixed some typos
+	
+2.0.0
+	updates to READMES and docs
+	common: general bug fixes, more helpful logging and error messages
+	common: support for multifactor
+	common: support for factor suffix 
+	common: new protocol v2 - STARTTLS, LOGIN and CHECK
+	cgi: some structural reorganization
+	cgi: change of browser IP address on a "REGISTER"
+		causes a re-authentication event 
+	cgi: kerberos and friend are now built in legacy factors, though 		building either is still optional
+	cgi: factors can be primary or secondary
+	cgi: if a keytab is present, it must be used now
+	filters: support to require specific factors
+	filters: CosignCheckIP directive to support browser ip 
+		address checking - never, initial or always. This
+		replaces the previous compile-time option. This may not 		work well or at all with load balancers and reverse NATS.
+	helloCosign: new top level directory with test scripts in several		languages
+	html: brand new UI to support multifactor
+	libcgi: upgraded to newer C only cgi library, no more lex/yacc
+
+1.9.4
+	daemon: fixed replication/hashing problem
+	filters: fixed filters/common install target problem
+
+1.9.3
+	daemon: updated return codes
+	daemon: fixed bug in retrieve access control
+	daemon: fixed bug where HUP with replication turned on would 
+		cause the server to die and exit.
+	man: reorganized and fixed typos
+
+1.9.2
+	filters: added missing krb DEFS options to common Makefile.in
+
+1.9.1
+	updates to READMES
+	new cosign.conf(5) man page
+	cgi: fixed newline in error string
+	cgi: fixed reauth cookie truncation bug
+	cgi: "friend" login select statement updated for 2.0 release
+	cgi: re-present verify screen for logout if we don't get the post
+	common: fixed bug in rate code output
+	filters: shared code is now in filters/common
+	filters: removed k4 support
+	filters/daemon/monster: added db-hashing support
+	scripts: create and upgrade scripts for db-hashing
+	
+1.9.0
+	updates to READMES
+	more streamlined single server trial install process.
+	common: added double quote support to argcargv() parsing.
+	cgi: override "found" Kerberos paths.
+	cgi: template directory configurable from cosign.conf.
+	cgi: login and transfer tickets with x509.
+	cgi: added ability to force re-authentication on a 
+		per-service basis.
+	cgi: tgts are transfered on macs again, we just build with MIT 			kerberos instead of on-board kerberos.
+	cgi: check length of username before copy.
+	cgi/daemon: ticket stores are separable.
+	cgi/daemon: fixed miscellaneous core dump causing bugs.
+	filters: streamlined server/directory directive merge routines.
+	filters: almost all directives can be set on a per directory basis.
+	filters: multiple CosignSiteEntry behavior more consistent.
+	friend: cosign-friend is now its own project, which means it 
+		is no longer a part of this distribution.
+	libsnet: updated to current version.
+	templates: default action is now "/cosign-bin/cosign.cgi"
+		instead of "/". Details on suggested Apache configurations 		are available in README.weblogin.
+	scripts: fixed syntax error in helloCosign.php
+	
+1.8.5
+	updates to READMES
+	common: updated config.sub and config.guess.
+	cgi: looping page can be autoconfed or set within the config file.
+	cgi: MAX_KEYTAB_NAME_LEN defined inline if not already done.
+	cgi: NULL keytab means KDC check won't get run.
+	cgi: On Macs, TGTs won't get passed to the daemon as they don't
+		reside in the filesystem but rather
+		somewhere in memory a la Apple's Kerberos Cache API.
+	cgi/filters: return codes from talking to the daemon are now
+		#defined and simplified, to make the code more readable.
+	cgi/filters: we now deal with a mix of 4xx and 5xx answers correctly
+	daemon: updated man pages to reflect required ticket argument
+		in cosign.conf syntax.
+	filters: CosignProtected On/Off allowed in .htaccess files now.
+	filters: moved around some authN/authZ decisions so "require",
+		"order", and "satisfy" work better. It's still not perfect,
+		but that's an Apache issue, we just work with what we have.
+	filters: We now return PostErrorRedirect earlier.
+
+1.8.0
+	updates to READMES
+	config: make install rule works from top level Makefile for apache 2.
+	common: cgi and daemon can both read several config options from
+                the cosign.conf file, see README and man pages. Many thanks
+                to Brett Lomas at University of Auckland.
+	common: TCP_NODELAY on by default in daemon, filters, and cgi,
+                and off by default in monster. This should cause a
+                noticeable improvement in replication and a small
+                improvement in the cgis & filters.
+	cgi: basiccosign.cgi and cosign.cgi are now 1 cgi. BasicAuth support
+                is now implicitly built-in.
+	cgi: massive code re-structure.
+	cgi: subfile() now shared across both cgis (cosign.cgi and logout)
+	cgi: filters can now optionally include (or not) a semi-colon at
+                the end of the cookie when they re-direct for a register.
+                The cgi can parse both ways.
+	cgi: if logout is unable to run, we now tell the user to quit
+                their browser instead.
+	daemon/monster: code clean-up and small re-organization.
+	daemon/monster: renamed some variables for clarity.
+	daemon: fixed bug where a timed-out child was giving a 4xx,
+                causing filters to set unnecessary new cookies and re-register.
+	daemon: fixed bug in hup() and child() signal handlers (removed
+		possibly non-reentrant calls)
+	filters: fixed bug with PostErrorRedirect - it works, now.
+	filters: logging now using ap_log_error() so it's more syslog-esque.
+	filters: fixed bug in apache2 where building with krb and then not
+		getting tickets would cause garbage to be written into the
+		cookie file, and the server to core dump.
+	filters: specifically apache2, fixed misc build errors.
+1.7.0
+	config: must specify path to apxs to build either filter, no default.
+	common: first pass at rate logging, see README and man pages
+	cgi: issue a new login cookie if the one presented is more than
+		24 hours old.
+	cgi: looping page a redirect now instead of just an error.
+	cgi: check for sql injection prior to username query. 
+	cgi: less verbose logging, more summaries.
+	daemon: default log facility now daemon.
+	daemon: more precise logging, supression of common errors.
+	daemon/monster: override syslog facility and level from cmd line.
+	filter: all settings configureable thorough runtime directives.
+	filter: new directive to delimit authN optional, which allows you
+		to push authN decisions back into the application.
+	filter: issue a new service cookie if the one presented is more than
+		24 hours old.
+	html: new looping page, a redirect from the cgi, will allow you to
+		capture the browser info ( in access logs ) for clients
+		who are looping.
+1.6.2
+	config: bug fix for specifying apache2 path
+	common: all declarations of port are now unsigned short
+	common: compare of CN to hostname is now case insensitive
+	cgi: check to prevent endless looping - defaults to break loops
+	    after 10 redirects in 30 seconds.
+	cgi: removed error message if logout failed, as long as the cookie
+	    was successfully expired.
+	cgi: kerberos tickets are unlinked after successful transfer to daemon
+	daemon: idle and grey windows can be set on the cmd line
+	daemon: wildcard matches are now case insensitive
+	daemon: we no longer ignore the specified syslog facility
+	daemon: updated docs, explain the various timeouts better
+	filter: support for runtime config of filterDB, proxyDB, and 
+		kerberosTicketCache
+1.6.1
+	common: krbpath is now MAXPATHLEN to allow for longer paths
+	common: snprintf() to prevent buffer overruns in krb(4)path
+	html: services directory now part of the distribution
+1.6
+	updates to READMES
+	common: configure option for kerberos ticket cache
+	common: support for n-tier cosign proxy authentication
+	cgi: fixed bug resulting from legacy service menu code
+	daemon: fixed error reporting bug
+	daemon: added -n option to check config files
+	filter: support for cosign protecting http pages
+	filter: can now force users to return to a specific URL
+	html: new example login/logout pages, no longer UM specific
+	html: LOGIN_ERROR_HTML is now distinct from ERROR_HTML so
+	      specific login errors can all include login screen and
+	      fatal errors (where login is not possible) will not
+	      include a login screen. The files in cosign_src/html/ are
+	      login_error.m4 and error.m4 respectively.  This will
+	      require a change to your existing html if you are
+	      upgrading from a previous version.
+
+1.5.1
+	updates to READMES, thanks to J. Maddock
+	README & configure change to address redhat 9/kerberos/ssl issue
+	cgi: bug fix to not build SQL/friend support if not configured
+	cgi: endian bug fix for BasicAuth
+	cgi: removed redundant cookie length check
+	daemon: -d prints every line to stdout now
+	daemon: cookie len check portable across platforms now
+	filter: more clean up on cookielen/path checks
+	filter: apache2 uses same _FILTER_DB arg as apache
+
+1.5.0
+	more updates to READMES
+	cgi: friend (self-created email-based accounts) support
+	cgi: uniqname now login (html needs updating for subfile)
+	cgi: reduced # of connections per transaction
+	html: $u replaced by $l
+	html: added friend support
+	filter: optionally enable ip addr checking
+	filter: beta Apache 2.x support
+	filter: fixed bug with failover and kerberos ticket acquisition
+	daemon: added monster support for time stamp/logout propagation
+	daemon: revised man page for cosignd, added man page for monster
+	daemon: added TIME and DAEMON command
+	daemon: added replication 
+	daemon: IP in login and service cookies no longer need match
+	daemon: logout now denoted by permissions instead of file contents
+	daemon: cleaned up logging
+
+1.1.3
+	filter: fixed bug in username size, again.
+	daemon: fixed bug in username size, again.
+
+1.1.2
+	filter: fixed bug in username size.
+
+1.1.1
+	daemon: username size increased to support long email addrs
+	filter: username size increased to support long email addrs
+
+1.1.0
+	cgi: BasicAuth capabilities
+	cgi: rename uniqname to login
+	cgi: remove htputs()
+	daemon: app to clean cookie and tix by arbitrary idle time
+	daemon: re-work read_cookie() to work with monster
+	daemon: use mtime instead of atime for cookie idle out
+	filter: fixed last stray version symbol problem
+	filter: PSU bug - you can have multiple service names get tix and such
+
+1.0.1
+	more updates to README
+	rename common variables so there are no symbol conflicts
+	added access() to check access to crypto
+	cgi: realm is taken from krb5.conf defualt realm
+	cgi: fixed bug that was partially dropping query string on redirect
+	cgi: code no longer specifies how to do addressing with kerberos tickets
+	cgi: fixed endian bug in connect code
+	filter: initialize ticket locations so no garbage should we fail
+	filter: access() for filterdb as well
+	html: tweaks
+	scripts: self-documentation
+
+1.0.0
+	more updates to README
+	readme for cron and logout scripts ( README.scripts )
+	readme for installation of weblogin server ( README.weblogin )
+	improved help from ./configure --help
+	cosignd: added TLS Optional debug flag ( -X )
+	cosignd: now returns 226 on re-register ( was 526 )
+	cgi: added autoconf support for cgi settings
+	cgi: fixed default keytab setting
+	cgi: improved http cache and expires headers
+	cgi: added a favicon.ico to login screen
+	cgi: added service cookie hidden field to login screen
+	cgi: simplified, slightly, XSS checks on ref and service cookie
+	cgi: now calls register with service cookie after redirected login
+
+0.9.4
+	condense duplicate code into common/
+	overhaul of the README
+	configure for AIX: CFLAGS from apxs and extra libs for ssl
+	cgi: autoconf hostname of cosignd server
+	cgi: autoconf certs, same args as daemon
+	cgi: autoconf keytabpath
+	cgi: '=' handled correctly on query string
+	cgi: fixed looping bug on idle time out
+	cgi and filter: properly set kerror on every fail
+	cgi and filter: changed the name of secant to scookie
+	common: mkcookie() calls RAND_bytes, not RAND_pseudo_bytes
+	filter: autoconf filter db location
+	filter: all sn's set to NULL when closed
+	filter: suppress spurious connection errors
+	filter: reorder check_cookie so retr is only called when check succeeds
+	filter: COSIGN_SEVICE env variable
+	filter: cookies must be the length of a cookie we'd set
+	
+0.9.3
+	cgi: more anti-xss attacks
+	cgi: redirect to referer is done with a post now
+	cgi: button instead of link on the reminder screen
+	daemon: man page
+	daemon: autoconf cadir, cert, key
+	daemon: supports hup to re-read conf file
+	daemon: fixed bug for re-login when IP address changes
+	filter: extraneous debugging removed
+	misc html tweaks
+	libsnet updated to most current version
+
+0.9.2
+	filter: support for gss
+	cgi: post error screen now supported
+	cgi: many tweaks to prevent XSS and more seamless redirects
+	cgi: html facelift
+
+0.9.1
+	autoconf options for daemon dirs
+	daemon: cmd line option for log and certs
+	cgi: check to prevent KDC spoofing
+	daemon: removed extraneous logging
+	filter: toggle whether or not k5 gets converted to k4
+
+0.9.0
+	added entrust, verisign and umweb CA certs to the distro
+	make everything now instead of make all
+	updated README with new info
+	autoconf changes to support k5 and k4
+	autoconf changes to make libsnet shared and/or static
+	auconf changes to only build the filter if apxs is installed
+	cgi stores a tgt now, and propogates it
+	logout takes a URL on the query string
+	cadir for cgi and filter
+	daemon has a conf file, with wildcard support
+	daemon does "RETRIEVE" for tickets
+	filter has kerberos 5 and 4 functionality
+	fixed javascript bug in login screen
+	misc html tweaks
+
+0.8.1
+	added make dist rule to Makefile
+	added check in the cgi to make sure daemon host and cert subject match
+	also check in the filter to make sure daemon host and cert subject match
+	must now call "starttls" before any other commands will work
+	cadir ( supports multiple CAs ) replaces cafile
+	removed extraneous logging
+
+0.8.0
+	added support for autoconf
+	added -V for the cgi
+	moved daemon's default datadir to /var/cosign/daemon
+	moved filter's default datadir to /var/cosign/filter
+	re-worked the connection management model
+	break "loops" when filter fails to establish a session w/ daemon
+	moved around mkcookie() to prepare for later code sharing
+	module returns 503 (HTTP_SERVICE_UNAVAILABLE) instead of FORBIDDEN
+	reworked .m4 -> html screens
+
+
+0.7.0
+	first unified release of cgi, daemon, and apache filter
