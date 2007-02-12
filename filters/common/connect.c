@@ -49,6 +49,7 @@ static struct rate   		checkpass = { 0 };
 static struct rate   		checkfail = { 0 };
 static struct rate   		checkunknown = { 0 };
 static double             	rate;
+
     static int
 netcheck_cookie( char *scookie, struct sinfo *si, struct connlist *conn,
 	server_rec *s, cosign_host_config *cfg )

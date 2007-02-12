@@ -38,8 +38,8 @@ cosign_cookie_valid( cosign_host_config *cfg, char *cookie, struct sinfo *si,
 {
     struct sinfo	lsi;
     ACAV		*acav;
-    int			rc, rs, fd, ac;
-    int			i, j, addfactors = 0;
+    int			rc, fd, ac;
+    int			i, j, newfile = 0;
     struct timeval	tv;
     char		path[ MAXPATHLEN ], tmppath[ MAXPATHLEN ];
     char		**av;
@@ -64,17 +64,17 @@ cosign_cookie_valid( cosign_host_config *cfg, char *cookie, struct sinfo *si,
     }
 
     /*
-     * rs return vals:
+     * read_scookie() return vals:
      * -1 system error
      * 0 ok
      * 1 not in filesystem
      */
-    if (( rs = read_scookie( path, &lsi, s )) < 0 ) {
+    if (( newfile = read_scookie( path, &lsi, s )) < 0 ) {
 	cosign_log( APLOG_ERR, s, "mod_cosign: read_scookie error" );
 	return( COSIGN_ERROR );
     }
 
-    if (( rs == 0 ) && (( tv.tv_sec - lsi.si_itime ) <= IDLETIME )) {
+    if ( !newfile && (( tv.tv_sec - lsi.si_itime ) <= IDLETIME )) {
 	if (( cfg->checkip == IPCHECK_ALWAYS ) &&
 		( strcmp( ipaddr, lsi.si_ipaddr ) != 0 )) {
 	    cosign_log( APLOG_ERR, s,
@@ -82,9 +82,6 @@ cosign_cookie_valid( cosign_host_config *cfg, char *cookie, struct sinfo *si,
 		    "browser ip %s", lsi.si_ipaddr, ipaddr );
 	    goto netcheck;
 	}
-	strcpy( si->si_ipaddr, lsi.si_ipaddr );
-	strcpy( si->si_user, lsi.si_user );
-	strcpy( si->si_realm, lsi.si_realm );
 
 	if (( cosign_protocol == 2 ) && ( cfg->reqfc > 0 )) {
 	    if (( acav = acav_alloc()) == NULL ) {
@@ -117,6 +114,10 @@ cosign_cookie_valid( cosign_host_config *cfg, char *cookie, struct sinfo *si,
 	    strcpy( si->si_factor, lsi.si_factor );
 	}
 
+	strcpy( si->si_ipaddr, lsi.si_ipaddr );
+	strcpy( si->si_user, lsi.si_user );
+	strcpy( si->si_realm, lsi.si_realm );
+
 #ifdef KRB
 	if ( cfg->krbtkt ) {
 	    strcpy( si->si_krb5tkt, lsi.si_krb5tkt );
@@ -126,7 +127,7 @@ cosign_cookie_valid( cosign_host_config *cfg, char *cookie, struct sinfo *si,
     }
 
 netcheck:
-    if (( rc = cosign_check_cookie( cookie, si, cfg, rs, s ))
+    if (( rc = cosign_check_cookie( cookie, si, cfg, newfile, s ))
 	    == COSIGN_ERROR ) {
 	cosign_log( APLOG_ERR, s, "mod_cosign: cosign_cookie_valid: "
 		"Unable to connect to any Cosign server." ); 
@@ -137,7 +138,16 @@ netcheck:
 	return( COSIGN_RETRY );
     }
 
-    if ( rs == 0 ) {
+    if ( !newfile ) {
+	/* since we're not getting the ticket everytime, we need
+	 * to copy the info here so the ENV will be right.
+	 */
+#ifdef KRB
+	if ( cfg->krbtkt ) {
+	    strcpy( si->si_krb5tkt, lsi.si_krb5tkt );
+	}
+#endif /* KRB */
+
 	/* check net info against local info */
 	if ( strcmp( si->si_user, lsi.si_user ) != 0 ) {
 	    cosign_log( APLOG_ERR, s, "mod_cosign: cosign_cookie_valid: "
@@ -157,7 +167,7 @@ netcheck:
 		cosign_log( APLOG_ERR, s,
 			"mod_cosign: server ip info %s does not match "
 			"browser ip %s", si->si_ipaddr, ipaddr );
-		return( COSIGN_ERROR );
+		return( COSIGN_RETRY );
 	    }
 	    cosign_log( APLOG_ERR, s, "mod_cosign: cosign_cookie_valid: "
 		    "network info %s does not match local info %s for "
@@ -167,20 +177,10 @@ netcheck:
 
 	if ( cosign_protocol == 2 ) {
 	    if ( strcmp( si->si_factor, lsi.si_factor ) != 0 ) {
-		addfactors = 1;
 		goto storecookie;
 	    }
 	}
 
-	/* since we're not getting the ticket everytime, we need
-	 * to copy the info here so the ENV will be right.
-	 */
-
-#ifdef KRB
-	if ( cfg->krbtkt ) {
-	    strcpy( si->si_krb5tkt, lsi.si_krb5tkt );
-	}
-#endif /* KRB */
 	/* update to current time, pushing window forward */
 	utime( path, NULL );
 	return( COSIGN_OK );
@@ -225,7 +225,7 @@ storecookie:
     }
 
 #ifdef KRB
-    if ( rs ) {
+    if ( si->si_krb5tkt ) {
 	fprintf( tmpfile, "k%s\n", si->si_krb5tkt );
     }
 #endif /* KRB */
@@ -238,7 +238,7 @@ storecookie:
 	return( COSIGN_ERROR );
     }
 
-    if ( addfactors ) {
+    if ( !newfile ) {
         if ( rename( tmppath, path ) != 0 ) {
 	    perror( tmppath );
 	    return( COSIGN_ERROR );
