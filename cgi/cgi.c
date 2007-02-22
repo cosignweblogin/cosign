@@ -23,6 +23,7 @@
 #include "login.h"
 #include "subfile.h"
 #include "factor.h"
+#include "mkcookie.h"
 
 #define SERVICE_MENU	"/services/"
 #define LOOPWINDOW      30 
@@ -386,7 +387,8 @@ main( int argc, char *argv[] )
 	goto loginscreen;
     }
 
-    if ( strlen( cookie ) < 120 ) {
+    len = strlen( cookie );
+    if ( len < 120 || len > 1024 ) {
 	goto loginscreen;
     }
 
@@ -408,6 +410,10 @@ main( int argc, char *argv[] )
 
     if (( misc = strtok( NULL, "/" )) != NULL ) {
 	cookiecount = atoi( misc );
+    }
+
+    if ( !validcookie( cookie )) {
+	goto loginscreen;
     }
 
 	/* after here, we have a well-formed cookie */
