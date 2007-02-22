@@ -325,6 +325,10 @@ cosign_auth( request_rec *r )
 	goto set_cookie;
     }
 
+    if ( !validcookie( my_cookie )) {
+	goto set_cookie;
+    }
+
     /*
      * Validate cookie with backside server.  If we already have a cached
      * version of the data, just verify the cookie's still valid.
