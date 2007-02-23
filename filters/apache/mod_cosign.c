@@ -24,17 +24,17 @@
 #include <openssl/ssl.h>
 #include <openssl/err.h>
 
+
 #include <snet.h>
 
-#include "argcargv.h"
 #include "sparse.h"
 #include "mkcookie.h"
 #include "cosign.h"
 #include "log.h"
 
 static int	set_cookie_and_redirect( request_rec *, cosign_host_config * );
-extern int	cosign_protocol;
-module 		cosign_module;
+
+module cosign_module;
 
     static void *
 cosign_create_config( pool *p )
@@ -44,17 +44,12 @@ cosign_create_config( pool *p )
     cfg = (cosign_host_config *)ap_pcalloc( p, sizeof( cosign_host_config ));
     cfg->service = NULL;
     cfg->siteentry = NULL;
-    cfg->reqfv = NULL;
-    cfg->reqfc = -1;
-    cfg->suffix = NULL;
-    cfg->fake = -1;
     cfg->public = -1;
     cfg->redirect = NULL;
     cfg->posterror = NULL;
     cfg->port = 0;
     cfg->protect = -1;
     cfg->configured = 0;
-    cfg->checkip = IPCHECK_INITIAL;
     cfg->cl = NULL;
     cfg->ctx = NULL;
     cfg->key = NULL;
@@ -65,7 +60,6 @@ cosign_create_config( pool *p )
     cfg->proxydb = _PROXY_DB;
     cfg->tkt_prefix = _COSIGN_TICKET_CACHE;
     cfg->http = -1;
-    cfg->noappendport = -1;
     cfg->proxy = -1;
     cfg->expiretime = 86400; /* 24 hours */
 #ifdef KRB
@@ -102,10 +96,8 @@ cosign_init( server_rec *s, pool *p )
     int
 set_cookie_and_redirect( request_rec *r, cosign_host_config *cfg )
 {
-    char		*dest, *my_cookie;
-    char		*full_cookie, *ref, *reqfact;
+    char		*dest, *my_cookie, *full_cookie, *ref;
     char		cookiebuf[ 128 ];
-    int			i;
     unsigned int	port;
     struct timeval	now;
 
@@ -149,8 +141,7 @@ set_cookie_and_redirect( request_rec *r, cosign_host_config *cfg )
     } else {
 	/* live dangerously, we're redirecting to http */
 	if ( cfg->http == 1 ) {
-	    if ((( port = ap_get_server_port( r )) == 80 ) ||
-		    ( cfg->noappendport == 1 )) {
+	    if (( port = ap_get_server_port( r )) == 80 ) {
 		ref = ap_psprintf( r->pool, "http://%s%s", 
 			ap_get_server_name( r ), r->unparsed_uri );
 	    } else {
@@ -159,8 +150,7 @@ set_cookie_and_redirect( request_rec *r, cosign_host_config *cfg )
 	    }
 	/* live securely, redirecting to https */
 	} else {
-	    if ((( port = ap_get_server_port( r )) == 443 ) ||
-		    ( cfg->noappendport == 1 )) {
+	    if (( port = ap_get_server_port( r )) == 443 ) {
 		ref = ap_psprintf( r->pool, "https://%s%s", 
 			ap_get_server_name( r ), r->unparsed_uri );
 	    } else {
@@ -170,19 +160,8 @@ set_cookie_and_redirect( request_rec *r, cosign_host_config *cfg )
 	}
     }
 
-    if ( cfg->reqfc > 0 ) {
-	reqfact = ap_pstrcat( r->pool, "factors=", cfg->reqfv[ 0 ], NULL );
-	for ( i = 1; i < cfg->reqfc; i++ ) {
-	    reqfact = ap_pstrcat( r->pool, reqfact, ",",
-		    cfg->reqfv[ i ], NULL );
-	}
-	dest = ap_psprintf( r->pool,
-		"%s?%s&%s&%s", cfg->redirect, reqfact, my_cookie, ref );
-    } else {
-	/* we need to remove this semi-colon eventually */
-	dest = ap_psprintf( r->pool,
-		"%s?%s;&%s", cfg->redirect, my_cookie, ref );
-    }
+    /* we need to remove this semi-colon eventually */
+    dest = ap_psprintf( r->pool, "%s?%s;&%s", cfg->redirect, my_cookie, ref );
     ap_table_set( r->headers_out, "Location", dest );
     return( 0 );
 }
@@ -325,6 +304,10 @@ cosign_auth( request_rec *r )
 	goto set_cookie;
     }
 
+    if ( !validcookie( my_cookie )) {
+	goto set_cookie;
+    }
+
     /*
      * Validate cookie with backside server.  If we already have a cached
      * version of the data, just verify the cookie's still valid.
@@ -343,9 +326,6 @@ cosign_auth( request_rec *r )
 	r->connection->ap_auth_type = "Cosign";
 	ap_table_set( r->subprocess_env, "COSIGN_SERVICE", cfg->service );
 	ap_table_set( r->subprocess_env, "REMOTE_REALM", si.si_realm );
-	if ( cosign_protocol == 2 ) {
-	    ap_table_set( r->subprocess_env, "COSIGN_FACTOR", si.si_factor );
-	}
 #ifdef KRB
 	if ( cfg->krbtkt == 1 ) {
 	    ap_table_set( r->subprocess_env, "KRB5CCNAME", si.si_krb5tkt );
@@ -392,7 +372,7 @@ cosign_merge_cfg( cmd_parms *params, void *mconfig )
     /*
      * apache's built-in (request time) merge is for directories only or
      * servers only, there's no way to inherit server config in a directory.
-     * So we do that here. Do note that because this is a config time merge,
+     * So we do that here. Do note that becuase this is a config time merge,
      * this has a side effect of requiring all server-wide directives to
      * preecede the directory or location specific ones in the config file.
      */
@@ -407,18 +387,6 @@ cosign_merge_cfg( cmd_parms *params, void *mconfig )
     if ( cfg->siteentry == NULL ) {
 	cfg->siteentry = ap_pstrdup( params->pool, scfg->siteentry );
     }
-    if ( cfg->reqfv == NULL ) {
-	cfg->reqfv = scfg->reqfv; 
-    }
-    if ( cfg->reqfc == -1 ) {
-	cfg->reqfc = scfg->reqfc; 
-    }
-    if ( cfg->suffix == NULL ) {
-	cfg->suffix = ap_pstrdup( params->pool, scfg->suffix );
-    }
-    if ( cfg->fake == -1 ) {
-	cfg->fake = scfg->fake; 
-    }
     if ( cfg->public == -1 ) {
 	cfg->public = scfg->public; 
     }
@@ -428,7 +396,6 @@ cosign_merge_cfg( cmd_parms *params, void *mconfig )
 
     cfg->filterdb = ap_pstrdup( params->pool, scfg->filterdb );
     cfg->hashlen =  scfg->hashlen;
-    cfg->checkip =  scfg->checkip;
     cfg->proxydb = ap_pstrdup( params->pool, scfg->proxydb );
     cfg->tkt_prefix = ap_pstrdup( params->pool, scfg->tkt_prefix );
 
@@ -453,14 +420,12 @@ cosign_merge_cfg( cmd_parms *params, void *mconfig )
     if ( cfg->ctx == NULL ) {
 	cfg->ctx = scfg->ctx;
     }
+
     if ( cfg->proxy == -1 ) {
 	cfg->proxy = scfg->proxy;
     }
     if ( cfg->http == -1 ) {
 	cfg->http = scfg->http;
-    }
-    if ( cfg->noappendport == -1 ) {
-	cfg->noappendport = scfg->noappendport;
     }
 
     cfg->expiretime = scfg->expiretime; 
@@ -527,85 +492,7 @@ set_cosign_siteentry( cmd_parms *params, void *mconfig, char *arg )
     return( NULL );
 }
 
-    static const char *
-set_cosign_checkip( cmd_parms *params, void *mconfig, char *arg )
-{
-    cosign_host_config		*cfg;
-
-    cfg = cosign_merge_cfg( params, mconfig );
-
-    if ( strcasecmp( arg, "never" ) == 0 ) {
-	cfg->checkip = IPCHECK_NEVER;
-    } else if ( strcasecmp( arg, "initial" ) == 0 ) {
-	cfg->checkip = IPCHECK_INITIAL;
-    } else if ( strcasecmp( arg, "always" ) == 0 ) {
-	cfg->checkip = IPCHECK_ALWAYS;
-    } else {
-	return( "CosignCheckIP must be never, initial, or always.");
-    }
-    return( NULL );
-}
-
-    static const char *
-set_cosign_factor( cmd_parms *params, void *mconfig, char *arg )
-{
-    cosign_host_config		*cfg;
-    ACAV			*acav;
-    int				ac, i;
-    char			**av;
-
-    cfg = cosign_merge_cfg( params, mconfig );
-
-    if (( acav = acav_alloc()) == NULL ) {
-	cosign_log( APLOG_ERR, params->server, "mod_cosign: set_cosign_factor:"
-		" acav_alloc failed" );
-	exit( 1 );
-    }
-
-    if (( ac = acav_parse( acav, arg, &av )) < 0 ) {
-	cosign_log( APLOG_ERR, params->server, "mod_cosign: set_cosign_factor:"
-		" acav_parse failed" );
-	exit( 1 );
-    }
-
-    /* should null terminate av */
-    cfg->reqfv = ap_palloc( params->pool, ac * sizeof( char * ));
-    for ( i = 0; i < ac; i++ ) {
-	cfg->reqfv[ i ] = ap_pstrdup( params->pool, av[ i ] );
-    }
-    cfg->reqfc = ac;
-
-    acav_free( acav );
-
-    cfg->configured = 1;
-    return( NULL );
-}
-
-    static const char *
-set_cosign_factorsuffix( cmd_parms *params, void *mconfig, char *arg )
-{
-    cosign_host_config		*cfg;
-
-    cfg = cosign_merge_cfg( params, mconfig );
-
-    cfg->suffix = ap_pstrdup( params->pool, arg );
-    cfg->configured = 1;
-    return( NULL );
-}
-
-    static const char *
-set_cosign_ignoresuffix( cmd_parms *params, void *mconfig, int flag )
-{
-    cosign_host_config		*cfg;
-
-    cfg = cosign_merge_cfg( params, mconfig );
-
-    cfg->fake = flag;
-    cfg->configured = 1;
-    return( NULL );
-}
-
-    static const char *
+        static const char *
 set_cosign_public( cmd_parms *params, void *mconfig, int flag )
 {
     cosign_host_config		*cfg;
@@ -820,8 +707,7 @@ set_cosign_certs( cmd_parms *params, void *mconfig,
 		cfg->key, ERR_error_string( ERR_get_error(), NULL ));
 	exit( 1 );
     }
-    SSL_CTX_set_verify( cfg->ctx,
-	    SSL_VERIFY_PEER | SSL_VERIFY_FAIL_IF_NO_PEER_CERT, NULL );
+    SSL_CTX_set_verify( cfg->ctx, SSL_VERIFY_PEER, NULL );
 
     return( NULL );
 }
@@ -880,18 +766,6 @@ set_cosign_http( cmd_parms *params, void *mconfig, int flag )
 }
 
     static const char *
-set_cosign_noappendport( cmd_parms *params, void *mconfig, int flag )
-{
-    cosign_host_config		*cfg;
-
-    cfg = cosign_merge_cfg( params, mconfig );
-
-    cfg->noappendport = flag; 
-    cfg->configured = 1; 
-    return( NULL );
-}
-
-    static const char *
 set_cosign_expiretime( cmd_parms *params, void *mconfig, char *arg )
 {
     cosign_host_config		*cfg;
@@ -904,7 +778,7 @@ set_cosign_expiretime( cmd_parms *params, void *mconfig, char *arg )
 	return( "Service cookie expiration policy applies server-wide.");
     }
 
-    cfg->expiretime = strtol( arg, (char **)NULL, 10 ); 
+    cfg->expiretime = atoi(arg); 
     cfg->configured = 1; 
     return( NULL );
 }
@@ -965,25 +839,9 @@ static command_rec cosign_cmds[ ] =
         NULL, RSRC_CONF, TAKE1,
         "the path to the cosign Kerberos ticket directory" },
 
-	{ "CosignCheckIP", set_cosign_checkip,
-	NULL, RSRC_CONF, TAKE1,
-	"\"never\", \"initial\", or \"always\"" },
-
 	{ "CosignSiteEntry", set_cosign_siteentry,
 	NULL, RSRC_CONF | ACCESS_CONF, TAKE1,
 	"\"none\" or URL to redirect for users who successfully authenticate" },
-
-	{ "CosignRequireFactor", set_cosign_factor,
-	NULL, RSRC_CONF | OR_AUTHCFG, RAW_ARGS,
-	"the authentication factors that must be satisfied" },
-
-	{ "CosignFactorSuffix", set_cosign_factorsuffix,
-	NULL, RSRC_CONF | ACCESS_CONF, TAKE1,
-	"the factor suffix when testing for compliance" },
-
-	{ "CosignFactorSuffixIgnore", set_cosign_ignoresuffix,
-	NULL, RSRC_CONF | ACCESS_CONF, FLAG,
-	"on or off, on allows you to accept faux factors, off denies access" },
 
 	{ "CosignAllowPublicAccess", set_cosign_public,
 	NULL, RSRC_CONF | ACCESS_CONF, FLAG,
@@ -992,10 +850,6 @@ static command_rec cosign_cmds[ ] =
         { "CosignHttpOnly", set_cosign_http,
         NULL, RSRC_CONF | ACCESS_CONF, FLAG,
         "redirect to http instead of https on the local server" },
-
-        { "CosignNoAppendRedirectPort", set_cosign_noappendport,
-        NULL, RSRC_CONF | ACCESS_CONF, FLAG,
-        "for SSL load balancers - redirect with no added port to the URL" },
 
         { "CosignCrypto", set_cosign_certs,
         NULL, RSRC_CONF | ACCESS_CONF, TAKE3,
