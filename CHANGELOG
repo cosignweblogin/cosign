@@ -1,3 +1,16 @@
+2.0.2
+	cgi & filters: improved validation of login & service cookies
+	cgi: better error messages
+	cgi: improved building
+	daemon: removed config logging, corrects openlog/syslog ordering problem
+	monster: corrected bug in 2-character hashing code
+	filter: improved SSL error handling
+	filter: allow CosignRequireFactor in .htaccess
+	filter: fixed bug that would "lose" Kerberos tickets in some cases
+	filter: fixed bug causing failure to update cookie cache
+	filter: fixed bug that incorrectly enables IP checking
+	filter: switched cookie cache reading code from stdio to snet
+
 2.0.1
 	cgi: preauth failed and expired password are now re-tryable errors
 	daemon: krbtktpath is now maintained upon subsequent logins
