@@ -503,7 +503,7 @@ set_cosign_protect( cmd_parms *params, void *mconfig, int flag )
 }
 
     static const char *
-set_cosign_post_error( cmd_parms *params, void *mconfig, char *arg )
+set_cosign_post_error( cmd_parms *params, void *mconfig, const char *arg )
 {
     cosign_host_config          *cfg;
 
@@ -515,7 +515,7 @@ set_cosign_post_error( cmd_parms *params, void *mconfig, char *arg )
 }
 
     static const char *
-set_cosign_service( cmd_parms *params, void *mconfig, char *arg )
+set_cosign_service( cmd_parms *params, void *mconfig, const char *arg )
 {
     cosign_host_config          *cfg;
 
@@ -527,7 +527,7 @@ set_cosign_service( cmd_parms *params, void *mconfig, char *arg )
 }
 
     static const char *
-set_cosign_siteentry( cmd_parms *params, void *mconfig, char *arg )
+set_cosign_siteentry( cmd_parms *params, void *mconfig, const char *arg )
 {
     cosign_host_config          *cfg;
 
@@ -539,7 +539,7 @@ set_cosign_siteentry( cmd_parms *params, void *mconfig, char *arg )
 }
 
     static const char *
-set_cosign_checkip( cmd_parms *params, void *mconfig, char *arg )
+set_cosign_checkip( cmd_parms *params, void *mconfig, const char *arg )
 {
     cosign_host_config          *cfg;
 
@@ -559,12 +559,13 @@ set_cosign_checkip( cmd_parms *params, void *mconfig, char *arg )
 
 
     static const char *
-set_cosign_factor( cmd_parms *params, void *mconfig, char *arg )
+set_cosign_factor( cmd_parms *params, void *mconfig, const char *arg )
 {
     cosign_host_config          *cfg;
     ACAV                        *acav;
     int                         ac, i;
     char                        **av;
+    char                        *arg0;
 
     cfg = cosign_merge_cfg( params, mconfig );
 
@@ -574,7 +575,8 @@ set_cosign_factor( cmd_parms *params, void *mconfig, char *arg )
         exit( 1 );
     }
 
-    if (( ac = acav_parse( acav, arg, &av )) < 0 ) {
+    arg0 = apr_pstrdup( params->pool, arg );
+    if (( ac = acav_parse( acav, arg0, &av )) < 0 ) {
         cosign_log( APLOG_ERR, params->server, "mod_cosign: set_cosign_factor:"
                 " acav_parse failed" );
         exit( 1 );
@@ -594,7 +596,7 @@ set_cosign_factor( cmd_parms *params, void *mconfig, char *arg )
 }
 
     static const char *
-set_cosign_factorsuffix( cmd_parms *params, void *mconfig, char *arg )
+set_cosign_factorsuffix( cmd_parms *params, void *mconfig, const char *arg )
 {
     cosign_host_config          *cfg;
 
@@ -630,7 +632,7 @@ set_cosign_public( cmd_parms *params, void *mconfig, int flag )
 }
 
     static const char *
-set_cosign_port( cmd_parms *params, void *mconfig, char *arg )
+set_cosign_port( cmd_parms *params, void *mconfig, const char *arg )
 {
     cosign_host_config  *cfg;
     int			 portarg;
@@ -653,7 +655,7 @@ set_cosign_port( cmd_parms *params, void *mconfig, char *arg )
 }
 
     static const char *
-set_cosign_redirect( cmd_parms *params, void *mconfig, char *arg )
+set_cosign_redirect( cmd_parms *params, void *mconfig, const char *arg )
 {
     cosign_host_config          *cfg;
 
@@ -665,7 +667,7 @@ set_cosign_redirect( cmd_parms *params, void *mconfig, char *arg )
 }
 
     static const char *
-set_cosign_filterdb( cmd_parms *params, void *mconfig, char *arg )
+set_cosign_filterdb( cmd_parms *params, void *mconfig, const char *arg )
 {
     cosign_host_config          *cfg;
 
@@ -681,7 +683,7 @@ set_cosign_filterdb( cmd_parms *params, void *mconfig, char *arg )
 }
 
     static const char *
-set_cosign_hashlen( cmd_parms *params, void *mconfig, char *arg )
+set_cosign_hashlen( cmd_parms *params, void *mconfig, const char *arg )
 {
     cosign_host_config          *cfg;
 
@@ -700,7 +702,7 @@ set_cosign_hashlen( cmd_parms *params, void *mconfig, char *arg )
 }
 
     static const char *
-set_cosign_proxydb( cmd_parms *params, void *mconfig, char *arg )
+set_cosign_proxydb( cmd_parms *params, void *mconfig, const char *arg )
 {
     cosign_host_config          *cfg;
 
@@ -716,7 +718,7 @@ set_cosign_proxydb( cmd_parms *params, void *mconfig, char *arg )
 }
 
     static const char *
-set_cosign_tkt_prefix( cmd_parms *params, void *mconfig, char *arg )
+set_cosign_tkt_prefix( cmd_parms *params, void *mconfig, const char *arg )
 {
     cosign_host_config          *cfg;
 
@@ -773,7 +775,7 @@ set_cosign_proxy_cookies( cmd_parms *params, void *mconfig, int flag )
 
     static const char *
 set_cosign_certs( cmd_parms *params, void *mconfig,
-	char *one, char *two, char *three)
+	const char *one, const char *two, const char *three)
 {
     cosign_host_config		*cfg;
 
@@ -837,8 +839,9 @@ set_cosign_certs( cmd_parms *params, void *mconfig,
 
     return( NULL );
 }
+
     static const char *
-set_cosign_host( cmd_parms *params, void *mconfig, char *arg )
+set_cosign_host( cmd_parms *params, void *mconfig, const char *arg )
 {
     struct hostent		*he;
     int				i;
@@ -903,7 +906,7 @@ set_cosign_noappendport( cmd_parms *params, void *mconfig, int flag )
 
 
     static const char *
-set_cosign_expiretime( cmd_parms *params, void *mconfig, char *arg )
+set_cosign_expiretime( cmd_parms *params, void *mconfig, const char *arg )
 {
     cosign_host_config          *cfg;
 
