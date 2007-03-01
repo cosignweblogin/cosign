@@ -129,13 +129,20 @@ cosign_cookie_valid( cosign_host_config *cfg, char *cookie, struct sinfo *si,
 netcheck:
     if (( rc = cosign_check_cookie( cookie, si, cfg, newfile, s ))
 	    == COSIGN_ERROR ) {
-	cosign_log( APLOG_ERR, s, "mod_cosign: cosign_cookie_valid: "
-		"Unable to connect to any Cosign server." ); 
+        cosign_log( APLOG_ERR, s, "mod_cosign: cosign_cookie_valid: "
+          "Unable to connect to any Cosign server." ); 
         return( COSIGN_ERROR );
     }
+	if (( cfg->checkip == IPCHECK_ALWAYS ) &&
+        ( strcmp( ipaddr, si->si_ipaddr ) != 0 )) {
+		cosign_log( APLOG_ERR, s,
+			"mod_cosign: server ip info %s does not match "
+			"browser ip %s", si->si_ipaddr, ipaddr );
+		return( COSIGN_RETRY );
+	}
 
     if ( rc == COSIGN_RETRY ) {
-	return( COSIGN_RETRY );
+        return( COSIGN_RETRY );
     }
 
     if ( !newfile ) {
@@ -162,13 +169,6 @@ netcheck:
 	    return( COSIGN_ERROR );
 	}
 	if ( strcmp( si->si_ipaddr, lsi.si_ipaddr ) != 0 ) {
-	    if (( cfg->checkip == IPCHECK_ALWAYS ) &&
-		    ( strcmp( ipaddr, si->si_ipaddr ) != 0 )) {
-		cosign_log( APLOG_ERR, s,
-			"mod_cosign: server ip info %s does not match "
-			"browser ip %s", si->si_ipaddr, ipaddr );
-		return( COSIGN_RETRY );
-	    }
 	    cosign_log( APLOG_ERR, s, "mod_cosign: cosign_cookie_valid: "
 		    "network info %s does not match local info %s for "
 		    "cookie %s", si->si_ipaddr, lsi.si_ipaddr, cookie );
