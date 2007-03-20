@@ -317,7 +317,7 @@ cosign_auth( request_rec *r )
         goto set_cookie;
     }
 
-    if ( !validcookie( my_cookie )) {
+    if ( !validchars( my_cookie )) {
 	goto set_cookie;
     }
 

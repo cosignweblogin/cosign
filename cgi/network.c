@@ -26,15 +26,14 @@
 
 #include "argcargv.h"
 #include "cosigncgi.h"
-#include "config.h"
 #include "network.h"
+#include "mkcookie.h"
 
 static void (*logger)( char * ) = NULL;
 static struct timeval		timeout = { 10 * 60, 0 };
 extern int	errno;
 extern char	*cosign_host;
 extern SSL_CTX	*ctx;
-int		cosign_protocol = 0;
 
 static int connect_sn( struct connlist * );
 static int cosign_choose_conn( struct connlist *, void *,
@@ -55,7 +54,7 @@ connlist_setup( char *host, unsigned short port )
     struct connlist	*head, *new, **tail;
 
     if (( he = gethostbyname( host )) == NULL ) {
-        fprintf( stderr, "%s: gethostbyname() failed\n", host );
+        fprintf( stderr, "%s no wanna give hostnames\n", host );
         return( NULL );
     }
     tail = &head;
@@ -158,12 +157,15 @@ cosign_choose_conn( struct connlist *head, void *netparams,
     }
     return( -1 );
 }
-
     int
 cosign_login( struct connlist *conn, char *cookie, char *ip, char *user,
 	char *realm, char *krb )
 {
     struct login_param lp;
+
+    if ( !validchars( cookie ) || !validchars( user )) {
+	return( -1 );
+    }
 
     lp.lp_cookie = cookie;
     lp.lp_ip = ip;
@@ -328,6 +330,9 @@ cosign_logout( struct connlist *conn, char *cookie, char *ip )
 {
     struct logout_param lp;
 
+    if ( !validchars( cookie )) {
+	return( -1 );
+    }
     lp.lp_cookie = cookie;
     lp.lp_ip = ip;
 
@@ -381,6 +386,10 @@ cosign_register( struct connlist *conn, char *cookie, char *ip, char *scookie )
 
     struct reg_param rp;
 
+    if ( !validchars( cookie ) || !validchars( scookie )) {
+	return( -1 );
+    }
+
     rp.rp_cookie = cookie;
     rp.rp_ip = ip;
     rp.rp_scookie = scookie;
@@ -429,25 +438,29 @@ net_register( SNET *sn, void *vrp )
     }
 }
 
-    int
-cosign_check( struct connlist *conn, char *cookie, struct userinfo *ui )
+    char *
+cosign_check( struct connlist *conn, char *cookie )
 {
     static struct check_param cp;
 
-    cp.cp_cookie = cookie;
-    cp.cp_ui = ui;
-
-    if ( cosign_choose_conn( conn, &cp, net_check ) < 0 ) {
+    if ( !validchars( cookie )) {
 	return( -1 );
     }
 
-    return( 0 );
+    cp.cp_cookie = cookie;
+    *cp.cp_user = '\0';
+
+    if ( cosign_choose_conn( conn, &cp, net_check ) < 0 ) {
+	return( NULL );
+    }
+
+    return( cp.cp_user );
 }
 
     static int
 net_check( SNET *sn, void *vcp )
 {
-    int                 ac, i;
+    int                 ac;
     char		*line;
     char                **av;
     struct timeval	tv;
@@ -466,36 +479,15 @@ net_check( SNET *sn, void *vcp )
 
     switch( *line ) {
     case '2':
-	if (( ac = argcargv( line, &av )) < 4 ) {
+	if (( ac = argcargv( line, &av )) != 4 ) {
 	    fprintf( stderr, "net_check: wrong num of args: %s\n", line);
 	    return( COSIGN_ERROR );
 	}
-	if ( strlen( av[ 2 ] ) >= sizeof( cp->cp_ui->ui_login )) {
+	if ( strlen( av[ 2 ] ) >= sizeof( cp->cp_user )) {
 	    fprintf( stderr, "net_check: username %s too long", av[ 2 ] );
 	    return( COSIGN_ERROR );
 	}
-	strcpy( cp->cp_ui->ui_login, av[ 2 ] );
-
-	if ( cosign_protocol == 0 ) {
-	    cp->cp_ui->ui_factors[ 0 ] = NULL;
-	    return( COSIGN_OK );
-	}
-
-	/* protocol v2 */
-	if ( strlen( av[ 1 ] ) >= sizeof( cp->cp_ui->ui_ipaddr )) {
-	    fprintf( stderr, "net_check: ip address %s too long", av[ 1 ] );
-	    return( COSIGN_ERROR );
-	}
-	strcpy( cp->cp_ui->ui_ipaddr, av[ 1 ] );
-
-	if ( ac - 3 > COSIGN_MAXFACTORS - 1 ) {
-	    fprintf( stderr, "net_check: too many factors (%d)", ac - 3 );
-            return( COSIGN_ERROR );
-	}
-	for ( i = 3; i < ac; i++ ) {
-	    cp->cp_ui->ui_factors[ i - 3 ] = strdup( av[ i ] );
-	}
-	cp->cp_ui->ui_factors[ i - 3 ] = NULL;
+	strcpy( cp->cp_user, av[ 2 ] );
 	return( COSIGN_OK );
 
     case '4':
@@ -515,8 +507,8 @@ net_check( SNET *sn, void *vcp )
     int
 connect_sn( struct connlist *conn )
 {
-    int			s, ac, err = -1, zero = 0;
-    char		*line, **av, buf[ 1024 ];
+    int			s, err = -1, zero = 0;
+    char		*line, buf[ 1024 ];
     X509		*peer;
     struct timeval      tv;
     struct protoent	*proto;
@@ -557,27 +549,9 @@ connect_sn( struct connlist *conn )
 	fprintf( stderr, "connect_sn: %s", line );
 	goto done;
     }
-    if (( ac = argcargv( line, &av )) < 4 ) {
-        fprintf( stderr, "connect_sn: argcargv: %s", line );
-        goto done;
-    }
-    if (( cosign_protocol = strtol( av[ 1 ], (char **)NULL, 10 )) != 2 ) {
-        fprintf( stderr, "connect_sn: falling back to v0\n" );
-        cosign_protocol = 0;
-    } else {
-        cosign_protocol = 2 ;
-    }
-
-    if ( cosign_protocol == 2 ) {
-        if ( snet_writef( conn->conn_sn, "STARTTLS 2\r\n" ) < 0 ) {
-            fprintf( stderr, "connect_sn: starttls 2 failed" );
-            goto done;
-        }
-    } else {
-        if ( snet_writef( conn->conn_sn, "STARTTLS\r\n" ) < 0 ) {
-            fprintf( stderr, "connect_sn: starttls failed" );
-            goto done;
-        }
+    if ( snet_writef( conn->conn_sn, "STARTTLS\r\n" ) < 0 ) {
+	fprintf( stderr, "connect_sn: starttls is kaplooey\n" );
+	goto done;
     }
 
     tv = timeout;
@@ -606,28 +580,14 @@ connect_sn( struct connlist *conn )
     X509_NAME_get_text_by_NID( X509_get_subject_name( peer ), NID_commonName,
 	    buf, sizeof( buf ));
     /* cn and host must match */
-    X509_free( peer );
     if ( strcasecmp( buf, cosign_host ) != 0 ) {
 	fprintf( stderr, "cn=%s & host=%s don't match!\n", buf, cosign_host );
 	X509_free( peer );
 	err = -2;
 	goto done;
     }
-
-    if ( cosign_protocol == 2 ) {
-        tv = timeout;
-        if (( line = snet_getline_multi( conn->conn_sn, logger, &tv ))
-		== NULL ) {
-            fprintf( stderr, "connect_sn: snet_getline_multi failed" );
-            goto done;
-        }
-        if ( *line != '2' ) {
-            fprintf( stderr, "connect_sn: starttls 2: %s", line );
-            goto done;
-        }
-    }
+    X509_free( peer );
     return( 0 );
-
 done:
     if ( snet_close( conn->conn_sn ) != 0 ) {
 	fprintf( stderr, "connect_sn: snet_close failed\n" );
