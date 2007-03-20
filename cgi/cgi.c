@@ -412,10 +412,6 @@ main( int argc, char *argv[] )
 	cookiecount = atoi( misc );
     }
 
-    if ( !validcookie( cookie )) {
-	goto loginscreen;
-    }
-
 	/* after here, we have a well-formed cookie */
 
     /* setup conn and ssl and hostlist */

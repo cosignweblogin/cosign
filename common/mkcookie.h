@@ -5,7 +5,7 @@
 
 int mkcookie( int, char * );
 int mkcookiepath( char *, int, char *, char *, int );
-int validcookie( char * );
+int validchars( char * );
 
 #define MAXCOOKIELEN    1024
 

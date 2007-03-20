@@ -28,6 +28,7 @@
 #include "cosigncgi.h"
 #include "config.h"
 #include "network.h"
+#include "mkcookie.h"
 
 static void (*logger)( char * ) = NULL;
 static struct timeval		timeout = { 10 * 60, 0 };
@@ -165,6 +166,10 @@ cosign_login( struct connlist *conn, char *cookie, char *ip, char *user,
 {
     struct login_param lp;
 
+    if ( !validchars( cookie ) || !validchars( user )) {
+	return( -1 );
+    }
+
     lp.lp_cookie = cookie;
     lp.lp_ip = ip;
     lp.lp_user = user;
@@ -184,7 +189,7 @@ net_login( SNET *sn, void *vlp )
     int			fd = 0;
     ssize_t             rr, size = 0;
     char		*line;
-    unsigned char	buf[ 8192 ];
+    char		buf[ 8192 ];
     struct stat         st;
     struct timeval	tv;
     struct login_param	*lp = vlp;
@@ -262,7 +267,7 @@ net_login( SNET *sn, void *vlp )
 
     while (( rr = read( fd, buf, sizeof( buf ))) > 0 ) {
         tv = timeout;
-        if ( snet_write( sn, buf, (int)rr, &tv ) != rr ) {
+        if ( snet_write( sn, buf, rr, &tv ) != rr ) {
             fprintf( stderr, "login %s failed: %s\n", lp->lp_user,
                 strerror( errno ));
             goto error;
@@ -328,6 +333,10 @@ cosign_logout( struct connlist *conn, char *cookie, char *ip )
 {
     struct logout_param lp;
 
+    if ( !validchars( cookie )) {
+	return( -1 );
+    }
+
     lp.lp_cookie = cookie;
     lp.lp_ip = ip;
 
@@ -381,6 +390,10 @@ cosign_register( struct connlist *conn, char *cookie, char *ip, char *scookie )
 
     struct reg_param rp;
 
+    if ( !validchars( cookie ) || !validchars( scookie )) {
+	return( -1 );
+    }
+
     rp.rp_cookie = cookie;
     rp.rp_ip = ip;
     rp.rp_scookie = scookie;
@@ -433,6 +446,10 @@ net_register( SNET *sn, void *vrp )
 cosign_check( struct connlist *conn, char *cookie, struct userinfo *ui )
 {
     static struct check_param cp;
+
+    if ( !validchars( cookie )) {
+	return( -1 );
+    }
 
     cp.cp_cookie = cookie;
     cp.cp_ui = ui;

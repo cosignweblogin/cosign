@@ -29,6 +29,7 @@
 #include "config.h"
 #include "network.h"
 #include "subfile.h"
+#include "mkcookie.h"
 
 #if defined( KRB ) || defined( SQL_FRIEND )
 
@@ -122,12 +123,13 @@ cosign_login_mysql( struct connlist *head, char *id, char *passwd,
 	}
 
 	switch ( *p ) {
-	    case '@':
-	    case '_':
-	    case '-':
-	    case '.':
+	case '@':
+	case '_':
+	case '-':
+	case '.':
 	    continue;
-	    default:
+
+	default:
 	    fprintf( stderr, "invalid username: %s %s\n", id, ip_addr );
 	    sl[ SL_ERROR ].sl_data = "Provided login appears to be invalid";
 	    sl[ SL_TITLE ].sl_data = "Invalid Input";
@@ -135,7 +137,15 @@ cosign_login_mysql( struct connlist *head, char *id, char *passwd,
 	    exit( 0 );
 	}
     }
-    snprintf( sql, sizeof( sql ), "SELECT login, passwd FROM friend WHERE login = '%s' AND passwd is NOT NULL", id );
+    if ( snprintf( sql, sizeof( sql ), "SELECT login, passwd"
+	    " FROM friend WHERE login = '%s' AND passwd is NOT NULL",
+	    id ) >= sizeof( sql )) {
+	fprintf( stderr, "invalid username: %s %s\n", id, ip_addr );
+	sl[ SL_ERROR ].sl_data = "Provided login appears to be invalid";
+	sl[ SL_TITLE ].sl_data = "Invalid Input";
+	subfile( tmpl, sl, 0 );
+	exit( 0 );
+    }
 
     if( mysql_real_query( &friend_db, sql, strlen( sql ))) {
 	fprintf( stderr, mysql_error( &friend_db ));

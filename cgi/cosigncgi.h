@@ -12,7 +12,7 @@ struct subparams {
     int		sp_ipchanged;
 };
 
-int	mkcookie( int, char * );
+//int	mkcookie( int, char * );
 struct connlist * connlist_setup( char *, unsigned short );
 
 #define COSIGN_ERROR            -1
