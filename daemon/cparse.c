@@ -92,6 +92,8 @@ read_cookie( char *path, struct cinfo *ci )
     int			len;
     extern int          errno;
 
+    memset( ci, 0, sizeof( struct cinfo ));
+
     if (( cf = fopen( path, "r" )) == NULL ) {
 	/* monster need this ENOENT return val */
 	if ( errno == ENOENT ) {
@@ -101,8 +103,6 @@ read_cookie( char *path, struct cinfo *ci )
 	return( -1 );
     }
 
-    memset( ci, 0, sizeof( struct cinfo ));
-    
     if ( fstat( fileno( cf ), &st ) != 0 ) {
 	syslog( LOG_ERR, "read_cookie: %s: %m", path );
 	goto error;
