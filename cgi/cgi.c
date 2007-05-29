@@ -250,6 +250,7 @@ main( int argc, char *argv[] )
     char			*ref = NULL, *service = NULL, *login = NULL;
     char			*remote_user = NULL;
     char			*subject_dn = NULL, *issuer_dn = NULL;
+    char			*sport;
     char			*realm = NULL, *krbtkt_path = NULL;
     char			**ff, *msg = NULL;
     struct servicelist		*scookie = NULL;
@@ -286,10 +287,25 @@ main( int argc, char *argv[] )
 	subfile( ERROR_HTML, sl, 0 );
 	exit( 0 );
     }
-
-    method = getenv( "REQUEST_METHOD" );
-    ip_addr = getenv( "REMOTE_ADDR" );
-    server_port = atoi( getenv( "SERVER_PORT" ));
+    if (( method = getenv( "REQUEST_METHOD" )) {
+	sl[ SL_TITLE ].sl_data = "Error: Server Configuration";
+	sl[ SL_ERROR ].sl_data = "Unable to retrieve method";
+	subfile( ERROR_HTML, sl, 0 );
+	exit(0);
+    }
+    if (( ip_addr = getenv( "REMOTE_ADDR" )) == NULL ) {
+	sl[ SL_TITLE ].sl_data = "Error: Server Configuration";
+	sl[ SL_ERROR ].sl_data = "Unable to retrieve IP address";
+	subfile( ERROR_HTML, sl, 0 );
+	exit(0);
+    }
+    if (( sport = getenv( "SERVER_PORT" )) == NULL ) {
+	sl[ SL_TITLE ].sl_data = "Error: Server Configuration";
+	sl[ SL_ERROR ].sl_data = "Unable to retrieve server port";
+	subfile( ERROR_HTML, sl, 0 );
+	exit(0);
+    }
+    server_port = atoi( sport);
 
     subject_dn = getenv( "SSL_CLIENT_S_DN" );
     issuer_dn = getenv( "SSL_CLIENT_I_DN" );
@@ -328,7 +344,7 @@ main( int argc, char *argv[] )
 	    p = strtok( NULL, "&" );
 	}
 
-	if ( strncmp( p, "factors=", 8 ) == 0 ) {
+	if ( p != NULL && strncmp( p, "factors=", 8 ) == 0 ) {
 	    if (( factor = strchr( p, '=' )) == NULL ) {
 		sl[ SL_TITLE ].sl_data = "Error: malformatted factors";
 		sl[ SL_ERROR ].sl_data = "Unable to determine required "

@@ -175,7 +175,7 @@ main( int argc, char *argv[] )
     /* read user's cosign cookie and LOGOUT */
     if (( data = getenv( "HTTP_COOKIE" )) != NULL ) {
         cookie = strtok( data, ";" );
-        if ( strncmp( cookie, "cosign=", 7 ) != 0 ) {
+        if ( cookie != NULL && strncmp( cookie, "cosign=", 7 ) != 0 ) {
             while (( cookie = strtok( NULL, ";" )) != NULL ) {
                 if ( *cookie == ' ' ) ++cookie;
                 if ( strncmp( cookie, "cosign=", 7 ) == 0 ) {
@@ -185,7 +185,7 @@ main( int argc, char *argv[] )
         }
     }
     /* only the cosign= cookie and not the loop breaking info */
-    (void)strtok( cookie, "/" );
+    if ( cookie != NULL ) (void)strtok( cookie, "/" );
 
     /* clobber the cosign cookie */
     fputs( "Expires: Mon, 16 Apr 1973 13:10:00 GMT\n"

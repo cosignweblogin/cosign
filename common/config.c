@@ -126,7 +126,8 @@ x509_substitute( char *pattern, int len, char *buf,
     bufend = buf + len;
 
     for ( p = pattern, b = buf; *p != '\0'; p++ ) {
-	if ( *p++ == '$' ) {
+	if ( *p == '$' ) {
+	    ++p;
 	    if ( *p == '\0' ) {
 		return( -1 );
 	    }
