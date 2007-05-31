@@ -100,6 +100,7 @@ main( int argc, char *argv[] )
     passcode[ len - 1 ] = '\0';
 
     if (( mtlock = mtoken_lock()) < 0 ) {
+        printf( "Internal error: can't get lock.\n" );
 	fprintf( stderr, "[%s] [mtoken] Internal error: can't get lock"
 		" ( user = %s, pid = %u )\n",
 		mytimestr( tmStr, sizeof( tmStr )), login, getpid());
