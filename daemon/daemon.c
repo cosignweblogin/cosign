@@ -425,9 +425,11 @@ syslog( LOG_DEBUG, "reload cosign_ssl %s", cosign_version );
 	    }
 
 syslog( LOG_DEBUG, "reload kill %s", cosign_version );
-	    if ( kill( pusherpid, SIGHUP ) < 0 ) {
-		syslog( LOG_CRIT, "kill pusherpid: %m" );
-		exit( 1 );
+	    if (pusherpid) {
+		if ( kill( pusherpid, SIGHUP ) < 0 ) {
+		    syslog( LOG_CRIT, "kill pusherpid: %m" );
+		    exit( 1 );
+	        }
 	    }
 	    syslog( LOG_INFO, "reload %s", cosign_version );
 	}
