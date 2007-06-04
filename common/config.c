@@ -585,6 +585,7 @@ read_config( char *path )
 		al_new->al_key = SERVICE;
 		al_new->al_hostname = strdup( av[ 1 ] );
 		al_new->al_flag = 0;
+		al_new->al_proxies = NULL;
 
 		if ( strchr( av[ 2 ], 'T' ) != 0 ) {
 		    al_new->al_flag |= AL_TICKET;
@@ -620,6 +621,7 @@ read_config( char *path )
 		al_new->al_key = NOTAUTH;
 		al_new->al_hostname = strdup( av[ 1 ] );
 		al_new->al_flag = 0;
+		al_new->al_proxies = NULL;
 
 	    } else {
 		fprintf( stderr, "invalid keyword line %d: %s\n",
