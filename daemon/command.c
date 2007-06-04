@@ -382,13 +382,13 @@ f_login( SNET *sn, int ac, char *av[], SNET *pushersn )
     }
 
     if ( krb ) {
-	if (( addinfo ) && ( ci.ci_krbtkt != NULL )) {
+	if (( addinfo ) && ( *ci.ci_krbtkt != '\0' )) {
 	    fprintf( tmpfile, "k%s\n", ci.ci_krbtkt );
 	    already_krb = 1;
 	} else {
 	    fprintf( tmpfile, "k%s\n", krbpath );
 	}
-    } else if ( ci.ci_krbtkt != NULL ) {
+    } else if ( *ci.ci_krbtkt != '\0' ) {
 	fprintf( tmpfile, "k%s\n", ci.ci_krbtkt );
 	already_krb = 1;
     }

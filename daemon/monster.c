@@ -539,7 +539,7 @@ do_dir( char *dir, struct connlist *head, struct timeval *now )
     int
 eat_cookie( char *name, struct timeval *now, time_t *itime, int *state )
 {
-    struct cinfo	ci = { 0, 0, "\0", "\0", "\0","\0", "\0","\0", 0, };
+    struct cinfo	ci;
     int			rc, create = 0;
     extern int		errno;
 
@@ -582,9 +582,9 @@ eat_cookie( char *name, struct timeval *now, time_t *itime, int *state )
 delete_stuff:
 
     /* remove krb5 ticket and login cookie */
-    if ( strcmp( ci.ci_krbtkt, "\0" ) != 0 ) {
+    if ( *ci.ci_krbtkt != '\0' ) {
 	if ( unlink( ci.ci_krbtkt ) != 0 ) {
-	    syslog( LOG_ERR, "%s: %m", ci.ci_krbtkt );
+	    syslog( LOG_ERR, "unlink krbtgt %s: %m", ci.ci_krbtkt );
 	}
     }
     if ( unlink( name ) != 0 ) {
