@@ -39,7 +39,7 @@
 #endif 
 
 static int connect_sn( struct connlist *, cosign_host_config *, server_rec * );
-static int close_sn( struct connlist *, server_rec * );
+static void close_sn( struct connlist *, server_rec * );
 static void (*logger)( char * ) = NULL;
 
 static struct timeval		timeout = { 10 * 60, 0 };
@@ -456,10 +456,7 @@ teardown_conn( struct connlist *cur, server_rec *s )
     /* close down all children on exit */
     for ( ; cur != NULL; cur = cur->conn_next ) {
 	if ( cur->conn_sn != NULL  ) {
-	    if ( close_sn( cur, s ) != 0 ) {
-		cosign_log( APLOG_ERR, s,
-			"mod_cosign: teardown_conn: close_sn failed" );
-	    }
+	    close_sn( cur, s );
 	}
     }
     return( 0 );
@@ -702,7 +699,7 @@ done:
 }
 
 
-    static int
+    static void
 close_sn( struct connlist *cl, server_rec *s )
 {
     char		*line;
@@ -711,21 +708,23 @@ close_sn( struct connlist *cl, server_rec *s )
     /* Close network connection */
     if (( snet_writef( cl->conn_sn, "QUIT\r\n" )) <  0 ) {
 	cosign_log( APLOG_ERR, s, "mod_cosign: close_sn: snet_writef failed" );
-	return( -1 );
+	goto finish;
     }
     tv = timeout;
     if ( ( line = snet_getline_multi( cl->conn_sn, logger, &tv ) ) == NULL ) {
 	cosign_log( APLOG_ERR, s,
 		"mod_cosign: close_sn: snet_getline_multi failed" );
-	return( -1 );
+	goto finish;
     }
     if ( *line != '2' ) {
 	cosign_log( APLOG_ERR, s, "mod_cosign: close_sn: %s", line );
     }
+
+finish:
     if ( snet_close( cl->conn_sn ) != 0 ) {
 	cosign_log( APLOG_ERR, s, "mod_cosign: close_sn: snet_close failed" );
     }
     cl->conn_sn = NULL;
 
-    return( 0 );
+    return;
 }
