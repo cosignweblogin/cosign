@@ -57,6 +57,7 @@ struct proxies {
 #define COSIGNPORTKEY		"cosignport"
 #define COSIGNLOOPURLKEY	"cosignloopurl"
 #define COSIGNX509TKTSKEY       "cosignx509krbtkts"
+#define COSIGNKRBTKTSKEY	"cosignkrbtkts"
 #define COSIGNDBHASHLENKEY	"cosigndbhashlen"
 
 #ifdef SQL_FRIEND
@@ -72,3 +73,4 @@ int		cosign_config( char * );
 char		*cosign_config_get( char * );
 char		**cosign_config_get_all( char *, int * );
 int 		x509_translate( char *, char *, char **, char ** );
+int		negotiate_translate( char *, char **, char ** );

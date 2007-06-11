@@ -42,7 +42,7 @@ char		*certfile = _COSIGN_TLS_CERT;
 char		*cadir = _COSIGN_TLS_CADIR;
 char		*tmpldir = _COSIGN_TMPL_DIR;
 char		*loop_page = _COSIGN_LOOP_URL;
-int		x509krbtkts = 0;
+int		krbtkts = 0;
 SSL_CTX 	*ctx = NULL;
 
 char			*new_factors[ COSIGN_MAXFACTORS ];
@@ -168,15 +168,16 @@ kcgi_configure()
     if (( val = cosign_config_get( COSIGNTMPLDIRKEY )) != NULL ) {
 	tmpldir = val;
     }
-    if (( val = cosign_config_get( COSIGNX509TKTSKEY )) != NULL ) {
+    if ((( val = cosign_config_get( COSIGNX509TKTSKEY )) != NULL ) ||
+	    (( val = cosign_config_get( COSIGNKRBTKTSKEY )) != NULL )) {
 	if ( strcasecmp( val, "on" ) == 0 ) {
-	    x509krbtkts = 1;
+	    krbtkts = 1;
 	} else if ( strcasecmp( val, "off" ) == 0 ) {
-	    x509krbtkts = 0;
+	    krbtkts = 0;
 	} else {
-	    fprintf( stderr, "%s: invalid setting for kx509: defaulting off.\n",
-		    val );
-	    x509krbtkts = 0;
+	    fprintf( stderr, "%s: invalid setting for krbtkts:"
+		    " defaulting off.\n", val );
+	    krbtkts = 0;
 	}
     }
     if (( val = cosign_config_get( COSIGNPORTKEY )) != NULL ) {
@@ -252,6 +253,7 @@ main( int argc, char *argv[] )
     char			*subject_dn = NULL, *issuer_dn = NULL;
     char			*sport;
     char			*realm = NULL, *krbtkt_path = NULL;
+    char			*auth_type = NULL;
     char			**ff, *msg = NULL;
     struct servicelist		*scookie = NULL;
     struct factorlist		*fl;
@@ -319,15 +321,32 @@ main( int argc, char *argv[] )
 	    exit( 0 );
 	}
 	remote_user = login;
-	if ( x509krbtkts ) {
-	    if (( krbtkt_path = getenv( "KRB5CCNAME" )) == NULL ) {
-		fprintf( stderr, "x509 Kerberos ticket transfer is on,"
-			" but no tickets were found in the environment\n" );
-	    }
-	}
     } else {
-	remote_user = getenv( "REMOTE_USER" );
-	realm = "basic";
+	auth_type = getenv("AUTH_TYPE");
+	remote_user = getenv("REMOTE_USER");
+
+	if ( remote_user && auth_type &&
+		strcasecmp( auth_type, "Negotiate" ) == 0 ) {
+	    if ( negotiate_translate( remote_user, &login, &realm ) != 0 ) {
+		sl[ SL_TITLE ].sl_data = "Error: Negotiate login failed";
+	 	sl[ SL_ERROR ].sl_data = "There was a problem processing your"
+			" authentication data. Contact your administrator";
+		subfile( ERROR_HTML, sl, 0 );
+		exit ( 0 );
+	    }
+	    remote_user = login;
+	} else {
+	    realm = "basic";
+	}
+    }
+
+    if ( krbtkts ) {
+	if (( krbtkt_path = getenv( "KRB5CCNAME" )) == NULL ) {
+	    fprintf( stderr, "Kerberos ticket transfer is on, "
+		     " but no tickets were found in the environment\n" );
+	} else if ( strncmp( krbtkt_path, "FILE:", 5 ) == 0 ) {
+	    krbtkt_path += 5;
+	}
     }
 
     if ((( qs = getenv( "QUERY_STRING" )) != NULL ) && ( *qs != '\0' )) {

@@ -22,12 +22,12 @@
 #include "config.h"
 #include "argcargv.h"
 
-struct certlist {
-    char		*cl_issuer;
-    char		*cl_subject;
-    char		*cl_login;
-    char		*cl_realm;
-    struct certlist	*cl_next;
+struct matchlist {
+    char		*ml_key;
+    char		*ml_regexp;
+    char		*ml_login;
+    char		*ml_realm;
+    struct matchlist	*ml_next;
 };
 
 struct cosigncfg {
@@ -40,7 +40,8 @@ struct cosigncfg {
 static struct authlist		*authlist = NULL, *new_authlist;
 struct factorlist	 	*factorlist = NULL;
 static struct servicelist	*servicelist = NULL;
-static struct certlist		*certlist = NULL;
+static struct matchlist		*certlist = NULL;
+static struct matchlist		*negotiatemap = NULL;
 static struct cosigncfg 	*cfg = NULL, *new_cfg;
 
 char			*suffix = NULL;
@@ -117,7 +118,7 @@ authlist_find( char *hostname )
 }
 
     static int
-x509_substitute( char *pattern, int len, char *buf,
+match_substitute( char *pattern, int len, char *buf,
 	int nmatch, regmatch_t matches[], char *source )
 {
     char	*p, *b, *bufend, *numend;
@@ -179,35 +180,65 @@ x509_substitute( char *pattern, int len, char *buf,
 }
 
     int
+matchlist_process(struct matchlist *ml, char *userstring, char **l, char **r )
+{
+    regex_t preg;
+    char error[ 1024 ];
+    int rc;
+    regmatch_t          matches[ 3 ];
+    static char         login[ 130 ];   /* "64@64\0" */
+    static char         realm[ 256 ];   /* big */
+
+    if (( rc = regcomp( &preg, ml->ml_regexp, 0 )) != 0 ) {
+	regerror( rc, &preg, error, sizeof( error ));
+        fprintf( stderr, "%s: %s", ml->ml_regexp, error );
+        return ( -1 );
+    }
+
+    if (( rc = regexec( &preg, userstring, 3, matches, 0 )) == 0 ) {
+	if ( matches[ 0 ].rm_so != 0 ||
+		matches[ 0].rm_eo != strlen( userstring )) {
+	    return ( -1 );
+	}
+
+	if ( match_substitute( ml->ml_login, sizeof( login ), login,
+		3, matches, userstring ) != 0 ) {
+	     fprintf( stderr, "match string (%s) or login (%s) too big.\n",
+		    userstring, ml->ml_login );
+	     return( -1 );
+	}
+	*l = login;
+
+	if ( match_substitute( ml->ml_realm, sizeof( realm ), realm,
+		3, matches, userstring ) != 0 ) {
+	    fprintf( stderr, "match string (%s) or realm (%s) too big.\n",
+		    userstring, ml->ml_realm );
+	    return( -1 );
+	}
+	*r = realm;
+
+	return( 0 );
+    }
+    if ( rc != REG_NOMATCH ) {
+	regerror( rc, &preg, error, sizeof( error ));
+	fprintf( stderr, "%s: %s", ml->ml_regexp, error );
+    }
+    return( -1 );
+}
+
+    int
 x509_translate( char *subject, char *issuer, char **l, char **r )
 {
-    struct certlist	*cur = NULL;
-    regex_t		preg;
-    char		error[ 1024 ];
+    struct matchlist	*cur = NULL;
     int			rc;
     regmatch_t		matches[ 3 ];
-    static char		login[ 130 ];	/* "64@64\0" */
-    static char		realm[ 256 ];	/* big */
 
-    for ( cur = certlist; cur != NULL; cur = cur->cl_next ) {
-	if ( strcmp( cur->cl_issuer, issuer ) != 0 ) {
+    for ( cur = certlist; cur != NULL; cur = cur->ml_next ) {
+	if ( strcmp( cur->ml_key, issuer ) != 0 ) {
 	    continue;
 	}
-	if (( rc = regcomp( &preg, cur->cl_subject, 0 )) != 0 ) {
-	    regerror( rc, &preg, error, sizeof( error ));
-	    fprintf( stderr, "%s: %s", cur->cl_subject, error );
-	    continue;
-	}
-	if (( rc = regexec( &preg, subject, 3, matches, 0 )) == 0 ) {
-	    if ( matches[ 0 ].rm_so != 0 ||
-		    matches[ 0 ].rm_eo != strlen( subject )) {
-		continue;
-	    }
+	if ( matchlist_process( cur, subject, l, r ) == 0 ) {
 	    break;
-	}
-	if ( rc != REG_NOMATCH ) {
-	    regerror( rc, &preg, error, sizeof( error ));
-	    fprintf( stderr, "%s: %s", cur->cl_subject, error );
 	}
     }
 
@@ -216,25 +247,18 @@ x509_translate( char *subject, char *issuer, char **l, char **r )
 	return ( -1 );
     }
 
-    if ( x509_substitute( cur->cl_login, sizeof( login ), login,
-	    3, matches, subject ) != 0 ) {
-	fprintf( stderr, "subject (%s) or login (%s) too big.\n",
-		subject, cur->cl_login );
-	return( -1 );
-    }
-    *l = login;
-
-    if ( x509_substitute( cur->cl_realm, sizeof( realm ), realm,
-	    3, matches, subject ) != 0 ) {
-	fprintf( stderr, "subject (%s) or realm (%s) too big.\n",
-		subject, cur->cl_realm );
-	return( -1 );
-    }
-    *r = realm;
-
     return( 0 );
 }
 
+    int
+negotiate_translate( char *remote_user, char **l, char **r )
+{
+    if ( negotiatemap != NULL ) {
+	return( matchlist_process(negotiatemap, remote_user, l, r ));
+    } else {
+	return( -1 );
+    }
+}
 
     static void
 authlist_free( struct authlist **al )
@@ -323,7 +347,7 @@ read_config( char *path )
     struct cosigncfg	*cc_new, **cc_cur;
     struct authlist 	*al_new, **al_cur;
     struct servicelist	*sl_new, **sl_cur;
-    struct certlist	*cl_new, **cl_cur;
+    struct matchlist	*cl_new, **cl_cur;
     struct factorlist	*fl_new, **fl_cur;
 
     if (( sn = snet_open( path, O_RDONLY, 0, 0 )) == NULL ) {
@@ -437,41 +461,71 @@ read_config( char *path )
 	    *sl_cur = sl_new;
 
 	} else if ( strcmp( av[ 0 ], "cert" ) == 0 ) {
-
 	    if ( ac != 5 ) {
 		fprintf( stderr, "line %d: keyword cert takes 5 args\n",
 			linenum );
 		return( -1 );
 	    }
-	    if (( cl_new = (struct certlist *)malloc(
-		    sizeof( struct certlist ))) == NULL ) {
+	    if (( cl_new = (struct matchlist *)malloc(
+		    sizeof( struct matchlist ))) == NULL ) {
 		perror( "malloc" );
 		return( -1 );
 	    }
-	    if (( cl_new->cl_issuer = strdup( av[ 1 ] )) == NULL ) {
+	    if (( cl_new->ml_key = strdup( av[ 1 ] )) == NULL ) {
 		perror( "malloc" );
 		return( -1 );
 	    }
-	    if (( cl_new->cl_subject = strdup( av[ 2 ] )) == NULL ) {
+	    if (( cl_new->ml_regexp = strdup( av[ 2 ] )) == NULL ) {
 		perror( "malloc" );
 		return( -1 );
 	    }
-	    if (( cl_new->cl_login = strdup( av[ 3 ] )) == NULL ) {
+	    if (( cl_new->ml_login = strdup( av[ 3 ] )) == NULL ) {
 		perror( "malloc" );
 		return( -1 );
 	    }
-	    if (( cl_new->cl_realm = strdup( av[ 4 ] )) == NULL ) {
+	    if (( cl_new->ml_realm = strdup( av[ 4 ] )) == NULL ) {
 		perror( "malloc" );
 		return( -1 );
 	    }
-	    cl_new->cl_next = NULL;
+	    cl_new->ml_next = NULL;
 
 	    for ( cl_cur = &certlist; (*cl_cur) != NULL;
-		    cl_cur = &(*cl_cur)->cl_next )
+		    cl_cur = &(*cl_cur)->ml_next )
 		;
 
-	    cl_new->cl_next = *cl_cur;
+	    cl_new->ml_next = *cl_cur;
 	    *cl_cur = cl_new;
+
+	} else if ( strcmp( av[ 0 ], "negotiate" ) == 0 ) {
+	    if ( ac != 4 ) {
+		fprintf( stderr, "line %d: keyword negotiate takes 4 args\n",
+			linenum );
+		return( -1 );
+	    }
+	    if ( negotiatemap != NULL ) {
+		fprintf( stderr, "line %d:"
+			" keyword negotiate may only be used once\n", linenum );
+		return( -1 );
+	    }
+	    if (( negotiatemap = (struct matchlist *)malloc(
+		    sizeof( struct matchlist ))) == NULL ) {
+		perror( "malloc" );
+		return( -1 );
+	    }
+	    negotiatemap->ml_key = NULL;
+	    if (( negotiatemap->ml_regexp = strdup( av[ 1 ] )) == NULL ) {
+		perror( "malloc" );
+		return( -1 );
+	    }
+	    if (( negotiatemap->ml_login = strdup( av[ 2 ] )) == NULL ) {
+		perror( "malloc" );
+		return( -1 );
+	    }
+	    if (( negotiatemap->ml_realm = strdup( av[ 3 ] )) == NULL ) {
+		perror( "malloc" );
+		return( -1 );
+	    }
+	    negotiatemap->ml_next = NULL;
 
 	} else if ( strcmp( av[ 0 ], "factor" ) == 0 ) {
 	    if ( ac < 3 ) {

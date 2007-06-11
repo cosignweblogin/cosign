@@ -19,9 +19,10 @@ are unique to cosignd. The keywords
 and
 .B include
 are used by both daemons and both cgis. Finally the keywords
-.B cookie,
-.B cert,
-.B factor
+.BR cookie ,
+.BR cert ,
+.BR factor ,
+.B negotiate
 and
 .B suffix
 are used by cosign.cgi.
@@ -31,7 +32,7 @@ Each line contains a keyword, which is the role of the client in the
 cosign system -
 .B cgi
 or
-.B service.
+.BR service .
 Next is the subject CN (common name). The third argument, which is a
 flag [P,T,PT,0] to signify if the host with the listed subject CN can
 ask for Kerberos tickets (T), proxy cookies (P), both(PT), or none (0) .
@@ -48,12 +49,12 @@ associated with their keyword.
 The keyword
 .B CGI
 allows clients to use the
-.B LOGIN,
-.B CHECK,
-.B REGISTER,
-.B RETRIEVE,
-.B TIME,
-.B DAEMON,
+.BR LOGIN ,
+.BR CHECK ,
+.BR REGISTER ,
+.BR RETRIEVE ,
+.BR TIME ,
+.BR DAEMON ,
 and
 .B LOGOUT
 commands. 
@@ -69,15 +70,15 @@ commands (see cosignd(8)).
 .SH "SET" CONFIG FILE OPTIONS - SHARED
 The following configuration file options are recognised for use with the
 keyword
-.B SET.
+.BR SET .
 Configuration file options override the default compile time settings, but are in turn overridden by any command line options as specified.
 .TP 19
-.BI cosigncadir
+.B cosigncadir
 The location where CA certificates in hashed form after expected to reside for validating client ceriticates. This is overridden by the
 .B \-x
 command line option, and the default is _COSIGN_TLS_CADIR
 .TP 19
-.BI cosigncert
+.B cosigncert
 The location of the SSL server certificate for use by this program. This is overridden by the
 .B \-y
 command line option and the defualt is _COSIGN_TLS_CERT
@@ -88,12 +89,12 @@ The location of the SSL key file for use by this program. This is overridden by 
 command line option and the default is _COSIGN_TLS_KEY
 .SH "SET" CONFIG FILE OPTIONS - DAEMON
 .TP 19
-.BI cosigndb
+.B cosigndb
 The cosign daemon directory, where all cookies (cosign= and cosign-serv=) will be stored. This is overridden by the
 .B \-D
 command line option and the default is _COSIGN_DIR
 .TP 19
-.BI cosigndbhashlen
+.B cosigndbhashlen
 This is the length of the subdirectory hash in cosignd's cookie cache
 _COSIGN_DIR. The default is 0, which means all cookies are written to
 the top level of _COSIGN_DIR. A value of 1 means cosignd will use 64
@@ -105,42 +106,46 @@ case-insensitive filesystem) to store the cookie cache. These
 subdirectories must be created by the administrator (see
 SCRIPTS/dbhash).
 .TP 19
-.BI cosignhost
+.B cosignhost
 The hostname to replicate to. This "turns on" cosignd's replication.
 This is overridden by the
 .B \-h
 command line option and the default is off and "NULL"
 .TP 19
-.BI cosigndticketcache
+.B cosigndticketcache
 The path to the directory where cosignd stores the kerberos tickets sent
 by cosign.cgi. If nothing is set here, the default value is _COSIGN_TICKET_CACHE
 .TP 19
-.BI cosignnettimeout
+.B cosignnettimeout
 This is the amount of time alotted by cosignd for each network
 transaction. The default is 4 minutes.
 .TP 19
-.BI cosignport
+.B cosignport
 This is the port on which cosignd listens. The default is 6663.
 .sp
 .SH "SET" CONFIG FILE OPTIONS - CGIs
 .TP 19
-.BI cosignticketcache
+.B cosignkrbtkts
+This can be set to "on" or "off". Governs whether an external 
+HTTP-Negotiate or x509 login should attempt to transfer kerberos 
+tickets. The default is "off".
+.TP 19
+.B cosignticketcache
 The path to the directory where cosign.cgi stores the kerberos tickets
 it generates upon successful kerberos login. These tickets are deleted
 once the ticket has been successfully transfered to cosignd. This
 setting is also the default path for the directory where cosignd stores
 its tickets, and the default is _COSIGN_TICKET_CACHE
 .TP 19
-.BI cosigntmpldir
+.B cosigntmpldir
 The path to the directory where cosign.cgi gets the templates for
 drawing the screen. This is therefore the working directory for
 cosign.cgi. The default is _COSIGN_TMPL_DIR
 .TP 19
-.BI cosignx509krbtkts
-This can be set to "on" or "off." Governs whether an x509 login should
-attempt to transfer kerberos tickets. The default is "off"
+.B cosignx509krbtkts
+Synonymous with cosignkrbtkts.
 .TP 19
-.BI cosignkeytab
+.B cosignkeytab
 This is the path to the keytab file keytab with the principal of "cosign" and
 the instance of the hostname of the machine that the cgi will run on. This
 keytab is used during authentication to verify that KDC spoofing is not
@@ -149,18 +154,18 @@ readable by the UID the CGI runs as (usually the same as your web server).
 The path to this file can be set at compile time using the
  --with-keytabpath=FILE configure option, during runtime with this
 cosignkeytab setting or
-.I krb5_kt_default_name(3)
+.IR krb5_kt_default_name (3)
 will be used at run time to identify the default keytab file for the uid
 running the CGI. The default it "NULL"
 .TP 19
-.BI cosignlogouturl
+.B cosignlogouturl
 This is the URL the logout cgi will redirect a user to upon successful
 completion of logout. It can be overriden by passing a URL on the query
 string to the logout cgi, as in
 http://cosign.edu/cosign-bin/logout?http://go.here.now.edu
 and the default is _COSIGN_LOGOUT_URL.
 .TP 19
-.BI cosignloopurl
+.B cosignloopurl
 This is the page a browser is redirected to when cosign.cgi detects
 there is a loop. The complied-in defaults define a loop as visiting
 cosign.cgi more than 10 (MAXLOOPCOUNT) times in 30 (LOOPWINDOW) seconds.
@@ -171,14 +176,14 @@ The following three options are for use with Cosign Friend which is now a
 separate release, though the cgi in this release of Cosign must be built
 with friend support on.
 .TP 19
-.BI mysqldb
+.B mysqldb
 The hostname of friend's database server. The default is _FRIEND_MYSQL_DB
 .TP 19
-.BI mysqluser
+.B mysqluser
 The login name to access the friend database. The default is
 _FRIEND_MYSQL_LOGIN
 .TP 19
-.BI mysqlpasswd
+.B mysqlpasswd
 The password to access the friend database. The default is
 _FRIEND_MYSQL_PASSWD
 .sp
@@ -246,6 +251,18 @@ another (non -2) factor has been satisfied.  It is intended for use with
 factors that are vulnerable to denial-of-service attacks due to repeated
 authentication failures. The other configuration option uses the keyword
 .I suffix.
+.sp
+.SH NEGOTIATE
+The keyword
+.I negotiate
+is used to authenticate a user using HTTP-Negotiate authentication. It 
+takes 4 fields - keyword, regexp, login, and factor.  The regular 
+expression regexp is matched against the REMOTE_USER variable 
+provided by the web server. (Note that the 
+configuration file parser interprets backslashes.)
+The login and factor fields may contain $1, $2, and/or $3, 
+which are replaced with the corresponding parenthesized subexpressions 
+of the regular expression.
 .sp
 .SH SUFFIX
 The keyword
