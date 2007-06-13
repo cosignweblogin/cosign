@@ -289,7 +289,7 @@ main( int argc, char *argv[] )
 	subfile( ERROR_HTML, sl, 0 );
 	exit( 0 );
     }
-    if (( method = getenv( "REQUEST_METHOD" )) {
+    if (( method = getenv( "REQUEST_METHOD" )) == NULL ) {
 	sl[ SL_TITLE ].sl_data = "Error: Server Configuration";
 	sl[ SL_ERROR ].sl_data = "Unable to retrieve method";
 	subfile( ERROR_HTML, sl, 0 );
