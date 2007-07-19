@@ -243,7 +243,8 @@ x509_translate( char *subject, char *issuer, char **l, char **r )
     }
 
     if ( cur == NULL ) {
-	fprintf( stderr, "%s: issuer not found.\n", issuer );
+	fprintf( stderr, "subject %s with issuer %s didn't match.\n",
+		subject, issuer );
 	return ( -1 );
     }
 
