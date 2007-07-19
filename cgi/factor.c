@@ -124,7 +124,8 @@ execfactor( struct factorlist *fl, struct cgi_list cl[], char **msg )
     } else if ( WIFSIGNALED( status )) {
 	fprintf( stderr, "factor %s killed with %d\n", fl->fl_path,
 		WTERMSIG( status ));
-	exit( 1 );
+	*msg = "Factor killed";
+	return( 1 );
     } else {
 	fprintf( stderr, "factor %s died\n", fl->fl_path );
 	exit( 1 );
