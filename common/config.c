@@ -22,14 +22,6 @@
 #include "config.h"
 #include "argcargv.h"
 
-struct matchlist {
-    char		*ml_key;
-    char		*ml_regexp;
-    char		*ml_login;
-    char		*ml_realm;
-    struct matchlist	*ml_next;
-};
-
 struct cosigncfg {
     char 		*cc_key;
     char 		**cc_value;
@@ -42,6 +34,7 @@ struct factorlist	 	*factorlist = NULL;
 static struct servicelist	*servicelist = NULL;
 static struct matchlist		*certlist = NULL;
 static struct matchlist		*negotiatemap = NULL;
+static struct matchlist		*authenticatorlist = NULL;
 static struct cosigncfg 	*cfg = NULL, *new_cfg;
 
 char			*suffix = NULL;
@@ -259,6 +252,52 @@ negotiate_translate( char *remote_user, char **l, char **r )
     } else {
 	return( -1 );
     }
+}
+
+	int
+pick_authenticator( char *login, char **type, char **l, char **r,
+	struct matchlist **pos )
+{
+    struct matchlist	*cur = NULL;
+    int			rc;
+
+    if ( authenticatorlist == NULL ) {
+        if ( strchr( login, '@' ) != NULL ) {
+	   *l = login;
+	   *r = "friend";
+	   *type = "mysql";
+	} else {
+	   *l = login;
+	   *r = NULL;
+           *type = "kerberos";
+	}
+	*pos = NULL;
+	return( 0 );
+    }
+
+    if ( *pos == NULL ) {
+	*pos = authenticatorlist;
+    } else {
+	*pos = (*pos)->ml_next;
+    }
+
+    while ( *pos != NULL ) {
+
+	if ( matchlist_process( *pos, login, l, r ) == 0 ) {
+	    *type = (*pos)->ml_key;
+	    break;
+	} else {
+	    *pos = (*pos)->ml_next;
+	}
+    }
+
+    if ( (*pos) == NULL ) {
+	fprintf( stderr, "Couldn't identify an authenticator for '%s'\n",
+		 login);
+	return( -1 );
+    }
+
+    return( 0 );
 }
 
     static void
@@ -527,6 +566,42 @@ read_config( char *path )
 		return( -1 );
 	    }
 	    negotiatemap->ml_next = NULL;
+
+	} else if ( strcmp( av[ 0 ], "passwd" ) == 0 ) {
+	    if ( ac != 5 ) {
+		fprintf( stderr, "line %d: keyword authenticator takes 5 args\n",
+			linenum );
+		return( -1 );
+	    }
+	    if (( cl_new = (struct matchlist *)malloc(
+		    sizeof( struct matchlist ))) == NULL ) {
+		perror( "malloc" );
+		return( -1 );
+	    }
+	    if (( cl_new->ml_key = strdup( av[ 1 ] )) == NULL ) {
+		perror( "malloc" );
+		return( -1 );
+	    }
+	    if (( cl_new->ml_regexp = strdup( av[ 2 ] )) == NULL ) {
+		perror( "malloc" );
+		return( -1 );
+	    }
+	    if (( cl_new->ml_login = strdup( av[ 3 ] )) == NULL ) {
+		perror( "malloc" );
+		return( -1 );
+	    }
+	    if (( cl_new->ml_realm = strdup( av[ 4 ] )) == NULL ) {
+		perror( "malloc" );
+		return( -1 );
+	    }
+	    cl_new->ml_next = NULL;
+
+	    for ( cl_cur = &authenticatorlist; (*cl_cur) != NULL;
+		    cl_cur = &(*cl_cur)->ml_next )
+		;
+
+	    cl_new->ml_next = *cl_cur;
+	    *cl_cur = cl_new;
 
 	} else if ( strcmp( av[ 0 ], "factor" ) == 0 ) {
 	    if ( ac < 3 ) {

@@ -43,6 +43,14 @@ struct proxies {
     struct proxies	*pr_next;
 };
 
+struct matchlist {
+    char                *ml_key;
+    char                *ml_regexp;
+    char                *ml_login;
+    char                *ml_realm;
+    struct matchlist    *ml_next;
+};
+
 #define COSIGNDBKEY		"cosigndb"
 #define COSIGNCADIRKEY		"cosigncadir"
 #define COSIGNCERTKEY		"cosigncert"
@@ -74,3 +82,5 @@ char		*cosign_config_get( char * );
 char		**cosign_config_get_all( char *, int * );
 int 		x509_translate( char *, char *, char **, char ** );
 int		negotiate_translate( char *, char **, char ** );
+int		pick_authenticator( char *,char **, char **, char **,
+			struct matchlist ** );
