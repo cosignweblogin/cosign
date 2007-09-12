@@ -477,7 +477,16 @@ pusher( int cpipe, struct connlist *cur )
 	exit( 1 );
     }
 
-    if ( !krb ) {
+    /*
+     * This is the branch of code where we'd expect a 3xx response, since
+     * we're planning to send a kerberos ticket.  However, under conditions
+     * of high load, the CGI may have timed out talking to a different
+     * cosignd.  Since the CGI can also failover, there's some possibility
+     * that the first cosignd actually got the data and at least partially
+     * replicated it.  There's no way to tell (today) whether the other end
+     * actually has kerberos tickets, tho.
+     */
+    if ( !krb || ( *line == '2' )) {
 	goto done;
     }
 
