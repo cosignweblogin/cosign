@@ -96,8 +96,9 @@ lcgi_configure()
 
 # ifdef SQL_FRIEND
     int
-cosign_login_mysql( struct connlist *head, char *id, char *passwd,
-	char *ip_addr, char *cookie, struct subparams *sp )
+cosign_login_mysql( struct connlist *head, char *cosignname, char *id, 
+	char *realm, char *passwd, char *ip_addr, char *cookie, 
+	struct subparams *sp )
 {
     MYSQL_RES		*res;
     MYSQL_ROW		row;
@@ -219,7 +220,7 @@ cosign_login_mysql( struct connlist *head, char *id, char *passwd,
 	return( 0 );
     }
 
-    if ( cosign_login( head, cookie, ip_addr, id, "friend", NULL ) < 0 ) {
+    if ( cosign_login( head, cookie, ip_addr, cosignname, realm, NULL ) < 0 ) {
 	fprintf( stderr, "cosign_login_mysql: login failed\n" ) ;
 	sl[ SL_ERROR ].sl_data = "We were unable to contact the "
 		"authentication server. Please try again later.";
@@ -234,8 +235,9 @@ cosign_login_mysql( struct connlist *head, char *id, char *passwd,
 
 #ifdef KRB
     int
-cosign_login_krb5( struct connlist *head, char *id, char *passwd,
-	char *ip_addr, char *cookie, struct subparams *sp )
+cosign_login_krb5( struct connlist *head, char *cosignname, char *id, 
+	char *realm, char *passwd, char *ip_addr, char *cookie, 
+	struct subparams *sp )
 {
     krb5_error_code             kerror = 0;
     krb5_context                kcontext;
@@ -246,7 +248,6 @@ cosign_login_krb5( struct connlist *head, char *id, char *passwd,
     krb5_creds                  kcreds;
     krb5_ccache                 kccache;
     krb5_keytab                 keytab = 0;
-    char                        *realm = "no_realm";
     char			*tmpl = ERROR_HTML; 
     char                        ktbuf[ MAX_KEYTAB_NAME_LEN + 1 ];
     char                        tmpkrb[ 16 ], krbpath [ MAXPATHLEN ];
@@ -271,12 +272,15 @@ cosign_login_krb5( struct connlist *head, char *id, char *passwd,
     }
 
     /* need to get realm out */
-    if (( kerror = krb5_get_default_realm( kcontext, &realm )) != 0 ) {
-	sl[ SL_ERROR ].sl_data = (char *)error_message( kerror );
-	sl[ SL_TITLE ].sl_data = "Authentication Required ( krb realm error )";
-	tmpl = ERROR_HTML;
-	subfile( tmpl, sl, 0 );
-	exit( 0 );
+    if ( realm == NULL ) {
+	if (( kerror = krb5_get_default_realm( kcontext, &realm )) != 0 ) {
+	    sl[ SL_ERROR ].sl_data = (char *)error_message( kerror );
+ 	    sl[ SL_TITLE ].sl_data = "Authentication Required "
+		    "( krb realm error )";
+	    tmpl = ERROR_HTML;
+	    subfile( tmpl, sl, 0 );
+	    exit( 0 );
+    	}
     }
 
     if ( mkcookie( sizeof( tmpkrb ), tmpkrb ) != 0 ) {
@@ -409,7 +413,8 @@ cosign_login_krb5( struct connlist *head, char *id, char *passwd,
     krb5_free_context( kcontext );
 
     /* password has been accepted, tell cosignd */
-    if ( cosign_login( head, cookie, ip_addr, id, realm, krbpath ) < 0 ) {
+    if ( cosign_login( head, cookie, ip_addr, cosignname, realm, 
+	    krbpath ) < 0 ) {
 	fprintf( stderr, "cosign_login_krb5: login failed\n") ;
 	sl[ SL_ERROR ].sl_data = "We were unable to contact the "
 		"authentication server. Please try again later.";

@@ -475,9 +475,9 @@ main( int argc, char *argv[] )
 	if ( rebasic && cosign_login( head, cookie, ip_addr, remote_user,
 		    realm, krbtkt_path ) < 0 ) {
 	    fprintf( stderr, "cosign_login: basic login failed\n" ) ;
+	    sl[ SL_TITLE ].sl_data = "Error: Please try later";
 	    sl[ SL_ERROR ].sl_data = "We were unable to contact the "
 		    "authentication server. Please try again later.";
-	    sl[ SL_TITLE ].sl_data = "Error: Please try later";
 	    subfile( ERROR_HTML, sl, 0 );
 	    exit( 0 );
 	}
@@ -550,9 +550,9 @@ main( int argc, char *argv[] )
 	    if ( rebasic && cosign_login( head, cookie, ip_addr, remote_user,
 			realm, krbtkt_path ) < 0 ) {
 		fprintf( stderr, "cosign_login: basic login failed\n" ) ;
+		sl[ SL_TITLE ].sl_data = "Error: Please try later";
 		sl[ SL_ERROR ].sl_data = "We were unable to contact the "
 			"authentication server. Please try again later.";
-		sl[ SL_TITLE ].sl_data = "Error: Please try later";
 		subfile( ERROR_HTML, sl, 0 );
 		exit( 0 );
 	    } else if ( !rebasic ) {
@@ -637,49 +637,47 @@ main( int argc, char *argv[] )
     }
 
 #if defined( SQL_FRIEND ) || defined( KRB )
-	if ( cl[ CL_PASSWORD ].cl_data != NULL ) {
+    if ( cl[ CL_PASSWORD ].cl_data != NULL ) {
+	struct matchlist *pos = NULL;
+	char *type = NULL;
+	char *username = NULL;
 
-    if ( strchr( login, '@' ) != NULL ) {
-# ifdef SQL_FRIEND
-	if ( cosign_login_mysql( head, login, cl[ CL_PASSWORD ].cl_data,
-		ip_addr, cookie, &sp ) != 0 ) {
-	    sl[ SL_ERROR ].sl_data = "Password or Account Name incorrect. "
-		    "Is [caps lock] on?";
-	    sl[ SL_TITLE ].sl_data = "Authentication Required "
-		    "( guest account error )";
-	    goto loginscreen;
-	}
-# else
-	/* no @ unless we're friendly. */
-	sl[ SL_TITLE ].sl_data = "Authentication Required "
-		"(inappropriate '@' in account name)";
-	sl[ SL_ERROR ].sl_data = "Password or Account Name incorrect. "
-		"Is [caps lock] on?";
-	goto loginscreen;
-
+	/* Check our login address against the passwd authenticators and 
+	 * find one that is willing to handle it 
+ 	 */
+        while ( pick_authenticator( login,
+		&type, &username, &realm, &pos ) == 0 ) {
+#ifdef SQL_FRIEND
+            if ( strcmp( type, "mysql" ) == 0 ) {
+	        if ( cosign_login_mysql( head, login, username, realm, 
+				        cl[ CL_PASSWORD ].cl_data,
+				        ip_addr, cookie, &sp ) == 0 ) {
+		    goto loggedin;
+	        }
+	    } else
 # endif  /* SQL_FRIEND */
-    } else {
 # ifdef KRB
-	/* not a friend, must be kerberos */
-	if ( cosign_login_krb5( head, login, cl[ CL_PASSWORD ].cl_data,
-		ip_addr, cookie, &sp ) != 0 ) {
-	    sl[ SL_ERROR ].sl_data = "Password or Account Name incorrect. "
-		"Is [caps lock] on?";
-	    sl[ SL_TITLE ].sl_data = "Password or Account Name Incorrect";
-	    goto loginscreen;
-	}
-# else /* KRB */
-	sl[ SL_TITLE ].sl_data = "Authentication Required "
-		"(no '@' in account name)";
+            if ( strcmp( type, "kerberos" ) == 0 ) {
+	        if ( cosign_login_krb5( head, login, username, realm, 
+				        cl[ CL_PASSWORD ].cl_data,
+				        ip_addr, cookie, &sp ) == 0 ) {
+		    goto loggedin;
+	        }
+	    } else
+#endif /* KRB5 */
+	    {
+	        fprintf( stderr, "Unknown authentication type '%s'", type );
+	    }
+        }
+
+	sl[ SL_TITLE ].sl_data = "Authentication Required";
 	sl[ SL_ERROR ].sl_data = "Password or Account Name incorrect. "
 		"Is [caps lock] on?";
 	goto loginscreen;
-# endif /* KRB */
+
+loggedin:
+	(void)cosign_check( head, cookie, &ui );
     }
-
-    (void)cosign_check( head, cookie, &ui );
-
-	}
 #endif /* SQL_FRIEND || KRB */
 
     /*
@@ -736,9 +734,9 @@ main( int argc, char *argv[] )
 	if (( ui.ui_factors[ i ] == NULL ) ||
 		( strcmp( ui.ui_ipaddr, ip_addr ) != 0 )) {
 	    if ( cosign_login( head, cookie, ip_addr, login, msg, NULL ) < 0 ) {
+		sl[ SL_TITLE ].sl_data = "Error: Please try later";
 		sl[ SL_ERROR ].sl_data = "We were unable to contact the "
 			"authentication server. Please try again later.";
-		sl[ SL_TITLE ].sl_data = "Error: Please try later";
 		subfile( ERROR_HTML, sl, 0 );
 		exit( 0 );
 	    }

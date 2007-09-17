@@ -264,6 +264,25 @@ The login and factor fields may contain $1, $2, and/or $3,
 which are replaced with the corresponding parenthesized subexpressions 
 of the regular expression.
 .sp
+.SH PASSWD
+The keyword
+.I passwd
+is used to control password based authentication of a user using the 
+Kerberos and MySQL internal authenticators. Where this keyword is not
+specified, usernames containing an '@' are authenticated through mysql,
+all other usernames are authenticated with Kerberos. The keyword takes
+5 fields - keyword, type, regexp, login and factor. The regular
+expression regexp is matched against the username supplied by the user.
+(Note that the configuration parser interprets backslashes, so these
+must be escaped, as in the examples below). The login and factor fields
+may contain $1, $2 and/or $3 which are replaced with the corresponding
+parethesized subexpressions of the regular expression. The CGI uses the
+first password line whose regular expression matches the username, and
+calls the internal authenticator specified by the 'type' field (which may
+be either 'kerberos' or 'mysql'), with the login name given by the login
+field. Should this login be successful, the user is marked as being
+authenticated by the factor contained in the factor field.
+
 .SH SUFFIX
 The keyword
 .I suffix
@@ -337,6 +356,28 @@ can
 
     campusmail.umich.edu	cosign-campusmail
     news.web.umich.edu		cosign-webnews
+.fi
+.RE
+.sp
+The following snippet defines the normal internal password authentication rules
+.sp
+.RS
+.nf
+
+    # Anything containing an @ is a friend request
+    passwd mysql    \\(.*@.*\\)  $1 friend
+    # Anything else gets handed to Kerberos
+    passwd kerberos \\([^@]\\+\\) $1 MY.REALM
+.fi
+.RE
+.sp
+The following allows user to specify accounts in the form user@realm, and 
+allows both A.EXAMPLE.COM and B.EXAMPLE.COM to be used as supported realms.
+.sp
+.RS
+.nf
+    passwd kerberos \\(.*@A.EXAMPLE.COM\\) $1 A.EXAMPLE.COM
+    passwd kerberos \\(.*@B.EXAMPLE.COM\\) $1 B.EXAMPLE.COM
 .fi
 .RE
 .sp
