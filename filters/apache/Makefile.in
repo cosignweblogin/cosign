@@ -18,22 +18,42 @@ COSIGNTICKETCACHE=	@ticketcache@
 INCPATH=        @CPPFLAGS@ @APXS_INCLUDE@ -I../../libsnet @GSSINC@ -I../../common/ -I../common/
 OPTOPTS=        @OPTOPTS@
 DEFS=           @TLSDEFS@ @KRBDEFS@ @GSSDEFS@ -D_PROXY_DB=\"${PROXYDB}\" -D_FILTER_DB=\"${FILTERDB}\" -D_COSIGN_TICKET_CACHE=\"${COSIGNTICKETCACHE}\"
-LIBS=           -lsnet @GSSLIBS@ @ADDLIBS@
-LDFLAGS=        -L../../libsnet/.libs @GSSLDFLAGS@ @ADDLDFLAGS@ @LDFLAGS@ ${LIBS}
+LIBS=           @GSSLIBS@ @ADDLIBS@
+LDFLAGS=        @GSSLDFLAGS@ @ADDLDFLAGS@ @LDFLAGS@ ${LIBS}
 
 CFLAGS=         ${DEFS} ${OPTOPTS} @CFLAGS@ @APXS_CFLAGS@ @APXS_CFLAGS_SHLIB@ ${INCPATH}
 
-
 OBJ=	mod_cosign.o \
-	../common/connect.o ../common/cookiefs.o ../common/sparse.o \
-	../../common/argcargv.o ../../common/fbase64.o \
-	../../common/mkcookie.o ../../common/rate.o ../../version.o
+	connect.o cookiefs.o sparse.o \
+	argcargv.o fbase64.o \
+	mkcookie.o rate.o version.o snet.o
 
 #   the default target
 all: mod_cosign.so
 
+# all the stuff that's not right here
+connect.o : ../common/connect.c
+	$(CC) -c $(CFLAGS) $(CPPFLAGS) -o $@ $<
+cookiefs.o : ../common/cookiefs.c
+	$(CC) -c $(CFLAGS) $(CPPFLAGS) -o $@ $<
+sparse.o : ../common/sparse.c
+	$(CC) -c $(CFLAGS) $(CPPFLAGS) -o $@ $<
+argcargv.o : ../../common/argcargv.c
+	$(CC) -c $(CFLAGS) $(CPPFLAGS) -o $@ $<
+fbase64.o : ../../common/fbase64.c
+	$(CC) -c $(CFLAGS) $(CPPFLAGS) -o $@ $<
+mkcookie.o : ../../common/mkcookie.c
+	$(CC) -c $(CFLAGS) $(CPPFLAGS) -o $@ $<
+rate.o : ../../common/rate.c
+	$(CC) -c $(CFLAGS) $(CPPFLAGS) -o $@ $<
+version.o : ../../version.c
+	$(CC) -c $(CFLAGS) $(CPPFLAGS) -DVERSION=\"`cat ../../VERSION`\" \
+		-o $@ $<
+snet.o : ../../libsnet/snet.c
+	$(CC) -c $(CFLAGS) $(CPPFLAGS) -o $@ $<
+
 #   compile the DSO file
-mod_cosign.so: ../../libsnet/libsnet.la ${OBJ}
+mod_cosign.so: ${OBJ}
 	$(APXS) -c ${OBJ} ${LDFLAGS}
 
 #   install the DSO file into the Apache installation

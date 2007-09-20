@@ -207,6 +207,18 @@ AC_DEFUN([CHECK_LIBMYSQL],
 
 AC_DEFUN([SET_NO_SASL],
 [
-    ac_configure_args="$ac_configure_extra_args --with-sasl=no";
+    ac_configure_args="$ac_configure_args --with-sasl=no";
     AC_MSG_RESULT(Disabled SASL)
+])
+
+AC_DEFUN([SET_NO_ZLIB],
+[
+    ac_configure_args="$ac_configure_args --with-zlib=no";
+    AC_MSG_RESULT(Disabled ZLIB)
+])
+
+AC_DEFUN([SET_ENABLE_SHARED],
+[
+    ac_configure_args="$ac_configure_args --enable-shared";
+    AC_MSG_RESULT(Enabled Shared)
 ])
