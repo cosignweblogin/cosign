@@ -121,7 +121,6 @@ AC_CONFIG_FILES([Makefile
 		 common/Makefile
                  html/Makefile
                  daemon/Makefile
-                 $FILTER_CONFIG_FILES
-		 filters/common/Makefile])
+                 $FILTER_CONFIG_FILES])
 
 AC_OUTPUT

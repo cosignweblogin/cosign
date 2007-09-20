@@ -3751,7 +3751,7 @@ subdirs="$subdirs libsnet"
 subdirs="$subdirs libcgi"
 
 
-                                                                      ac_config_files="$ac_config_files Makefile cgi/Makefile common/Makefile html/Makefile daemon/Makefile $FILTER_CONFIG_FILES filters/common/Makefile"
+                                                            ac_config_files="$ac_config_files Makefile cgi/Makefile common/Makefile html/Makefile daemon/Makefile $FILTER_CONFIG_FILES"
 
 
 cat >confcache <<\_ACEOF
@@ -4311,7 +4311,6 @@ do
   "html/Makefile" ) CONFIG_FILES="$CONFIG_FILES html/Makefile" ;;
   "daemon/Makefile" ) CONFIG_FILES="$CONFIG_FILES daemon/Makefile" ;;
   "$FILTER_CONFIG_FILES" ) CONFIG_FILES="$CONFIG_FILES $FILTER_CONFIG_FILES" ;;
-  "filters/common/Makefile" ) CONFIG_FILES="$CONFIG_FILES filters/common/Makefile" ;;
   *) { { echo "$as_me:$LINENO: error: invalid argument: $ac_config_target" >&5
 echo "$as_me: error: invalid argument: $ac_config_target" >&2;}
    { (exit 1); exit 1; }; };;
