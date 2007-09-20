@@ -63,6 +63,7 @@ cosign_cookie_valid( cosign_host_config *cfg, char *cookie, struct sinfo *si,
         return( COSIGN_ERROR );
     }
 
+retry:
     /*
      * read_scookie() return vals:
      * -1 system error
@@ -190,7 +191,7 @@ netcheck:
 	cosign_log( APLOG_ERR, s,
 		"mod_cosign: initial server ip info %s does not match "
 		"browser ip %s", si->si_ipaddr, ipaddr );
-	return( COSIGN_ERROR );
+	return( COSIGN_RETRY );
     }
 
     /* store local copy of scookie (service cookie) */
@@ -261,10 +262,7 @@ storecookie:
 	            "could not unlink(3) %s", tmppath ); 
 		perror( tmppath );
 	    }
-            cosign_log( APLOG_ERR, s, "mod_cosign: cosign_cookie_valid: "
-	        "could not link %s to %s", tmppath, path ); 
-	    perror( tmppath );
-	    return( COSIGN_ERROR );
+	    goto retry;
 	}
 
 	if ( unlink( tmppath ) != 0 ) {
