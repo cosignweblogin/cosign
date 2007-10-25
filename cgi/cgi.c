@@ -83,9 +83,9 @@ static struct subfile_list sl[] = {
 #define SL_ERROR	4
         { 'e', SUBF_STR, NULL },
 #define SL_RFACTOR	5
-        { 'f', SUBF_STR, NULL },
+        { 'f', SUBF_STR_ESC, NULL },
 #define SL_DFACTOR	6
-        { 'd', SUBF_STR, NULL },
+        { 'd', SUBF_STR_ESC, NULL },
         { '\0', 0, NULL },
 };
 
