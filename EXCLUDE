@@ -5,3 +5,5 @@ config.log
 config.status
 EXCLUDE
 NOTES
+./configure.ac
+./configure

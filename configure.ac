@@ -1,8 +1,8 @@
 # Process this file with autoconf to produce a configure script.
-AC_INIT(cosign,VERSION,cosign@umich.edu) 
+AC_INIT(cosign,INTERNAL,cosign@umich.edu) 
 AC_PREREQ(2.53)
 AC_COPYRIGHT([Copyright (c) 2001-2002 Regents of The University of Michigan.  All Rights Reserved.])
-AC_CONFIG_SRCDIR([version.c])
+AC_CONFIG_SRCDIR([version.c.in])
 #AC_CONFIG_HEADER([config.h])
 
 # Checks for programs.
@@ -117,10 +117,12 @@ AC_CONFIG_SUBDIRS(libsnet)
 AC_CONFIG_SUBDIRS(libcgi)
 
 AC_CONFIG_FILES([Makefile
+                 version.c
                  cgi/Makefile
-		 common/Makefile
+                 common/Makefile
                  html/Makefile
                  daemon/Makefile
+                 filters/common/cosignpaths.h
                  $FILTER_CONFIG_FILES])
 
 AC_OUTPUT

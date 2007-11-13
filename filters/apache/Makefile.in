@@ -8,53 +8,31 @@ CC=            	@CC@
 APXS=          	@APXS@
 APACHECTL=     	@APACHECTL@
 INSTALL=       	@INSTALL@
-FILTERDB=	@filterdb@
-PROXYDB=	@proxydb@
-COSIGNTICKETCACHE=	@ticketcache@
 
 
 #   additional user defines, includes and libraries
 
-INCPATH=        @CPPFLAGS@ @APXS_INCLUDE@ -I../../libsnet @GSSINC@ -I../../common/ -I../common/
+INCPATH=        @CPPFLAGS@ -I../../libsnet @GSSINC@ -I../../common/ -I../common/
 OPTOPTS=        @OPTOPTS@
-DEFS=           @TLSDEFS@ @KRBDEFS@ @GSSDEFS@ -D_PROXY_DB=\"${PROXYDB}\" -D_FILTER_DB=\"${FILTERDB}\" -D_COSIGN_TICKET_CACHE=\"${COSIGNTICKETCACHE}\"
+DEFS=           @TLSDEFS@ @KRBDEFS@ @GSSDEFS@
 LIBS=           @GSSLIBS@ @ADDLIBS@
 LDFLAGS=        @GSSLDFLAGS@ @ADDLDFLAGS@ @LDFLAGS@ ${LIBS}
 
-CFLAGS=         ${DEFS} ${OPTOPTS} @CFLAGS@ @APXS_CFLAGS@ @APXS_CFLAGS_SHLIB@ ${INCPATH}
+CFLAGS=         ${DEFS} ${INCPATH}
 
-OBJ=	mod_cosign.o \
-	connect.o cookiefs.o sparse.o \
-	argcargv.o fbase64.o \
-	mkcookie.o rate.o version.o snet.o
+SRC=	mod_cosign.c \
+	../common/connect.c ../common/cookiefs.c ../common/sparse.c \
+	../../common/argcargv.c ../../common/fbase64.c \
+	../../common/mkcookie.c ../../common/rate.c \
+	../../version.c \
+	../../libsnet/snet.c
 
 #   the default target
 all: mod_cosign.so
 
-# all the stuff that's not right here
-connect.o : ../common/connect.c
-	$(CC) -c $(CFLAGS) $(CPPFLAGS) -o $@ $<
-cookiefs.o : ../common/cookiefs.c
-	$(CC) -c $(CFLAGS) $(CPPFLAGS) -o $@ $<
-sparse.o : ../common/sparse.c
-	$(CC) -c $(CFLAGS) $(CPPFLAGS) -o $@ $<
-argcargv.o : ../../common/argcargv.c
-	$(CC) -c $(CFLAGS) $(CPPFLAGS) -o $@ $<
-fbase64.o : ../../common/fbase64.c
-	$(CC) -c $(CFLAGS) $(CPPFLAGS) -o $@ $<
-mkcookie.o : ../../common/mkcookie.c
-	$(CC) -c $(CFLAGS) $(CPPFLAGS) -o $@ $<
-rate.o : ../../common/rate.c
-	$(CC) -c $(CFLAGS) $(CPPFLAGS) -o $@ $<
-version.o : ../../version.c
-	$(CC) -c $(CFLAGS) $(CPPFLAGS) -DVERSION=\"`cat ../../VERSION`\" \
-		-o $@ $<
-snet.o : ../../libsnet/snet.c
-	$(CC) -c $(CFLAGS) $(CPPFLAGS) -o $@ $<
-
 #   compile the DSO file
-mod_cosign.so: ${OBJ}
-	$(APXS) -c ${OBJ} ${LDFLAGS}
+mod_cosign.so: ${SRC}
+	$(APXS) -c ${CFLAGS} ${LDFLAGS} ${SRC}
 
 #   install the DSO file into the Apache installation
 #   and activate it in the Apache configuration

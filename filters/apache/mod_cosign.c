@@ -30,6 +30,7 @@
 #include "sparse.h"
 #include "mkcookie.h"
 #include "cosign.h"
+#include "cosignpaths.h"
 #include "log.h"
 
 static int	set_cookie_and_redirect( request_rec *, cosign_host_config * );
