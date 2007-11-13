@@ -14,7 +14,7 @@ INSTALL=        @INSTALL@
 
 INCPATH=        @CPPFLAGS@ -I../../libsnet @GSSINC@ -I../../common/ -I../common/
 OPTOPTS=        @OPTOPTS@
-DEFS=           @TLSDEFS@ @KRBDEFS@ @GSSDEFS@
+DEFS=           -DAPXS2 @TLSDEFS@ @KRBDEFS@ @GSSDEFS@
 LIBS=           @GSSLIBS@ @ADDLIBS@
 LDFLAGS=        @GSSLDFLAGS@ @ADDLDFLAGS@ @LDFLAGS@ ${LIBS}
 
