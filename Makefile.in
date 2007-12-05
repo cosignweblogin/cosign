@@ -1,11 +1,11 @@
 CC=	@CC@
 ALL=	common libsnet libcgi cgi html daemon 
-TARGETS= cgi html daemon @FILTERS@
 FILTERS= @FILTERS@ 
+TARGETS= cgi html daemon ${FILTERS}
 CFLAGS= @CFLAGS@
 LDFLAGS= @LDFLAGS@
 
-filters:	@FILTERS@
+filters:	${FILTERS}
 all:		filters
 everything:	${ALL} filters
 
@@ -21,7 +21,7 @@ FRC:
 
 clean:
 	rm -f version.o
-	for i in ${ALL}; \
+	for i in ${ALL} ${FILTERS} ; \
 	    do (cd $$i; ${MAKE} ${MFLAGS} clean); \
 	done
 
