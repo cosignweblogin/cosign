@@ -9,7 +9,7 @@ subfile( char *filename, struct subfile_list *sl, int nocache )
 {
     FILE	*fs;
     int 	c, i, j;
-    char	nasties[] = "<>(){}[];'`\" \\";
+    char	nasties[] = "<>(){}[]'`\" \\";
 
     if ( nocache ) {
 	fputs( "Expires: Mon, 16 Apr 1973 13:10:00 GMT\n"
