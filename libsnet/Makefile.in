@@ -72,7 +72,7 @@ install:	all
 	  $(libdir)/libsnet_p.la >/dev/null 2>&1 ) ; fi
 
 clean:
-	rm -f *.o *.lo libsnet.la
+	rm -f *.o *.lo *.slo libsnet.la
 	rm -f profiled/libsnet_p.la profiled/snet.lo profiled/snet.o
 	rm -f *.bak *[Ee]rrs tags
 	rm -rf .libs profiled/.libs

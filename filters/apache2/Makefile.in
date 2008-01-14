@@ -9,6 +9,23 @@ APXS2=          @APXS2@
 APACHECTL2=     @APACHECTL2@
 INSTALL=        @INSTALL@
 
+#    The apach 2 apxs build process tends to leave a lot of junk lying around.
+APXS2JUNKFILES=	../../common/argcargv.slo ../../common/argcargv.lo \
+		../../common/mkcookie.slo ../../common/fbase64.lo \
+		../../common/fbase64.slo ../../common/rate.lo \
+		../../common/rate.slo ../../common/mkcookie.lo \
+		../../filters/common/cookiefs.lo \
+		../../filters/common/connect.lo \
+		../../filters/common/connect.slo \
+		../../filters/common/cookiefs.slo \
+		../../filters/common/sparse.lo \
+		../../filters/common/sparse.slo \
+		../../libsnet/snet.slo ../../libsnet/snet.lo \
+		../../version.slo ../../version.lo
+APXS2JUNKDIRS=	../../common/.libs ../common/.libs ../../libsnet/.libs \
+		../../.libs
+
+
 
 #   additional user defines, includes and libraries
 
@@ -33,6 +50,8 @@ all: mod_cosign.la
 #   compile the DSO file
 mod_cosign.la: ${SRC}
 	$(APXS2) -c ${CFLAGS} ${LDFLAGS} ${SRC}
+	rm -rf ${APXS2JUNKDIRS}
+	rm -f ${APXS2JUNKFILES}
 
 #   install the DSO file into the Apache installation
 #   and activate it in the Apache configuration
@@ -41,7 +60,7 @@ install: all
 
 #   cleanup
 clean:
-	rm -f *.o mod_cosign.la
+	rm -f *.o *.lo *.slo mod_cosign.la
 	rm -rf .libs/
 
 #   reload the module by installing and restarting Apache
