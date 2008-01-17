@@ -244,7 +244,7 @@ main( int argc, char *argv[] )
     int				i, j;
     char                	new_cookiebuf[ 128 ];
     char        		new_cookie[ 255 ];
-    char			*data, *ip_addr, *tmpl = NULL;
+    char			*data, *ip_addr, *tmpl = NULL, *server_name;
     char			*cookie = NULL, *method, *script, *qs;
     char			*misc = NULL, *factor = NULL, *p, *r;
     char			*require, *reqp;
@@ -298,6 +298,12 @@ main( int argc, char *argv[] )
     if (( ip_addr = getenv( "REMOTE_ADDR" )) == NULL ) {
 	sl[ SL_TITLE ].sl_data = "Error: Server Configuration";
 	sl[ SL_ERROR ].sl_data = "Unable to retrieve IP address";
+	subfile( ERROR_HTML, sl, 0 );
+	exit(0);
+    }
+    if (( server_name = getenv( "SERVER_NAME" )) == NULL ) {
+	sl[ SL_TITLE ].sl_data = "Error: Server Configuration";
+	sl[ SL_ERROR ].sl_data = "Unable to retrieve server name";
 	subfile( ERROR_HTML, sl, 0 );
 	exit(0);
     }
@@ -562,10 +568,10 @@ main( int argc, char *argv[] )
 
 	/* authentication successful, show service menu */
 	if ( server_port != 443 ) {
-	    printf( "Location: https://%s:%d%s\n\n", cosign_host,
+	    printf( "Location: https://%s:%d%s\n\n", server_name,
 		    server_port, SERVICE_MENU );
 	} else {
-	    printf( "Location: https://%s%s\n\n", cosign_host, SERVICE_MENU );
+	    printf( "Location: https://%s%s\n\n", server_name, SERVICE_MENU );
 	}
 	exit( 0 );
     }
@@ -806,10 +812,10 @@ loggedin:
     }
 
     if ( server_port != 443 ) {
-	printf( "Location: https://%s:%d%s\n\n", cosign_host,
+	printf( "Location: https://%s:%d%s\n\n", server_name,
 		server_port, SERVICE_MENU );
     } else {
-	printf( "Location: https://%s%s\n\n", cosign_host, SERVICE_MENU );
+	printf( "Location: https://%s%s\n\n", server_name, SERVICE_MENU );
     }
     exit( 0 );
 
@@ -836,9 +842,9 @@ loginscreen:
 	if ( remote_user ) {
 	    if ( server_port != 443 ) {
 		printf( "Location: https://%s:%d%s?basic",
-			cosign_host, server_port, script );
+			server_name, server_port, script );
 	    } else {
-		printf( "Location: https://%s%s?basic", cosign_host, script );
+		printf( "Location: https://%s%s?basic", server_name, script );
 	    }
 	    if (( ref != NULL ) && ( service != NULL )) {
 		printf( "&%s&%s\n\n", service, ref );
