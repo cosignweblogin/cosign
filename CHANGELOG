@@ -1,3 +1,28 @@
+2.1.0
+	common: improved configure option passing
+	cgi: escape factors (xss)
+	cgi: use SERVER_NAME env variable rather than cosign_host config
+	cgi: support SPNEGO (Simon Wilkinson)
+	cgi: try passwords against multiple legacy methods (Simon Wilkinson)
+	cgi: report killed factors to user
+	cgi: moved Friend password incorrect message handling to main loop
+	cgi: don't escape ';'
+	cgi: bug in certificate-based authN variable substitution (Petr Lampa)
+	daemon: bug in kerberos ticket path handling (Petr Lampa)
+	daemon: bug in non-replication restart code (Petr Lampa)
+	daemon: improvement to replication error case under high load
+	filter: improved apxs 2 usage
+	filter: close connection more reliably (Petr Lampa)
+	filter: detect race where multple HTTP GETs cause overlapping
+		cosign CHECKS
+	filter: return from cosign_cookie_valid() if cosign_check_cookie()
+		returns anything other than COSIGN_OK (Petr Lampa)
+	filter: improve IP checking
+
+2.0.2a
+	cgi: examine cookies for invalid character (security)
+	filter: move IP checking
+
 2.0.2
 	cgi & filters: improved validation of login & service cookies
 	cgi: better error messages
