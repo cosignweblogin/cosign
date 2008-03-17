@@ -249,7 +249,7 @@ cosign_login_krb5( struct connlist *head, char *cosignname, char *id,
     }
 
     /* need to get realm out */
-    if ( realm == NULL ) {
+    if ( realm == NULL || *realm == '\0' ) {
 	if (( kerror = krb5_get_default_realm( kcontext, &realm )) != 0 ) {
 	    sl[ SL_ERROR ].sl_data = (char *)error_message( kerror );
  	    sl[ SL_TITLE ].sl_data = "Authentication Required "

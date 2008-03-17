@@ -365,9 +365,9 @@ The following snippet defines the normal internal password authentication rules
 .nf
 
     # Anything containing an @ is a friend request
-    passwd mysql    \\(.*@.*\\)  $1 friend
+    passwd mysql    \\\\(.*@.*\\\\)  $1 friend
     # Anything else gets handed to Kerberos
-    passwd kerberos \\([^@]\\+\\) $1 MY.REALM
+    passwd kerberos \\\\([^@]+\\\\) $1 MY.REALM
 .fi
 .RE
 .sp
@@ -376,8 +376,8 @@ allows both A.EXAMPLE.COM and B.EXAMPLE.COM to be used as supported realms.
 .sp
 .RS
 .nf
-    passwd kerberos \\(.*@A.EXAMPLE.COM\\) $1 A.EXAMPLE.COM
-    passwd kerberos \\(.*@B.EXAMPLE.COM\\) $1 B.EXAMPLE.COM
+    passwd kerberos \\\\(.*@A.EXAMPLE.COM\\\\) $1 A.EXAMPLE.COM
+    passwd kerberos \\\\(.*@B.EXAMPLE.COM\\\\) $1 B.EXAMPLE.COM
 .fi
 .RE
 .sp
