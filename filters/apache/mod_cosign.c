@@ -375,9 +375,11 @@ set_cookie:
     if ( cfg->public == 1 ) {
 	return( DECLINED );
     }
+#ifdef notdef
     if ( set_cookie_and_redirect( r, cfg ) != 0 ) {
 	return( HTTP_SERVICE_UNAVAILABLE );
     }
+#endif /* notdef */
     if ( ap_some_auth_required( r )) {
 	ap_table_setn( r->notes, "cosign-redirect", "true" );
 	return( DECLINED );

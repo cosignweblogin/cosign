@@ -383,9 +383,15 @@ set_cookie:
     if ( cfg->public == 1 ) {
         return( DECLINED );
     }
+#ifdef notdef
+    /*
+     * This is probably wrong.  We should only send a Location header just
+     * before we return 300.
+     */
     if ( set_cookie_and_redirect( r, cfg ) != 0 ) {
         return( HTTP_SERVICE_UNAVAILABLE );
     }
+#endif /* notdef */
     if ( ap_some_auth_required( r )) {
         apr_table_setn( r->notes, "cosign-redirect", "true" );
         return( DECLINED );
