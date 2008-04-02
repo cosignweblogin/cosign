@@ -39,11 +39,11 @@ static struct cosigncfg 	*cfg = NULL, *new_cfg;
 
 
 static struct matchlist		defmysqlauthenticator = {
-    "mysql", "\\(.*@.*\\)", "$1", "friend", NULL,
+    "mysql", "(.+@.+)", "$1", "friend", NULL,
 };
 
 static struct matchlist		defkerberosauthenticator = {
-    "kerberos", "\\([^@]+\\)", "$1", "", NULL,
+    "kerberos", "([^@]+)", "$1", "", NULL,
 };
 
 char			*suffix = NULL;
