@@ -16,3 +16,6 @@ libcgi.a libcgi_p.a: $(OBJ)
 
 clean:
 	rm -f libcgi.a cgi.o
+
+distclean: clean
+	rm -f config.log config.status
