@@ -472,7 +472,7 @@ cosign_check_cookie( char *scookie, struct sinfo *si, cosign_host_config *cfg,
     /* use connection, then shuffle if there is a problem
      * what happens if they are all bad?
      */
-    for ( cur = &cfg->cl; *cur != NULL; cur = &(*cur)->conn_next ) {
+    for ( cur = cfg->cl; *cur != NULL; cur = &(*cur)->conn_next ) {
 	if ( (*cur)->conn_sn == NULL ) {
 	    continue;
 	}
@@ -500,7 +500,7 @@ cosign_check_cookie( char *scookie, struct sinfo *si, cosign_host_config *cfg,
     }
 
     /* all are closed or we didn't like their answer */
-    for ( cur = &cfg->cl; *cur != NULL; cur = &(*cur)->conn_next ) {
+    for ( cur = cfg->cl; *cur != NULL; cur = &(*cur)->conn_next ) {
 	if ( (*cur)->conn_sn != NULL ) {
 	    continue;
 	}
@@ -536,17 +536,17 @@ cosign_check_cookie( char *scookie, struct sinfo *si, cosign_host_config *cfg,
     return( COSIGN_ERROR );
 
 done:
-    if ( cur != &cfg->cl ) {
+    if ( cur != cfg->cl ) {
 	tmp = *cur;
 	*cur = (*cur)->conn_next;
-	tmp->conn_next = cfg->cl;
-	cfg->cl = tmp;
+	tmp->conn_next = *(cfg->cl);
+	*(cfg->cl) = tmp;
     }
     if ( rc == COSIGN_LOGGED_OUT ) {
 	return( COSIGN_RETRY );
     } else {
 	if (( first ) && ( cfg->proxy == 1 )) {
-	    if ( netretr_proxy( scookie, si, cfg->cl->conn_sn,
+	    if ( netretr_proxy( scookie, si, (*(cfg->cl))->conn_sn,
 		    cfg->proxydb, s ) != COSIGN_OK ) {
 		cosign_log( APLOG_ERR, s, "mod_cosign: choose_conn: " 
 			"can't retrieve proxy cookies" );
@@ -554,7 +554,7 @@ done:
 	}
 #ifdef KRB
 	if (( first ) && ( cfg->krbtkt == 1 )) {
-	    if ( netretr_ticket( scookie, si, cfg->cl->conn_sn, 
+	    if ( netretr_ticket( scookie, si, (*(cfg->cl))->conn_sn, 
 		    cfg->tkt_prefix, s ) != COSIGN_OK ) {
 		cosign_log( APLOG_ERR, s, "mod_cosign: choose_conn: " 
 			"can't retrieve kerberos ticket" );

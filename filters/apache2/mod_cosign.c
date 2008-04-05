@@ -650,7 +650,7 @@ set_cosign_port( cmd_parms *params, void *mconfig, const char *arg )
     portarg = strtol( arg, (char **)NULL, 10 );
     cfg->port = htons( portarg );
 
-    for ( cur = cfg->cl; cur != NULL; cur = cur->conn_next ) {
+    for ( cur = *(cfg->cl); cur != NULL; cur = cur->conn_next ) {
         if ( cfg->port == 0 ) {
             cur->conn_sin.sin_port = htons( 6663 );
         } else {
@@ -864,9 +864,18 @@ set_cosign_host( cmd_parms *params, void *mconfig, const char *arg )
 	return( err );
     }
 
+    /* This is hairy. During operation, we re-order the connection list
+     * so that the most responsive server is at the head of the list.
+     * This requires updates to the pointer to the list head from the cfg
+     * structure. However, the cfg structure gets copied around when
+     * Apache does configuration merges, so there isn't a single cfg
+     * structure in any one process. Instead, we point to a pointer
+     * to the list head. */
+    cfg->cl = (struct connlist **)
+                apr_palloc(params->pool, sizeof(struct connlist *));
     /* preserve address order as returned from DNS */
     /* actually, here we will randomize for "load balancing" */
-    cur = &cfg->cl;
+    cur = cfg->cl;
     for ( i = 0; he->h_addr_list[ i ] != NULL; i++ ) {
 	new = ( struct connlist * )
 		apr_palloc( params->pool, sizeof( struct connlist ));

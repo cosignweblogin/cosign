@@ -13,7 +13,7 @@ typedef struct {
     int                 protect;
     int                 configured;
     int			checkip;
-    struct connlist     *cl;
+    struct connlist     **cl;
     SSL_CTX		*ctx;
     char		*cert;
     char		*key;
