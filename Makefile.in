@@ -38,6 +38,7 @@ dist   : distclean
 
 distclean: clean
 	( cd libsnet ; make distclean )
+	( cd libcgi ; make distclean )
 	rm -f config.log config.status config.cache Makefile \
 	  libcgi/Makefile cgi/Makefile html/Makefile daemon/Makefile \
 	  filters/apache/Makefile filters/apache2/Makefile \
