@@ -238,7 +238,7 @@ match_factor( char *required, char *satisfied, char *suffix )
     int
 main( int argc, char *argv[] )
 {
-    int				rc, cookietime = 0, cookiecount = 0;
+    int				rc = 0, cookietime = 0, cookiecount = 0;
     int				rebasic = 0, len, server_port;
     int				reauth = 0;
     int				i, j;
