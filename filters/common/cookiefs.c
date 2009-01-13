@@ -30,8 +30,6 @@
 
 #define IDLETIME	60
 
-extern int		cosign_protocol;
-
     int
 cosign_cookie_valid( cosign_host_config *cfg, char *cookie, struct sinfo *si,
 	char *ipaddr, server_rec *s )
@@ -62,6 +60,8 @@ cosign_cookie_valid( cosign_host_config *cfg, char *cookie, struct sinfo *si,
 	perror( "cosign_cookie_valid" );
         return( COSIGN_ERROR );
     }
+
+    memset( si, 0, sizeof( struct sinfo ));
 
 retry:
     /*
@@ -96,11 +96,10 @@ retry:
 	
 	/*
 	 * check the factor list only if CosignRequireFactor is
-	 * set. a reqfc > 0 implies cosign_protocol == 2, since
-	 * there would have been an error during protocol
-	 * exchange otherwise.
+	 * set. reqfc > 0 requires protocol 2.
 	 */
-	if ( cfg->reqfc > 0 ) {
+	si->si_protocol = lsi.si_protocol;
+	if ( cfg->reqfc > 0 && si->si_protocol == 2 ) {
 	    if (( acav = acav_alloc()) == NULL ) {
 		cosign_log( APLOG_ERR, s, "mod_cosign: cookie_valid:"
 			" acav_alloc failed" );
@@ -192,7 +191,7 @@ netcheck:
 	    goto storecookie;
 	}
 
-	if ( cosign_protocol == 2 ) {
+	if ( si->si_factor == 2 ) {
 	    if ( strcmp( si->si_factor, lsi.si_factor ) != 0 ) {
 		goto storecookie;
 	    }
@@ -240,10 +239,11 @@ storecookie:
 	return( COSIGN_ERROR );
     }
 
+    fprintf( tmpfile, "v%d\n", si->si_protocol );
     fprintf( tmpfile, "i%s\n", si->si_ipaddr );
     fprintf( tmpfile, "p%s\n", si->si_user );
     fprintf( tmpfile, "r%s\n", si->si_realm );
-    if ( cosign_protocol == 2 ) {
+    if ( si->si_protocol == 2 ) {
 	fprintf( tmpfile, "f%s\n", si->si_factor );
     }
 

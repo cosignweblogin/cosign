@@ -53,6 +53,13 @@ read_scookie( char *path, struct sinfo *si, server_rec *s )
 
 	switch( line[0] ) {
 
+	case 'v':
+	    if (( si->si_protocol = strtol( p, (char **)NULL, 10 )) != 2 ) {
+		/* could be an error, could be 0. just set it to 0 anyway. */
+		si->si_protocol = 0;
+	    }
+	    break;
+
 	case 'i':
 	    strcpy( si->si_ipaddr, p );
 	    break;

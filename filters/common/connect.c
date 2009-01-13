@@ -128,6 +128,7 @@ netcheck_cookie( char *scookie, struct sinfo *si, struct connlist *conn,
     }
     strcpy( si->si_user, av[ 2 ] );
 
+    si->si_protocol = cosign_protocol;
     if ( cosign_protocol == 2 ) {
 	for ( i = 0; i < fc; i++ ) {
 	    for ( j = 3; j < ac; j++ ) {
@@ -192,7 +193,7 @@ netcheck_cookie( char *scookie, struct sinfo *si, struct connlist *conn,
 		"mod_cosign: netcheck_cookie: realm too long" );
 	return( COSIGN_ERROR );
     }
-	strcpy( si->si_realm, av[ 3 ] );
+    strcpy( si->si_realm, av[ 3 ] );
 #ifdef KRB
     *si->si_krb5tkt = '\0';
 #endif /* KRB */

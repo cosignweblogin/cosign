@@ -1,4 +1,5 @@
 struct sinfo {
+    int		si_protocol;		/* cosign protocol version */
     char	si_ipaddr[ 256 ];	/* longer than need be */
     char	si_user[ 130 ];		/* 64@64\0 */
     char	si_realm[ 256 ];	/* longer than need be */

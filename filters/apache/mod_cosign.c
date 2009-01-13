@@ -34,7 +34,6 @@
 #include "log.h"
 
 static int	set_cookie_and_redirect( request_rec *, cosign_host_config * );
-extern int	cosign_protocol;
 module 		cosign_module;
 
     static void *
@@ -348,9 +347,8 @@ cosign_auth( request_rec *r )
 	r->connection->ap_auth_type = "Cosign";
 	ap_table_set( r->subprocess_env, "COSIGN_SERVICE", cfg->service );
 	ap_table_set( r->subprocess_env, "REMOTE_REALM", si.si_realm );
-	if ( cosign_protocol == 2 ) {
-	    ap_table_set( r->subprocess_env, "COSIGN_FACTOR", si.si_factor );
-	}
+	ap_table_set( r->subprocess_env, "COSIGN_FACTOR", si.si_factor );
+
 #ifdef KRB
 	if ( cfg->krbtkt == 1 ) {
 	    ap_table_set( r->subprocess_env, "KRB5CCNAME", si.si_krb5tkt );
