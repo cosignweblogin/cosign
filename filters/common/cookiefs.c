@@ -84,7 +84,23 @@ retry:
 	    goto netcheck;
 	}
 
-	if (( cosign_protocol == 2 ) && ( cfg->reqfc > 0 )) {
+	/*
+	 * to ensure that COSIGN_FACTORS is always populated,
+	 * copy the factor list before checking to see if we
+	 * meet required factors, since acav_parse is destructive.
+	 * read_scookie zeros lsi, so if there's no factor line
+	 * in the local cookie, this strcpy just sets si->si_factor
+	 * to NULL.
+	 */
+	strcpy( si->si_factor, lsi.si_factor );
+	
+	/*
+	 * check the factor list only if CosignRequireFactor is
+	 * set. a reqfc > 0 implies cosign_protocol == 2, since
+	 * there would have been an error during protocol
+	 * exchange otherwise.
+	 */
+	if ( cfg->reqfc > 0 ) {
 	    if (( acav = acav_alloc()) == NULL ) {
 		cosign_log( APLOG_ERR, s, "mod_cosign: cookie_valid:"
 			" acav_alloc failed" );
@@ -94,6 +110,7 @@ retry:
 	    if (( ac = acav_parse( acav, lsi.si_factor, &av )) < 0 ) {
 		cosign_log( APLOG_ERR, s, "mod_cosign: cookie_valid:"
 			" acav_parse failed" );
+		acav_free( acav );
 		return( COSIGN_ERROR );
 	    }
 
@@ -108,11 +125,11 @@ retry:
 		    break;
 		}
 	    }
+	    acav_free( acav );
 	    if ( i < cfg->reqfc ) {
 		/* we broke out before all factors were satisfied */
 		goto netcheck;
 	    }
-	    strcpy( si->si_factor, lsi.si_factor );
 	}
 
 	strcpy( si->si_ipaddr, lsi.si_ipaddr );

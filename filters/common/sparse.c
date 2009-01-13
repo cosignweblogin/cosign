@@ -31,6 +31,8 @@ read_scookie( char *path, struct sinfo *si, server_rec *s )
     struct stat	st;
     char	*p, *line;
 
+    memset( si, 0, sizeof( struct sinfo ));
+
     if (( sn = snet_open( path, O_RDONLY, 0, 0 )) == NULL ) {
 	if ( errno != ENOENT ) {
 	    perror( path );
