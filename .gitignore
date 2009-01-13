@@ -1,0 +1,12 @@
+Makefile
+autom4te.cache
+configure
+config.h
+config.log
+config.status
+cgi/cosign.cgi
+cgi/logout
+daemon/cosignd
+daemon/monster
+*.a
+*.o
