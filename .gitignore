@@ -8,5 +8,12 @@ cgi/cosign.cgi
 cgi/logout
 daemon/cosignd
 daemon/monster
+filters/apache2/.libs/
+filters/common/cosignpaths.h
+libsnet/libtool
+version.c
 *.a
+*.la
+*.lo
 *.o
+*.slo
