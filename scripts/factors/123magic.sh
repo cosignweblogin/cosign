@@ -16,7 +16,7 @@ junk)
 
 error)
     echo "Woof!"
-    exit 2
+    exit 1
     ;;
 
 xyzzy)
@@ -27,6 +27,11 @@ xyzzy)
 fail)
     echo "Password incorrect."
     exit 1
+    ;;
+
+exprd)
+    echo "Expired."
+    exit 2
     ;;
 
 *)

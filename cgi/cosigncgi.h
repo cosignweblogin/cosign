@@ -20,7 +20,12 @@ struct connlist * connlist_setup( char *, unsigned short );
 #define COSIGN_RETRY            1
 #define COSIGN_LOGGED_OUT       2
 
+#define COSIGN_CGI_OK                 0
+#define COSIGN_CGI_ERROR              1
+#define COSIGN_CGI_PASSWORD_EXPIRED   2 
+
 #define LOGIN_ERROR_HTML        "login_error.html"
+#define EXPIRED_ERROR_HTML      "expired_error.html"
 #define ERROR_HTML     		"error.html"
 #define LOGIN_HTML      	"login.html"
 #define REAUTH_HTML     	"reauth.html"

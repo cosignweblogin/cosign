@@ -1,4 +1,4 @@
-TEMPLATES = error.html login.html login_error.html verify-logout.html reauth.html
+TEMPLATES = error.html expired_error.html login.html login_error.html verify-logout.html reauth.html
 HTML = cosign_base.css cosign_js.css post_error.html looping.html
 prefix=@prefix@
 exec_prefix=@exec_prefix@

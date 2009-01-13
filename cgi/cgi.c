@@ -655,25 +655,32 @@ main( int argc, char *argv[] )
 		&type, &username, &realm, &pos ) == 0 ) {
 #ifdef SQL_FRIEND
             if ( strcmp( type, "mysql" ) == 0 ) {
-	        if ( cosign_login_mysql( head, login, username, realm, 
+	        if (( rc = cosign_login_mysql( head, login, username, realm, 
 				        cl[ CL_PASSWORD ].cl_data,
-				        ip_addr, cookie, &sp ) == 0 ) {
+				        ip_addr, cookie, &sp )) == COSIGN_CGI_OK ) {
 		    goto loggedin;
 	        }
 	    } else
 # endif  /* SQL_FRIEND */
 # ifdef KRB
             if ( strcmp( type, "kerberos" ) == 0 ) {
-	        if ( cosign_login_krb5( head, login, username, realm, 
+	        if (( rc = cosign_login_krb5( head, login, username, realm, 
 				        cl[ CL_PASSWORD ].cl_data,
-				        ip_addr, cookie, &sp ) == 0 ) {
+				        ip_addr, cookie, &sp )) == COSIGN_CGI_OK ) {
 		    goto loggedin;
-	        }
+                }
 	    } else
 #endif /* KRB5 */
 	    {
+                rc = COSIGN_CGI_ERROR;
 	        fprintf( stderr, "Unknown authentication type '%s'", type );
 	    }
+        }
+
+	if ( rc == COSIGN_CGI_PASSWORD_EXPIRED ) {
+	    sl[ SL_TITLE ].sl_data = "Expired";
+            subfile( EXPIRED_ERROR_HTML, sl, 0 );
+            exit( 0 ); 
         }
 
 	sl[ SL_TITLE ].sl_data = "Authentication Required";
@@ -711,9 +718,15 @@ loggedin:
 		    " before secondary authentication.";
 	    goto loginscreen;
 	}
-	if ( execfactor( fl, cl, &msg ) != 0 ) {
-	    sl[ SL_TITLE ].sl_data = "Authentication Required";
+	if (( rc = execfactor( fl, cl, &msg )) != COSIGN_CGI_OK ) {
 	    sl[ SL_ERROR ].sl_data = msg;
+            if ( rc == COSIGN_CGI_PASSWORD_EXPIRED ) {
+	        sl[ SL_TITLE ].sl_data = "Expired";
+                subfile( EXPIRED_ERROR_HTML, sl, 0 );
+                exit( 0 );
+            } else {
+	        sl[ SL_TITLE ].sl_data = "Authentication Required";
+            }
 	    goto loginscreen;
 	}
 

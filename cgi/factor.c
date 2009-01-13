@@ -116,6 +116,9 @@ execfactor( struct factorlist *fl, struct cgi_list cl[], char **msg )
 	case 1 :
 	    *msg = prev;
 	    return( 1 );
+	case 2 :
+	    *msg = prev;
+	    return( 2 );
 	default :
 	    fprintf( stderr, "factor %s exited with %d\n", fl->fl_path,
 		    WEXITSTATUS( status ));
