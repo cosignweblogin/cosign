@@ -451,13 +451,13 @@ error1:
 #endif /* KRB */
 
     int
-teardown_conn( struct connlist *cur, server_rec *s )
+teardown_conn( struct connlist **cur, server_rec *s )
 {
 
     /* close down all children on exit */
-    for ( ; cur != NULL; cur = cur->conn_next ) {
-	if ( cur->conn_sn != NULL  ) {
-	    close_sn( cur, s );
+    for ( ; *cur != NULL; cur = &(*cur)->conn_next ) {
+	if ( (*cur)->conn_sn != NULL  ) {
+	    close_sn( *cur, s );
 	}
     }
     return( 0 );

@@ -928,10 +928,9 @@ cosign_child_cleanup( server_rec *s, pool *p )
     /* upon child exit, close all open SNETs */
     cfg = (cosign_host_config *) ap_get_module_config( s->module_config,
 	    &cosign_module );
-    if ( teardown_conn( *(cfg->cl), s ) != 0 ) {
+    if ( teardown_conn( cfg->cl, s ) != 0 ) {
 	cosign_log( APLOG_ERR, s, "mod_cosign: teardown conn err" );
     }
-    return;
 }
 
 static command_rec cosign_cmds[ ] =
