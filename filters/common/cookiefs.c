@@ -191,7 +191,7 @@ netcheck:
 	    goto storecookie;
 	}
 
-	if ( si->si_factor == 2 ) {
+	if ( si->si_protocol == 2 ) {
 	    if ( strcmp( si->si_factor, lsi.si_factor ) != 0 ) {
 		goto storecookie;
 	    }
