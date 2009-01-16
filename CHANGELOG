@@ -1,9 +1,12 @@
 2.1.0
 	common: improved configure option passing
+	common: added --enable-universal-binaries
 	cgi: escape factors (xss)
 	cgi: use SERVER_NAME env variable rather than cosign_host config
 	cgi: support SPNEGO (Simon Wilkinson)
 	cgi: try passwords against multiple legacy methods (Simon Wilkinson)
+	cgi: default authenticator regexes use extended format
+        cgi: report expired passwords to user (Kris Steinhoff)
 	cgi: report killed factors to user
 	cgi: moved Friend password incorrect message handling to main loop
 	cgi: don't escape ';'
@@ -15,6 +18,9 @@
 	filter: close connection more reliably (Petr Lampa)
 	filter: detect race where multple HTTP GETs cause overlapping
 		cosign CHECKS
+	filter: fix connection reordering bug (Simon Wilkinson)
+        filter: fix setting COSIGN_FACTORS from cached cookie
+        filter: store server protocol version in cached cookie
 	filter: return from cosign_cookie_valid() if cosign_check_cookie()
 		returns anything other than COSIGN_OK (Petr Lampa)
 	filter: improve IP checking
