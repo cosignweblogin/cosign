@@ -10,12 +10,15 @@ AC_PROG_AWK
 AC_PROG_CC
 AC_PROG_INSTALL
 
+AC_CANONICAL_SYSTEM
+
 # Checks for libraries.
 if test \! x_$with_ssl = x_no; then
     AC_CHECK_LIB([ssl], [SSL_accept], , [CHECK_SSL])
     AC_CHECK_LIB([crypto], [SSLeay_version], , [CHECK_SSL])
 fi
 CHECK_SASL
+CHECK_UNIVERSAL_BINARIES
 
 # Checks for header files.
 #AC_HEADER_STDC

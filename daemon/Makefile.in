@@ -22,7 +22,7 @@ FRIEND_MYSQL_PASSWD = @frienddbpasswd@
 COSIGNSYSLOG=LOG_DAEMON
 
 INCPATH=        @CPPFLAGS@ -I../common -I../libsnet 
-OPTOPTS=        @OPTOPTS@
+OPTOPTS=        @OPTOPTS@ @UNIVERSAL_OPTOPTS@
 CC=             @CC@
 DEFS=           @TLSDEFS@ -D_COSIGN_TICKET_CACHE=\"${COSIGNTICKETCACHE}\"
 LIBS=           -lsnet @LIBS@

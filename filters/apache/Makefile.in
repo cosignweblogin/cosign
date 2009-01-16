@@ -16,9 +16,9 @@ INCPATH=        @CPPFLAGS@ -I../../libsnet @GSSINC@ -I../../common/ -I../common/
 OPTOPTS=        @OPTOPTS@
 DEFS=           @TLSDEFS@ @KRBDEFS@ @GSSDEFS@
 LIBS=           @GSSLIBS@ @ADDLIBS@
-LDFLAGS=        @GSSLDFLAGS@ @ADDLDFLAGS@ @LDFLAGS@ ${LIBS}
+LDFLAGS=        @GSSLDFLAGS@ @ADDLDFLAGS@ @LDFLAGS@ @FILTER_LINKER_OPTS@ ${LIBS}
 
-CFLAGS=         ${DEFS} ${INCPATH}
+CFLAGS=         ${DEFS} ${INCPATH} @FILTER_COMPILER_OPTS@
 
 SRC=	mod_cosign.c \
 	../common/connect.c ../common/cookiefs.c ../common/sparse.c \

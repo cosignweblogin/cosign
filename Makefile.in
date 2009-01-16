@@ -2,7 +2,8 @@ CC=	@CC@
 ALL=	common libsnet libcgi cgi html daemon 
 FILTERS= @FILTERS@ 
 TARGETS= cgi html daemon ${FILTERS}
-CFLAGS= @CFLAGS@
+OPTOPTS= @OPTOPTS@ @UNIVERSAL_OPTOPTS@
+CFLAGS=	${OPTOPTS} @CFLAGS@
 LDFLAGS= @LDFLAGS@
 
 filters:	${FILTERS}

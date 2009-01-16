@@ -18,7 +18,7 @@ FRIEND_MYSQL_LOGIN = @frienddblogin@
 FRIEND_MYSQL_PASSWD = @frienddbpasswd@
 
 INCPATH=     @CPPFLAGS@ @KINC@ @MYSQLINC@ -I../common -I../libsnet -I../libcgi
-OPTOPTS=     @OPTOPTS@
+OPTOPTS=     @OPTOPTS@ @UNIVERSAL_OPTOPTS@
 CC=          @CC@
 DEFS=        @TLSDEFS@ @SQLDEFS@ @KRBDEFS@
 LIBS=        -lsnet -lcgi @LIBS@ @KLIBS@ @MYSQLLIBS@
@@ -56,7 +56,7 @@ cgi.o:	cgi.c
 	-c cgi.c
 
 cosign.cgi: cgi.o login.o factor.o $(OBJ)
-	${CC} -o cosign.cgi cgi.o login.o factor.o $(OBJ) $(LDFLAGS)
+	${CC} ${CFLAGS} -o cosign.cgi cgi.o login.o factor.o $(OBJ) $(LDFLAGS)
 
 logout.o:	logout.c
 	${CC} ${CFLAGS} \
@@ -70,7 +70,7 @@ logout.o:	logout.c
 	-c logout.c
 
 logout: logout.o $(OBJ)
-	${CC} -o logout logout.o $(OBJ) $(LDFLAGS)
+	${CC} ${CFLAGS} -o logout logout.o $(OBJ) $(LDFLAGS)
 
 clean:
 	/bin/rm -rf *.o ${TARGETS}

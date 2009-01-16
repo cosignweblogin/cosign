@@ -1,6 +1,7 @@
 CC= @CC@
 DEFS= @debug@
-CFLAGS= -g $(DEFS) @CFLAGS@
+OPTOPTS= @OPTOPTS@
+CFLAGS= -g $(DEFS) ${OPTOPTS} @CFLAGS@
 LDFLAGS= @LDFLAGS@
 SRC= cgi.c
 OBJ= cgi.o

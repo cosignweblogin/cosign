@@ -3,6 +3,7 @@
 INCPATH=        @CPPFLAGS@ -I../libsnet
 CC=             @CC@
 
+OPTOPTS=	@OPTOPTS@ @UNIVERSAL_OPTOPTS@
 CFLAGS=         ${DEFS} ${OPTOPTS} @CFLAGS@ ${INCPATH}
 
 ################ Nothing below should need editing ###################
