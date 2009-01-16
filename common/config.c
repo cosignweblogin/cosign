@@ -232,8 +232,6 @@ matchlist_process(struct matchlist *ml, char *userstring, char **l, char **r )
 x509_translate( char *subject, char *issuer, char **l, char **r )
 {
     struct matchlist	*cur = NULL;
-    int			rc;
-    regmatch_t		matches[ 3 ];
 
     for ( cur = certlist; cur != NULL; cur = cur->ml_next ) {
 	if ( strcmp( cur->ml_key, issuer ) != 0 ) {
@@ -267,9 +265,6 @@ negotiate_translate( char *remote_user, char **l, char **r )
 pick_authenticator( char *login, char **type, char **l, char **r,
 	struct matchlist **pos )
 {
-    struct matchlist	*cur = NULL;
-    int			rc;
-
     if ( authenticatorlist == NULL ) {
 	authenticatorlist = &defmysqlauthenticator;
 	authenticatorlist->ml_next = &defkerberosauthenticator;

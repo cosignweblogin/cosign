@@ -80,6 +80,8 @@ struct servicelist	*service_find( char * );
 int		cosign_config( char * );
 char		*cosign_config_get( char * );
 char		**cosign_config_get_all( char *, int * );
+int		matchlist_process( struct matchlist *, char *,
+			char **, char **);
 int 		x509_translate( char *, char *, char **, char ** );
 int		negotiate_translate( char *, char **, char ** );
 int		pick_authenticator( char *,char **, char **, char **,
