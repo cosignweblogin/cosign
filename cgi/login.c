@@ -98,7 +98,7 @@ lcgi_configure()
     int
 cosign_login_mysql( struct connlist *head, char *cosignname, char *id, 
 	char *realm, char *passwd, char *ip_addr, char *cookie, 
-	struct subparams *sp )
+	struct subparams *sp, char **msg )
 {
     MYSQL_RES		*res;
     MYSQL_ROW		row;
@@ -216,7 +216,7 @@ cosign_login_mysql( struct connlist *head, char *cosignname, char *id,
     int
 cosign_login_krb5( struct connlist *head, char *cosignname, char *id, 
 	char *realm, char *passwd, char *ip_addr, char *cookie, 
-	struct subparams *sp )
+	struct subparams *sp, char **msg )
 {
     krb5_error_code             kerror = 0;
     krb5_context                kcontext;
@@ -295,6 +295,7 @@ cosign_login_krb5( struct connlist *head, char *cosignname, char *id,
 		( kerror == KRB5KDC_ERR_C_PRINCIPAL_UNKNOWN )) {
 	    return( COSIGN_CGI_ERROR );	/* draw login or reauth page */
         } else if ( kerror == KRB5KDC_ERR_KEY_EXP ) {
+	    *msg = (char *)error_message( kerror );
             return( COSIGN_CGI_PASSWORD_EXPIRED );
 	} else {
 	    sl[ SL_ERROR ].sl_data = (char *)error_message( kerror );

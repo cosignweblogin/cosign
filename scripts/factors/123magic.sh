@@ -30,7 +30,7 @@ fail)
     ;;
 
 exprd)
-    echo "Expired."
+    echo "Password expired."
     exit 2
     ;;
 

@@ -656,8 +656,8 @@ main( int argc, char *argv[] )
 #ifdef SQL_FRIEND
             if ( strcmp( type, "mysql" ) == 0 ) {
 	        if (( rc = cosign_login_mysql( head, login, username, realm, 
-				        cl[ CL_PASSWORD ].cl_data,
-				        ip_addr, cookie, &sp )) == COSIGN_CGI_OK ) {
+					cl[ CL_PASSWORD ].cl_data, ip_addr,
+					cookie, &sp, &msg )) == COSIGN_CGI_OK) {
 		    goto loggedin;
 	        }
 	    } else
@@ -665,8 +665,8 @@ main( int argc, char *argv[] )
 # ifdef KRB
             if ( strcmp( type, "kerberos" ) == 0 ) {
 	        if (( rc = cosign_login_krb5( head, login, username, realm, 
-				        cl[ CL_PASSWORD ].cl_data,
-				        ip_addr, cookie, &sp )) == COSIGN_CGI_OK ) {
+				        cl[ CL_PASSWORD ].cl_data, ip_addr,
+					cookie, &sp, &msg )) == COSIGN_CGI_OK) {
 		    goto loggedin;
                 }
 	    } else
@@ -678,14 +678,19 @@ main( int argc, char *argv[] )
         }
 
 	if ( rc == COSIGN_CGI_PASSWORD_EXPIRED ) {
-	    sl[ SL_TITLE ].sl_data = "Expired";
+	    sl[ SL_TITLE ].sl_data = "Password Expired";
+	    sl[ SL_ERROR ].sl_data = msg;
             subfile( EXPIRED_ERROR_HTML, sl, 0 );
             exit( 0 ); 
         }
 
 	sl[ SL_TITLE ].sl_data = "Authentication Required";
-	sl[ SL_ERROR ].sl_data = "Password or Account Name incorrect. "
-		"Is [caps lock] on?";
+	if ( msg != NULL && strlen( msg ) > 0 ) {
+	    sl[ SL_ERROR ].sl_data = msg;
+	} else {
+	    sl[ SL_ERROR ].sl_data = "Password or Account Name incorrect. "
+		    "Is [caps lock] on?";
+	}
 	goto loginscreen;
 
 loggedin:
@@ -721,7 +726,7 @@ loggedin:
 	if (( rc = execfactor( fl, cl, &msg )) != COSIGN_CGI_OK ) {
 	    sl[ SL_ERROR ].sl_data = msg;
             if ( rc == COSIGN_CGI_PASSWORD_EXPIRED ) {
-	        sl[ SL_TITLE ].sl_data = "Expired";
+	        sl[ SL_TITLE ].sl_data = "Password Expired";
                 subfile( EXPIRED_ERROR_HTML, sl, 0 );
                 exit( 0 );
             } else {
