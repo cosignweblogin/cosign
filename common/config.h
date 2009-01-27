@@ -2,22 +2,29 @@
  * Copyright (c) 2004 Regents of The University of Michigan.
  * All Rights Reserved.  See LICENSE.
  */
+#include <regex.h>	/* needed for regmatch parameters below. */
 
 #define NOTAUTH 0 
 #define CGI	1
 #define SERVICE	2
 #define DAEMON	3
 
-#define AL_TICKET	(1<<0)
-#define AL_PROXY	(1<<1)
+#define SL_TICKET	(1<<0)
+#define SL_REAUTH	(1<<1)
+#define SL_SCHEME_V2	(1<<2)
 
-#define SL_REAUTH	(1<<0)
+#define AL_PROXY	(1<<0)
+
+#define COSIGN_HANDLER_PATH	"/cosign/valid"
 
 #define COSIGN_MAXFACTORS	5
 struct servicelist {
     char		*sl_cookie;
+    char		*sl_cookiesub;
+    char		*sl_wkurl;
     int			sl_flag;
     char		*sl_factors[ COSIGN_MAXFACTORS ];
+    struct authlist	*sl_auth;
     struct servicelist	*sl_next;
 };
 
@@ -75,14 +82,17 @@ struct matchlist {
 #endif
 
 int		cosign_ssl( char *, char *, char *, SSL_CTX ** );
-struct authlist	*authlist_find( char * );
-struct servicelist	*service_find( char * );
+struct authlist	*authlist_find( char *, regmatch_t [], int );
+struct servicelist	*service_find( char *, regmatch_t [], int );
 int		cosign_config( char * );
 char		*cosign_config_get( char * );
 char		**cosign_config_get_all( char *, int * );
+int		match_substitute( char *, int, char *, int,
+			regmatch_t [], char * );
 int		matchlist_process( struct matchlist *, char *,
-			char **, char **);
+			char **, char ** );
 int 		x509_translate( char *, char *, char **, char ** );
 int		negotiate_translate( char *, char **, char ** );
 int		pick_authenticator( char *,char **, char **, char **,
 			struct matchlist ** );
+

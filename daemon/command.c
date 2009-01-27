@@ -14,6 +14,7 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <netdb.h>
+#include <regex.h>
 #include <string.h>
 #include <syslog.h>
 #include <signal.h>
@@ -33,6 +34,7 @@
 #include "mkcookie.h"
 #include "rate.h"
 #include "argcargv.h"
+#include "wildcard.h"
 
 #ifndef MIN
 #define MIN(a,b)        ((a)<(b)?(a):(b))
@@ -60,7 +62,7 @@ static int	f_daemon( SNET *, int, char *[], SNET * );
 static int	f_starttls( SNET *, int, char *[], SNET * );
 
 static int	do_register( char *, char *, char * );
-static int	retr_ticket( SNET *, char * );
+static int	retr_ticket( SNET *, struct servicelist *, char * );
 static int	retr_proxy( SNET *, char *, SNET * );
 
 struct command {
@@ -105,6 +107,7 @@ struct rate	checkpass = { 0 };
 struct rate	checkfail = { 0 };
 struct rate	checkunknown = { 0 };
 
+char	*remote_cn = NULL;
 int	replicated = 0; /* we are not talking to ourselves */
 int	protocol = 0; 
 int	ncommands = sizeof( unauth_commands ) / sizeof(unauth_commands[ 0 ] );
@@ -178,10 +181,16 @@ f_starttls( SNET *sn, int ac, char *av[], SNET *pushersn )
     X509_NAME_get_text_by_NID( X509_get_subject_name( peer ),
 		NID_commonName, buf, sizeof( buf ));
     X509_free( peer );
-    if (( al = authlist_find( buf )) == NULL ) {
+    if (( al = authlist_find( buf, NULL, 0 )) == NULL ) {
 	syslog( LOG_ERR, "f_starttls: No access for %s", buf );
 	snet_writef( sn, "%d No access for %s\r\n", 401, buf );
 	exit( 1 );
+    }
+
+    /* store CN for use with CHECK and RETR */
+    if (( remote_cn = strdup( buf )) == NULL ) {
+	syslog( LOG_ERR, "f_starttls: strdup %s: %m", buf );
+	return( -1 );
     }
 
     syslog( LOG_INFO, "STARTTLS %s %d %s",
@@ -862,6 +871,76 @@ f_register( SNET *sn, int ac, char *av[], SNET *pushersn )
     return( 0 );
 }
 
+    static struct servicelist *
+service_valid( char *service )
+{
+    struct servicelist	*sl;
+    regex_t		preg;
+    regmatch_t		svm[ 2 ];
+    char		buf[ 1024 ];
+    char		*p;
+    int			rc;
+
+    /* limit access to CNs with matching cookies */
+    if (( p = strchr( service, '=' )) == NULL ) {
+	syslog( LOG_ERR, "service_valid: %s missing \"=\"", service );
+	return( NULL );
+    }
+    *p = '\0';
+
+    if (( sl = service_find( service, svm, 2 )) == NULL ) {
+	syslog( LOG_ERR, "service_valid: no matching service for %s", service );
+	return( NULL );
+    }
+
+    /* XXX cosign3 - save compiled regex in sl->sl_auth? */
+    if (( rc = regcomp( &preg, sl->sl_auth->al_hostname, REG_EXTENDED)) != 0 ) {
+	regerror( rc, &preg, buf, sizeof( buf ));
+	syslog( LOG_ERR, "service_valid: regcomp %s: %s",
+		sl->sl_auth->al_hostname, buf );
+	return( NULL );
+    }
+    if (( rc = regexec( &preg, remote_cn, 2, svm, 0 )) != 0 ) {
+	if ( rc == REG_NOMATCH ) {
+	    syslog( LOG_ERR, "service_valid: CN %s not allowed "
+			"access to cookie %s (no match)", remote_cn, service );
+	} else {
+	    regerror( rc, &preg, buf, sizeof( buf ));
+	    syslog( LOG_ERR, "service_valid: regexec: %s\n", buf );
+	}
+
+	sl = NULL;
+	goto service_valid_done;
+    }
+
+    /*
+     * if there's a custom cookie substitution pattern, use it.
+     * otherwise, the service_find call + the regexec above
+     * verifies that the CN has access to the cookie.
+     */
+    if ( sl->sl_cookiesub != NULL ) {
+	if ( match_substitute( sl->sl_cookiesub, sizeof( buf ), buf,
+		2, svm, remote_cn ) != 0 ) {
+	    syslog( LOG_ERR, "service_find: match_substitute failed" );
+	    sl = NULL;
+	    goto service_valid_done;
+	}
+
+	if ( strcmp( service, buf ) != 0 ) {
+	    syslog( LOG_ERR, "service_valid: CN %s not allowed access "
+			"to cookie %s (%s != %s)\n", remote_cn, service,
+			service, buf );
+	    sl = NULL;
+	}
+    }
+
+    *p = '=';
+
+service_valid_done:
+    regfree( &preg );
+    return( sl );
+}
+
     int
 f_check( SNET *sn, int ac, char *av[], SNET *pushersn )
 {
@@ -902,6 +981,11 @@ f_check( SNET *sn, int ac, char *av[], SNET *pushersn )
     }
 
     if ( strncmp( av[ 1 ], "cosign-", 7 ) == 0 ) {
+	if ( service_valid( av[ 1 ] ) == NULL ) {
+	    snet_writef( sn, "%d CHECK: Invalid cookie\r\n", 534 );
+	    return( 1 );
+	}
+
 	status = 231;
 	if ( service_to_login( path, login ) != 0 ) {
 	    if (( rate = rate_tick( &checkunknown )) != 0.0 ) {
@@ -997,6 +1081,7 @@ f_check( SNET *sn, int ac, char *av[], SNET *pushersn )
     int
 f_retr( SNET *sn, int ac, char *av[], SNET *pushersn )
 {
+    struct servicelist	*sl;
     struct cinfo        ci;
     struct timeval      tv;
     char		lpath[ MAXPATHLEN ], spath[ MAXPATHLEN ];
@@ -1012,6 +1097,11 @@ f_retr( SNET *sn, int ac, char *av[], SNET *pushersn )
     if ( ac != 3 ) {
 	syslog( LOG_ERR, "f_retr: %s Wrong number of args.", al->al_hostname );
 	snet_writef( sn, "%d RETR: Wrong number of args.\r\n", 540 );
+	return( 1 );
+    }
+
+    if (( sl = service_valid( av[ 1 ] )) == NULL ) {
+	snet_writef( sn, "%d RETR: Invalid cookie\r\n", 545 );
 	return( 1 );
     }
 
@@ -1062,7 +1152,7 @@ f_retr( SNET *sn, int ac, char *av[], SNET *pushersn )
     }
 
     if ( strcmp( av[ 2 ], "tgt") == 0 ) {
-	return( retr_ticket( sn, ci.ci_krbtkt ));
+	return( retr_ticket( sn, sl, ci.ci_krbtkt ));
     } else if ( strcmp( av[ 2 ], "cookies") == 0 ) {
 	return( retr_proxy( sn, login, pushersn ));
     }
@@ -1128,7 +1218,7 @@ retr_proxy( SNET *sn, char *login, SNET *pushersn )
 }
 
     static int
-retr_ticket( SNET *sn, char *krbpath )
+retr_ticket( SNET *sn, struct servicelist *sl, char *krbpath )
 {
     struct stat		st;
     int			fd;
@@ -1142,10 +1232,11 @@ retr_ticket( SNET *sn, char *krbpath )
      * S: .
      */
 
-    if (( al->al_flag & AL_TICKET ) == 0 ) {
-	syslog( LOG_ERR, "%s not allowed to retrieve tkts", al->al_hostname );
+    if (( sl->sl_flag & SL_TICKET ) == 0 ) {
+	syslog( LOG_ERR, "%s not allowed to retrieve tkts",
+		sl->sl_auth->al_hostname );
 	snet_writef( sn, "%d RETR: %s not allowed to retrieve tkts.\r\n",
-		441, al->al_hostname );
+		441, sl->sl_auth->al_hostname );
 	return( 1 );
     }
 
@@ -1225,7 +1316,7 @@ command( int fd, SNET *pushersn )
     if ( tlsopt ) {
 	commands = auth_commands;
 	ncommands = sizeof( auth_commands ) / sizeof( auth_commands[ 0 ] );
-	if (( al = authlist_find( "NOTLS" )) == NULL ) {
+	if (( al = authlist_find( "NOTLS", NULL, 0 )) == NULL ) {
 	    syslog( LOG_ERR, "No debugging access" );
 	    snet_writef( snet, "%d No NOTLS access\r\n", 508 );
 	    exit( 1 );

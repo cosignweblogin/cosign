@@ -46,6 +46,7 @@ int		krbtkts = 0;
 SSL_CTX 	*ctx = NULL;
 
 char			*new_factors[ COSIGN_MAXFACTORS ];
+char			*script;
 struct userinfo		ui;
 struct subparams	sp;
 
@@ -235,17 +236,35 @@ match_factor( char *required, char *satisfied, char *suffix )
     return( 0 );
 }
 
+    static int
+mkscookie( char *service_name, char *new_scookie, int len )
+{
+    char			tmp[ 128 ];
+
+    if ( mkcookie( sizeof( tmp ), tmp ) != 0 ) {
+	fprintf( stderr, "%s: mkscookie failed.\n", script );
+	return( -1 );
+    }
+    if ( snprintf( new_scookie, len, "%s=%s", service_name, tmp ) >= len ) {
+	fprintf( stderr, "%s: %s=%s: too long\n", script, service_name, tmp );
+	return( -1 );
+    }
+
+    return( 0 );
+}
+
     int
 main( int argc, char *argv[] )
 {
     int				rc = 0, cookietime = 0, cookiecount = 0;
     int				rebasic = 0, len, server_port;
-    int				reauth = 0;
+    int				reauth = 0, scheme = 2;
     int				i, j;
     char                	new_cookiebuf[ 128 ];
     char        		new_cookie[ 255 ];
+    char			new_scookie[ 255 ];
     char			*data, *ip_addr, *tmpl = NULL, *server_name;
-    char			*cookie = NULL, *method, *script, *qs;
+    char			*cookie = NULL, *method, *qs;
     char			*misc = NULL, *factor = NULL, *p, *r;
     char			*require, *reqp;
     char			*ref = NULL, *service = NULL, *login = NULL;
@@ -259,6 +278,9 @@ main( int argc, char *argv[] )
     struct factorlist		*fl;
     struct timeval		tv;
     struct connlist		*head;
+    char			matchbuf[ 1024 ];
+    regmatch_t			matches[ 2 ];
+    int				nmatch = 2;
     CGIHANDLE			*cgi;
 
     if ( argc == 2 ) {
@@ -488,23 +510,50 @@ main( int argc, char *argv[] )
 	    exit( 0 );
 	}
 
-	if ( !rebasic ) {
 	    if (( p = strchr( service, '=' )) == NULL ) {
-		sl[ SL_TITLE ].sl_data = "Error: Unrecognized Service";
-		sl[ SL_ERROR ].sl_data = "Malformed service in query string.";
+	    scheme = 3;
+	    scookie = service_find( service, matches, nmatch );
+	} else {
+	    /* legacy cosign scheme */
+	    *p = '\0';
+	    scookie = service_find( service, matches, nmatch );
+	    *p = '=';
+	}
+	if ( scookie == NULL ) {
+	    fprintf( stderr, "no matching service for %s\n", service );
+	    sl[ SL_TITLE ].sl_data = "Error: Unknown service";
+	    sl[ SL_ERROR ].sl_data = "We were unable to locate a "
+		    "service matching the one provided.";
 		subfile( ERROR_HTML, sl, 0 );
 		exit( 0 );
 	    }
-	    *p = '\0';
-	    scookie = service_find( service );
-	    *p = '=';
-	    if ( scookie != NULL ) {
-		if ( scookie->sl_flag & SL_REAUTH ) {
-		    if ( cosign_check( head, cookie, &ui ) != 0 ) {
-			goto loginscreen;
-		    }
+
+	if ( match_substitute( scookie->sl_wkurl, sizeof( matchbuf ),
+		matchbuf, nmatch, matches, service ) != 0 ) {
+	    fprintf( stderr, "regex substitution failed: %s into %s\n",
+		service, scookie->sl_wkurl );
+	    sl[ SL_TITLE ].sl_data = "Error: Unknown service";
+	    sl[ SL_ERROR ].sl_data = "We were unable to locate a "
+		    "service matching the one provided.";
+	    subfile( ERROR_HTML, sl, 0 );
+	    exit( 0 );
+	}
+
+	if ( scheme == 2 && !( scookie->sl_flag & SL_SCHEME_V2 )) {
+	    fprintf( stderr, "requested v2 for v3 service %s\n", service );
+	    sl[ SL_TITLE ].sl_data = "Error: Unknown service";
+	    sl[ SL_ERROR ].sl_data = "We were unable to locate a "
+		    "service matching the one provided.";
+	    subfile( ERROR_HTML, sl, 0 );
+	    exit( 0 );
+	}
+
+	if ( !rebasic ) {
+	    if ( scookie->sl_flag & SL_REAUTH ) {
+		if ( cosign_check( head, cookie, &ui ) != 0 ) {
 		    goto loginscreen;
 		}
+		goto loginscreen;
 	    }
 	}
 
@@ -536,6 +585,20 @@ main( int argc, char *argv[] )
 	    }
 	}
 
+	if ( scheme == 3 ) {
+	    /* cosign3 scheme, must generate new service cookie */
+	    if ( mkscookie( service, new_scookie,
+			    sizeof( new_scookie )) != 0 ) {
+		fprintf( stderr, "%s: mkscookie failed\n", script );
+		sl[ SL_TITLE ].sl_data = "Error: Make Service Cookie Failed";
+		sl[ SL_ERROR ].sl_data = "We were unable to create a service "
+		    "cookie. Please try again later.";
+		subfile( ERROR_HTML, sl, 0 );
+		exit( 0 );
+	    }
+	    service = new_scookie;
+	}
+
 	if (( rc = cosign_register( head, cookie, ip_addr, service )) < 0 ) {
 	    fprintf( stderr, "%s: cosign_register failed\n", script );
 	    sl[ SL_TITLE ].sl_data = "Error: Register Failed";
@@ -547,7 +610,11 @@ main( int argc, char *argv[] )
 
 	loop_checker( cookietime, cookiecount, cookie );
 
-	printf( "Location: %s\n\n", ref );
+	if ( scheme == 3 ) {
+	    printf( "Location: %s?%s&%s\n\n", matchbuf, service, ref );
+	} else {
+	    printf( "Location: %s\n\n", ref );
+	}
 	exit( 0 );
     }
 
@@ -776,40 +843,80 @@ loggedin:
     }
 
     if ( service ) {
+	if (( p = strchr( service, '=' )) == NULL ) {
+	    scheme = 3;
+	    scookie = service_find( service, matches, nmatch );
+	} else {
+	    /* legacy cosign scheme */
+	    *p = '\0';
+	    scookie = service_find( service, matches, nmatch );
+	    *p = '=';
+	}
+	if ( scookie == NULL ) {
+	    fprintf( stderr, "no matching service for %s\n", service );
+	    sl[ SL_TITLE ].sl_data = "Error: Unknown service";
+	    sl[ SL_ERROR ].sl_data = "We were unable to locate a "
+		    "service matching the one provided.";
+		subfile( ERROR_HTML, sl, 0 );
+		exit( 0 );
+	    }
+
+	if ( match_substitute( scookie->sl_wkurl, sizeof( matchbuf ),
+		matchbuf, nmatch, matches, service ) != 0 ) {
+	    fprintf( stderr, "regex substitution failed: %s into %s\n",
+		service, scookie->sl_wkurl );
+	    sl[ SL_TITLE ].sl_data = "Error: Unknown service";
+	    sl[ SL_ERROR ].sl_data = "We were unable to locate a "
+		    "service matching the one provided.";
+	    subfile( ERROR_HTML, sl, 0 );
+	    exit( 0 );
+	}
+
+	if ( scheme == 2 && !( scookie->sl_flag & SL_SCHEME_V2 )) {
+	    fprintf( stderr, "requested v2 for v3 service %s\n", service );
+	    sl[ SL_TITLE ].sl_data = "Error: Unknown service";
+	    sl[ SL_ERROR ].sl_data = "We were unable to locate a "
+		    "service matching the one provided.";
+	    subfile( ERROR_HTML, sl, 0 );
+	    exit( 0 );
+	}
 
 	/*
 	 * If the service requires reauth, verify that all reauth
 	 * required factors have been just satisfied.
 	 */
-	if (( p = strchr( service, '=' )) == NULL ) {
-	    sl[ SL_TITLE ].sl_data = "Error: Unrecognized Service";
-	    sl[ SL_ERROR ].sl_data = "Malformed service in query string.";
-	    subfile( ERROR_HTML, sl, 0 );
-	    exit( 0 );
-	}
-	*p = '\0';
-	scookie = service_find( service );
-	*p = '=';
-	if ( scookie != NULL ) {
-	    if ( scookie->sl_flag & SL_REAUTH ) {
-		for ( i = 0; scookie->sl_factors[ i ] != NULL; i++ ) {
-		    for ( j = 0; new_factors[ j ] != NULL; j++ ) {
-			if ( match_factor( scookie->sl_factors[ i ],
-				new_factors[ j ], suffix )) {
-			    break;
-			}
+	if ( scookie->sl_flag & SL_REAUTH ) {
+	    for ( i = 0; scookie->sl_factors[ i ] != NULL; i++ ) {
+		for ( j = 0; new_factors[ j ] != NULL; j++ ) {
+		    if ( match_factor( scookie->sl_factors[ i ],
+			    new_factors[ j ], suffix )) {
+			break;
 		    }
-		    if ( new_factors[ j ] == NULL ) {
-			sl[ SL_ERROR ].sl_data = "Please complete"
-				" all required fields to re-authenticate.";
-			goto loginscreen;
-		    }
+		}
+		if ( new_factors[ j ] == NULL ) {
+		    sl[ SL_ERROR ].sl_data = "Please complete"
+			    " all required fields to re-authenticate.";
+		    goto loginscreen;
 		}
 	    }
 	}
 
 	if ( strcmp( ui.ui_ipaddr, ip_addr ) != 0 ) {
 	    goto loginscreen;
+	}
+
+	if ( scheme == 3 ) {
+	    /* cosign3 scheme, must generate new service cookie */
+	    if ( mkscookie( service, new_scookie,
+			    sizeof( new_scookie )) != 0 ) {
+		fprintf( stderr, "%s: mkscookie failed\n", script );
+		sl[ SL_TITLE ].sl_data = "Error: Make Service Cookie Failed";
+		sl[ SL_ERROR ].sl_data = "We were unable to create a service "
+		    "cookie. Please try again later.";
+		subfile( ERROR_HTML, sl, 0 );
+		exit( 0 );
+	    }
+	    service = new_scookie;
 	}
 
         if (( rc = cosign_register( head, cookie, ip_addr, service )) < 0 ) {
@@ -825,7 +932,11 @@ loggedin:
     loop_checker( cookietime, cookiecount, cookie );
 
     if (( ref != NULL ) && ( ref = strstr( ref, "http" )) != NULL ) {
-	printf( "Location: %s\n\n", ref );
+	if ( scheme == 3 ) {
+	    printf( "Location: %s?%s&%s\n\n", matchbuf, service, ref );
+	} else {
+	    printf( "Location: %s\n\n", ref );
+	}
 	exit( 0 );
     }
 
@@ -876,14 +987,14 @@ loginscreen:
 	sl[ SL_LOGIN ].sl_data = ui.ui_login;
 	if (( scookie == NULL ) && ( service != NULL )) {
 	    if (( p = strchr( service, '=' )) == NULL ) {
-		sl[ SL_TITLE ].sl_data = "Error: Unrecognized Service";
-		sl[ SL_ERROR ].sl_data = "Malformed service in query string.";
-		subfile( ERROR_HTML, sl, 0 );
-		exit( 0 );
-	    }
+		scheme = 3;
+		scookie = service_find( service, matches, nmatch );
+	    } else {
+		/* legacy cosign scheme */
 	    *p = '\0';
-	    scookie = service_find( service );
+		scookie = service_find( service, matches, nmatch );
 	    *p = '=';
+	}
 	}
 
 	if (( scookie != NULL ) && ( scookie->sl_flag & SL_REAUTH )) {

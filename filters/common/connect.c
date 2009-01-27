@@ -421,6 +421,8 @@ netretr_ticket( char *scookie, struct sinfo *si, SNET *sn, char *tkt_prefix,
         goto error1;
     }
 
+    /* XXX cosign3 check to make sure that size == 0 ? */
+
     tv = timeout;
     if (( line = snet_getline( sn, &tv )) == NULL ) {
 	cosign_log( APLOG_ERR, s, "mod_cosign: retrieve for %s failed: %s",

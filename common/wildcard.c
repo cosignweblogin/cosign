@@ -82,3 +82,22 @@ wildcard( char *wild, char *p, int sensitive )
 	}
     }
 }
+
+    int
+is_wildcard( char *p )
+{
+    for ( ; *p != '\0'; p++ ) {
+	switch ( *p ) {
+	case '*':
+	case '<':
+	    return( 1 );
+	
+	case '\\':
+	    p++;
+	default:
+	    break;
+	}
+    }
+
+    return( 0 );
+}

@@ -4,3 +4,4 @@
  */
 
 int wildcard( char *, char *, int );
+int is_wildcard( char * );

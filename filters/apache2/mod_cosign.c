@@ -37,7 +37,7 @@
 #include "cosignpaths.h"
 #include "log.h"
 
-static int	set_cookie_and_redirect( request_rec *, cosign_host_config * );
+static int	cosign_redirect( request_rec *, cosign_host_config * );
 
 /* Our exported link to Apache. */
 module AP_MODULE_DECLARE_DATA cosign_module;
@@ -57,6 +57,8 @@ cosign_create_config( apr_pool_t *p )
     cfg->public = -1;
     cfg->redirect = NULL;
     cfg->posterror = NULL;
+    cfg->validref = NULL;
+    cfg->referr = NULL;
     cfg->port = 0;
     cfg->protect = -1;
     cfg->configured = 0;
@@ -107,11 +109,10 @@ cosign_init(apr_pool_t *p, apr_pool_t *plog, apr_pool_t *ptemp, server_rec *s)
 }
 
     int
-set_cookie_and_redirect( request_rec *r, cosign_host_config *cfg )
+cosign_redirect( request_rec *r, cosign_host_config *cfg )
 {
-    char		*dest, *my_cookie;
-    char                *full_cookie, *ref, *reqfact;
-    char		cookiebuf[ 128 ];
+    char		*dest;
+    char                *ref, *reqfact;
     int                 i;
     unsigned int	port;
     struct timeval      now;
@@ -122,30 +123,6 @@ set_cookie_and_redirect( request_rec *r, cosign_host_config *cfg )
 	apr_table_set( r->headers_out, "Location", dest );
 	return( 0 );
     }
-
-    if ( mkcookie( sizeof( cookiebuf ), cookiebuf ) != 0 ) {
-	cosign_log( APLOG_ERR, r->server,
-		"mod_cosign: Raisins! Something wrong with mkcookie()" );
-	return( -1 );
-    }
-
-    my_cookie = apr_psprintf( r->pool, "%s=%s", cfg->service, cookiebuf );
-
-    gettimeofday( &now, NULL );
-    if ( cfg->http == 1 ) { /* living dangerously */
-	full_cookie = apr_psprintf( r->pool, "%s/%lu; path=/",
-		my_cookie, now.tv_sec );
-    } else {
-	full_cookie = apr_psprintf( r->pool, "%s/%lu; path=/; secure", 
-		my_cookie, now.tv_sec );
-    }
-
-    /* cookie needs to be set and sent in error headers as 
-     * standard headers don't get returned when we redirect,
-     * and we need to do both here. 
-     */
-
-    apr_table_set( r->err_headers_out, "Set-Cookie", full_cookie );
 
     if ( cfg->siteentry != NULL && strcasecmp( cfg->siteentry, "none" ) != 0 ) {
 	ref = cfg->siteentry;
@@ -173,7 +150,6 @@ set_cookie_and_redirect( request_rec *r, cosign_host_config *cfg )
 	}
     }
 
-    /* we need to remove this semi-colon eventually */
     if ( cfg->reqfc > 0 ) {
         reqfact = apr_pstrcat( r->pool, "factors=", cfg->reqfv[ 0 ], NULL );
         for ( i = 1; i < cfg->reqfc; i++ ) {
@@ -181,14 +157,137 @@ set_cookie_and_redirect( request_rec *r, cosign_host_config *cfg )
                     cfg->reqfv[ i ], NULL );
         }
         dest = apr_psprintf( r->pool,
-                "%s?%s&%s&%s", cfg->redirect, reqfact, my_cookie, ref );
+                "%s?%s&%s&%s", cfg->redirect, cfg->service, reqfact, ref );
     } else {
-        /* we need to remove this semi-colon eventually */
         dest = apr_psprintf( r->pool,
-                "%s?%s;&%s", cfg->redirect, my_cookie, ref );
+                "%s?%s&%s", cfg->redirect, cfg->service, ref );
     }
     apr_table_set( r->headers_out, "Location", dest );
     return( 0 );
+}
+
+    static int
+cosign_handler( request_rec *r )
+{
+    cosign_host_config	*cfg;
+    ap_regmatch_t	matches[ 1 ];
+    char		error[ 1024 ];
+    const char		*qstr = NULL;
+    const char		*pair, *key;
+    char		*cookie, *full_cookie;
+    char		*dest = NULL;
+    int			rc, cv;
+    struct sinfo	si;
+    struct timeval	now;
+
+    if ( !r->handler || strcmp( r->handler, "cosign" ) != 0 ) {
+	return( DECLINED );
+    }
+    if ( r->method_number != M_GET ) {
+	return( HTTP_METHOD_NOT_ALLOWED );
+    }
+
+    cfg = (cosign_host_config *)ap_get_module_config( r->server->module_config,
+						      &cosign_module );
+    if ( !cfg->configured ) {
+	cosign_log( APLOG_NOTICE, r->server, "mod_cosign not configured" );
+	return( HTTP_SERVICE_UNAVAILABLE );
+    }
+    if ( cfg->validref == NULL ) {
+	cosign_log( APLOG_NOTICE, r->server,
+			"mod_cosign: CosignValidReference not set." );
+	return( HTTP_SERVICE_UNAVAILABLE );
+    }
+    if ( cfg->referr == NULL ) {
+	cosign_log( APLOG_NOTICE, r->server,
+			"mod_cosign: CosignValidationErrorRedirect not set." );
+	return( HTTP_SERVICE_UNAVAILABLE );
+    }
+
+    if (( qstr = r->args ) == NULL ) {
+	cosign_log( APLOG_NOTICE, r->server,
+			"mod_cosign: no query string passed to handler." ); 
+	return( HTTP_FORBIDDEN );
+    }
+
+    /* get cookie from query string */
+    pair = ap_getword( r->pool, &qstr, '&' );
+    if ( strncasecmp( pair, "cosign-", strlen( "cosign-" )) != 0 ) {
+	( void )strtok((char *)pair, "=" );
+	cosign_log( APLOG_NOTICE, r->server,
+			"mod_cosign: invalid service \"%s\"", pair );
+	goto validation_failed;
+    }
+    /* retain a copy of the complete string to use when we set the cookie */
+    cookie = apr_pstrdup( r->pool, pair );
+
+    /* get destination URL from query string */
+    if (( pair = ap_getword( r->pool, &qstr, '&' )) == NULL ) {
+	cosign_log( APLOG_NOTICE, r->server,
+			"mod_cosign: no destination URL in query string" );
+
+	goto validation_failed;
+    }
+    dest = apr_pstrdup( r->pool, pair );
+    if (( rc = ap_regexec( &cfg->validpreg, dest, 1, matches, 0 )) != 0 ) {
+	if ( rc != AP_REG_NOMATCH ) {
+	    ap_regerror( rc, &cfg->validpreg, error, sizeof( error ));
+	    cosign_log( APLOG_ERR, r->server,
+			"mod_cosign: ap_regexec %s: %s", dest, error );
+	    return( HTTP_INTERNAL_SERVER_ERROR );
+	}
+	
+	cosign_log( APLOG_NOTICE, r->server,
+			"mod_cosign: invalid destination: %s", dest );
+	goto validation_failed;
+    }
+
+    /* validate service cookie */
+    if ( !validchars( cookie )) {
+	cosign_log( APLOG_NOTICE, r->server,
+			"mod_cosign: cookie contains invalid characters" );
+	goto validation_failed;
+    }
+    cv = cosign_cookie_valid( cfg, cookie, &si, r->connection->remote_ip,
+	    r->server );
+    switch ( cv ) {
+    default:
+    case COSIGN_ERROR:
+	return( HTTP_SERVICE_UNAVAILABLE );	/* it's all forbidden! */
+
+    case COSIGN_RETRY:
+	/*
+	 * Don't set cookie, but redirect to service URL
+	 * and let filter deal with it. May result in a
+	 * redirect back to central login page. 
+	 */
+	apr_table_set( r->headers_out, "Location", dest );
+	return( HTTP_MOVED_PERMANENTLY );
+
+    case COSIGN_OK:
+	break;
+    }
+
+    gettimeofday( &now, NULL );
+    if ( strncmp( dest, "http://", strlen( "http://" )) == 0 ) {
+	/* if we're redirecting to http, can set insecure cookie */
+	full_cookie = apr_psprintf( r->pool, "%s/%lu; path=/",
+				    cookie, now.tv_sec );
+    } else {
+	full_cookie = apr_psprintf( r->pool, "%s/%lu; path=/; secure",
+				    cookie, now.tv_sec );
+    }
+
+    /* we get here, everything's OK. set the cookie and redirect to dest. */
+    apr_table_set( r->err_headers_out, "Set-Cookie", full_cookie );
+    apr_table_set( r->headers_out, "Location", dest );
+
+    return( HTTP_MOVED_PERMANENTLY );
+
+validation_failed:
+    apr_table_set( r->headers_out, "Location", cfg->referr );
+
+    return( HTTP_MOVED_PERMANENTLY );
 }
 
     static int
@@ -213,7 +312,7 @@ cosign_authn( request_rec *r )
     }
 
     if ( apr_table_get( r->notes, "cosign-redirect" ) != NULL ) {
-        if ( set_cookie_and_redirect( r, cfg ) != 0 ) {
+        if ( cosign_redirect( r, cfg ) != 0 ) {
             return( HTTP_SERVICE_UNAVAILABLE );
         }
         return( HTTP_MOVED_TEMPORARILY );
@@ -245,7 +344,7 @@ cosign_auth( request_rec *r )
     cosign_host_config	*cfg;
     struct timeval	now;
 #ifdef GSS
-    int			minor_status;
+    OM_uint32		minor_status;
 #endif /* GSS */
 
     /*
@@ -289,13 +388,9 @@ cosign_auth( request_rec *r )
 	return( HTTP_SERVICE_UNAVAILABLE );
     }
 
-    /*
-     * Look for cfg->service cookie. if there isn't one,
-     * set it and redirect.
-     */
-
+    /* Look for cfg->service cookie. if there isn't one, redirect. */
     if (( data = apr_table_get( r->headers_in, "Cookie" )) == NULL ) {
-	goto set_cookie;
+	goto redirect;
     }
 
     while ( *data && ( pair = ap_getword( r->pool, &data, ';' ))) {
@@ -307,16 +402,8 @@ cosign_auth( request_rec *r )
 	while ( *data == ' ' ) { data++; }
     }
 
-    /* the length of the cookie payload is determined by our call to
-     * mkcookie() in set_cookie_and_redirect(). technically
-     * unecessary since invalid short cookies won't be registered
-     * anyway, however, adding this check prevents an unknown
-     * cookie failover condition if the browser doesn't honor expiration
-     * dates on cookies.
-     */
-     
     if (( cookiename == NULL ) || ( strlen( pair ) < 120 )) {
-	goto set_cookie;
+	goto redirect;
     }
     my_cookie = apr_psprintf( r->pool, "%s=%s", cookiename, pair );
 
@@ -327,11 +414,11 @@ cosign_auth( request_rec *r )
         cookietime = atoi( misc );
     }
     if (( cookietime > 0 ) && ( now.tv_sec - cookietime ) > cfg->expiretime ) {
-        goto set_cookie;
+        goto redirect;
     }
 
     if ( !validchars( my_cookie )) {
-	goto set_cookie;
+	goto redirect;
     }
 
     /*
@@ -372,7 +459,7 @@ cosign_auth( request_rec *r )
 
     /* if we get here, this is also the fall through if cv == COSIGN_RETRY */
 
-set_cookie:
+redirect:
     /* let them thru regardless if this is "public" */
     if ( cfg->public == 1 ) {
         return( DECLINED );
@@ -382,7 +469,7 @@ set_cookie:
      * This is probably wrong.  We should only send a Location header just
      * before we return 300.
      */
-    if ( set_cookie_and_redirect( r, cfg ) != 0 ) {
+    if ( cosign_redirect( r, cfg ) != 0 ) {
         return( HTTP_SERVICE_UNAVAILABLE );
     }
 #endif /* notdef */
@@ -390,7 +477,7 @@ set_cookie:
         apr_table_setn( r->notes, "cosign-redirect", "true" );
         return( DECLINED );
     } else {
-        if ( set_cookie_and_redirect( r, cfg ) != 0 ) {
+        if ( cosign_redirect( r, cfg ) != 0 ) {
             return( HTTP_SERVICE_UNAVAILABLE );
         }
         return( HTTP_MOVED_TEMPORARILY );
@@ -512,6 +599,43 @@ set_cosign_post_error( cmd_parms *params, void *mconfig, const char *arg )
 
     cfg->posterror = apr_pstrdup( params->pool, arg );
     cfg->configured = 1;
+    return( NULL );
+}
+
+    static const char *
+set_cosign_valid_reference( cmd_parms *params, void *mconfig, const char *arg )
+{
+    cosign_host_config		*cfg;
+    char			error[ 1024 ];
+    int				rc;
+
+    cfg = cosign_merge_cfg( params, mconfig );
+
+    cfg->validref = apr_pstrdup( params->pool, arg );
+    if (( rc = ap_regcomp( &cfg->validpreg, cfg->validref, 0 )) != 0 ) {
+	ap_regerror( rc, &cfg->validpreg, error, sizeof( error ));
+	cosign_log( APLOG_ERR, params->server,
+		    "mod_cosign: set_cosign_valid_reference: %s", error );
+	return( "ap_regcomp failed" );
+    }
+    /* no ap_regfree required: compiled regex lasts the lifetime of httpd */
+
+    cfg->configured = 1;
+
+    return( NULL );
+}
+
+    static const char *
+set_cosign_validation_error_redirect( cmd_parms *params,
+					void *mconfig, const char *arg )
+{
+    cosign_host_config		*cfg;
+
+    cfg = cosign_merge_cfg( params, mconfig );
+
+    cfg->referr = apr_pstrdup( params->pool, arg );
+    cfg->configured = 1;
+
     return( NULL );
 }
 
@@ -858,7 +982,7 @@ set_cosign_host( cmd_parms *params, void *mconfig, const char *arg )
 	return( err );
     }
 
-    /* This is hairy. During operation, we re-order the connection list
+    /* This is hairy. During operation, we re-oder the connection list
      * so that the most responsive server is at the head of the list.
      * This requires updates to the pointer to the list head from the cfg
      * structure. However, the cfg structure gets copied around when
@@ -866,7 +990,8 @@ set_cosign_host( cmd_parms *params, void *mconfig, const char *arg )
      * structure in any one process. Instead, we point to a pointer
      * to the list head. */
     cfg->cl = (struct connlist **)
-                apr_palloc(params->pool, sizeof(struct connlist *));
+	    apr_palloc(params->pool, sizeof(struct connlist*));
+
     /* preserve address order as returned from DNS */
     /* actually, here we will randomize for "load balancing" */
     cur = cfg->cl;
@@ -950,6 +1075,14 @@ static command_rec cosign_cmds[ ] =
         AP_INIT_TAKE1( "CosignRedirect", set_cosign_redirect,
         NULL, RSRC_CONF | ACCESS_CONF, 
         "the URL to register service cookies with cosign" ),
+
+	AP_INIT_TAKE1( "CosignValidReference", set_cosign_valid_reference,
+	NULL, RSRC_CONF | ACCESS_CONF,
+	"the regular expression matching valid redirect service URLs" ),
+
+	AP_INIT_TAKE1( "CosignValidationErrorRedirect",
+	set_cosign_validation_error_redirect, NULL, RSRC_CONF | ACCESS_CONF,
+	"where the location handler sends us in case of bad parameters" ),
 
         AP_INIT_TAKE1( "CosignPort", set_cosign_port,
         NULL, RSRC_CONF | ACCESS_CONF, 
@@ -1040,6 +1173,7 @@ cosign_register_hooks( apr_pool_t *p )
     static const char * const other_mods[] = { "mod_access.c", NULL };
 
     ap_hook_post_config( cosign_init, NULL, NULL, APR_HOOK_MIDDLE );
+    ap_hook_handler( cosign_handler, NULL, NULL, APR_HOOK_MIDDLE );
     ap_hook_access_checker( cosign_auth, NULL, other_mods, APR_HOOK_MIDDLE );
     ap_hook_check_user_id( cosign_authn, NULL, NULL, APR_HOOK_MIDDLE );
 }

@@ -127,6 +127,7 @@ main( int ac, char *av[] )
     char		*prog;
     int                 facility = _COSIGN_LOG;
     int			level = LOG_INFO;
+    int			fg = 0;
     extern int		optind;
     extern char		*optarg;
 
@@ -137,7 +138,7 @@ main( int ac, char *av[] )
     }
 
 
-#define	COSIGN_OPTS	"b:c:dD:F:g:h:i:L:np:VXx:y:z:"
+#define	COSIGN_OPTS	"b:c:dD:F:fg:h:i:L:np:VXx:y:z:"
     while (( c = getopt( ac, av, COSIGN_OPTS )) != -1 ) {
 	switch ( c ) {
 	case 'c' :		/* config file */
@@ -180,6 +181,10 @@ main( int ac, char *av[] )
 			prog, optarg );
 		exit( 1 );
 	    }
+	    break;
+
+	case 'f' :		/* run in foreground */
+	    fg = 1;
 	    break;
 
 	case 'g' :		/* grey window for logouts/replication */
@@ -310,7 +315,7 @@ main( int ac, char *av[] )
     /*
      * Disassociate from controlling tty.
      */
-    if ( !debug ) {
+    if ( !fg && !debug ) {
 	int		i, dt;
 
 	switch ( fork()) {

@@ -31,7 +31,7 @@ struct cosigncfg {
 
 static struct authlist		*authlist = NULL, *new_authlist;
 struct factorlist	 	*factorlist = NULL;
-static struct servicelist	*servicelist = NULL;
+static struct servicelist	*servicelist = NULL, *new_servicelist;;
 static struct matchlist		*certlist = NULL;
 static struct matchlist		*negotiatemap = NULL;
 static struct matchlist		*authenticatorlist = NULL;
@@ -93,33 +93,80 @@ cosign_config_get( char *key )
 }
 
     struct servicelist *
-service_find( char *cookie )
+service_find( char *cookie, regmatch_t matches[], int nmatch )
 {
     struct servicelist	*cur = NULL;
+    regex_t		preg;
+    char		error[ 1024 ];
+    int			rc;
+
+    if ( nmatch < 1 || matches == NULL ) {
+	/* require at least one regmatch_t in the array */
+	return( NULL );
+    }
 
     for ( cur = servicelist; cur != NULL; cur = cur->sl_next ) {
-	if ( strcmp( cur->sl_cookie, cookie ) == 0 ) {
+	if (( rc = regcomp( &preg, cur->sl_cookie, REG_EXTENDED )) != 0 ) {
+	    regerror( rc, &preg, error, sizeof( error ));
+	    fprintf( stderr, "regcomp %s failed: %s\n", cur->sl_cookie, error );
+	    return( NULL );
+	}
+
+	if (( rc = regexec( &preg, cookie, nmatch, matches, 0 )) == 0 ) {
+	    /* only match whole service names */
+	    if ( matches[ 0 ].rm_so == 0 &&
+		    matches[ 0 ].rm_eo == strlen( cookie )) {
+		regfree( &preg );
+		break;
+	    }
+	} else if ( rc != REG_NOMATCH ) {
+	    regerror( rc, &preg, error, sizeof( error ));
+	    fprintf( stderr, "regexec failed: %s\n", error );
+	    cur = NULL;
+	    regfree( &preg );
 	    break;
 	}
+
+	regfree( &preg );
     }
+
     return( cur );
 }
 
     struct authlist *
-authlist_find( char *hostname )
+authlist_find( char *hostname, regmatch_t matches[], int nmatch )
 {
     struct authlist	*cur = NULL;
+    regex_t		preg;
+    char		error[ 1024 ];
+    int			rc;
 
     for ( cur = authlist; cur != NULL; cur = cur->al_next ) {
-	/* 0 makes this match case insensitive */
-	if ( wildcard( cur->al_hostname, hostname, 0 )) {
+	/* case-insensitive matching */
+	if (( rc = regcomp( &preg, cur->al_hostname,
+		REG_EXTENDED | REG_ICASE )) != 0 ) {
+	    regerror( rc, &preg, error, sizeof( error ));
+	    fprintf( stderr, "regcomp %s failed: %s\n", cur->al_hostname,error);
+	    return( NULL );
+	}
+
+	rc = regexec( &preg, hostname, nmatch, matches, 0 );
+	if ( rc != REG_NOMATCH ) {
+	    if ( rc != 0 ) {
+		regerror( rc, &preg, error, sizeof( error ));
+		fprintf( stderr, "regexec failed: %s\n", error );
+		cur = NULL;
+	    }
+	    regfree( &preg );
 	    break;
 	}
+	regfree( &preg );
     }
+
     return( cur );
 }
 
-    static int
+    int
 match_substitute( char *pattern, int len, char *buf,
 	int nmatch, regmatch_t matches[], char *source )
 {
@@ -306,14 +353,34 @@ authlist_free( struct authlist **al )
 	for ( pcur = cur->al_proxies; pcur != NULL; pcur = pnext ) {
 	    free( pcur->pr_hostname );
 	    free( pcur->pr_cookie );
-	    pnext = pcur;
+	    pnext = pcur->pr_next;
 	    free( pcur );
 	}
 	next = cur->al_next;
 	free( cur );
     }
     *al = NULL;
-    return;
+}
+
+    static void
+servicelist_free( struct servicelist **sl )
+{
+    struct servicelist	*scur, *snext;
+    int			i;
+
+    for ( scur = *sl; scur != NULL; scur = snext ) {
+	free( scur->sl_cookie );
+	free( scur->sl_wkurl );
+	if ( scur->sl_cookiesub != NULL ) {
+	    free( scur->sl_cookiesub );
+	}
+	for ( i = 0; scur->sl_factors[ i ] != NULL; i++ ) {
+	    free( scur->sl_factors[ i ] );
+	}
+	snext = scur->sl_next;
+	free( scur );
+    }
+    *sl = NULL;
 }
 
 /*
@@ -379,6 +446,7 @@ read_config( char *path )
     char		**av, *line;
     int			ac, i, j;
     int			linenum = 0;
+    int			insert = 1;
     struct cosigncfg	*cc_new, **cc_cur;
     struct authlist 	*al_new, **al_cur;
     struct servicelist	*sl_new, **sl_cur;
@@ -446,54 +514,38 @@ read_config( char *path )
 		return( -1 );
 	    }
 
-	} else if ( strcmp( av[ 0 ], "cookie" ) == 0 ) {
-	    /*
-	     * XXX cookie ... reauth needs a list of factors which reauth
-	     * requires.
-	     */
-	    if ( ac < 3 ) {
-		fprintf( stderr, "line %d: keyword cookie"
-			" takes at least 3 args\n", linenum );
+	} else if ( strcmp( av[ 0 ], "reauth" ) == 0 ) {
+	    if ( ac < 2 ) {
+		fprintf( stderr, "line %d: keyword reauth"
+			" takes at least 2 args\n", linenum );
 		return( -1 );
 	    }
-	    if ( strcmp( av[ 2 ], "reauth" ) != 0 ) {
-		fprintf( stderr, "line %d: unknown argument to cookie: %s\n",
-			linenum, av[ 2 ] );
+	    for ( sl_new = new_servicelist; sl_new != NULL;
+		    sl_new = sl_new->sl_next ) {
+		if ( strcmp( sl_new->sl_cookie, av[ 1 ] ) == 0 ) {
+		    break;
+	    }
+	    }
+	    if ( sl_new == NULL ) {
+		fprintf( stderr, "line %d: keyword reauth requires "
+			"a prior matching service entry\n", linenum );
 		return( -1 );
 	    }
-	    if (( sl_new = (struct servicelist *)malloc(
-		    sizeof( struct servicelist ))) == NULL ) {
-		perror( "malloc" );
-		return( -1 );
-	    }
-	    if (( sl_new->sl_cookie = strdup( av[ 1 ] )) == NULL ) {
-		perror( "malloc" );
-		return( -1 );
-	    }
-	    sl_new->sl_flag = SL_REAUTH;
+	    sl_new->sl_flag |= SL_REAUTH;
 
-	    if (( ac - 3 ) > COSIGN_MAXFACTORS - 1 ) {
+	    if (( ac - 2 ) >= COSIGN_MAXFACTORS ) {
 		fprintf( stderr, "line %d:"
-			" too many factors (%d > %d) to keyword cookie\n",
-			linenum, ac - 3, COSIGN_MAXFACTORS - 1 );
+			" too many factors (%d > %d) to keyword reauth\n",
+			linenum, ac - 2, COSIGN_MAXFACTORS - 1 );
 		return( -1 );
 	    }
-	    for ( j = 0, i = 3; i < ac; i++, j++ ) {
+	    for ( j = 0, i = 2; i < ac; i++, j++ ) {
 		if (( sl_new->sl_factors[ j ] = strdup( av[ i ] )) == NULL ) {
 		    perror( "malloc" );
 		    return( -1 );
 		}
 	    }
 	    sl_new->sl_factors[ j ] = NULL;
-
-	    sl_new->sl_next = NULL;
-
-	    for ( sl_cur = &servicelist; (*sl_cur) != NULL;
-		    sl_cur = &(*sl_cur)->sl_next )
-		;
-
-	    sl_new->sl_next = *sl_cur;
-	    *sl_cur = sl_new;
 
 	} else if ( strcmp( av[ 0 ], "cert" ) == 0 ) {
 	    if ( ac != 5 ) {
@@ -668,6 +720,41 @@ read_config( char *path )
 		return( -1 );
 	    }
 
+	} else if ( strcmp( av[ 0 ], "proxy" ) == 0 ) {
+	    /*
+	     * "proxy" requires a prior entry in the authlist
+	     * for the hostname given as the second argument.
+	     */
+	    if ( ac != 3 ) {
+		fprintf( stderr, "line %d: keyword proxy takes 2 args\n",
+			linenum );
+		return( -1 );
+	    }
+
+	    for ( al_new = new_authlist; al_new != NULL;
+		    al_new = al_new->al_next ) {
+		if ( strcmp( av[ 1 ], al_new->al_hostname ) == 0 ) {
+		    break;
+		}
+	    }
+	    if ( al_new == NULL ) {
+		fprintf( stderr, "line %d: keyword proxy requires "
+			"prior matching service entry\n", linenum );
+		return( -1 );
+	    }
+	    if ( al_new->al_key != SERVICE ) {
+		fprintf( stderr, "line %d: proxy must be a SERVICE\n",
+			linenum );
+		return( -1 );
+	    }
+
+	    if ( proxy_read( al_new, av[ 2 ] ) < 0 ) {
+		fprintf( stderr, "proxy read failed line %d\n",
+			linenum );
+		return( -1 ); 
+	    }
+	    al_new->al_flag |= AL_PROXY;
+
 	} else {
 	    /*
 	     * The rest of these all create an entry to be inserted into
@@ -694,41 +781,98 @@ read_config( char *path )
 		al_new->al_proxies = NULL;
 
 	    } else if ( strcmp( av[ 0 ], "service" ) == 0 ) {
-		if (( ac != 3 ) && ( ac != 4 )) {
+		if ( ac != 5 && ac != 6 ) {
 		    fprintf( stderr,
-			"line %d: keyword service takes 3 or 4 args\n",
+			"line %d: keyword service takes 5 or 6 args\n",
 			linenum );
 		    return( -1 );
 		}
-		if (( al_new =
-			(struct authlist *)malloc( sizeof( struct authlist )))
-			== NULL ) {
+
+
+		if (( sl_new = (struct servicelist *)malloc(
+				sizeof( struct servicelist ))) == NULL ) {
 		    perror( "malloc" );
 		    return( -1 );
 		}
-		al_new->al_next = NULL;
-		al_new->al_key = SERVICE;
-		al_new->al_hostname = strdup( av[ 1 ] );
-		al_new->al_flag = 0;
-		al_new->al_proxies = NULL;
+		sl_new->sl_next = NULL;
+		sl_new->sl_factors[ 0 ] = NULL;
+		sl_new->sl_cookiesub = NULL;
+		sl_new->sl_flag = 0;
 
-		if ( strchr( av[ 2 ], 'T' ) != 0 ) {
-		    al_new->al_flag |= AL_TICKET;
+		/*
+		 * new service lines look like this:
+		 *
+		 * # type  cookie      location handler  flags  cn  cookie
+		 * service cosign-(.*) https://$1.domain.edu/cosign/valid \
+		 *	flags	(.*)\.domain\.edu [ cosign-$1 ]
+		 */
+		if (( sl_new->sl_cookie = strdup( av[ 1 ] )) == NULL ) {
+		    perror( "strdup" );
+		    return( -1 );
 		} 
 
-		if ( strchr( av[ 2 ], 'P' ) != 0 ) {
-		    if ( ac != 4 ) {
-			fprintf( stderr, "%s: line %d: proxy\n",
-				path, linenum );
+		if (( sl_new->sl_wkurl = strdup( av[ 2 ] )) == NULL ) {
+		    perror( "strdup" );
 			return( -1 );
 		    }
-		    if ( proxy_read( al_new, av[ 3 ] ) < 0 ) {
-			fprintf( stderr, "proxy read failed line %d\n",
-			    linenum );
+
+		if ( strchr( av[ 3 ], 'T' ) != 0 ) {
+		    sl_new->sl_flag |= SL_TICKET;
+		} 
+		if ( strchr( av[ 3 ], '2' ) != 0 ) {
+		    sl_new->sl_flag |= SL_SCHEME_V2;
+		}
+
+		if ( ac == 6 ) {
+		    /* custom cookie substitution pattern */
+		    if (( sl_new->sl_cookiesub = strdup( av[ 5 ] )) == NULL ) {
+			perror( "strdup" );
 			return( -1 ); 
 		    }
-		    al_new->al_flag |= AL_PROXY;
 		}
+
+		/*
+		 * look for a prior entry for this hostname.
+		 * if not found, allocate a new one. in both
+		 * cases, point the new servicelist entry's
+		 * sl_auth field to al_new.
+		 *
+		 */
+		insert = 1;
+		for ( al_new = new_authlist; al_new != NULL;
+			al_new = al_new->al_next ) {
+		    if ( al_new->al_key != SERVICE ) {
+			continue;
+		    }
+		    if ( strcmp( al_new->al_hostname, av[ 4 ] ) == 0 ) {
+			insert = 0;
+			break;
+		    }
+		}
+		if ( al_new == NULL ) {
+		    if (( al_new = (struct authlist *)malloc(
+				    sizeof( struct authlist ))) == NULL ) {
+			perror( "malloc" );
+			return( -1 );
+		    }
+		    if (( al_new->al_hostname = strdup( av[ 4 ] )) == NULL ) {
+			perror( "strdup" );
+			return( -1 );
+		    }
+		    al_new->al_key = SERVICE;
+		    al_new->al_flag = 0;
+		    al_new->al_proxies = NULL;
+		    al_new->al_next = NULL;
+		}
+		sl_new->sl_auth = al_new;
+
+		/* insert the new service at the end of the list */
+		for ( sl_cur = &new_servicelist; *sl_cur != NULL;
+			sl_cur = &( *sl_cur )->sl_next )
+		    ;
+
+		sl_new->sl_next = *sl_cur;
+		*sl_cur = sl_new;
 
 	    } else if ( strcmp( av[ 0 ], "notauth" ) == 0 ) {
 		if ( ac != 2 ) {
@@ -755,13 +899,14 @@ read_config( char *path )
 	    }
 
 	    
+	    if ( insert ) {
 	    for ( al_cur = &new_authlist; (*al_cur) != NULL;
 		    al_cur = &(*al_cur)->al_next )
 		;
 
 	    al_new->al_next = *al_cur;
 	    *al_cur = al_new;
-
+	    }
 	}
     }
 
@@ -774,8 +919,10 @@ read_config( char *path )
  *	cgi hostname
  *	service hostname 0
  *	service hostname T
- *	service hostname P path
- *	service hostname TP path
+ *	service hostname 2
+ *	service hostname T2
+ *	proxy hostname proxyfilepath
+ *	reauth cookie factor1 factor2 ... factorMAX
  *	notauth hostname
  *	set key value
  *	include configfilepath
@@ -784,14 +931,20 @@ read_config( char *path )
 cosign_config( char *path )
 {
     struct authlist	*old_authlist;
+    struct servicelist	*old_servicelist;
     struct cosigncfg	*old_cfg;
 
     new_authlist = NULL;
+    new_servicelist = NULL;
     new_cfg = NULL;
     
     if ( read_config( path ) != 0 ) {
 	if ( new_authlist != NULL ) {
 	    authlist_free( &new_authlist );
+	}
+
+	if ( new_servicelist != NULL ) {
+	    servicelist_free( &new_servicelist );
 	}
 
 	if ( new_cfg != NULL ) {
@@ -801,15 +954,19 @@ cosign_config( char *path )
     }
 
     old_cfg = cfg;
+    old_servicelist = servicelist;
     old_authlist = authlist;
 
     cfg = new_cfg;
+    servicelist = new_servicelist;
     authlist = new_authlist;
 
     if ( old_authlist != NULL ) {
 	authlist_free( &old_authlist );
     }
-
+    if ( old_servicelist != NULL ) {
+	servicelist_free( &old_servicelist );
+    }
     if ( old_cfg != NULL ) {
 	config_free( &old_cfg );
     }

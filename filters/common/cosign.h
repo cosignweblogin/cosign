@@ -1,3 +1,13 @@
+/* apache 1.3 lacks ap_regex types and functions */
+#ifndef APXS2
+#define ap_regex_t	regex_t
+#define ap_regmatch_t	regmatch_t
+#define ap_regcomp	regcomp
+#define ap_regexec	regexec
+#define ap_regerror	regerror
+#define AP_REG_NOMATCH	REG_NOMATCH
+#endif /* !APXS2 */
+
 typedef struct {
     char                *host;
     char                *service;
@@ -9,6 +19,9 @@ typedef struct {
     int			public;
     char                *redirect;
     char                *posterror;
+    char		*validref;
+    char		*referr;
+    ap_regex_t		validpreg;
     unsigned short      port;
     int                 protect;
     int                 configured;

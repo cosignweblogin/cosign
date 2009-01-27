@@ -109,6 +109,7 @@ main( int ac, char **av )
     char		*cosign_conf = _COSIGN_CONF;
     char		*p, *q;
     int                 facility = _COSIGN_LOG, level = LOG_INFO;
+    int			fg = 0;
     SSL_CTX		*m_ctx = NULL;
     extern int          optind;
     extern char         *optarg;
@@ -120,7 +121,7 @@ main( int ac, char **av )
     }
 
 
-#define MONSTER_OPTS "c:dF:h:H:i:I:l:L:p:Vx:y:z:"
+#define MONSTER_OPTS "c:dF:fh:H:i:I:l:L:p:Vx:y:z:"
     while (( c = getopt( ac, av, MONSTER_OPTS )) != EOF ) {
 	switch ( c ) {
 	case 'c':
@@ -156,6 +157,10 @@ main( int ac, char **av )
 			prog, optarg );
 		exit( 1 );
 	    }
+	    break;
+
+	case 'f' :		/* run in foreground */
+	    fg = 1;
 	    break;
 
 	case 'h' :		/* host running cosignd */
@@ -272,7 +277,7 @@ main( int ac, char **av )
 
     /* Disassociate from controlling tty. */
 
-    if ( !debug ) {
+    if ( !fg && !debug ) {
 	int		i, fd, dt;
 
 	switch ( fork()) {
