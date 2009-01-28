@@ -261,7 +261,7 @@ cosign_handler( request_rec *r )
 	 * and let filter deal with it. May result in a
 	 * redirect back to central login page.
 	 */
-	apr_table_set( r->headers_out, "Location", dest );
+	ap_table_set( r->headers_out, "Location", dest );
 	return( HTTP_MOVED_PERMANENTLY );
 
     case COSIGN_OK:
