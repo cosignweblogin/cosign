@@ -174,8 +174,8 @@ cosign_handler( request_rec *r )
     char		error[ 1024 ];
     const char		*qstr = NULL;
     const char		*pair, *key;
+    const char		*dest = NULL;
     char		*cookie, *full_cookie;
-    char		*dest = NULL;
     int			rc, cv;
     struct sinfo	si;
     struct timeval	now;
@@ -221,14 +221,16 @@ cosign_handler( request_rec *r )
     /* retain a copy of the complete string to use when we set the cookie */
     cookie = apr_pstrdup( r->pool, pair );
 
-    /* get destination URL from query string */
-    if (( pair = ap_getword( r->pool, &qstr, '&' )) == NULL ) {
+    /*
+     * ap_getword modifies qstr, extracting the service cookie. the remainder
+     * of the query string is assumed to be the destination URL.
+     */
+    if (( dest = qstr ) == NULL ) {
 	cosign_log( APLOG_NOTICE, r->server,
 			"mod_cosign: no destination URL in query string" );
 
 	goto validation_failed;
     }
-    dest = apr_pstrdup( r->pool, pair );
     if (( rc = ap_regexec( &cfg->validpreg, dest, 1, matches, 0 )) != 0 ) {
 	if ( rc != AP_REG_NOMATCH ) {
 	    ap_regerror( rc, &cfg->validpreg, error, sizeof( error ));
