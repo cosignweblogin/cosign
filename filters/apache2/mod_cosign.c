@@ -157,7 +157,7 @@ cosign_redirect( request_rec *r, cosign_host_config *cfg )
                     cfg->reqfv[ i ], NULL );
         }
         dest = apr_psprintf( r->pool,
-                "%s?%s&%s&%s", cfg->redirect, cfg->service, reqfact, ref );
+                "%s?%s&%s&%s", cfg->redirect, reqfact, cfg->service, ref );
     } else {
         dest = apr_psprintf( r->pool,
                 "%s?%s&%s", cfg->redirect, cfg->service, ref );
