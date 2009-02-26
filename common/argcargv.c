@@ -32,6 +32,7 @@ acav_alloc( void )
 	return( NULL );
     }
     acav->acv_argc = ACV_ARGC;
+    acav->acv_flags = ACV_FLAG_DEFAULTS;
 
     return( acav );
 }
@@ -68,18 +69,20 @@ acav_parse( ACAV *acav, char *line, char **argv[] )
 	    break;
 
 	case '"' :
-	    memcpy( line, line + 1, strlen( line ));
-	    if ( state & ACV_DQUOTE ) {
-		state &= ~ACV_DQUOTE;
-		continue;	/* don't increment line */
-	    } else {
-		state |= ACV_DQUOTE;
+	    if ( acav->acv_flags & ACV_FLAG_QUOTE ) {
+		memmove( line, line + 1, strlen( line ));
+		if ( state & ACV_DQUOTE ) {
+		    state &= ~ACV_DQUOTE;
+		    continue;	/* don't increment line */
+		} else {
+		    state |= ACV_DQUOTE;
+		}
 	    }
 	    /* fall through */
 
 	default :
-	    if ( *line == '\\' ) {
-		memcpy( line, line + 1, strlen( line ));
+	    if (( acav->acv_flags & ACV_FLAG_BACKSLASH ) && *line == '\\' ) {
+		memmove( line, line + 1, strlen( line ));
 	    }
 	    if ( !( state & ACV_WORD )) {
 		acav->acv_argv[ ac++ ] = line;
