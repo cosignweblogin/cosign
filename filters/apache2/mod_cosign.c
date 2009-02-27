@@ -190,16 +190,16 @@ cosign_handler( request_rec *r )
     cfg = (cosign_host_config *)ap_get_module_config( r->server->module_config,
 						      &cosign_module );
     if ( !cfg->configured ) {
-	cosign_log( APLOG_NOTICE, r->server, "mod_cosign not configured" );
+	cosign_log( APLOG_ERR, r->server, "mod_cosign not configured" );
 	return( HTTP_SERVICE_UNAVAILABLE );
     }
     if ( cfg->validref == NULL ) {
-	cosign_log( APLOG_NOTICE, r->server,
+	cosign_log( APLOG_ERR, r->server,
 			"mod_cosign: CosignValidReference not set." );
 	return( HTTP_SERVICE_UNAVAILABLE );
     }
     if ( cfg->referr == NULL ) {
-	cosign_log( APLOG_NOTICE, r->server,
+	cosign_log( APLOG_ERR, r->server,
 			"mod_cosign: CosignValidationErrorRedirect not set." );
 	return( HTTP_SERVICE_UNAVAILABLE );
     }
