@@ -243,6 +243,7 @@ f_login( SNET *sn, int ac, char *av[], SNET *pushersn )
     }
 
     if ( ac < 5 ) {
+	syslog( LOG_ERR, "f_login: got %d args, need at least 5", ac );
 	snet_writef( sn, "%d LOGIN: Wrong number of args.\r\n", 500 );
 	return( 1 );
     }
@@ -461,12 +462,14 @@ f_login( SNET *sn, int ac, char *av[], SNET *pushersn )
         }
 
         if ( write( fd, buf, rc ) != rc ) {
+	    syslog( LOG_ERR, "f_login: write to %s: %m", krbpath );
             snet_writef( sn, "%d %s: %s\r\n", 504, krbpath, strerror( errno ));
             return( 1 );
         }
     }
 
     if ( close( fd ) < 0 ) {
+	syslog( LOG_ERR, "f_login: close %s: %m", krbpath );
         snet_writef( sn, "%d %s: %s\r\n", 504, krbpath, strerror( errno ));
         return( 1 );
     }
@@ -545,12 +548,13 @@ f_daemon( SNET *sn, int ac, char *av[], SNET *pushersn )
     }
 
     if ( ac != 2 ) {
+	syslog( LOG_ERR, "f_daemon: expected 2 arguments, got %d", ac );
 	snet_writef( sn, "%d Syntax error\r\n", 571 );
 	return( 1 );
     }
 
     if ( gethostname( hostname, sizeof( hostname )) < 0 ) {
-	syslog( LOG_ERR, "f_daemon: %m" );
+	syslog( LOG_ERR, "f_daemon: gethostname: %m" );
 	snet_writef( sn, "%d DAEMON error. Sorry!\r\n", 572 );
 	return( 1 );
     }
@@ -588,6 +592,7 @@ f_time( SNET *sn, int ac, char *av[], SNET *pushersn )
     }
 
     if ( ac != 1 ) {
+	syslog( LOG_ERR, "f_time: expected 1 argument, got %d", ac );
 	snet_writef( sn, "%d TIME: Wrong number of args.\r\n", 560 );
 	return( 1 );
     }
@@ -678,7 +683,6 @@ f_logout( SNET *sn, int ac, char *av[], SNET *pushersn )
     }
 
     if ( read_cookie( path, &ci ) != 0 ) {
-	syslog( LOG_ERR, "f_logout: read_cookie" );
 	snet_writef( sn, "%d LOGOUT error: Sorry\r\n", 513 );
 	return( 1 );
     }
@@ -835,6 +839,7 @@ f_register( SNET *sn, int ac, char *av[], SNET *pushersn )
 
     if ( tv.tv_sec - ci.ci_itime >= idle_out_time ) {
 	if ( tv.tv_sec - ci.ci_itime < ( idle_out_time + grey_time )) {
+	    syslog( LOG_NOTICE, "f_register: idle grey window" );
 	    snet_writef( sn, "%d REGISTER: Idle Grey Window\r\n", 521 );
 	    return( 1 );
 	}
@@ -1038,6 +1043,7 @@ f_check( SNET *sn, int ac, char *av[], SNET *pushersn )
 		syslog( LOG_NOTICE, "STATS CHECK %s: UNKNOWN %.5f / sec",
 			inet_ntoa( cosign_sin.sin_addr ), rate );
 	    }
+	    syslog( LOG_NOTICE, "f_check: idle grey window" );
 	    snet_writef( sn, "%d CHECK: Idle Grey Window\r\n", 531 );
 	    return( 1 );
 	}
@@ -1140,6 +1146,7 @@ f_retr( SNET *sn, int ac, char *av[], SNET *pushersn )
 
     if ( tv.tv_sec - ci.ci_itime >= idle_out_time ) {
 	if ( tv.tv_sec - ci.ci_itime < ( idle_out_time + grey_time )) {
+	    syslog( LOG_ERR, "f_retr: idle grey window" );
 	    snet_writef( sn, "%d RETR: Idle Grey Window\r\n", 541 );
 	    return( 1 );
 	}
