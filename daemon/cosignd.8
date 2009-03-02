@@ -5,7 +5,7 @@
 .SH SYNOPSIS
 .B cosignd
 [
-.B \-dnVX
+.B \-dfnVX
 ] [
 .BI \-b\  backlog
 ] [
@@ -136,11 +136,14 @@ debug mode. Does not disassociate from controlling tty.
 .BI \-F\  syslog-facility
 specifies which syslog-facilty to log messages to. Default is daemon.
 .TP 19
+.B \-f
+run in foreground. Does not dissociate from controlling tty.
+.TP 19
 .BI \-g\  grey-window-in-seconds
 grey window for replication and idle logout. All cosignd's will answer
 5xx during this period (idle + grey) in case they've missed an event in
 this time period. After this grey window, a given cookie will be logged out
-(4xx), by default 1800 seconds ( 30 minutes).
+(4xx), by default 1800 seconds (30 minutes).
 .TP 19
 .BI \-h\  replication-hostname
 hostname to replicate to. This "turns on" cosignd's replication.
