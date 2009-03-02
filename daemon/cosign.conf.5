@@ -1,4 +1,4 @@
-.TH cosign.conf "5" "October 2005" "umweb" "File Formats Manual"
+.TH cosign.conf "5" "March 2009" "cosign" "File Formats Manual"
 .SH NAME
 .B cosign.conf
 \- Cookie Sign-On Daemons and CGI configuration file
@@ -11,43 +11,98 @@ cosign.cgi, the logout cgi, cosignd, and monster. It is a whitespace delimited
 line-oriented file. The first argument is always a keyword, followed by
 a value, followed by optional per-keyword additional values. The
 keywords
-.B service
-and
 .B cgi
+and
+.B proxy
 are unique to cosignd. The keywords
+.BR service ,
 .B set
 and
 .B include
 are used by both daemons and both cgis. Finally the keywords
-.BR cookie ,
 .BR cert ,
 .BR factor ,
-.B negotiate
+.BR negotiate ,
+.B reauth
 and
 .B suffix
 are used by cosign.cgi.
 .sp
-.SH CGI and SERVICE
-Each line contains a keyword, which is the role of the client in the
-cosign system -
-.B cgi
-or
-.BR service .
-Next is the subject CN (common name). The third argument, which is a
-flag [P,T,PT,0] to signify if the host with the listed subject CN can
-ask for Kerberos tickets (T), proxy cookies (P), both(PT), or none (0) .
-If proxy cookies are authorized (P), the fourth argument is the name of
-a file that contains the hostname and servicename for the proxy cookies,
-one per line, white space delimited (see Example). Lines that are blank or
-begin with '#' are ignored. '*' is a wildcard and will match any string.
-.sp 
-A client's CN must match a line in the configuration file, otherwise it
-is not permitted to talk to cosignd. All clients must call STARTTLS
-before any other commands can be issued. Clients can only issue commands
-associated with their keyword.
+Keywords and values are whitespace-delimited. Lines that are blank or begin
+with '#' are ignored (see Examples).
 .sp
-The keyword
-.B CGI
+.SH CGI and SERVICE
+The
+.B cgi
+and
+.B service
+keywords describe the role of the client within the cosign system.
+.sp
+The
+.B cgi
+keyword indicates that the client is responsible for running the cosign.cgi.
+.B cgi
+takes one argument, a regular expression of the subject CN (common name)
+of the certificate the client will present to cosignd when connecting.
+.sp
+The
+.B service
+keyword indicates that the client is running a cosign-protected web service.
+.B service
+takes 4 or 5 arguments, depending on the effect the administrator wishes to
+achieve. cosignd examines all of the fields; cosign.cgi looks only at the
+first three.
+.sp
+The first argument is a regular expression (regex) of the service
+name associated with this particular web service, for example,
+"cosign-(web\\.mail)".  Argument 2 is the validation URL associated with
+the service, which the service uses to validate the service cookie and
+destination URL. This is the location to which cosign.cgi will redirect
+following a successful authentication. The regex and the validation URL
+are connected, in that matches in the regex can be substituted in the
+validation URL (see Examples).
+.sp
+The third field contains flags (T, 2, 0) denoting whether the client is
+permitted to retrieve Kerberos tickets (T); whether the client is permitted
+to use the deprecated cosign v2 scheme (2); or whether the client will use
+defaults (0). Flags can be combined.
+.sp
+The fourth field is a regular expression of the client's CN, on
+which is based the client's access to cosignd,
+or more specifically, to any cookies matching the service regex
+given as the first argument. That is to say, only client CNs matching
+the regex in the fourth argument are allowed to talk to cosignd 
+about service cookies matching the regex in the first argument.
+.sp
+Generally the administrator will limit access to cookies by relying on
+the association established between the service regex (argument 1) and
+the client CN regex (argument 4), but there are cases where this
+association is too vague. The optional fifth argument, a service name
+substitution pattern, is provided for these cases. The canonical example
+is a so-called "default" service, allowing institution-wide access to
+cosignd without requiring the weblogin administrators to modify
+.BR _COSIGN_CONF ,
+as shown in this example:
+.sp
+.br
+ service cosign-(.*) https://$1/cosign/valid 0 (.*\\.xyz\\.org) cosign-$1
+.sp
+This service entry allows any client with a valid CN ending in "xyz.org"
+access to the server, but because of the presence of the substitution
+pattern, those clients can only talk to cosignd
+about cookies derived from their CN. For example, a client presenting a
+certificate CN of "infiniteloop.xyz.org" would only be able to talk
+to cosignd about "cosign-infiniteloop.xyz.org" service cookies.
+.sp
+Whether using the
+.B cgi
+keyword or the
+.B service
+keyword, a client's CN must match a line in the configuration file or it
+will not be permitted to talk to cosignd. All clients must call STARTTLS
+before any other commands can be issued. Clients can only issue commands
+associated with their keyword. The keyword
+.B cgi
 allows clients to use the
 .BR LOGIN ,
 .BR CHECK ,
@@ -66,6 +121,21 @@ allows clients to use the
 and
 .B RETRIEVE
 commands (see cosignd(8)).
+.sp
+.SH PROXY
+The
+.B proxy
+keyword allows a given service to retrieve proxy cookies for other services.
+.B proxy
+takes two arguments, a client CN regex and a path to a proxy file. The
+proxy file contains the hostname and servicename for the proxy cookies,
+one per line, whitespace-delimited (see Examples). The CN regex must
+match a prior service entry in
+.BR _COSIGN_CONF .
+The
+.B proxy
+keyword replaces the combination of the "P" flag with a path in older
+versions of Cosign.
 .sp
 .SH "SET" CONFIG FILE OPTIONS - SHARED
 The following configuration file options are recognised for use with the
@@ -194,48 +264,49 @@ allows an administrator to build a cosign configuration file by
 aggregating the contents of several smaller files. The first argument is
 the keyword followed by the path to the file to include.
 .sp
-.SH COOKIE
+.SH REAUTH
 The keyword 
-.I cookie
-takes 2 arguments - a service cookie prefix (eg. cosign-mail) and an
-"function". The only currently defined function is "reauth" but
-more options may be added when the cgi's functionality is extended. This
-keyword is currently used to denote a cosign service that requires
-reauthentication before a
+.I reauth
+denotes a cosign service that requires reauthentication before a
 .B REGISTER
 can succeed.
+.I reauth
+requires at least one argument, a service cookie prefix like
+"cosign-web\\.mail".
 .sp
-With Cosign 2.0, there is the option to indicate that multiple
-factors are required for reauthentication. After the function "reauth"
+Beginning with Cosign 2.0, there is the option to indicate that multiple
+factors are required for reauthentication. After the service cookie prefix
 there can be up to 5 factor names. When a user is asked to re-authenticate,
 s/he must supply the correct information to every factor that is
 configured here in the single POST. If the user types any information
 wrong, s/he must type in everything again.
 .sp
 If there are no factors configured for reauthentication, the cgi will
-accept any factor the user can satisfy.
+accept any factor the user can satisfy. Any
+.B reauth
+line requires a prior matching
+.B service
+line in the configuration file.
+.B reauth
+replaces the "cookie" keyword in older versions of Cosign.
 .sp
 .SH CERT
 The keyword
 .I cert
 is used to authenticate a user with an x509 certificate. It takes 5
 fields - keyword, issuer_dn, subject_dn, login, and factor (see
-Example).  The issuer_dn must be an exact match  of the environment
+Examples).  The issuer_dn must be an exact match  of the environment
 variable SSL_CLIENT_I_DN.  The next field, subject_dn, is a regular
-expression which matches SSL_CLIENT_S_DN.  (Note that the configuration
-file parser interprets backslashes, so in the example section we have
-"escaped" our backslashes. The first backslash escapes the second
-backslash which is then passed onto the regular expression parser.)  The
-login and factor fields may contain $1, $2, and/or $3, which are
-replaced with the corresponding parenthesized subexpressions of the
-regular expression subject_dn.
+expression which matches SSL_CLIENT_S_DN. The login and factor fields
+may contain $1, $2, and/or $3, which are replaced with the corresponding
+parenthesized subexpressions of the regular expression subject_dn.
 .sp
 .SH FACTOR
 The keyword
 .I factor
 is used to invoke the external authenticator API. It takes the keyword,
 the pathname to the executable, and a list of form-fields, maximum of 5
-(see Example).  If all listed form-fields contain posted data, then the
+(see Examples).  If all listed form-fields contain posted data, then the
 CGI invokes the external authenticator. The value of each form-field is
 written to the external authenticator on stdin (file descriptor 0), one
 per line, in the order they are listed in the configuration. If
@@ -260,11 +331,9 @@ The keyword
 is used to authenticate a user using HTTP-Negotiate authentication. It 
 takes 4 fields - keyword, regexp, login, and factor.  The regular 
 expression regexp is matched against the REMOTE_USER variable 
-provided by the web server. (Note that the 
-configuration file parser interprets backslashes.)
-The login and factor fields may contain $1, $2, and/or $3, 
-which are replaced with the corresponding parenthesized subexpressions 
-of the regular expression.
+provided by the web server. The login and factor fields may contain $1,
+$2, and/or $3, which are replaced with the corresponding parenthesized
+subexpressions of the regular expression.
 .sp
 .SH PASSWD
 The keyword
@@ -275,11 +344,9 @@ specified, usernames containing an '@' are authenticated through mysql,
 all other usernames are authenticated with Kerberos. The keyword takes
 5 fields - keyword, type, regexp, login and factor. The regular
 expression regexp is matched against the username supplied by the user.
-(Note that the configuration parser interprets backslashes, so these
-must be escaped, as in the examples below). The login and factor fields
-may contain $1, $2 and/or $3 which are replaced with the corresponding
-parethesized subexpressions of the regular expression. The CGI uses the
-first password line whose regular expression matches the username, and
+The login and factor fields may contain $1, $2 and/or $3 which are replaced
+with the corresponding parethesized subexpressions of the regular expression.
+The CGI uses the first password line whose regular expression matches the username, and
 calls the internal authenticator specified by the 'type' field (which may
 be either 'kerberos' or 'mysql'), with the login name given by the login
 field. Should this login be successful, the user is marked as being
@@ -289,7 +356,7 @@ authenticated by the factor contained in the factor field.
 The keyword
 .I suffix
 takes 2 arguments - the keyword and a string, such as "-junk" (see
-Example). This configuration
+Examples). This configuration
 causes cosign.cgi to remove the "-junk" suffix from any
 server-provided factors before comparison with required 
 factors.  For example, if the cgi is checking the factor "OTP", and
@@ -308,16 +375,46 @@ and where cosignd stores kerberos tickets.
 .RS
 .nf
 #
-# keyword 	subject cn		tickets/proxy proxyfile
+# keyword 	subject cn
 #
-cgi		cosignserver.umich.edu
-cgi		cosignserver.test.umich.edu	P 	/etc/cosign/test.conf
-service		servicea.web.umich.edu		0
-service		serviceb.web.umich.edu		0
-service		portaltest.web.umich.edu	PT /etc/cosign/portal.conf
-service		campusmail.umich.edu		T	
-service		alumni.web.mgoblue.com		0
-service		*.web.umich.edu			0
+cgi		cosignserver\\.umich\\.edu
+cgi		cosignserver\\.test\\.umich\\.edu
+#
+# service keyword. all arguments must be on one line.
+# arguments are indented here for sake of presentation.
+#
+# keyword  service  url  flags  cn  [optional substitution]
+#
+service  cosign-servicea
+	https://servicea.umich.edu/cosign/valid 0
+	servicea\\.web\\.umich\\.edu
+service  cosign-serviceb
+	https://serviceb.umich.edu/cosign/valid 0
+	serviceb\\.web\\.umich\\.edu
+service  cosign-portaltest
+	https://portaltest.web.umich.edu/cosign/valid T
+	portaltest\\.web\\.umich\\.edu
+service  cosign-(campusmail)
+	https://$1.umich.edu/cosign/valid T
+	campusmail\\.umich\\.edu
+service  cosign-(securemail)
+	https://$1.umich.edu/cosign/valid T
+	securemail\\.umich\\.edu
+service  cosign-(finance\\.web)
+	https://$1.umich.edu/cosign/valid T
+	finance\\.web\\.umich\\.edu
+service cosign-(.*\\.web\\.mgoblue\\.com)
+	https://$1/cosign/valid 0 \\*\\.mgoblue\\.com
+# the "default" service
+service cosign-(.*)
+	https://$1.umich.edu/cosign/valid 0
+	(.*)\\.web\\.umich\\.edu cosign-$1
+#
+# keyword	subject cn				path
+#
+proxy	cosignserver\\.test\\.umich\\.edu	/etc/cosign/test.conf
+proxy	portaltest\\.umich\\.edu		/etc/cosign/portal.conf
+#
 #
 # keyword        path to file
 #
@@ -328,15 +425,16 @@ include		/etc/cosign/another.conf
 set		cosigndticketcache	/some/place
 set		cosignkey		/some/key
 #
-# keyword        service name            "function" factors to reauth
+# keyword        service name           optional factors to reauth
 #
-cookie          cosign-securemail       reauth	UMICH.EDU
+reauth		cosign-(securemail)
+reauth		cosign-(finance\\.web)	UMICH.EDU
 #
 # keyword issuer_dn subject_dn login factor
 #
 cert    "/C=US/ST=Michigan/L=Ann Arbor/O=University of
 Michigan/OU=ITCS/CN=UM Web CA/emailAddress=webmaster@umich.edu"
-".*emailAddress=\\\\(.*\\\\)@umich\\\\.edu" $1 UMICH.EDU
+".*emailAddress=\\(.*\\)@umich\\.edu" $1 UMICH.EDU
 #
 # keyword path [secondary] formfield1 [formfield2 ... formfield5]
 factor	/usr/cosign/factor/123magic.sh	-2 login passcode
@@ -367,9 +465,9 @@ The following snippet defines the normal internal password authentication rules
 .nf
 
     # Anything containing an @ is a friend request
-    passwd mysql    \\\\(.*@.*\\\\)  $1 friend
+    passwd mysql    (.+@.+)  $1 friend
     # Anything else gets handed to Kerberos
-    passwd kerberos \\\\([^@]+\\\\) $1 MY.REALM
+    passwd kerberos ([^@]+) $1 MY.REALM
 .fi
 .RE
 .sp
@@ -378,8 +476,8 @@ allows both A.EXAMPLE.COM and B.EXAMPLE.COM to be used as supported realms.
 .sp
 .RS
 .nf
-    passwd kerberos \\\\(.*@A.EXAMPLE.COM\\\\) $1 A.EXAMPLE.COM
-    passwd kerberos \\\\(.*@B.EXAMPLE.COM\\\\) $1 B.EXAMPLE.COM
+    passwd kerberos (.*@A\\.EXAMPLE\\.COM) $1 A.EXAMPLE.COM
+    passwd kerberos (.*@B\\.EXAMPLE\\.COM) $1 B.EXAMPLE.COM
 .fi
 .RE
 .sp
