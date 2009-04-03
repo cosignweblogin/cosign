@@ -109,7 +109,7 @@ service_find( char *cookie, regmatch_t matches[], int nmatch )
 	if (( rc = regcomp( &preg, cur->sl_cookie, REG_EXTENDED )) != 0 ) {
 	    regerror( rc, &preg, error, sizeof( error ));
 	    fprintf( stderr, "regcomp %s failed: %s\n", cur->sl_cookie, error );
-	    return( NULL );
+	    continue;
 	}
 
 	if (( rc = regexec( &preg, cookie, nmatch, matches, 0 )) == 0 ) {
@@ -122,9 +122,6 @@ service_find( char *cookie, regmatch_t matches[], int nmatch )
 	} else if ( rc != REG_NOMATCH ) {
 	    regerror( rc, &preg, error, sizeof( error ));
 	    fprintf( stderr, "regexec failed: %s\n", error );
-	    cur = NULL;
-	    regfree( &preg );
-	    break;
 	}
 
 	regfree( &preg );
