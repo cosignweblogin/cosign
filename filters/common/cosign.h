@@ -1,12 +1,12 @@
-/* apache 1.3 lacks ap_regex types and functions */
-#ifndef APXS2
+/* apache 1.3 & apache 2.0 lack ap_regex types and functions */
+#ifndef HAVE_AP_REGEX_H 
 #define ap_regex_t	regex_t
 #define ap_regmatch_t	regmatch_t
 #define ap_regcomp	regcomp
 #define ap_regexec	regexec
 #define ap_regerror	regerror
 #define AP_REG_NOMATCH	REG_NOMATCH
-#endif /* !APXS2 */
+#endif /* !HAVE_AP_REGEX_H */
 
 typedef struct {
     char                *host;
