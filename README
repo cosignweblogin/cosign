@@ -7,10 +7,9 @@ Before you begin:
 
     For documentation and information see: http://weblogin.org/
 
-    To build a production Apache filter you need Apache 1.3.X.  Support
-    for Apache 2.0 is available, but not used in production at Michigan.
-    If you happen to use the Apache 2.x filter in production, please let
-    us know about it. Your web server should have SSL enabled.
+    To build a production Apache filter you need Apache 1.3.X or Apache
+    2.x.  If you happen to use the Apache 2.x filter in production,
+    please let us know about it. Your web server should have SSL enabled.
 
     You will need OpenSSL 0.9.7a or newer.
 
@@ -43,7 +42,9 @@ To build the Apache authentication filter:
 
 To build:
 
-    ./configure
+    ./configure --enable-apache1=/path/to/apache1/apxs
+	OR
+    ./configure --enable-apache2=/path/to/apache2/apxs
     make
     make install
     mkdir -p /var/cosign/filter
@@ -53,28 +54,22 @@ To build:
     sure to change APACHE_USER to the username defined in your
     httpd.conf file.
 
-    Finally, create a CA directory to hold your CA certificates.  Copy
-    the CAs (see the CAcerts directory in the root of the cosign source
-    distribution) to your CA dir and issue the c_rehash command
-    (c_rehash is a perl script that ships with openssl).  If you choose
-    to store your certs in '/usr/local/etc/apache/certs' then the
-    commands would be:
+    Users requiring kerberos tickets for their cosign-protected services
+    will want to add --enable-krb to the ./configure command line. GSSAPI
+    support in the filter can be added with --with-gss.
 
-	mkdir -p /usr/local/etc/apache/certs
-	cp CAcerts/* /usr/local/etc/apache/certs
-	c_rehash /usr/local/etc/apache/certs
-
-    output should look like:
-
-	Doing /usr/local/etc/apache/certs
-	umwebCA.pem => 4700e8dd.0
-	RSA-SSCA.pem => f73e89fd.0
-	entrust.pem => ed524cf5.0
+    Mac OS X web administrators will likely want to include an additional
+    option to the ./configure command line, --enable-universal-binaries.
+    This option ensures that the resulting filter contains support for
+    four architectures, and will load with the version of Apache 2.x
+    included with recent versions of Mac OS X.
 
 Configure Apache ( U of M specific example ):
 
     If you need a certificate, we can provide one signed by the umweb CA at
-    no cost. Self-signed certs will not work wih Cosign.
+    no cost. Self-signed certs will not work wih Cosign. You may also
+    purchase a commercial certificate. Please visit the Web Application
+    Sign-Up page at http://webservices.itcs.umich.edu/ for more info.
 
     NOTE: When filling out the CSR, you will be prompted for the CN. It
     says "Common Name (eg, YOUR name) []:" - despite what the prompt
@@ -98,6 +93,14 @@ Configure Apache ( U of M specific example ):
     CosignPostErrorRedirect https://weblogin.umich.edu/cosign/post_error.html
     CosignService		<e-mail to cosign@umich.edu and we will assign>
     CosignCrypto		/path/to/key /path/to/cert /path/to/CAdir
+    CosignValidReference	^https?:\/\/.*\.umich\.edu(/.*)?
+    CosignValidationErrorRedirect  http://weblogin.umich.edu/cosign/validation_error.html
+    <Location /cosign/valid>
+	SetHandler	cosign
+	CosignProtected	Off
+	Allow from all
+	Satisfy any
+    </Location>
 
     NOTE: trailing slash is required on CosignRedirect! The redirects
     won't work correctly without it.
@@ -119,6 +122,20 @@ Apache Configuration Options:
 	    governs whether Cosign is invoked or not
 
 	CosignHostname		[ the name of the host running cosignd ]
+	CosignValidReference	[ a regular expression matching valid
+				service URLs. After the user logs into
+				a service, they are redirected to the
+				validation URL (e.g.,
+				https://mail.example.edu/cosign/valid),
+				where mod_cosign checks the user's cookie
+				and compares the service URL to the value
+				set by CosignValidReference. If the cookie
+				and service URL are good, mod_cosign
+				redirects to the service URL. ]
+	CosignValidationErrorRedirect	[ the URL to redirect to if the
+					validation handler URL cannot
+					validate the service cookie or the
+					service URL. ]
 	CosignRedirect		[ the URL of the cosign login cgi ]
 	CosignPostErrorRedirect	[ the URL to redirect to if the user
 				would be redirected to the login cgi
@@ -150,6 +167,26 @@ Apache Configuration Options:
 	CosignGetProxyCookies	[ on | off ]
 	    module asks for proxy cookies from cosignd
 
+	Cosign 3.0 introduces the validation handler URL for services,
+	allowing services to be more restrictive about redirections and
+	cookies within the cosign environment. Apache must be configured
+	to set mod_cosign as the handler for a special URI. Consult your
+	weblogin administrators for the correct settings in your own
+	environment. This Location block will generally be enough for
+	your cosign 3.0 service:
+
+	    <Location /cosign/valid>
+		SetHandler	cosign
+		CosignProtected	Off
+		Allow from any
+		Satisfy all
+	    </Location>
+
+	NOTE: a Location block for '/' in which CosignProtected is set to
+	On will override the /cosign/valid Location block. If you need to
+	cosign-protect the document root, set CosignProtected to On in the
+	virtual host context, not in the <Location /> block.
+
 The certificate CN of the weblogin server must match CosignHostname.
 
 --------
@@ -158,6 +195,7 @@ The certificate CN of the weblogin server must match CosignHostname.
     --enable-krb=path_to_krb5		enables Kerberos V
     --enable-apache1=path_to_apxs_1.3	enables Apache 1.3 filter
     --enable-apache2=path_to_apxs_2	enables Apache 2 filter
+    --enable-universal-binaries		build universal binaries (Mac OS X)
     --with-GSS				enables GSSAPI
     --with-filterdb=DIR         	overrides default of /var/cosign/filter
 
