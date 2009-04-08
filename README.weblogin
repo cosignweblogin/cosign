@@ -55,14 +55,15 @@ To build the central cosign server ( the weblogin server ):
     server.
 
 	./configure --enable-apache1=/path/to/apxs --enable-krb=/path/to/krb5
+	    OR
+	./configure --enable-apache2=/path/to/apxs --enable-krb=/path/to/krb5
 	make everything
 	make install-all
 	mkdir -p /var/cosign/daemon
 	chown DAEMON_USER /var/cosign/daemon
     
-    --enable-apache2=/path/to/apxs may also work.  The daemon
-    (cosignd) requires  /var/cosign/daemon to exist and be writeable
-    by the user the daemon runs as, by default "cosign".
+    The daemon (cosignd) requires  /var/cosign/daemon to exist and be
+    writeable by the user the daemon runs as, by default "cosign".
 
     Also, in order to avoid the warning:
 
@@ -93,10 +94,18 @@ Configuring Apache:
 
 	CosignProtected		Off
 	CosignHostname		cosign.edu
+	CosignValidReference	^https://.*\.cosign\.edu(/.*)?
+	CosignValidationErrorRedirect	http://cosign.edu/validation_error.html
 	CosignRedirect          https://cosign.edu/cosign-bin/cosign.cgi
 	CosignPostErrorRedirect https://cosign.edu/cosign/post_error.html
 	CosignService           simpleservice
 	CosignCrypto            /path/to/server.key /path/to/server.cert /path/to/CA-dir
+	<Location /cosign/valid>
+	    SetHandler		cosign
+	    CosignProtected	Off
+	    Allow from all
+	    Satisfy any
+	</Location>
 
 	Alias /cosign/ "/usr/local/cosign/html/"
 	ScriptAlias /cosign-bin/ "/usr/local/cosign/cgi-ssl/"
@@ -210,4 +219,4 @@ Testing your certificates:
 
 Questions?
 
-    cosign-discuss@umich.edu
+    cosign-discuss@lists.sourceforge.net

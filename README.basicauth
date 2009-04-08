@@ -31,7 +31,9 @@ To build the central cosign server ( the weblogin server ):
     SSO community for which you will be providing the central login
     server.
 
-	./configure
+	./configure --enable-apache1=/path/to/apache1/apxs
+	    OR
+	./configure --enable-apache2=/path/to/apache2/apxs
 	make everything
 	make install-all
 	mkdir -p /var/cosign/daemon
