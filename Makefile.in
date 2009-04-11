@@ -1,3 +1,5 @@
+srcdir=		@srcdir@
+
 CC=	@CC@
 ALL=	common libsnet libcgi cgi html daemon 
 FILTERS= @FILTERS@ 
@@ -15,7 +17,7 @@ cgi:	libcgi
 
 ${ALL}:	version.o
 
-${ALL} filters/apache filters/apache2:	FRC
+${ALL} filters/apache filters/apache2 filters/lighttpd:	FRC
 	cd $@; ${MAKE} ${MFLAGS} all
 
 FRC:

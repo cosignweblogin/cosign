@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002 Regents of The University of Michigan.
+ * Copyright (c) 2009 Regents of The University of Michigan.
  * All Rights Reserved.  See COPYRIGHT.
  */
 
@@ -18,14 +18,20 @@
 #include <fcntl.h>
 #include <ctype.h>
 
-#include <httpd.h>
-#include <http_log.h>
 
 #define OPENSSL_DISABLE_OLD_DES_SUPPORT
 #include <openssl/ssl.h>
 #include <openssl/err.h>
 
 #include <snet.h>
+
+#ifdef LIGHTTPD
+#include "base.h"
+#include "logging.h"
+#else /* !LIGHTTPD, Apache headers */
+#include <httpd.h>
+#include <http_log.h>
+#endif /* LIGHTTPD */
 
 #include "argcargv.h"
 #include "sparse.h"
@@ -38,8 +44,8 @@
 #define MIN(a,b)        ((a)<(b)?(a):(b))
 #endif 
 
-static int connect_sn( struct connlist *, cosign_host_config *, server_rec * );
-static void close_sn( struct connlist *, server_rec * );
+static int connect_sn( struct connlist *, cosign_host_config *, void * );
+static void close_sn( struct connlist *, void * );
 static void (*logger)( char * ) = NULL;
 
 static struct timeval		timeout = { 10 * 60, 0 };
@@ -52,7 +58,7 @@ static double             	rate;
 
     static int
 netcheck_cookie( char *scookie, struct sinfo *si, struct connlist *conn,
-	server_rec *s, cosign_host_config *cfg )
+	void *s, cosign_host_config *cfg )
 {
     int			i, j, ac, rc, fc = cfg->reqfc;
     char		*p, *line, **av, **fv = cfg->reqfv;
@@ -202,7 +208,7 @@ netcheck_cookie( char *scookie, struct sinfo *si, struct connlist *conn,
 
     static int
 netretr_proxy( char *scookie, struct sinfo *si, SNET *sn, char *proxydb,
-	server_rec *s )
+	void *s )
 {
     int			fd;
     char		*line;
@@ -329,7 +335,7 @@ netretr_proxy( char *scookie, struct sinfo *si, SNET *sn, char *proxydb,
 #ifdef KRB
     static int
 netretr_ticket( char *scookie, struct sinfo *si, SNET *sn, char *tkt_prefix,
-	server_rec *s )
+	void *s )
 {
     char		*line;
     char                tmpkrb[ 16 ], krbpath [ MAXPATHLEN ];
@@ -453,7 +459,7 @@ error1:
 #endif /* KRB */
 
     int
-teardown_conn( struct connlist **cur, server_rec *s )
+teardown_conn( struct connlist **cur, void *s )
 {
 
     /* close down all children on exit */
@@ -467,7 +473,7 @@ teardown_conn( struct connlist **cur, server_rec *s )
 
     int
 cosign_check_cookie( char *scookie, struct sinfo *si, cosign_host_config *cfg,
-	int first, server_rec *s )
+	int first, void *s )
 {
     struct connlist	**cur, *tmp;
     int			rc = COSIGN_ERROR, retry = 0;
@@ -569,7 +575,7 @@ done:
 }
 
     static int
-connect_sn( struct connlist *cl, cosign_host_config *cfg, server_rec *s )
+connect_sn( struct connlist *cl, cosign_host_config *cfg, void *s )
 {
     int			sock, zero = 0, ac = 0;
     char		*line, buf[ 1024 ], **av;
@@ -703,7 +709,7 @@ done:
 
 
     static void
-close_sn( struct connlist *cl, server_rec *s )
+close_sn( struct connlist *cl, void *s )
 {
     char		*line;
     struct timeval      tv;

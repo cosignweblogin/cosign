@@ -242,3 +242,36 @@ rted])
 	UNIVERSAL_OPTOPTS="-isysroot /Developer/SDKs/$macosx_sdk -arch i386 -arch x86_64 -arch ppc -arch ppc64 $dep_target"
     fi
 ])
+
+AC_DEFUN([CHECK_LIGHTTPD],
+[
+    AC_MSG_CHECKING(for lighttpd)
+ 
+    if test -d "$enableval"; then
+        echo "$enableval"
+        ac_cv_path_lighttpd="$enableval"
+    fi
+
+    if test ! -e "$ac_cv_path_lighttpd"; then
+	AC_MSG_ERROR(cannot find lighttpd)
+    fi
+
+    lighttpdincdirs="include src"
+    for incdir in $lighttpdincdirs; do
+	if test -e "$ac_cv_path_lighttpd/$incdir/base.h"; then
+	    LIGHTTPDINC="-I$ac_cv_path_lighttpd/$incdir"
+	    break
+	fi
+    done
+
+    if test -z "$LIGHTTPDINC"; then
+	AC_MSG_ERROR(cannot find lighttpd)
+    fi
+	
+    LIGHTTPD_COSIGN_SRCDIR=`pwd`
+
+    AC_SUBST(LIGHTTPD_COSIGN_SRCDIR)
+    AC_DEFINE(HAVE_LIGHTTPD)
+    FILTERS="$FILTERS filters/lighttpd"
+    AC_MSG_RESULT(lighttpd filter will be built)
+])

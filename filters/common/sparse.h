@@ -10,4 +10,4 @@ struct sinfo {
     time_t	si_itime;
 };
 
-int read_scookie( char *, struct sinfo *, server_rec * );
+int read_scookie( char *, struct sinfo *, void * );

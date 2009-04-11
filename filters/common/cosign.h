@@ -21,7 +21,9 @@ typedef struct {
     char                *posterror;
     char		*validref;
     char		*referr;
+#ifndef LIGHTTPD
     ap_regex_t		validpreg;
+#endif /* LIGHTTPD */
     unsigned short      port;
     int                 protect;
     int                 configured;
@@ -63,7 +65,7 @@ struct connlist {
 #define IPCHECK_ALWAYS		2
 
 int cosign_cookie_valid( cosign_host_config *, char *, struct sinfo *, char *,
-	server_rec * );
+	void * );
 int cosign_check_cookie( char *, struct sinfo *, cosign_host_config *, int,
-	server_rec * );
-int teardown_conn( struct connlist **, server_rec * );
+	void * );
+int teardown_conn( struct connlist **, void * );

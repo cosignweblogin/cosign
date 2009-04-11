@@ -20,6 +20,8 @@ AC_ARG_ENABLE(apache1, AC_HELP_STRING([--enable-apache1=path_to_apache1.3-apxs],
 
 AC_ARG_ENABLE(apache2, AC_HELP_STRING([--enable-apache2=path_to_apache2-apxs], [enable apache 2 filter]), CHECK_APACHE2, AC_MSG_RESULT( apache 2 not enabled))
 
+AC_ARG_ENABLE(lighttpd, AC_HELP_STRING([--enable-lighttpd=path_to_lighttpd], [enable lighttpd filter]), CHECK_LIGHTTPD, AC_MSG_RESULT( lighttpd not enabled))
+
 AC_ARG_ENABLE(krb, AC_HELP_STRING([--enable-krb=path_to_krb], [enable kerberos for the cgi and apache filter]), CHECK_LIBKRB, AC_MSG_RESULT( kerberos not enabled))
 
 AC_ARG_ENABLE(mysql, AC_HELP_STRING([--enable-mysql=path_to_mysql], [enable mysql for guest login support in the cgi]), CHECK_LIBMYSQL, AC_MSG_RESULT( mysql not enabled))

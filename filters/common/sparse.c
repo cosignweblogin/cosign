@@ -12,12 +12,18 @@
 #include <string.h>
 #include <fcntl.h>
 
-#include <httpd.h>
-#include <http_log.h>
 
 #include <openssl/ssl.h>
 #include <openssl/err.h>
 #include <snet.h>
+
+#ifdef LIGHTTPD
+#include "base.h"
+#include "logging.h"
+#else /* !LIGHTTPD */
+#include <httpd.h>
+#include <http_log.h>
+#endif /* LIGHTTPD */
 
 #include "sparse.h"
 #include "log.h"
@@ -25,7 +31,7 @@
 #define MAXLEN 256
 
     int
-read_scookie( char *path, struct sinfo *si, server_rec *s )
+read_scookie( char *path, struct sinfo *si, void *s )
 {
     SNET	*sn;
     struct stat	st;
