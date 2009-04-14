@@ -43,6 +43,7 @@ int		tlsopt = 0;
 int		idle_out_time = 60 * 60 * 2;
 int		grey_time = 60 * 30;
 int		hashlen = 0;
+int		strict_checks = 1;
 char		*cosign_dir = _COSIGN_DIR;
 char		*cosign_tickets = _COSIGN_TICKET_CACHE;
 char		*cosign_conf = _COSIGN_CONF;
@@ -95,6 +96,12 @@ daemon_configure()
 
     if (( val = cosign_config_get( COSIGNDBHASHLENKEY )) != NULL ) {
 	hashlen = atoi( val );
+    }
+
+    if (( val = cosign_config_get( COSIGNSTRICTCHECKKEY )) != NULL ) {
+	if ( strcasecmp( val, "off" ) == 0 ) {
+	    strict_checks = 0;
+	}
     }
 }
 
