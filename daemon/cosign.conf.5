@@ -192,6 +192,13 @@ transaction. The default is 4 minutes.
 .TP 19
 .B cosignport
 This is the port on which cosignd listens. The default is 6663.
+.TP 19
+.B cosignstrictcheck
+This can be set to "on" or "off". Enable or disable strict limitations on
+cookie access. If enabled, cosignd will only allow a client to check
+cookies associated with the client's certificate Common Name. If
+disabled, cosignd does not enforce any limitations on cookie checks.
+The default value is "on", enabling strict checking.
 .sp
 .SH "SET" CONFIG FILE OPTIONS - CGIs
 .TP 19
