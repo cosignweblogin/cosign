@@ -43,6 +43,7 @@
 extern int			idle_out_time;
 extern int			grey_time;
 extern int			hashlen;
+extern int			strict_checks;
 extern struct timeval		cosign_net_timeout;
 extern struct sockaddr_in	cosign_sin;
 extern char			*cosign_tickets;
@@ -986,7 +987,7 @@ f_check( SNET *sn, int ac, char *av[], SNET *pushersn )
     }
 
     if ( strncmp( av[ 1 ], "cosign-", 7 ) == 0 ) {
-	if ( service_valid( av[ 1 ] ) == NULL ) {
+	if ( strict_checks && service_valid( av[ 1 ] ) == NULL ) {
 	    snet_writef( sn, "%d CHECK: Invalid cookie\r\n", 534 );
 	    return( 1 );
 	}
