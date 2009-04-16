@@ -5,6 +5,7 @@
 #define ap_regcomp	regcomp
 #define ap_regexec	regexec
 #define ap_regerror	regerror
+#define AP_REG_EXTENDED	REG_EXTENDED
 #define AP_REG_NOMATCH	REG_NOMATCH
 #endif /* !HAVE_AP_REGEX_H */
 
