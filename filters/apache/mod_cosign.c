@@ -1176,6 +1176,12 @@ static command_rec cosign_cmds[ ] =
         { NULL }
 };
 
+static const handler_rec cosign_handlers[] = {
+    { "cosign", cosign_handler },
+
+    { NULL }
+};
+
 module MODULE_VAR_EXPORT cosign_module = {
     STANDARD_MODULE_STUFF, 
     cosign_init,	    /* module initializer                 */
@@ -1184,13 +1190,13 @@ module MODULE_VAR_EXPORT cosign_module = {
     cosign_create_server_config, /* create per-server config structures */
     NULL,                  /* merge  per-server config structures */
     cosign_cmds,           /* table of config file commands       */
-    NULL,		   /* [#8] MIME-typed-dispatched handlers */
+    cosign_handlers,       /* [#8] MIME-typed-dispatched handlers */
     NULL,                  /* [#1] URI to filename translation    */
     cosign_authn,          /* [#4] validate user id from request  */
     NULL,                  /* [#5] check if the user is ok _here_ */
     cosign_auth,           /* [#3] check access by host address   */
     NULL,                  /* [#6] determine MIME type            */
-    cosign_handler,	   /* [#7] pre-run fixups                 */
+    NULL,	   	   /* [#7] pre-run fixups                 */
     NULL,  	  	   /* [#9] log a transaction              */
     NULL,                  /* [#2] header parser                  */
     NULL,                  /* child_init                          */
