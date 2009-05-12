@@ -2,9 +2,7 @@
 #ifndef HAVE_AP_REGEX_H 
 #define ap_regex_t	regex_t
 #define ap_regmatch_t	regmatch_t
-#define ap_regcomp	regcomp
-#define ap_regexec	regexec
-#define ap_regerror	regerror
+
 #define AP_REG_EXTENDED	REG_EXTENDED
 #define AP_REG_NOMATCH	REG_NOMATCH
 #endif /* !HAVE_AP_REGEX_H */
@@ -23,7 +21,7 @@ typedef struct {
     char		*validref;
     char		*referr;
 #ifndef LIGHTTPD
-    ap_regex_t		validpreg;
+    ap_regex_t		*validpreg;
 #endif /* LIGHTTPD */
     unsigned short      port;
     int                 protect;

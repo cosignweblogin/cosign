@@ -58,6 +58,7 @@ cosign_create_config( apr_pool_t *p )
     cfg->redirect = NULL;
     cfg->posterror = NULL;
     cfg->validref = NULL;
+    cfg->validpreg = NULL;
     cfg->referr = NULL;
     cfg->port = 0;
     cfg->protect = -1;
@@ -231,9 +232,9 @@ cosign_handler( request_rec *r )
 
 	goto validation_failed;
     }
-    if (( rc = ap_regexec( &cfg->validpreg, dest, 1, matches, 0 )) != 0 ) {
+    if (( rc = ap_regexec( cfg->validpreg, dest, 1, matches, 0 )) != 0 ) {
 	if ( rc != AP_REG_NOMATCH ) {
-	    ap_regerror( rc, &cfg->validpreg, error, sizeof( error ));
+	    ap_regerror( rc, cfg->validpreg, error, sizeof( error ));
 	    cosign_log( APLOG_ERR, r->server,
 			"mod_cosign: ap_regexec %s: %s", dest, error );
 	    return( HTTP_INTERNAL_SERVER_ERROR );
@@ -608,20 +609,17 @@ set_cosign_post_error( cmd_parms *params, void *mconfig, const char *arg )
 set_cosign_valid_reference( cmd_parms *params, void *mconfig, const char *arg )
 {
     cosign_host_config		*cfg;
-    char			error[ 1024 ];
-    int				rc;
 
     cfg = cosign_merge_cfg( params, mconfig );
 
     cfg->validref = apr_pstrdup( params->pool, arg );
-    if (( rc = ap_regcomp( &cfg->validpreg, cfg->validref,
+    if (( cfg->validpreg = ap_pregcomp( params->pool, cfg->validref,
 		AP_REG_EXTENDED )) != 0 ) {
-	ap_regerror( rc, &cfg->validpreg, error, sizeof( error ));
 	cosign_log( APLOG_ERR, params->server,
-		    "mod_cosign: set_cosign_valid_reference: %s", error );
-	return( "ap_regcomp failed" );
+		"mod_cosign: set_cosign_valid_reference: ap_pregcomp %s failed",
+		cfg->validref );
+	return( "ap_pregcomp failed" );
     }
-    /* no ap_regfree required: compiled regex lasts the lifetime of httpd */
 
     cfg->configured = 1;
 
