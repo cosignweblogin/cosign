@@ -614,7 +614,7 @@ set_cosign_valid_reference( cmd_parms *params, void *mconfig, const char *arg )
 
     cfg->validref = apr_pstrdup( params->pool, arg );
     if (( cfg->validpreg = ap_pregcomp( params->pool, cfg->validref,
-		AP_REG_EXTENDED )) != 0 ) {
+		AP_REG_EXTENDED )) == NULL ) {
 	cosign_log( APLOG_ERR, params->server,
 		"mod_cosign: set_cosign_valid_reference: ap_pregcomp %s failed",
 		cfg->validref );
