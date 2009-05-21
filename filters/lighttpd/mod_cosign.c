@@ -881,7 +881,7 @@ cosign_handler( server *srv, connection *con, plugin_data *p_d )
     }
     qs = con->uri.query->ptr;
 
-    if ( strncasecmp( qs, "cosign-", strlen( "cosign" )) != 0 ) {
+    if ( strncasecmp( qs, "cosign-", strlen( "cosign-" )) != 0 ) {
 	log_error_write( srv, __FILE__, __LINE__, "ss",
 		    "mod_cosign: invalid service in query string", qs );
 	goto validation_failed;
