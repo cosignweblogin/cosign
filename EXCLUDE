@@ -7,3 +7,5 @@ EXCLUDE
 NOTES
 ./configure.ac
 ./configure
+./.git
+autom4te.cache
