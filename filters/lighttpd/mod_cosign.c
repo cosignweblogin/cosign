@@ -1,5 +1,6 @@
 #include <sys/types.h>
 #include <sys/param.h>
+#include <sys/stat.h>
 #include <sys/times.h>
 
 #include <assert.h>
@@ -466,6 +467,7 @@ cosign_set_crypto( server *srv, plugin_data *p_d, array *crypto )
     data_string		*cert = NULL;
     data_string		*key = NULL;
     data_string		*cadir = NULL;
+    struct stat		st;
 
     if ( p->pd_cfg->ctx != NULL ) {
 	/* already configured */
@@ -483,6 +485,12 @@ cosign_set_crypto( server *srv, plugin_data *p_d, array *crypto )
 	return( -1 );
     }
 
+    if ( stat( cadir->value->ptr, &st ) != 0 ) {
+	log_error_write( srv, __FILE__, __LINE__, "sbs",
+		"mod_cosign: stat CApath ", cadir->value, strerror( errno ));
+	return( -1 );
+    }
+
     if ( access( cert->value->ptr, R_OK ) != 0 ) {
 	log_error_write( srv, __FILE__, __LINE__, "sb",
 		"mod_cosign: read cert", cert->value, "failed." );
@@ -493,9 +501,15 @@ cosign_set_crypto( server *srv, plugin_data *p_d, array *crypto )
 		"mod_cosign: read key", key->value, "failed." );
 	return( -1 );
     }
-    if ( access( cadir->value->ptr, R_OK ) != 0 ) {
+    if ( S_ISDIR( st.st_mode )) {
+	if ( access( cadir->value->ptr, R_OK | X_OK ) != 0 ) {
+	    log_error_write( srv, __FILE__, __LINE__, "sb",
+		    "mod_cosign: read CAdir ", cadir->value, "failed." );
+	    return( -1 );
+	}
+    } else if ( access( cadir->value->ptr, R_OK ) != 0 ) {
 	log_error_write( srv, __FILE__, __LINE__, "sb",
-		"mod_cosign: read cadir", cadir->value, "failed." );
+		"mod_cosign: read CAfile ", cadir->value, "failed." );
 	return( -1 );
     }
 
@@ -527,10 +541,18 @@ cosign_set_crypto( server *srv, plugin_data *p_d, array *crypto )
 		ERR_error_string( ERR_get_error(), NULL ));
 	return( -1 );
     }
-    if ( SSL_CTX_load_verify_locations( p->pd_cfg->ctx, NULL,
-		cadir->value->ptr  ) != 1 ) {
+    if ( S_ISDIR( st.st_mode )) {
+	if ( SSL_CTX_load_verify_locations( p->pd_cfg->ctx, NULL,
+		    cadir->value->ptr  ) != 1 ) {
+	    log_error_write( srv, __FILE__, __LINE__, "ss",
+		    "mod_cosign: CAdir SSL_CTX_load_verify_locations:",
+		    ERR_error_string( ERR_get_error(), NULL ));
+	    return( -1 );
+	}
+    } else if ( SSL_CTX_load_verify_locations( p->pd_cfg->ctx,
+		cadir->value->ptr, NULL ) != 1 ) {
 	log_error_write( srv, __FILE__, __LINE__, "ss",
-		"mod_cosign: SSL_CTX_load_verify_locations:",
+		"mod_cosign: CAfile SSL_CTX_load_verify_locations:",
 		ERR_error_string( ERR_get_error(), NULL ));
 	return( -1 );
     }
