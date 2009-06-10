@@ -5,6 +5,7 @@
 
 #include <sys/types.h>
 #include <sys/time.h>
+#include <sys/stat.h>
 #include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -972,9 +973,15 @@ cosign_config( char *path )
 }
 
     int
-cosign_ssl( char *cryptofile, char *certfile, char *cadir, SSL_CTX **ctx )
+cosign_ssl( char *cryptofile, char *certfile, char *capath, SSL_CTX **ctx )
 {
     SSL_CTX	*tmp, *old;
+    struct stat	st;
+
+    if ( stat( capath, &st ) != 0 ) {
+	fprintf( stderr, "stat %s: %s\n", capath, strerror( errno ));
+	return( 1 );
+    }
 
     if ( access( cryptofile, R_OK ) != 0 ) {
         perror( cryptofile );
@@ -986,9 +993,16 @@ cosign_ssl( char *cryptofile, char *certfile, char *cadir, SSL_CTX **ctx )
         return( 1 );
     }
 
-    if ( access( cadir, X_OK ) != 0 ) {
-        perror( cadir );
-        return( 1 );
+    if ( S_ISDIR( st.st_mode )) {
+	if ( access( capath, X_OK ) != 0 ) {
+	    perror( capath );
+	    return( 1 );
+	}
+    } else {
+	if ( access( capath, R_OK ) != 0 ) {
+	    perror( capath );
+	    return( 1 );
+	}
     }
 
     if (( tmp = SSL_CTX_new( SSLv23_method())) == NULL ) {
@@ -1013,10 +1027,16 @@ cosign_ssl( char *cryptofile, char *certfile, char *cadir, SSL_CTX **ctx )
 		ERR_error_string( ERR_get_error(), NULL ));
 	return( 1 );
     }
-    if ( SSL_CTX_load_verify_locations( tmp, NULL, cadir ) != 1 ) {
+    if ( S_ISDIR( st.st_mode )) {
+	if ( SSL_CTX_load_verify_locations( tmp, NULL, capath ) != 1 ) {
+	    fprintf( stderr, "SSL_CTX_load_verify_location: %s\n",
+		    ERR_error_string( ERR_get_error(), NULL ));
+	    return( 1 );
+	}
+    } else if ( SSL_CTX_load_verify_locations( tmp, capath, NULL ) != 1 ) {
 	fprintf( stderr, "SSL_CTX_load_verify_location: %s\n",
-                ERR_error_string( ERR_get_error(), NULL ));
-        return( 1 );
+		ERR_error_string( ERR_get_error(), NULL ));
+	return( 1 );
     }
 
     SSL_CTX_set_verify( tmp,

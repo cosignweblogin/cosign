@@ -898,6 +898,7 @@ set_cosign_certs( cmd_parms *params, void *mconfig,
 	char *one, char *two, char *three)
 {
     cosign_host_config		*cfg;
+    struct stat			st;
 
     cfg = cosign_merge_cfg( params, mconfig );
 
@@ -908,6 +909,10 @@ set_cosign_certs( cmd_parms *params, void *mconfig,
     if (( cfg->key == NULL ) || ( cfg->cert == NULL ) ||
 	    ( cfg->cadir == NULL)) {
 	return( "You know you want the crypto!" );
+    }
+
+    if ( stat( cfg->cadir, &st ) != 0 ) {
+	return( "An error occurred checking the CAdir." );
     }
 
     if ( access( cfg->key, R_OK ) != 0 ) {
@@ -948,10 +953,18 @@ set_cosign_certs( cmd_parms *params, void *mconfig,
 		ERR_error_string( ERR_get_error(), NULL ));
 	exit( 1 );
     }
-    if ( SSL_CTX_load_verify_locations( cfg->ctx, NULL, cfg->cadir ) != 1 ) {
+    if ( S_ISDIR( st.st_mode )) {
+	if ( SSL_CTX_load_verify_locations( cfg->ctx, NULL, cfg->cadir ) != 1) {
+	    cosign_log( APLOG_ERR, params->server,
+		    "SSL_CTX_load_verify_locations: CAdir %s: %s\n",
+		    cfg->cadir, ERR_error_string( ERR_get_error(), NULL ));
+	    exit( 1 );
+	}
+    } else if ( SSL_CTX_load_verify_locations( cfg->ctx,
+		cfg->cadir, NULL ) != 1 ) {
 	cosign_log( APLOG_ERR, params->server,
-		"SSL_CTX_load_verify_locations: %s: %s\n",
-		cfg->key, ERR_error_string( ERR_get_error(), NULL ));
+		"SSL_CTX_load_verify_locations: CAfile %s: %s\n",
+		cfg->cadir, ERR_error_string( ERR_get_error(), NULL ));
 	exit( 1 );
     }
     SSL_CTX_set_verify( cfg->ctx,
