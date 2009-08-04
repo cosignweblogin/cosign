@@ -10,6 +10,7 @@
 #include <http_request.h>
 #include <ap_config.h>
 #include <sys/socket.h>
+#include <sys/stat.h>
 #include <arpa/inet.h>
 #include <string.h>
 #include <unistd.h>
