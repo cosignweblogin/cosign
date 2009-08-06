@@ -648,7 +648,12 @@ set_cosign_service( cmd_parms *params, void *mconfig, const char *arg )
 
     cfg = cosign_merge_cfg( params, mconfig );
 
-    cfg->service = apr_psprintf( params->pool,"cosign-%s", arg );
+    if ( strncmp( arg, "cosign-", strlen( "cosign-" )) == 0 ) {
+	cfg->service = apr_pstrdup( params->pool, arg );
+    } else {
+	cfg->service = apr_psprintf( params->pool, "cosign-%s", arg );
+    }
+
     cfg->configured = 1;
     return( NULL );
 }
