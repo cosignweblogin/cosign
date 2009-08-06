@@ -49,6 +49,11 @@ AC_DEFUN([CHECK_LIBKRB],
 	echo "using krb as '$enableval'";
 	if test -f "$enableval/include/krb5.h"; then
 	    ac_cv_path_krb=$enableval
+	    krb_include="$enableval/include"
+	elif test -f "$enableval/include/kerberosV/krb5.h"; then
+	    # handle NetBSD's krb5 pathing
+	    ac_cv_path_krb=$enableval
+	    krb_include="$enableval/include/kerberosV"
 	fi
     else
 	krbdirs="/usr/local/kerberos /usr/lib/kerberos /usr/kerberos \
@@ -58,6 +63,11 @@ AC_DEFUN([CHECK_LIBKRB],
 	    for krbdir in $krbdirs; do
 		if test -f "$krbdir/include/krb5.h"; then
 		    ac_cv_path_krb=$krbdir
+		    krb_include="$krbdir/include"
+		    break;
+		elif test -f "$krbd/include/kerberosV/krb5.h"; then
+		    ac_cv_path_krb=$krbdir
+		    krb_include="$krbdir/include/kerberosV"
 		    break;
 		fi
 	    done
@@ -70,7 +80,7 @@ AC_DEFUN([CHECK_LIBKRB],
     AC_SUBST(KRBCGI)
     KRBDEFS=-DKRB;
     AC_SUBST(KRBDEFS)
-    KINC="-I$ac_cv_path_krb/include";
+    KINC="-I$krb_include";
     AC_SUBST(KINC)
     KLIBS="-lkrb5 -lk5crypto -lcom_err";
     AC_SUBST(KLIBS)
