@@ -27,7 +27,7 @@
 #include "logname.h"
 #include "rate.h"
 #include "monster.h"
-#include "config.h"
+#include "conf.h"
 
 /* idle_cache = (grey+idle) from cosignd, plus loggedout_cache here */
 int		idle_cache = (60 * 30) +  (60 * 60 * 2) + (60 * 60 * 2);

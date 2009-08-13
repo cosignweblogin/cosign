@@ -29,7 +29,7 @@
 #include <snet.h>
 
 #include "command.h"
-#include "config.h"
+#include "conf.h"
 #include "cparse.h"
 #include "mkcookie.h"
 #include "rate.h"

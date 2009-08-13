@@ -8,8 +8,8 @@ CFLAGS=         ${DEFS} ${OPTOPTS} @CFLAGS@ ${INCPATH}
 
 ################ Nothing below should need editing ###################
 
-SRC= argcargv.c config.c fbase64.c mkcookie.c rate.c wildcard.c
-COMMONOBJ= argcargv.o config.o fbase64.o mkcookie.o rate.o wildcard.o
+SRC= argcargv.c conf.c fbase64.c mkcookie.c rate.c wildcard.c
+COMMONOBJ= argcargv.o conf.o fbase64.o mkcookie.o rate.o wildcard.o
 
 all : ${COMMONOBJ}
 

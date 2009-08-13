@@ -15,8 +15,8 @@
 
 #include <snet.h>
 #include <cgi.h>
-#include <config.h>
 
+#include "conf.h"
 #include "factor.h"
 
     int

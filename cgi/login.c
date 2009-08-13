@@ -26,7 +26,7 @@
 
 #include "cosigncgi.h"
 #include "login.h"
-#include "config.h"
+#include "conf.h"
 #include "network.h"
 #include "subfile.h"
 #include "mkcookie.h"

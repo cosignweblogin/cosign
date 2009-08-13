@@ -29,7 +29,7 @@ CFLAGS=      ${DEFS} ${OPTOPTS} @CFLAGS@ ${INCPATH}
 
 
 OBJ     = network.o subfile.o ../common/mkcookie.o ../common/fbase64.o \
-	../common/config.o ../common/wildcard.o ../common/argcargv.o \
+	../common/conf.o ../common/wildcard.o ../common/argcargv.o \
 	../version.o 
 TARGETS = logout cosign.cgi
 

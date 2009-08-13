@@ -20,7 +20,7 @@
 #include <snet.h>
 
 #include "wildcard.h"
-#include "config.h"
+#include "conf.h"
 #include "argcargv.h"
 
 struct cosigncfg {

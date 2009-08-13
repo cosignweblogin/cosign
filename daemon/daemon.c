@@ -26,7 +26,7 @@
 
 #include "logname.h"
 #include "command.h"
-#include "config.h"
+#include "conf.h"
 #include "rate.h"
 #include "monster.h"
 #include "pusher.h"

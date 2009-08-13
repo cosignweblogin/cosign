@@ -26,7 +26,7 @@
 
 #include "argcargv.h"
 #include "cosigncgi.h"
-#include "config.h"
+#include "conf.h"
 #include "network.h"
 #include "mkcookie.h"
 

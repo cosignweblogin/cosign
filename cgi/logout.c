@@ -15,7 +15,7 @@
 #include <snet.h>
 
 #include "cgi.h"
-#include "config.h"
+#include "conf.h"
 #include "cosigncgi.h"
 #include "network.h"
 #include "subfile.h"
