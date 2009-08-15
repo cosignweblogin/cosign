@@ -1,6 +1,6 @@
 ################## Some of this may need to be edited ##################
 
-INCPATH=        @CPPFLAGS@ -I../libsnet
+INCPATH=        @CPPFLAGS@ -I../libsnet -I.
 CC=             @CC@
 
 OPTOPTS=	@OPTOPTS@ @UNIVERSAL_OPTOPTS@

@@ -3,6 +3,8 @@
  * All Rights Reserved.  See LICENSE.
  */
 
+#include "config.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

@@ -16,12 +16,9 @@ LIGHTTPD_BUILD_CONF=	lighttpd-build.conf
 
 all :
 	@sed -e "s#_COSIGN_SRC_DIR#@LIGHTTPD_COSIGN_SRCDIR@#g" \
-		-e "s#_TLSDEFS#@TLSDEFS@#g" \
-		-e "s#_KRBDEFS#@KRBDEFS@#g" \
 		-e "s#_KINC#@KINC@#g" \
 		-e "s#_KLIBS#@KLIBS@#g" \
 		-e "s#_KLDFLAGS#@KLDFLAGS@#g" \
-		-e "s#_GSSDEFS#@GSSDEFS@#g" \
 		-e "s#_GSSINC#@GSSINC@#g" \
 		-e "s#_GSSLIBS#@GSSLIBS@#g" \
 		-e "s#_GSSLDFLAGS#@GSSLDFLAGS@#g" \

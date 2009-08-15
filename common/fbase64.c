@@ -1,3 +1,5 @@
+#include "config.h"
+
 #include "fbase64.h"
 
 static char	etab_high6[ 256 ] = {

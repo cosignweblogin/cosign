@@ -3,6 +3,8 @@
  * All Rights Reserved.  See LICENSE.
  */
 
+#include "config.h"
+
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <unistd.h>

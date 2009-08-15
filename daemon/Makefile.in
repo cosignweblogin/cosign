@@ -24,7 +24,7 @@ COSIGNSYSLOG=LOG_DAEMON
 INCPATH=        @CPPFLAGS@ -I../common -I../libsnet 
 OPTOPTS=        @OPTOPTS@ @UNIVERSAL_OPTOPTS@
 CC=             @CC@
-DEFS=           @TLSDEFS@ -D_COSIGN_TICKET_CACHE=\"${COSIGNTICKETCACHE}\"
+DEFS=           -D_COSIGN_TICKET_CACHE=\"${COSIGNTICKETCACHE}\"
 LIBS=           -lsnet @LIBS@
 LDFLAGS=        -L../libsnet/.libs @LDFLAGS@ ${LIBS}
 INSTALL=        @INSTALL@

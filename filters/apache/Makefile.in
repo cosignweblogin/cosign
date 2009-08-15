@@ -12,9 +12,9 @@ INSTALL=       	@INSTALL@
 
 #   additional user defines, includes and libraries
 
-INCPATH=        @CPPFLAGS@ -I../../libsnet @GSSINC@ -I../../common/ -I../common/
+INCPATH=        -I../../common @CPPFLAGS@ -I../../libsnet @GSSINC@ -I../common/
 OPTOPTS=        @OPTOPTS@
-DEFS=           @TLSDEFS@ @KRBDEFS@ @GSSDEFS@
+DEFS=
 LIBS=           @GSSLIBS@ @ADDLIBS@
 LDFLAGS=        @GSSLDFLAGS@ @ADDLDFLAGS@ @LDFLAGS@ @FILTER_LINKER_OPTS@ ${LIBS}
 

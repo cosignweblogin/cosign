@@ -12,8 +12,7 @@ mod_cosign_la_SOURCES = \
 	$(cosign_src)/filters/common/cookiefs.c \
 	$(cosign_src)/filters/common/sparse.c   \
 	$(cosign_src)/filters/common/cosign.h
-mod_cosign_la_CPPFLAGS = -DLIGHTTPD _TLSDEFS _KRBDEFS _GSSDEFS   	\
-	-I$(cosign_src)/filters/lighttpd                        	\
+mod_cosign_la_CPPFLAGS = -I$(cosign_src)/filters/lighttpd               \
 	-I$(cosign_src)/common -I$(cosign_src)/filters/common   	\
 	-I$(cosign_src)/libsnet						\
 	_KINC _GSSINC

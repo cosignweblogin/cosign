@@ -32,12 +32,9 @@ AC_DEFUN([CHECK_SSL],
     esac
 
     CPPFLAGS="$CPPFLAGS -I$ac_cv_path_ssl/include";
-    TLSDEFS=-DHAVE_LIBSSL;
-    AC_SUBST(TLSDEFS)
+    AC_DEFINE(HAVE_LIBSSL)
     LIBS="$LIBS -lssl -lcrypto";
     LDFLAGS="$LDFLAGS -L$ac_cv_path_ssl/lib";
-    HAVE_SSL=yes
-    AC_SUBST(HAVE_SSL)
     AC_MSG_RESULT($ac_cv_path_ssl)
 ])
 
@@ -78,16 +75,13 @@ AC_DEFUN([CHECK_LIBKRB],
     fi
     KRBCGI="cosign.cgi"
     AC_SUBST(KRBCGI)
-    KRBDEFS=-DKRB;
-    AC_SUBST(KRBDEFS)
     KINC="-I$krb_include";
     AC_SUBST(KINC)
     KLIBS="-lkrb5 -lk5crypto -lcom_err";
     AC_SUBST(KLIBS)
     KLDFLAGS="-L$ac_cv_path_krb/lib";
     AC_SUBST(KLDFLAGS)
-    HAVE_KRB=yes
-    AC_SUBST(HAVE_KRB)
+    AC_DEFINE(KRB)
     AC_MSG_RESULT(Kerberos found at $ac_cv_path_krb)
 ])
 
@@ -115,13 +109,11 @@ AC_DEFUN([CHECK_APACHE2],
     fi
     APXS2_INCLUDEDIR="`${APXS2} -q INCLUDEDIR`"
     if test -f "$APXS2_INCLUDEDIR/ap_regex.h"; then
-	APACHE2_HAVE_AP_REGEX_H="-DHAVE_AP_REGEX_H"
+	AC_DEFINE(HAVE_AP_REGEX_H)
     fi
     AC_SUBST(APXS2)
     AC_SUBST(APACHECTL2)
-    AC_SUBST(APACHE2_HAVE_AP_REGEX_H)
-    HAVE_APACHE2=yes
-    AC_SUBST(HAVE_APACHE2)
+    AC_DEFINE(APACHE2)
     AC_MSG_RESULT(apache 2 filter will be built)
 
 ])
@@ -132,16 +124,13 @@ AC_DEFUN([CHECK_GSS],
     if test ! -e "$ac_cv_path_krb" ; then
         AC_MSG_ERROR(gss require krb5 libraries)
     fi
-    GSSDEFS=-DGSS;
-    AC_SUBST(GSSDEFS)
     GSSINC="-I$ac_cv_path_krb/include";
     AC_SUBST(GSSINC)
     GSSLIBS="-lgssapi_krb5 -lkrb5 -lk5crypto -lcom_err";
     AC_SUBST(GSSLIBS)
     GSSLDFLAGS="-L$ac_cv_path_krb/lib";
     AC_SUBST(GSSLDFLAGS)
-    HAVE_GSS=yes
-    AC_SUBST(HAVE_GSS)
+    AC_DEFINE(GSS)
     AC_MSG_RESULT($ac_cv_path_krb)
 ])
 
@@ -161,7 +150,6 @@ AC_DEFUN([CHECK_APACHE_1],
         AC_MSG_ERROR(cannot find apache 1.3)
     fi
 
-    HAVE_APACHE=yes
     FILTERS="$FILTERS filters/apache"
     APXS_TARGET="`$APXS -q TARGET`"
     if test x_$APXS_TARGET = x_httpd ; then
@@ -171,6 +159,7 @@ AC_DEFUN([CHECK_APACHE_1],
     fi
     AC_SUBST(APXS)
     AC_SUBST(APACHECTL)
+    AC_DEFINE(APACHE1)
     AC_MSG_RESULT(apache 1.3 filter will be built)
 
 ])
@@ -197,10 +186,8 @@ AC_DEFUN([CHECK_LIBMYSQL],
     AC_SUBST(MYSQLLIBS)
     MYSQLLDFLAGS="-L$ac_cv_path_mysql/lib/mysql -R$ac_cv_path_mysql/lib/mysql";
     AC_SUBST(MYSQLLDFLAGS)
-    SQLDEFS=-DSQL_FRIEND
-    AC_SUBST(SQLDEFS)
-    HAVE_MYSQL=yes
-    AC_SUBST(HAVE_MYSQL)
+    AC_DEFINE(HAVE_MYSQL)
+    AC_DEFINE(SQL_FRIEND)
     AC_MSG_RESULT($ac_cv_path_mysql)
 ])
 

@@ -2,6 +2,8 @@
  *  mod_cosign.c -- Apache sample cosign module
  */ 
 
+#include "config.h"
+
 #include <httpd.h>
 #include <http_config.h>
 #include <http_core.h>

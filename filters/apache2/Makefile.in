@@ -29,9 +29,9 @@ APXS2JUNKDIRS=	../../common/.libs ../common/.libs ../../libsnet/.libs \
 
 #   additional user defines, includes and libraries
 
-INCPATH=        @CPPFLAGS@ -I../../libsnet @GSSINC@ -I../../common/ -I../common/
+INCPATH=        -I../../common @CPPFLAGS@ -I../../libsnet @GSSINC@ -I../common
 OPTOPTS=        @OPTOPTS@
-DEFS=           -DAPXS2 @APACHE2_HAVE_AP_REGEX_H@ @TLSDEFS@ @KRBDEFS@ @GSSDEFS@
+DEFS=
 LIBS=           @GSSLIBS@ @ADDLIBS@
 LDFLAGS=        @GSSLDFLAGS@ @ADDLDFLAGS@ @LDFLAGS@ @FILTER_LINKER_OPTS@ ${LIBS}
 
