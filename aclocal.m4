@@ -167,18 +167,25 @@ AC_DEFUN([CHECK_APACHE_1],
 AC_DEFUN([CHECK_LIBMYSQL],
 [
     AC_MSG_CHECKING(for mysql)
-    mysqldirs="/usr /usr/local/mysql /usr/lib/mysql /usr/mysql \
-            /usr/pkg /usr/local /usr"
-    AC_CACHE_VAL(ac_cv_path_mysql,[
-        for mysqldir in $mysqldirs; do
-            if test -f "$mysqldir/include/mysql/mysql.h"; then
-                ac_cv_path_mysql=$mysqldir
-                break;
-            fi
-        done
-    ])
-    if test ! -e "$ac_cv_path_mysql" ; then
-        AC_MSG_ERROR(cannot find mysql libraries)
+
+    if test -d "$enableval"; then
+	if test -f "$enableval/include/mysql/mysql.h"; then
+	    ac_cv_path_mysql=$enableval
+	fi
+    else
+	mysqldirs="/usr /usr/local/mysql /usr/lib/mysql /usr/mysql \
+		/usr/pkg /usr/local /usr"
+	AC_CACHE_VAL(ac_cv_path_mysql,[
+	    for mysqldir in $mysqldirs; do
+		if test -f "$mysqldir/include/mysql/mysql.h"; then
+		    ac_cv_path_mysql=$mysqldir
+		    break;
+		fi
+	    done
+	])
+	if test ! -e "$ac_cv_path_mysql" ; then
+	    AC_MSG_ERROR(cannot find mysql libraries)
+	fi
     fi
     MYSQLINC="-I$ac_cv_path_mysql/include/mysql";
     AC_SUBST(MYSQLINC)
