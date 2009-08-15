@@ -1,0 +1,21 @@
+
+/* openssl is required */
+#undef HAVE_LIBSSL
+
+/* kerberos and gssapi support */
+#undef KRB
+#undef GSS
+
+/* friend accounts */
+#undef HAVE_MYSQL
+#undef SQL_FRIEND
+
+/* Apache 1.3.x */
+#undef APACHE1
+
+/* Apache 2.x */
+#undef APACHE2
+#undef HAVE_AP_REGEX_H
+
+/* lighttpd */
+#undef LIGHTTPD
