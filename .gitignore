@@ -1,7 +1,7 @@
 Makefile
 autom4te.cache
 configure
-/config.h
+common/config.h
 config.log
 config.status
 cgi/cosign.cgi
