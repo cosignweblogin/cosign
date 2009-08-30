@@ -305,6 +305,8 @@ net_login( SNET *sn, void *vlp )
             fprintf( stderr, "login %s failed: %s\n",
 		lp->lp_user, strerror( errno ));
         }
+
+	goto error;
     }
 
 finish:
