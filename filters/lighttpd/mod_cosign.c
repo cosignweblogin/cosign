@@ -854,6 +854,7 @@ cosign_handler( server *srv, connection *con, plugin_data *p_d )
     int			cv;
     int			ovec[ 3 ];	/* pcre ovector, space for 1 match. */
     char		*qs = NULL;
+    char		*rekey = NULL;
     char		*pt;
     char		*ipaddr;
     char		timebuf[ 21 ]; /* enough to hold a string
@@ -955,7 +956,8 @@ cosign_handler( server *srv, connection *con, plugin_data *p_d )
 
     ipaddr = inet_ntoa( con->dst_addr.ipv4.sin_addr );
 
-    cv = cosign_cookie_valid( p->pd_cfg, cookie->ptr, &si, ipaddr, srv );
+    cv = cosign_cookie_valid( p->pd_cfg, cookie->ptr, &rekey,
+				&si, ipaddr, srv );
     switch ( cv ) {
     default:
     case COSIGN_ERROR:
@@ -966,6 +968,9 @@ cosign_handler( server *srv, connection *con, plugin_data *p_d )
 
 	buffer_free( dest );
 	buffer_free( cookie );
+	if ( rekey != NULL ) {
+	    free( rekey );
+	}
 
 	return( HANDLER_FINISHED );
 
@@ -991,6 +996,9 @@ cosign_handler( server *srv, connection *con, plugin_data *p_d )
 
 	buffer_free( dest );
 	buffer_free( cookie );
+	if ( rekey != NULL ) {
+	    free( rekey );
+	}
 
 	con->http_status = 301;			/* "moved permanently" */
 	con->mode = DIRECT;
@@ -1002,6 +1010,11 @@ cosign_handler( server *srv, connection *con, plugin_data *p_d )
 	break;
     }
 
+    if ( rekey != NULL ) {
+	buffer_free( cookie );
+	cookie = buffer_init_string( rekey );
+	free( rekey );
+    }
     buffer_append_string_len( cookie, CONST_STR_LEN( "/" ));
     gettimeofday( &now, NULL );
     memset( timebuf, 0, sizeof( timebuf ));
@@ -1145,7 +1158,8 @@ cosign_auth( server *srv, connection *con, plugin_data *p_d )
 
     ipaddr = inet_ntoa( con->dst_addr.ipv4.sin_addr );
 
-    cv = cosign_cookie_valid( p->pd_cfg, my_cookie->ptr, &si, ipaddr, srv );
+    cv = cosign_cookie_valid( p->pd_cfg, my_cookie->ptr, NULL,
+				&si, ipaddr, srv );
     if ( a ) { *a = '/'; }
 
     if ( cv == COSIGN_ERROR ) {

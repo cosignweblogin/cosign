@@ -175,6 +175,7 @@ cosign_handler( request_rec *r )
     const char		*pair, *key;
     const char		*dest = NULL;
     char		*cookie, *full_cookie;
+    char		*rekey = NULL;
     int			rc, cv;
     struct sinfo	si;
     struct timeval	now;
@@ -254,8 +255,14 @@ cosign_handler( request_rec *r )
 	goto validation_failed;
     }
 
-    cv = cosign_cookie_valid( cfg, cookie, &si, r->connection->remote_ip,
-	    r->server );
+    cv = cosign_cookie_valid( cfg, cookie, &rekey, &si,
+		r->connection->remote_ip, r->server );
+    if ( rekey != NULL ) {
+	/* we got a rekeyed cookie. let the request pool free it later. */
+	ap_register_cleanup( r->pool, (void *)rekey, free, ap_null_cleanup );
+	
+	cookie = rekey;
+    }
     switch ( cv ) {
     default:
     case COSIGN_ERROR:				
@@ -431,8 +438,8 @@ cosign_auth( request_rec *r )
      * version of the data, just verify the cookie's still valid.
      * Otherwise, retrieve the auth info from the server.
      */
-    cv = cosign_cookie_valid( cfg, my_cookie, &si, r->connection->remote_ip,
-	    r->server );	
+    cv = cosign_cookie_valid( cfg, my_cookie, NULL, &si,
+		r->connection->remote_ip, r->server );
 
     if ( cv == COSIGN_ERROR ) {
 	return( HTTP_SERVICE_UNAVAILABLE );

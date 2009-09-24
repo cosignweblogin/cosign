@@ -955,13 +955,15 @@ f_check( SNET *sn, int ac, char *av[], SNET *pushersn )
     struct cinfo 	ci;
     struct timeval	tv;
     char		login[ MAXCOOKIELEN ], path[ MAXPATHLEN ];
+    char		rekeybuf[ 128 ], rcookie[ 256 ], scpath[ MAXPATHLEN ];
     char		*p;
     int			status;
+    int			rekey = 0;
     double		rate;
 
     /*
-     * C: CHECK servicecookie
-     * S: 231 ip principal realm
+     * C: CHECK servicecookie [ "rekey" ]
+     * S: 231 ip principal realm [ rekeyed-cookie ]
      */
 
     /*
@@ -976,14 +978,25 @@ f_check( SNET *sn, int ac, char *av[], SNET *pushersn )
 	return( 1 );
     }
 
-    if ( ac != 2 ) {
-	syslog( LOG_ERR, "f_check: %s Wrong number of args.", al->al_hostname );
+    if ( ac < 2 && ac > 3 ) {
+	syslog( LOG_ERR, "f_check: %s: wrong number of args. "
+		"Expected 2 or 3, got %d", al->al_hostname, ac );
 	snet_writef( sn, "%d CHECK: Wrong number of args.\r\n", 530 );
 	return( 1 );
     }
+    if ( ac == 3 ) {
+	if ( protocol >= 2 && strcmp( av[ 2 ], "rekey" ) == 0 ) {
+	    rekey = 1;
+	} else {
+	    syslog( LOG_ERR, "f_check: %s: bad argument \"%s\".\r\n",
+		    al->al_hostname, av[ 2 ] );
+	    snet_writef( sn, "%d CHECK: Bad argument.\r\n", 535 );
+	    return( 1 );
+	}
+    }
 
     if ( mkcookiepath( NULL, hashlen, av[ 1 ], path, sizeof( path )) < 0 ) {
-	syslog( LOG_ERR, "f_check: mkcookiepath error." );
+	syslog( LOG_ERR, "f_check: mkcookiepath error" );
 	snet_writef( sn, "%d CHECK: Invalid cookie name.\r\n", 531 );
 	return( 1 );
     }
@@ -1003,8 +1016,19 @@ f_check( SNET *sn, int ac, char *av[], SNET *pushersn )
 	    snet_writef( sn, "%d CHECK: cookie not in db!\r\n", 533 );
 	    return( 1 );
 	}
+	if ( rekey ) {
+	    /* save service cookie path for rekeying below. */
+
+	    if ( strlen( path ) >= sizeof( scpath )) {
+		syslog( LOG_ERR, "f_check: %s exceeds bounds.", path );
+		snet_writef( sn, "%d CHECK: Invalid cookie name.\r\n", 531 );
+		return( 1 );
+	    }
+	    strcpy( scpath, path );
+	}
+
 	if ( mkcookiepath( NULL, hashlen, login, path, sizeof( path )) < 0 ) {
-	    syslog( LOG_ERR, "f_check: mkcookiepath error." );
+	    syslog( LOG_ERR, "f_check: mkcookiepath error.." );
 	    snet_writef( sn, "%d CHECK: Invalid cookie name.\r\n", 532 );
 	    return( 1 );
 	}
@@ -1070,16 +1094,51 @@ f_check( SNET *sn, int ac, char *av[], SNET *pushersn )
 		inet_ntoa( cosign_sin.sin_addr), rate);
     }
 
-    if ( protocol == 2 ) {
-	snet_writef( sn, "%d %s %s %s\r\n",
-		status, ci.ci_ipaddr_cur, ci.ci_user, ci.ci_realm );
+    if ( status == 231 && rekey ) {
+	/* rekey service cookie. */
+
+	if ( mkcookie( sizeof( rekeybuf ), rekeybuf ) != 0 ) {
+	    syslog( LOG_ERR, "f_check: rekey: mkcookie failed" );
+	    snet_writef( sn, "%d CHECK: rekey failed.\r\n", 536 );
+	    return( 1 );
+	}
+	if (( p = strchr( av[ 1 ], '=' )) == NULL ) {
+	    syslog( LOG_ERR, "f_check: rekey: bad service name \"%s\".", av[1]);
+	    snet_writef( sn, "%d CHECK rekey failed.\r\n", 536 );
+	    return( 1 );
+	}
+	*p = '\0';
+	if ( snprintf( rcookie, sizeof( rcookie ), "%s=%s", av[ 1 ], rekeybuf )
+		>= sizeof( rcookie )) {
+	    syslog( LOG_ERR, "f_check: rekey: new cookie too long." );
+	    snet_writef( sn, "%d CHECK rekey failed.\r\n", 536 );
+	    return( 1 );
+	}
+	*p = '=';
+	if ( mkcookiepath( NULL, hashlen, rcookie, path, sizeof( path )) < 0 ) {
+	    syslog( LOG_ERR, "f_check: rekey: mkcookiepath error." );
+	    snet_writef( sn, "%d CHECK: rekey failed.\r\n", 536 );
+	    return( 1 );
+	}
+	if ( rename( scpath, path ) != 0 ) {
+	    syslog( LOG_ERR, "f_check: rekey: rename %s to %s failed: %s.",
+			scpath, path, strerror( errno ));
+	    snet_writef( sn, "%d CHECK: rekey failed.\r\n", 536 );
+	    return( 1 );
+	}
+    }
+
+    if ( protocol >= 2 ) {
+	snet_writef( sn, "%d %s %s %s %s\r\n",
+		status, ci.ci_ipaddr_cur, ci.ci_user, ci.ci_realm,
+		( rekey ? rcookie : "" ));
     } else {
 	/* if there is more than one realm, we just give the first */
 	if (( p = strtok( ci.ci_realm, " " )) != NULL ) {
-	    snet_writef( sn, "%d %s %s %s\r\n",
+	    snet_writef( sn, "%d %s %s %s %s\r\n",
 		    status, ci.ci_ipaddr, ci.ci_user, p );
 	} else {
-	    snet_writef( sn, "%d %s %s %s\r\n",
+	    snet_writef( sn, "%d %s %s %s %s\r\n",
 		    status, ci.ci_ipaddr, ci.ci_user, ci.ci_realm );
 	}
 

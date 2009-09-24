@@ -63,8 +63,8 @@ struct connlist {
 #define IPCHECK_INITIAL		1
 #define IPCHECK_ALWAYS		2
 
-int cosign_cookie_valid( cosign_host_config *, char *, struct sinfo *, char *,
-	void * );
-int cosign_check_cookie( char *, struct sinfo *, cosign_host_config *, int,
-	void * );
+int cosign_cookie_valid( cosign_host_config *, char *, char **, struct sinfo *,
+	char *, void * );
+int cosign_check_cookie( char *, char **, struct sinfo *, cosign_host_config *,
+	int, void * );
 int teardown_conn( struct connlist **, void * );

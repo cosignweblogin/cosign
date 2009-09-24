@@ -40,8 +40,8 @@
 #define IDLETIME	60
 
     int
-cosign_cookie_valid( cosign_host_config *cfg, char *cookie, struct sinfo *si,
-	char *ipaddr, void *s )
+cosign_cookie_valid( cosign_host_config *cfg, char *cookie, char **rekey,
+	struct sinfo *si, char *ipaddr, void *s )
 {
     struct sinfo	lsi;
     ACAV		*acav;
@@ -49,7 +49,7 @@ cosign_cookie_valid( cosign_host_config *cfg, char *cookie, struct sinfo *si,
     int			i, j, newfile = 0;
     struct timeval	tv;
     char		path[ MAXPATHLEN ], tmppath[ MAXPATHLEN ];
-    char		**av;
+    char		**av, *p;
     FILE		*tmpf;
     extern int		errno;
 
@@ -153,7 +153,7 @@ retry:
     }
 
 netcheck:
-    if (( rc = cosign_check_cookie( cookie, si, cfg, newfile, s ))
+    if (( rc = cosign_check_cookie( cookie, rekey, si, cfg, newfile, s ))
 	    != COSIGN_OK ) {
 	if ( rc == COSIGN_ERROR ) {
 	    cosign_log( APLOG_ERR, s, "mod_cosign: cosign_cookie_valid: "
@@ -221,6 +221,22 @@ netcheck:
 
     /* store local copy of scookie (service cookie) */
 storecookie:
+    if ( rekey != NULL ) {
+	if ( *rekey == NULL ) {
+	    /* shouldn't happen, but... */
+	    cosign_log( APLOG_ERR, s,
+		    "mod_cosign: cosign_cookie_valid: rekey value is empty!" );
+	    return( COSIGN_ERROR );
+	}
+	if ( mkcookiepath( cfg->filterdb, cfg->hashlen, *rekey,
+		path, sizeof( path )) < 0 ) {
+	    cosign_log( APLOG_ERR, s, "mod_cosign: cosign_cookie_valid: "
+			"new cookie path too long" );
+	    free( *rekey );
+	    return( COSIGN_ERROR );
+	}
+    }
+
     if ( snprintf( tmppath, sizeof( tmppath ), "%s/%x%x.%i", cfg->filterdb,
 	    (int)tv.tv_sec, (int)tv.tv_usec, (int)getpid()) >=
 	    sizeof( tmppath )) {
