@@ -233,7 +233,18 @@ The path to this file can be set at compile time using the
 cosignkeytab setting or
 .IR krb5_kt_default_name (3)
 will be used at run time to identify the default keytab file for the uid
-running the CGI. The default it "NULL"
+running the CGI. The default is "NULL".
+.TP 19
+.B cosignprincipal
+The principal name to use with
+.B cosignkeytab
+option. If set,
+.B cosign.cgi
+will attempt to find this principal within the keytab set by
+.B cosignkeytab
+and use it to verify the user's credentials. The default principal name
+.B cosign.cgi
+uses is "cosign/<hostname_of_cgi_server>".
 .TP 19
 .B cosignlogouturl
 This is the URL the logout cgi will redirect a user to upon successful

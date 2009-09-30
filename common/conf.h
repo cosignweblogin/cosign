@@ -67,6 +67,7 @@ struct matchlist {
 #define COSIGNTMPLDIRKEY	"cosigntmpldir"
 #define COSIGNHOSTKEY		"cosignhost"
 #define COSIGNKEYTABKEY		"cosignkeytab"
+#define COSIGNPRINCIPALKEY	"cosignprincipal"
 #define	COSIGNLOGOUTURLKEY	"cosignlogouturl"
 #define COSIGNTIMEOUTKEY	"cosignnettimeout"
 #define COSIGNPORTKEY		"cosignport"

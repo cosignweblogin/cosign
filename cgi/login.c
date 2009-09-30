@@ -38,6 +38,7 @@
 #ifdef KRB
 static char	*keytab_path = _KEYTAB_PATH;
 static char	*ticket_path = _COSIGN_TICKET_CACHE;
+static char	*cosign_princ = NULL;
 #endif /* KRB */
 
 extern char	*cosign_host, *cosign_conf;
@@ -80,6 +81,9 @@ lcgi_configure()
     }
     if (( val = cosign_config_get( COSIGNTICKKEY )) != NULL ) {
         ticket_path = val;
+    }
+    if (( val = cosign_config_get( COSIGNPRINCIPALKEY )) != NULL ) {
+	cosign_princ = val;
     }
 # endif /* KRB */
 
@@ -230,6 +234,7 @@ cosign_login_krb5( struct connlist *head, char *cosignname, char *id,
     krb5_ccache                 kccache;
     krb5_keytab                 keytab = 0;
     char			*tmpl = ERROR_HTML; 
+    char			*sprinc_name = NULL;
     char                        ktbuf[ MAX_KEYTAB_NAME_LEN + 1 ];
     char                        tmpkrb[ 16 ], krbpath [ MAXPATHLEN ];
     int				i;
@@ -328,8 +333,13 @@ cosign_login_krb5( struct connlist *head, char *cosignname, char *id,
 	    exit( 0 );
 	}
 
-	if (( kerror = krb5_sname_to_principal( kcontext, NULL, "cosign",
-		KRB5_NT_SRV_HST, &sprinc )) != 0 ) {
+	if ( cosign_princ ) {
+	    kerror = krb5_parse_name( kcontext, cosign_princ, &sprinc );
+	} else {
+	    kerror = krb5_sname_to_principal( kcontext, NULL, "cosign",
+			KRB5_NT_SRV_HST, &sprinc );
+	}
+	if ( kerror != 0 ) {
 	    sl[ SL_ERROR ].sl_data = (char *)error_message( kerror );
 	    sl[ SL_TITLE ].sl_data = "Server Principal Error";
 	    subfile( tmpl, sl, 0 );
@@ -338,6 +348,13 @@ cosign_login_krb5( struct connlist *head, char *cosignname, char *id,
 
 	if (( kerror = krb5_verify_init_creds(
 		kcontext, &kcreds, sprinc, keytab, NULL, kvic_opts )) != 0 ) {
+	    if ( krb5_unparse_name( kcontext, sprinc, &sprinc_name ) == 0 ) {
+		fprintf( stderr, "ticket verify error for "
+			 "user %s, keytab principal %s", id, sprinc_name );
+		free( sprinc_name );
+	    } else {
+		fprintf( stderr, "ticket verify error for user %s", id );
+	    }
 	    sl[ SL_ERROR ].sl_data = (char *)error_message( kerror );
 	    sl[ SL_TITLE ].sl_data = "Ticket Verify Error";
 	    subfile( tmpl, sl, 0 );
