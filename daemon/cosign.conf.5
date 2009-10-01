@@ -246,6 +246,19 @@ and use it to verify the user's credentials. The default principal name
 .B cosign.cgi
 uses is "cosign/<hostname_of_cgi_server>".
 .TP 19
+.B cosignstoretickets
+Used by the cgi to determine whether kerberos tickets should be stored in
+a ccache after a successful kerberos login. Valid values are
+.B on
+and
+.BR off .
+The default is
+.BR on .
+.TP 19
+.B cosignticketlifetime
+Sets the lifetime in seconds of the kerberos ticket-granting ticket (TGT)
+created by a successful kerberos login. The default is 10 hours.
+.TP 19
 .B cosignlogouturl
 This is the URL the logout cgi will redirect a user to upon successful
 completion of logout. It can be overriden by passing a URL on the query

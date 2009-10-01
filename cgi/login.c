@@ -11,6 +11,7 @@
 #include <netinet/in.h>
 #include <openssl/ssl.h>
 #include <netinet/in.h>
+#include <errno.h>
 # ifdef SQL_FRIEND
 #include <crypt.h>
 # endif
@@ -33,12 +34,16 @@
 #include "subfile.h"
 #include "mkcookie.h"
 
+extern int	errno;
+
 #if defined( KRB ) || defined( SQL_FRIEND )
 
 #ifdef KRB
 static char	*keytab_path = _KEYTAB_PATH;
 static char	*ticket_path = _COSIGN_TICKET_CACHE;
 static char	*cosign_princ = NULL;
+int		store_tickets = 1;
+krb5_deltat	tkt_life = ( 10 * 60 * 60 );
 #endif /* KRB */
 
 extern char	*cosign_host, *cosign_conf;
@@ -85,6 +90,22 @@ lcgi_configure()
     if (( val = cosign_config_get( COSIGNPRINCIPALKEY )) != NULL ) {
 	cosign_princ = val;
     }
+    if (( val = cosign_config_get( COSIGNSTORETICKETSKEY )) != NULL ) {
+	if ( strcasecmp( val, "off" ) == 0 ) {
+	    store_tickets = 0;
+	}
+    }
+    if (( val = cosign_config_get( COSIGNTICKETLIFETIMEKEY )) != NULL ) {
+	errno = 0;
+	tkt_life = (krb5_deltat)strtol( val, NULL, 10 );
+	if ( errno ) {
+	    fprintf( stderr, "warning: bad %s value \"%s\", "
+			"using default of 10hrs...",
+			COSIGNTICKETLIFETIMEKEY, val );
+	    tkt_life = ( 10 * 60 * 60 );
+	}
+    }
+	
 # endif /* KRB */
 
 # ifdef SQL_FRIEND
@@ -266,30 +287,32 @@ cosign_login_krb5( struct connlist *head, char *cosignname, char *id,
     	}
     }
 
-    if ( mkcookie( sizeof( tmpkrb ), tmpkrb ) != 0 ) {
-	sl[ SL_ERROR ].sl_data = "An unknown error occurred.";
-	sl[ SL_TITLE ].sl_data = "Authentication Required ( kerberos error )";
-	subfile( tmpl, sl, 0 );
-	exit( 0 );
-    }
+    if ( store_tickets ) {
+	if ( mkcookie( sizeof( tmpkrb ), tmpkrb ) != 0 ) {
+	    sl[ SL_ERROR ].sl_data = "An unknown error occurred.";
+	    sl[ SL_TITLE ].sl_data = "Authentication Required (kerberos error)";
+	    subfile( tmpl, sl, 0 );
+	    exit( 0 );
+	}
 
-    if ( snprintf( krbpath, sizeof( krbpath ), "%s/%s",
-	    ticket_path, tmpkrb ) >= sizeof( krbpath )) {
-	sl[ SL_ERROR ].sl_data = "An unknown error occurred.";
-	sl[ SL_TITLE ].sl_data = "Authentication Required ( krbpath error )";
-	subfile( tmpl, sl, 0 );
-	exit( 0 );
-    }
+	if ( snprintf( krbpath, sizeof( krbpath ), "%s/%s",
+		ticket_path, tmpkrb ) >= sizeof( krbpath )) {
+	    sl[ SL_ERROR ].sl_data = "An unknown error occurred.";
+	    sl[ SL_TITLE ].sl_data = "Authentication Required (krbpath error)";
+	    subfile( tmpl, sl, 0 );
+	    exit( 0 );
+	}
 
-    if (( kerror = krb5_cc_resolve( kcontext, krbpath, &kccache )) != 0 ) {
-	sl[ SL_ERROR ].sl_data = (char *)error_message( kerror );
-	sl[ SL_TITLE ].sl_data = "Authentication Required ( kerberos error )";
-	subfile( tmpl, sl, 0 );
-	exit( 0 );
+	if (( kerror = krb5_cc_resolve( kcontext, krbpath, &kccache )) != 0 ) {
+	    sl[ SL_ERROR ].sl_data = (char *)error_message( kerror );
+	    sl[ SL_TITLE ].sl_data = "Authentication Required (kerberos error)";
+	    subfile( tmpl, sl, 0 );
+	    exit( 0 );
+	}
     }
 
     krb5_get_init_creds_opt_init( &kopts );
-    krb5_get_init_creds_opt_set_tkt_life( &kopts, 10*60*60 );
+    krb5_get_init_creds_opt_set_tkt_life( &kopts, tkt_life );
     krb5_get_init_creds_opt_set_renew_life( &kopts, 0 );
     krb5_get_init_creds_opt_set_forwardable( &kopts, 1 );
     krb5_get_init_creds_opt_set_proxiable( &kopts, 0 );
@@ -380,29 +403,30 @@ cosign_login_krb5( struct connlist *head, char *cosignname, char *id,
 	return( COSIGN_CGI_OK );
     }
 
-    if (( kerror = krb5_cc_initialize( kcontext, kccache, kprinc )) != 0 ) {
-	sl[ SL_ERROR ].sl_data = (char *)error_message( kerror );
-	sl[ SL_TITLE ].sl_data = "CC Initialize Error";
-	subfile( tmpl, sl, 0 );
-	exit( 0 );
-    }
-
-    if (( kerror = krb5_cc_store_cred( kcontext, kccache, &kcreds ))
-	    != 0 ) {
-	sl[ SL_ERROR ].sl_data = (char *)error_message( kerror );
-	sl[ SL_TITLE ].sl_data = "CC Storing Error";
-	subfile( tmpl, sl, 0 );
-	exit( 0 );
+    if ( store_tickets ) {
+	if (( kerror = krb5_cc_initialize( kcontext, kccache, kprinc )) != 0 ) {
+	    sl[ SL_ERROR ].sl_data = (char *)error_message( kerror );
+	    sl[ SL_TITLE ].sl_data = "CC Initialize Error";
+	    subfile( tmpl, sl, 0 );
+	    exit( 0 );
+	}
+	if (( kerror = krb5_cc_store_cred( kcontext, kccache, &kcreds ))
+		!= 0 ) {
+	    sl[ SL_ERROR ].sl_data = (char *)error_message( kerror );
+	    sl[ SL_TITLE ].sl_data = "CC Storing Error";
+	    subfile( tmpl, sl, 0 );
+	    exit( 0 );
+	}
+	krb5_cc_close( kcontext, kccache );
     }
 
     krb5_free_cred_contents( kcontext, &kcreds );
     krb5_free_principal( kcontext, kprinc );
-    krb5_cc_close( kcontext, kccache );
     krb5_free_context( kcontext );
 
     /* password has been accepted, tell cosignd */
     if ( cosign_login( head, cookie, ip_addr, cosignname, realm, 
-	    krbpath ) < 0 ) {
+	    ( store_tickets ? krbpath : NULL )) < 0 ) {
 	fprintf( stderr, "cosign_login_krb5: login failed\n") ;
 	sl[ SL_ERROR ].sl_data = "We were unable to contact the "
 		"authentication server. Please try again later.";
