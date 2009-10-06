@@ -8,6 +8,7 @@ COSIGNCERT=@cosigncert@
 COSIGNKEY=@cosignkey@
 COSIGNHOST = @cosignhost@
 COSIGNLOGOUTURL = @cosignlogouturl@
+COSIGNLOGOUTREGEX = @cosignlogoutregex@
 COSIGNLOOPURL = @cosignloopurl@
 COSIGNTMPLDIR = @prefix@/templates
 COSIGNTICKETCACHE = @ticketcache@
@@ -62,6 +63,7 @@ logout.o:	logout.c
 	${CC} ${CFLAGS} \
 	-D_COSIGN_HOST=\"${COSIGNHOST}\" \
 	-D_COSIGN_LOGOUT_URL=\"${COSIGNLOGOUTURL}\" \
+	-D_COSIGN_LOGOUT_RE=\"${COSIGNLOGOUTREGEX}\" \
 	-D_COSIGN_TLS_CADIR=\"${COSIGNCADIR}\" \
 	-D_COSIGN_TLS_CERT=\"${COSIGNCERT}\" \
 	-D_COSIGN_TLS_KEY=\"${COSIGNKEY}\" \

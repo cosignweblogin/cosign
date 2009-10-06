@@ -70,6 +70,9 @@ AC_SUBST(cosignhost)
 AC_ARG_WITH(cosignlogouturl, AC_HELP_STRING([--with-cosignlogouturl=URL], [default URL to redirect users to upon logout]), cosignlogouturl="$withval", cosignlogouturl="http://cosign.example.edu" )
 AC_SUBST(cosignlogouturl)
 
+AC_ARG_WITH(cosignlogoutregex, AC_HELP_STRING([--with-cosignlogoutregex=URL], [regular expression matching valid redirect URLs passed to the logout cgi]), cosignlogoutregex="$withval", cosignlogoutregex="http://.+\.example\.edu" )
+AC_SUBST(cosignlogoutregex)
+
 AC_ARG_WITH(cosignloopurl, AC_HELP_STRING([--with-cosignloopurl=URL], [default URL to redirect users to upon detecting an infinite loop]), cosignloopurl="$withval", cosignloopurl="http://cosign.example.edu/looping.html" )
 AC_SUBST(cosignloopurl)
 

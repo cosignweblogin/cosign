@@ -5,15 +5,16 @@
 
 #include "config.h"
 
+#include <sys/types.h>
+#include <sys/param.h>
+#include <sys/time.h>
+#include <netinet/in.h>
+#include <openssl/ssl.h>
+#include <regex.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <sys/time.h>
-#include <sys/types.h>
-#include <sys/param.h>
-#include <netinet/in.h>
-#include <openssl/ssl.h>
 #include <snet.h>
 
 #include "cgi.h"
@@ -29,6 +30,7 @@ char		*cryptofile = _COSIGN_TLS_KEY;
 char		*cadir = _COSIGN_TLS_CADIR;
 char		*tmpldir = _COSIGN_TMPL_DIR;
 char		*cosign_conf = _COSIGN_CONF;
+char		*cosign_logout_re = _COSIGN_LOGOUT_RE;
 
 unsigned short	cosign_port;
 SSL_CTX         *ctx = NULL;
@@ -61,6 +63,9 @@ logout_configure()
     if (( val = cosign_config_get( COSIGNLOGOUTURLKEY )) != NULL ) {
 	sl[ SL_URL ].sl_data = val;
     }
+    if (( val = cosign_config_get( COSIGNLOGOUTREGEXKEY )) != NULL ) {
+	cosign_logout_re = val;
+    }
     if (( val = cosign_config_get( COSIGNKEYKEY )) != NULL ) {
         cryptofile = val;
     }
@@ -78,6 +83,43 @@ logout_configure()
     } else {
 	cosign_port = htons( 6663 );
     }
+}
+
+/*
+ * -1: internal error
+ *  0: redirect URL OK
+ *  1: redirect URL doesn't match safe logout URL pattern
+ */
+    static int
+logout_url_check( char *url )
+{
+    regex_t		logout_re;
+    char		error[ 1024 ];
+    int			rc = -1;
+
+    /* compile regex matching valid logout redirect URLs */
+    if (( rc = regcomp( &logout_re, cosign_logout_re,
+			REG_EXTENDED | REG_ICASE | REG_NOSUB )) != 0 ) {
+	regerror( rc, &logout_re, error, sizeof( error ));
+	fprintf( stderr, "regcomp %s: %s\n", cosign_logout_re, error );
+
+	return( -1 );
+    }
+    if (( rc = regexec( &logout_re, url, 0, NULL, 0 ) != 0)) {
+	if ( rc != REG_NOMATCH ) {
+	    regerror( rc, &logout_re, error, sizeof( error ));
+	    fprintf( stderr, "regexec %s: %s\n",
+			cosign_logout_re, error );
+	    rc = -1;
+	} else {
+	    rc = 1;
+	}
+    } else {
+	rc = 0;
+    }
+    regfree( &logout_re );
+
+    return( rc );
 }
 
     int
@@ -134,8 +176,19 @@ main( int argc, char *argv[] )
 	if ((( qs = getenv( "QUERY_STRING" )) != NULL ) &&
 		( *qs != '\0' ) &&
 		( strncmp( qs, "http", 4 ) == 0 )) {
-	    /* query string looks like a url preserve it */
-	    sl[ SL_URL ].sl_data = strdup( qs );
+	    /* query string looks like a url, preserve it */
+
+	    if ( logout_url_check( qs ) == 0 ) {
+		/*
+		 * url matches admin-defined safe redirect URL pattern.
+		 * we don't really care if strdup fails here, as subfile
+		 * will do the right thing and skip the URL substitution
+		 * if sl_data is NULL. sl_data is not freed because we
+		 * exit immediately.
+		 */
+		sl[ SL_URL ].sl_data = strdup( qs );
+	    }
+	    /* if url check fails, default logout URL will be used */
 	}
 
 	sl[ SL_TITLE ].sl_data = "Logout Requested";
@@ -160,7 +213,9 @@ main( int argc, char *argv[] )
     if ( cl[ CL_URL ].cl_data != NULL ) {
 	/* oh the places you'll go */
         if ( strncmp( cl[ CL_URL ].cl_data, "http", 4 ) == 0 ) {
-	    sl[ SL_URL ].sl_data = cl[ CL_URL ].cl_data;
+	    if ( logout_url_check( cl[ CL_URL ].cl_data ) == 0 ) {
+		sl[ SL_URL ].sl_data = cl[ CL_URL ].cl_data;
+	    }
 	}
     }
 

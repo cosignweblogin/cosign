@@ -71,6 +71,7 @@ struct matchlist {
 #define COSIGNSTORETICKETSKEY	"cosignstoretickets"
 #define COSIGNTICKETLIFETIMEKEY	"cosignticketlifetime"
 #define	COSIGNLOGOUTURLKEY	"cosignlogouturl"
+#define	COSIGNLOGOUTREGEXKEY	"cosignlogoutregex"
 #define COSIGNTIMEOUTKEY	"cosignnettimeout"
 #define COSIGNPORTKEY		"cosignport"
 #define COSIGNLOOPURLKEY	"cosignloopurl"
