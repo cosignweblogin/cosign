@@ -579,6 +579,10 @@ done:
 	tmp->conn_next = *(cfg->cl);
 	*(cfg->cl) = tmp;
     }
+    if ( rekey && *rekey ) {
+	/* use the rekeyed cookie to request tickets and proxy cookies */
+	scookie = *rekey;
+    }
     if ( rc == COSIGN_LOGGED_OUT ) {
 	return( COSIGN_RETRY );
     } else {
