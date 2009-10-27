@@ -318,7 +318,7 @@ SETDEFAULTS_FUNC( mod_cosign_set_defaults )
 	s->referr = buffer_init();
 	s->port = 0;
 	s->protect = 0;
-	s->checkip = IPCHECK_INITIAL;
+	s->checkip = IPCHECK_NEVER;
 	s->crypto = array_init();
 	s->filterdb = buffer_init_string( _FILTER_DB );
 	s->hashlen = 0;

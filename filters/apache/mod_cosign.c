@@ -61,7 +61,7 @@ cosign_create_config( pool *p )
     cfg->port = 0;
     cfg->protect = -1;
     cfg->configured = 0;
-    cfg->checkip = IPCHECK_INITIAL;
+    cfg->checkip = IPCHECK_NEVER;
     cfg->cl = NULL;
     cfg->ctx = NULL;
     cfg->key = NULL;
