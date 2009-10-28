@@ -37,7 +37,7 @@ dist   : distclean
 	echo ${VERSION} > ${DISTDIR}/VERSION
 	sed -e "s@INTERNAL@${VERSION}@" \
 		< configure.ac > ${DISTDIR}/configure.ac
-	cd "${DISTDIR}"; autoconf
+	cd "${DISTDIR}"; autoconf; rm -rf autom4te.cache
 
 distclean: clean
 	( cd libsnet ; make distclean )
