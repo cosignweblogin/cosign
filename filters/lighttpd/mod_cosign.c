@@ -1171,7 +1171,8 @@ cosign_auth( server *srv, connection *con, plugin_data *p_d )
     }
 
     if ( cv == COSIGN_OK ) {
-	buffer_copy_string_len( con->authed_user, CONST_STR_LEN( si.si_user ));
+	buffer_copy_string_len( con->authed_user, si.si_user,
+		strlen( si.si_user ));
 
 	/*
 	 * set environment. array_insert_unique does not copy data, so
@@ -1190,7 +1191,7 @@ cosign_auth( server *srv, connection *con, plugin_data *p_d )
 	    ds = data_string_init();
 	}
 	buffer_copy_string_len( ds->key, CONST_STR_LEN( "REMOTE_REALM" ));
-	buffer_copy_string_len( ds->value, CONST_STR_LEN( si.si_realm ));
+	buffer_copy_string_len( ds->value, si.si_realm, strlen( si.si_realm ));
 	array_insert_unique( con->environment, (data_unset *)ds );
 
 	if (( ds = (data_string *)array_get_unused_element( con->environment,
@@ -1198,7 +1199,7 @@ cosign_auth( server *srv, connection *con, plugin_data *p_d )
 	    ds = data_string_init();
 	}
 	buffer_copy_string_len( ds->key, CONST_STR_LEN( "COSIGN_FACTOR" ));
-	buffer_copy_string_len( ds->value, CONST_STR_LEN( si.si_factor ));
+	buffer_copy_string_len( ds->value, si.si_factor, strlen(si.si_factor));
 	array_insert_unique( con->environment, (data_unset *)ds );
 
 #ifdef KRB
@@ -1209,7 +1210,8 @@ cosign_auth( server *srv, connection *con, plugin_data *p_d )
 		ds = data_string_init();
 	    }
 	    buffer_copy_string_len( ds->key, CONST_STR_LEN( "KRB5CCNAME" ));
-	    buffer_copy_string_len( ds->value, CONST_STR_LEN( si.si_krb5tkt ));
+	    buffer_copy_string_len( ds->value, si.si_krb5tkt,
+			strlen( si.si_krb5tkt ));
 	    array_insert_unique( con->environment, (data_unset *)ds );
 
 #ifdef GSS
