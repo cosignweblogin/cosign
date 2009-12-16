@@ -97,6 +97,9 @@ Associates a service cookie ( cosign-[servicename]= ) with a login cookie ( cosi
 CHECK
 Allows clients to retrieve information about a user based on the cookie presented to cosignd.
 .TP 10
+REKEY
+Same as CHECK, but additionally causes cosignd to generate a new service cookie value and return it as the last argument in the output. The client must use this value in subsequent checks, as it invalidates the service cookie value passed to cosignd.
+.TP 10
 TIME
 Allows daemons to propagate timestamp information for login cookies.
 .TP 10

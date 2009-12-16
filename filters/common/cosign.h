@@ -51,6 +51,8 @@ typedef struct {
 struct connlist {
     struct sockaddr_in  conn_sin;
     SNET                *conn_sn;
+    unsigned int	conn_capa;
+    unsigned int	conn_proto;
     struct connlist     *conn_next;
 };
 

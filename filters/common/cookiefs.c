@@ -36,6 +36,7 @@
 #include "mkcookie.h"
 #include "log.h"
 #include "cosign.h"
+#include "cosignproto.h"
 
 #define IDLETIME	60
 
@@ -108,7 +109,8 @@ retry:
 	 * set. reqfc > 0 requires protocol 2.
 	 */
 	si->si_protocol = lsi.si_protocol;
-	if ( cfg->reqfc > 0 && si->si_protocol == 2 ) {
+	if ( cfg->reqfc > 0 &&
+		COSIGN_PROTO_SUPPORTS_FACTORS( si->si_protocol )) {
 	    if (( acav = acav_alloc()) == NULL ) {
 		cosign_log( APLOG_ERR, s, "mod_cosign: cookie_valid:"
 			" acav_alloc failed" );
@@ -200,7 +202,7 @@ netcheck:
 	    goto storecookie;
 	}
 
-	if ( si->si_protocol == 2 ) {
+	if ( COSIGN_PROTO_SUPPORTS_FACTORS( si->si_protocol )) {
 	    if ( strcmp( si->si_factor, lsi.si_factor ) != 0 ) {
 		goto storecookie;
 	    }
@@ -223,16 +225,13 @@ netcheck:
 storecookie:
     if ( rekey != NULL ) {
 	if ( *rekey == NULL ) {
-	    /* shouldn't happen, but... */
-	    cosign_log( APLOG_ERR, s,
-		    "mod_cosign: cosign_cookie_valid: rekey value is empty!" );
-	    return( COSIGN_ERROR );
-	}
-	if ( mkcookiepath( cfg->filterdb, cfg->hashlen, *rekey,
+	    cosign_log( APLOG_INFO, s, "mod_cosign: cosign_cookie_valid: "
+			"rekey requested, but no rekeyed cookie returned, "
+			"using original cookie value" );
+	} else if ( mkcookiepath( cfg->filterdb, cfg->hashlen, *rekey,
 		path, sizeof( path )) < 0 ) {
 	    cosign_log( APLOG_ERR, s, "mod_cosign: cosign_cookie_valid: "
 			"new cookie path too long" );
-	    free( *rekey );
 	    return( COSIGN_ERROR );
 	}
     }
@@ -268,7 +267,7 @@ storecookie:
     fprintf( tmpf, "i%s\n", si->si_ipaddr );
     fprintf( tmpf, "p%s\n", si->si_user );
     fprintf( tmpf, "r%s\n", si->si_realm );
-    if ( si->si_protocol == 2 ) {
+    if ( COSIGN_PROTO_SUPPORTS_FACTORS( si->si_protocol )) {
 	fprintf( tmpf, "f%s\n", si->si_factor );
     }
 
