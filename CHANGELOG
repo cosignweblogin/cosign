@@ -1,3 +1,19 @@
+3.0.2
+	filter: use ap_pregcomp to compile regexes
+
+3.0.1
+	daemon: add cosignstrictcheck configuration option
+	filter: register handler correctly for apache1
+	filter: allow extended regular expressions in CosignValidReference
+
+3.0.0
+	common: implement cosign v3 scheme to address COSIGN-VULN-2009-002,
+		see http://weblogin.org/cosign-vuln-2009-002.txt
+
+2.1.1
+	cgi: escape login name to address COSIGN-VULN-2009-001,
+		see http://weblogin.org/cosign-vuln-2009-001.txt
+
 2.1.0
 	common: improved configure option passing
 	common: added --enable-universal-binaries
