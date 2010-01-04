@@ -6,7 +6,7 @@
  *
  * banner from cosignd 3.1+:
  *
- * "220 2 Collaborative Web Single Sign-On [COSIGNv3 STARTTLS REKEY ...]"
+ * "220 2 Collaborative Web Single Sign-On [COSIGNv3 FACTORS=N REKEY ...]"
  *
  * 
  */
@@ -14,7 +14,7 @@ struct capability {
     char		*capa_name;
     unsigned int	capa_nlen;
     unsigned int	capa_mask;
-    int			(*capa_cb)( int, char *, void * );
+    int			(*capa_cb)( int, char *, int, void * );
 };
 
 #define COSIGN_CAPA_DEFAULTS	0

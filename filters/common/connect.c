@@ -624,7 +624,7 @@ done:
  * cosignd capabilities are sent to client in a whitespace separated list
  * bounded by square brackets:
  * 
- * "220 2 Collaborative Web Single Sign-On [COSIGNv3 REKEY FACTORS=5 ...]"
+ * "220 2 Collaborative Web Single Sign-On [COSIGNv3 FACTORS=5 REKEY ...]"
  *
  * the capability list must begin with "[COSIGNv<protocol_number>".
  */
@@ -632,7 +632,7 @@ done:
 capa_parse( int capac, char **capav, struct connlist *cl, void *s )
 {
     char		*tmp = NULL;
-    int			i, j;
+    int			i, j, len;
     int			ncapa;
 
     if ( capac < 1 ) {
@@ -696,21 +696,29 @@ capa_parse( int capac, char **capav, struct connlist *cl, void *s )
 	cl->conn_capa |= caps[ j ].capa_mask;
 
 	/*
-	 * check for capability list termination & process any attached 
-	 * capability values (CAPA=VAL). capav[ i ] is at least capa_nlen
-	 * chars long, as tested by strncasecmp above.
+	 * check for capability list termination. capav[ i ] is at least
+	 * capa_nlen chars long, as tested by strncasecmp above.
 	 */
 	tmp = ( capav[ i ] + caps[ j ].capa_nlen );
+
+#ifdef notdef
+	/* process any attached values (CAPA=VAL) if callback is non-NULL */
 	if ( *tmp == '=' && caps[ j ].capa_cb != NULL ) {
 	    tmp++;
-	    if ( *tmp != '\0' ) {
-		if ( (*(caps[ j ].capa_cb))( j, tmp, s ) != 0 ) {
+	    if (( len = strlen( tmp )) > 0 ) {
+		if ( tmp[ len - 1 ] == ']' ) {
+		    len--;
+		}
+		if ( (*(caps[ j ].capa_cb))( j, tmp, len, s ) != 0 ) {
 		    cosign_log( APLOG_ERR, s, "mod_cosign: failed to "
 				"process capability pair %s", capav[ i ] );
 		    return( -1 );
 		}
+		tmp += len;
 	    }
 	}
+#endif /* notdef */
+
 	if ( *tmp == ']' ) {
 	    /* end of list */
 	    break;

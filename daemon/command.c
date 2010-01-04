@@ -151,17 +151,15 @@ f_notauth( SNET *sn, int ac, char *av[], SNET *pushersn )
     static void
 banner( SNET *sn )
 {
-    snet_writef( sn, "220 2 Collaborative Web Single Sign-On" );
-    snet_writef( sn, " [COSIGNv%d ", COSIGN_PROTO_CURRENT );
-    snet_writef( sn, "FACTORS=%d REKEY", COSIGN_MAXFACTORS );
-    snet_writef( sn, "]\r\n" );
+    snet_writef( sn, "220 2 Collaborative Web Single Sign-On "
+		"[COSIGNv%d FACTORS=%d REKEY]\r\n",
+		COSIGN_PROTO_CURRENT, COSIGN_MAXFACTORS );
 }
 
     int
 f_starttls( SNET *sn, int ac, char *av[], SNET *pushersn )
 {
-
-    int				rc, i;
+    int				rc;
     X509			*peer;
     char			buf[ 1024 ];
 
@@ -180,10 +178,6 @@ f_starttls( SNET *sn, int ac, char *av[], SNET *pushersn )
 	    protocol = COSIGN_PROTO_V0;
 
 	    return( 1 );
-	}
-
-	for ( i = 2; i < ac; i++ ) {
-	    
 	}
     }
 
