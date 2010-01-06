@@ -1,3 +1,38 @@
+3.1.1
+	daemon: correct format for arguments when handling CHECKs from
+		clients using protocol 0.
+
+3.1.0
+	all: Cookie rekeying in apache and lighttpd filters.
+	daemon: add banner capability list to work around hardcoded
+		protocol version.
+	filters: add capability list parsing.
+	filters: add REKEY command. Replaces "CHECK <cookie> rekey" in
+		older RCs.
+	cgi: catch NULL return value from snet_getline_multi when storing
+		krb tickets.
+	cgi: add cosignprincipal config option. Based on a patch from matt
+		at linuxbox dot com.
+	cgi: add cosignstoretickets and cosignticketlifetime config options.
+	cgi: add cosignlogoutregex config option.
+	common: fix: --enable-mysql's optional path argument was ignored.
+		Based on a patch from jorj at isc dot upenn dot edu.
+	common: Adopt autoheader conventions in build.
+	common: Handle NetBSD's krb5 pathing in configure script. Report
+		from nmadura at umich dot edu.
+	filters: [Patch 2801877]: Support multi-cert PEMs. Patch fromfedora
+		dot dm0 at gmail dot com.
+	filters: IP checking now defaults to "never".
+	filters: [Request 2748342]: Allow CosignService value to start with
+		"cosign-".
+	filters: fix length passed to strncasecmp when checking cookie
+		prefix in filters.
+	filters: fix regression in return value check for ap_pregcomp.
+		Report from jorj at isc dot upenn dot edu.
+	lighttpd filter: fix size checks when copying into sinfo struct.
+	build: Make LIBS environment available to apxs for compiling.
+	Additional build modifications to clean up git detritus
+
 3.0.2
 	filter: use ap_pregcomp to compile regexes
 
