@@ -1151,10 +1151,10 @@ f_check( SNET *sn, int ac, char *av[], SNET *pushersn )
     } else {
 	/* if there is more than one realm, we just give the first */
 	if (( p = strtok( ci.ci_realm, " " )) != NULL ) {
-	    snet_writef( sn, "%d %s %s %s %s\r\n",
+	    snet_writef( sn, "%d %s %s %s\r\n",
 		    status, ci.ci_ipaddr, ci.ci_user, p );
 	} else {
-	    snet_writef( sn, "%d %s %s %s %s\r\n",
+	    snet_writef( sn, "%d %s %s %s\r\n",
 		    status, ci.ci_ipaddr, ci.ci_user, ci.ci_realm );
 	}
 
