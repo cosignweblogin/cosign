@@ -837,6 +837,10 @@ connect_sn( struct connlist *cl, cosign_host_config *cfg, void *s )
 		"mod_cosign: connect_sn: snet_getline_multi failed" );
 	goto done;
     }
+    if ( *line != '2' ) {
+       cosign_log( APLOG_ERR, s, "mod_cosign: connect_sn: %s", line );
+       goto done;
+    }
 
     if ( snet_starttls( cl->conn_sn, cfg->ctx, 0 ) != 1 ) {
 	cosign_log( APLOG_ERR, s, "mod_cosign: snet_starttls: %s",
