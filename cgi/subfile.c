@@ -4,21 +4,51 @@
 #include <stdio.h>
 #include <string.h>
 
+#ifdef __STDC__
+#include <stdarg.h>
+#else /* __STDC__ */
+#include <varargs.h>
+#endif /* __STDC__ */
+
 #include "subfile.h"
 
     void
-subfile( char *filename, struct subfile_list *sl, int nocache )
+subfile( char *filename, struct subfile_list *sl, int opts, ... )
 {
     FILE	*fs;
     int 	c, i, j;
     char	nasties[] = "<>(){}[]'`\" \\";
+    va_list	vl;
 
-    if ( nocache ) {
+    if ( opts & SUBF_OPT_NOCACHE ) {
 	fputs( "Expires: Mon, 16 Apr 1973 13:10:00 GMT\n"
 		"Last-Modified: Mon, 16 Apr 1973 13:10:00 GMT\n"
 		"Cache-Control: no-store, no-cache, must-revalidate\n"
 		"Cache-Control: pre-check=0, post-check=0, max-age=0\n"
 		"Pragma: no-cache\n", stdout );
+    }
+    if ( opts & SUBF_OPT_SETSTATUS ) {
+	/* set HTTP Status header */
+#ifdef __STDC__
+	va_start( vl, opts );
+#else /* __STDC__ */
+	va_start( vl );
+#endif /* __STDC__ */
+	i = va_arg( vl, int );
+	va_end( vl );
+	if ( i < 200 || i > 600 ) {
+	    /* unlikely http status code */
+	    i = 200;
+	}
+	printf( "Status: %d\n", i );
+    }
+    if ( opts & SUBF_OPT_LOG ) {
+#define SL_TITLE	1
+#define SL_ERROR	4
+	if ( sl[ SL_TITLE ].sl_data && sl[ SL_ERROR ].sl_data ) {
+	    fprintf( stderr, "cosign cgi: %s: %s\n", sl[ SL_TITLE ].sl_data,
+			sl[ SL_ERROR ].sl_data );
+	}
     }
 
     fputs( "Content-type: text/html\n\n", stdout );
