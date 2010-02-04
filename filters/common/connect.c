@@ -735,7 +735,7 @@ capa_parse( int capac, char **capav, struct connlist *cl, void *s )
     static int
 connect_sn( struct connlist *cl, cosign_host_config *cfg, void *s )
 {
-    int			sock, zero = 0, ac = 0, state, i;
+    int			sock, zero = 0, ac = 0, state;
     char		*line, buf[ 1024 ], **av;
     X509		*peer;
     struct timeval      tv;

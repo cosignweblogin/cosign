@@ -110,12 +110,10 @@ cosign_init( server_rec *s, pool *p )
     int
 cosign_redirect( request_rec *r, cosign_host_config *cfg )
 {
-    char		*dest, *my_cookie;
-    char		*full_cookie, *ref, *reqfact;
-    char		cookiebuf[ 128 ];
+    char		*dest;
+    char		*ref, *reqfact;
     int			i;
     unsigned int	port;
-    struct timeval	now;
 
     /* if they've posted, let them know they are out of luck */
     if ( r->method_number == M_POST ) {
@@ -176,7 +174,7 @@ cosign_handler( request_rec *r )
     int			status;
     char		error[ 1024 ];
     const char		*qstr = NULL;
-    const char		*pair, *key;
+    const char		*pair;
     const char		*dest = NULL;
     const char		*hostname, *scheme;
     char		*cookie, *full_cookie;
