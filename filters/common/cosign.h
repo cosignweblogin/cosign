@@ -19,6 +19,7 @@ typedef struct {
     char                *redirect;
     char                *posterror;
     char		*validref;
+    int			validredir;
     char		*referr;
 #ifndef LIGHTTPD
     ap_regex_t		*validpreg;

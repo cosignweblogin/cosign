@@ -57,6 +57,7 @@ cosign_create_config( pool *p )
     cfg->posterror = NULL;
     cfg->validref = NULL;
     cfg->validpreg = NULL;
+    cfg->validredir = -1;
     cfg->referr = NULL;
     cfg->port = 0;
     cfg->protect = -1;
@@ -170,10 +171,14 @@ cosign_handler( request_rec *r )
 {
     cosign_host_config	*cfg;
     ap_regmatch_t	matches[ 1 ];
+    uri_components	uri;
+    unsigned short	port;
+    int			status;
     char		error[ 1024 ];
     const char		*qstr = NULL;
     const char		*pair, *key;
     const char		*dest = NULL;
+    const char		*hostname, *scheme;
     char		*cookie, *full_cookie;
     char		*rekey = NULL;
     int			rc, cv;
@@ -253,6 +258,56 @@ cosign_handler( request_rec *r )
 	cosign_log( APLOG_NOTICE, r->server,
 			"mod_cosign: cookie contains invalid characters" );
 	goto validation_failed;
+    }
+
+    /*
+     * if the current URL hostname doesn't match the hostname of the
+     * service URL, we'll end up setting the cookie for the wrong domain.
+     * we catch that here and consider it an error unless the admin has
+     * CosignAllowValidationRedirect set to On, in which case we extract
+     * the hostname from the service URL and use it to build a validation
+     * URL for the correct host.
+     */
+    if (( status = ap_parse_uri_components( r->pool, dest, &uri )) != HTTP_OK) {
+	cosign_log( APLOG_ERR, r->server,
+		    "mod_cosign: ap_parse_components %s failed", dest );
+	return( HTTP_INTERNAL_SERVER_ERROR );
+    }
+    if ( uri.scheme == NULL || uri.hostname == NULL ) {
+	cosign_log( APLOG_ERR, r->server,
+		    "mod_cosign: bad destination URL: %s", dest );
+	return( HTTP_BAD_REQUEST );
+    }
+    if ( uri.port == 0 ) {
+	uri.port = ap_default_port_for_scheme( uri.scheme );
+    }
+    hostname = ap_get_server_name( r );
+    port = ap_get_server_port( r );
+    if ( strcasecmp( hostname, uri.hostname ) != 0 || port != uri.port ) {
+	if ( cfg->validredir == 1 ) {
+	    if ( cfg->http == 1 ) {
+		scheme == "http";
+	    } else {
+		scheme = "https";
+	    }
+	    if ( port != uri.port ) {
+		dest = ap_psprintf( r->pool, "%s://%s:%d%s",
+			    scheme, uri.hostname, uri.port, r->unparsed_uri );
+	    } else {
+		dest = ap_psprintf( r->pool, "%s://%s%s",
+			    scheme, uri.hostname, r->unparsed_uri );
+	    }
+	    ap_table_set( r->headers_out, "Location", dest );
+
+	    return( HTTP_MOVED_PERMANENTLY );
+	} else {
+	    cosign_log( APLOG_ERR, r->server,
+			"mod_cosign: current hostname \"%s\" does not match "
+			"service URL hostname \"%s\", cannot set cookie for "
+			"correct host.", hostname, uri.hostname );
+
+	    return( HTTP_SERVICE_UNAVAILABLE );
+	}
     }
 
     cv = cosign_cookie_valid( cfg, cookie, &rekey, &si,
@@ -629,6 +684,19 @@ set_cosign_valid_reference( cmd_parms *params, void *mconfig, const char *arg )
     }
 
     cfg->configured = 1;
+
+    return( NULL );
+}
+
+    static const char *
+set_cosign_allow_validation_redirect( cmd_parms *params,
+					void *mconfig, int flag )
+{
+    cosign_host_config		*cfg;
+
+    cfg = cosign_merge_cfg( params, mconfig );
+
+    cfg->validredir = flag;
 
     return( NULL );
 }
@@ -1115,6 +1183,13 @@ static command_rec cosign_cmds[ ] =
         { "CosignValidReference", set_cosign_valid_reference,
         NULL, RSRC_CONF | ACCESS_CONF, TAKE1,
         "the regular expression matching valid redirect service URLs" },
+
+	{ "CosignAllowValidationRedirect",
+	set_cosign_allow_validation_redirect, NULL,
+	RSRC_CONF | ACCESS_CONF, FLAG,
+	"allow redirection to different validdation URL if "
+	"current vhost does not match service URL hostname AND "
+	"service URL matches CosignValidReferences pattern" },
 
         { "CosignValidationErrorRedirect",
 	set_cosign_validation_error_redirect,
