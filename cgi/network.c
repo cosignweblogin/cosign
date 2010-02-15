@@ -542,7 +542,7 @@ connect_sn( struct connlist *conn )
     struct timeval      tv;
     struct protoent	*proto;
 
-    if (( s = socket( PF_INET, SOCK_STREAM, (int)NULL )) < 0 ) {
+    if (( s = socket( PF_INET, SOCK_STREAM, 0 )) < 0 ) {
 	perror( "socket" );
 	return( -1 );
     }
