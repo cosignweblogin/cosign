@@ -1026,6 +1026,6 @@ loginscreen:
 	}
     }
 
-    subfile( tmpl, sl, 1 );
+    subfile( tmpl, sl, SUBF_OPT_NOCACHE );
     exit( 0 );
 }
