@@ -136,7 +136,7 @@ main( int ac, char *av[] )
     pconv.conv = (int (*)())factor_conv;
     pconv.appdata_ptr = passcode;
 
-    if (( rc = pam_start( "cosign", login, &pconv, &ph )) != PAM_SUCCESS ) {
+    if (( rc = pam_start( factor_name, login, &pconv, &ph )) != PAM_SUCCESS ) {
 	printf( "Internal error: pam_start failed: %s\n",
 		pam_strerror( ph, rc ));
 	fprintf( stderr, "[%s] [%s] Internal error: pam_start failed: %s\n",
@@ -152,6 +152,14 @@ main( int ac, char *av[] )
 	exit( 1 );
     }
 
+    if (( rc = pam_acct_mgmt( ph, PAM_SILENT )) != PAM_SUCCESS ) {
+	printf( "Internal error: pam_acct_mgmt failed: %s\n",
+		pam_strerror( ph, rc ));
+	fprintf( stderr, "[%s] [%s] Internal error: pam_acct_mgmt "
+		"failed: %s\n", factor_name, login, pam_strerror( ph, rc ));
+	exit( 1 );
+    }
+
     if (( rc = pam_end( ph, rc )) != PAM_SUCCESS ) {
 	printf( "Internal error: pam_end failed: %s\n", pam_strerror( ph, rc ));
 	fprintf( stderr, "[%s] [%s] Internal error: pam_end failed: %s\n",
@@ -160,6 +168,7 @@ main( int ac, char *av[] )
     }
 
     /* success */
+    fprintf( stderr, "[%s] [%s] factor OK\n", factor_name, login );
     printf( "%s\n", factor_name );
 
     return( 0 );
