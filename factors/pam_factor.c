@@ -17,12 +17,9 @@
     #endif /* HAVE_PAM_ */
 #endif /* HAVE_LIBPAM */
 
-extern int		errno;
-
 #define FACTOR_MAX_INPUT	256	
 
-struct factor_identity {
-};
+extern int		errno;
 
     static int
 factor_conv( int num_msg, struct pam_message **msg,
