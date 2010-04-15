@@ -1,8 +1,14 @@
+//#include "config.h"
+
 #include <sys/types.h>
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+#define COSIGN_CGI_OK                 0
+#define COSIGN_CGI_ERROR              1
+#define COSIGN_CGI_PASSWORD_EXPIRED   2
 
 #define HAVE_LIBPAM			1
 #define HAVE_SECURITY_PAM_APPL_H	1
@@ -107,14 +113,14 @@ main( int ac, char *av[] )
 	printf( "Internal error: login missing.\n" );
 	fprintf( stderr, "[%s] [-] Internal error: login missing\n",
 		factor_name );
-	exit( 1 );
+	exit( COSIGN_CGI_ERROR );
     }
     len = strlen( login );
     if ( login[ len - 1 ] != '\n' ) {
 	printf( "Internal error: login too long.\n" );
 	fprintf( stderr, "[%s] [%s] Internal error: login too long\n",
 		factor_name, login );
-	exit( 1 );
+	exit( COSIGN_CGI_ERROR );
     }
     login[ len - 1 ] = '\0';
 
@@ -122,14 +128,14 @@ main( int ac, char *av[] )
 	printf( "Internal error: passcode missing.\n" );
 	fprintf( stderr, "[%s] [%s] Internal error: passcode missing\n",
 		factor_name, login );
-	exit( 1 );
+	exit( COSIGN_CGI_ERROR );
     }
     len = strlen( passcode );
     if ( passcode[ len - 1 ] != '\n' ) {
 	printf( "Internal error: passcode too long.\n" );
 	fprintf( stderr, "[%s] [%s] Internal error: passcode too long\n",
 		factor_name, login );
-	exit( 1 );
+	exit( COSIGN_CGI_ERROR );
     }
     passcode[ len - 1 ] = '\0';
 
@@ -141,7 +147,7 @@ main( int ac, char *av[] )
 		pam_strerror( ph, rc ));
 	fprintf( stderr, "[%s] [%s] Internal error: pam_start failed: %s\n",
 		factor_name, login, pam_strerror( ph, rc ));
-	exit( 1 );
+	exit( COSIGN_CGI_ERROR );
     }
 
     if (( rc = pam_authenticate( ph, PAM_SILENT )) != PAM_SUCCESS ) {
@@ -149,27 +155,33 @@ main( int ac, char *av[] )
 		pam_strerror( ph, rc ));
 	fprintf( stderr, "[%s] [%s] Internal error: pam_authenticate "
 		"failed: %s\n", factor_name, login, pam_strerror( ph, rc ));
-	exit( 1 );
+	exit( COSIGN_CGI_ERROR );
     }
 
     if (( rc = pam_acct_mgmt( ph, PAM_SILENT )) != PAM_SUCCESS ) {
+	if ( rc == PAM_NEW_AUTHTOK_REQD ) {
+	    printf( "Password expired.\n" );
+	    fprintf( stderr, "[%s] [%s] Password expired\n",
+			factor_name, login );
+	    exit( COSIGN_CGI_PASSWORD_EXPIRED );
+	}
 	printf( "Internal error: pam_acct_mgmt failed: %s\n",
 		pam_strerror( ph, rc ));
 	fprintf( stderr, "[%s] [%s] Internal error: pam_acct_mgmt "
 		"failed: %s\n", factor_name, login, pam_strerror( ph, rc ));
-	exit( 1 );
+	exit( COSIGN_CGI_ERROR );
     }
 
     if (( rc = pam_end( ph, rc )) != PAM_SUCCESS ) {
 	printf( "Internal error: pam_end failed: %s\n", pam_strerror( ph, rc ));
 	fprintf( stderr, "[%s] [%s] Internal error: pam_end failed: %s\n",
 		factor_name, login, pam_strerror( ph, rc ));
-	exit( 1 );
+	exit( COSIGN_CGI_ERROR );
     }
 
     /* success */
     fprintf( stderr, "[%s] [%s] factor OK\n", factor_name, login );
     printf( "%s\n", factor_name );
 
-    return( 0 );
+    return( COSIGN_CGI_OK );
 }
