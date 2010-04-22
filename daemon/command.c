@@ -999,7 +999,7 @@ f_check( SNET *sn, int ac, char *av[], SNET *pushersn )
 	return( 1 );
     }
 
-    if ( ac < 2 && ac > 3 ) {
+    if ( ac < 2 || ac > 3 ) {
 	syslog( LOG_ERR, "f_check: %s: wrong number of args. "
 		"Expected 2 or 3, got %d", al->al_hostname, ac );
 	snet_writef( sn, "%d %s: Wrong number of args.\r\n", 530, av[ 0 ] );
