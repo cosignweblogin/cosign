@@ -1281,11 +1281,11 @@ static command_rec cosign_cmds[ ] =
     static void 
 cosign_register_hooks( apr_pool_t *p )
 {
-#ifdef HAVE_APACHE_2_2
+#ifdef HAVE_MOD_AUTHZ_HOST
     static const char * const other_mods[] = { "mod_authz_host.c", NULL };
-#else /* !HAVE_APACHE_2_2 */
+#else /* !HAVE_MOD_AUTHZ_HOST */
     static const char * const other_mods[] = { "mod_access.c", NULL };
-#endif /* HAVE_APACHE_2_2 */
+#endif /* HAVE_MOD_AUTHZ_HOST */
 
     ap_hook_post_config( cosign_init, NULL, NULL, APR_HOOK_MIDDLE );
     ap_hook_handler( cosign_handler, NULL, NULL, APR_HOOK_MIDDLE );
