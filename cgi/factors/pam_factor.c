@@ -143,16 +143,14 @@ main( int ac, char *av[] )
     pconv.appdata_ptr = passcode;
 
     if (( rc = pam_start( factor_name, login, &pconv, &ph )) != PAM_SUCCESS ) {
-	printf( "Internal error: pam_start failed: %s\n",
-		pam_strerror( ph, rc ));
+	printf( "Internal error: %s\n", pam_strerror( ph, rc ));
 	fprintf( stderr, "[%s] [%s] Internal error: pam_start failed: %s\n",
 		factor_name, login, pam_strerror( ph, rc ));
 	exit( COSIGN_CGI_ERROR );
     }
 
     if (( rc = pam_authenticate( ph, PAM_SILENT )) != PAM_SUCCESS ) {
-	printf( "Internal error: pam_authenticate failed: %s\n",
-		pam_strerror( ph, rc ));
+	printf( "Internal error: %s\n", pam_strerror( ph, rc ));
 	fprintf( stderr, "[%s] [%s] Internal error: pam_authenticate "
 		"failed: %s\n", factor_name, login, pam_strerror( ph, rc ));
 	exit( COSIGN_CGI_ERROR );
@@ -165,15 +163,14 @@ main( int ac, char *av[] )
 			factor_name, login );
 	    exit( COSIGN_CGI_PASSWORD_EXPIRED );
 	}
-	printf( "Internal error: pam_acct_mgmt failed: %s\n",
-		pam_strerror( ph, rc ));
+	printf( "Internal error: %s\n", pam_strerror( ph, rc ));
 	fprintf( stderr, "[%s] [%s] Internal error: pam_acct_mgmt "
 		"failed: %s\n", factor_name, login, pam_strerror( ph, rc ));
 	exit( COSIGN_CGI_ERROR );
     }
 
     if (( rc = pam_end( ph, rc )) != PAM_SUCCESS ) {
-	printf( "Internal error: pam_end failed: %s\n", pam_strerror( ph, rc ));
+	printf( "Internal error: %s\n", pam_strerror( ph, rc ));
 	fprintf( stderr, "[%s] [%s] Internal error: pam_end failed: %s\n",
 		factor_name, login, pam_strerror( ph, rc ));
 	exit( COSIGN_CGI_ERROR );
