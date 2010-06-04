@@ -15,6 +15,7 @@
 
 /* Apache 2.x */
 #undef APACHE2
+#undef HAVE_MOD_AUTHZ_HOST
 #undef HAVE_AP_REGEX_H
 
 /* lighttpd */

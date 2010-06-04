@@ -102,6 +102,7 @@ AC_DEFUN([CHECK_APACHE2],
 
     FILTERS="$FILTERS filters/apache2"
     APXS2_TARGET="`$APXS2 -q TARGET`"
+    APXS2_SBINDIR="`$APXS2 -q SBINDIR`"
     if test x_$APXS2_TARGET = x_httpd ; then
 	APACHECTL2="${APXS2_SBINDIR}/apachectl"
     else
@@ -110,6 +111,14 @@ AC_DEFUN([CHECK_APACHE2],
     APXS2_INCLUDEDIR="`${APXS2} -q INCLUDEDIR`"
     if test -f "$APXS2_INCLUDEDIR/ap_regex.h"; then
 	AC_DEFINE(HAVE_AP_REGEX_H)
+    fi
+    APACHE2_MINOR_VERSION="`${APXS2_SBINDIR}/${APXS2_TARGET} -v |	\
+		sed -e '/^Server version:/!d'				\
+		    -e 's/.*Apache\/2\.\(@<:@0-9@:>@\)\..*/\1/g'`"
+    if test -n "${APACHE2_MINOR_VERSION}"; then
+	if test "${APACHE2_MINOR_VERSION}" -gt 0; then
+	    AC_DEFINE(HAVE_MOD_AUTHZ_HOST)
+	fi
     fi
     AC_SUBST(APXS2)
     AC_SUBST(APACHECTL2)
