@@ -20,6 +20,15 @@ subfile( char *filename, struct subfile_list *sl, int opts, ... )
     char	nasties[] = "<>(){}[]'`\" \\";
     va_list	vl;
 
+    /*
+     * close stdin to avoid "ap_content_length_filter: apr_bucket_read()"
+     * errors, which occur in apache2 environments when a cgi starts
+     * writing a response before processing all input. see:
+     *
+     * https://issues.apache.org/bugzilla/show_bug.cgi?id=44782
+     */
+    (void)close( 0 );
+
     if ( opts & SUBF_OPT_NOCACHE ) {
 	fputs( "Expires: Mon, 16 Apr 1973 13:10:00 GMT\n"
 		"Last-Modified: Mon, 16 Apr 1973 13:10:00 GMT\n"

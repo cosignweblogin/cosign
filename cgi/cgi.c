@@ -679,7 +679,11 @@ main( int argc, char *argv[] )
     }
 
     if ( cgi_post( cgi, cl ) != 0 ) {
-	exit( 1 );
+	sl[ SL_TITLE ].sl_data = "Error: Server POST Error";
+	sl[ SL_ERROR ].sl_data = "Please try again later";
+	subfile( ERROR_HTML, sl, SUBF_OPT_ERROR, 500 );
+
+	exit( 0 );
     }
 
     if ( cl[ CL_REF ].cl_data != NULL ) {
