@@ -2,6 +2,8 @@
 	apache2 filter: detect apache 2.2, and instruct httpd to order
 		mod_cosign ahead of mod_authz_host. older versions of
 		the apache 2.2 filter incorrectly referred to mod_access.
+	filters: fix hard-coded protocol version in read_scookie.
+                Bug report from liamr at umich dot edu.
 		
 3.1.1
 	daemon: correct format for arguments when handling CHECKs from
