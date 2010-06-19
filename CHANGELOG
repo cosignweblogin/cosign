@@ -1,6 +1,8 @@
 3.1.1
 	daemon: correct format for arguments when handling CHECKs from
 		clients using protocol 0.
+	filters: fix hard-coded protocol version in read_scookie.
+		Bug report from liamr at umich dot edu.
 
 3.1.0
 	all: Cookie rekeying in apache and lighttpd filters.
