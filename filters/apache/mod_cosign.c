@@ -281,7 +281,8 @@ cosign_handler( request_rec *r )
     }
     hostname = ap_get_server_name( r );
     port = ap_get_server_port( r );
-    if ( strcasecmp( hostname, uri.hostname ) != 0 || port != uri.port ) {
+    if ( strcasecmp( hostname, uri.hostname ) != 0 || 
+		( port != uri.port && cfg->noappendport != 1 )) {
 	if ( cfg->validredir == 1 ) {
 	    if ( cfg->http == 1 ) {
 		scheme == "http";
