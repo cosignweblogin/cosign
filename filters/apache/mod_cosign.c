@@ -76,6 +76,7 @@ cosign_create_config( pool *p )
     cfg->noappendport = -1;
     cfg->proxy = -1;
     cfg->expiretime = 86400; /* 24 hours */
+    cfg->httponly_cookies = 0;
 #ifdef KRB
     cfg->krbtkt = -1;
 #ifdef GSS
@@ -343,6 +344,9 @@ cosign_handler( request_rec *r )
     } else {
 	full_cookie = ap_psprintf( r->pool, "%s/%lu; path=/; secure",
 				    cookie, now.tv_sec );
+    }
+    if ( cfg->httponly_cookies == 1 ) {
+	full_cookie = ap_pstrcat( r->pool, full_cookie, "; httponly" );
     }
 
     /* we get here, everything's OK. set cookie and redirect to dest. */
@@ -1148,6 +1152,17 @@ set_cosign_expiretime( cmd_parms *params, void *mconfig, char *arg )
     return( NULL );
 }
 
+    static const char *
+set_cosign_httponly_cookies( cmd_parms *params, void *mconfig, int flag )
+{
+    cosign_host_config		*cfg;
+
+    cfg = cosign_merge_cfg( params, mconfig );
+    cfg->httponly_cookies = flag; 
+
+    return( NULL );
+}
+
     static void
 cosign_child_cleanup( server_rec *s, pool *p )
 {
@@ -1262,6 +1277,10 @@ static command_rec cosign_cmds[ ] =
 	{ "CosignCookieExpireTime", set_cosign_expiretime,
 	NULL, RSRC_CONF, TAKE1,
 	"time (in seconds) after which we will issue a new service cookie" },
+
+	{ "CosignHttpOnlyCookies", set_cosign_httponly_cookies,
+	NULL, RSRC_CONF | OR_AUTHCFG, FLAG,
+	"enable or disable \"httponly\" flag for Set-Cookie header" },
 
 #ifdef KRB
         { "CosignGetKerberosTickets", set_cosign_tickets,

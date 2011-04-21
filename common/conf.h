@@ -79,6 +79,7 @@ struct matchlist {
 #define COSIGNKRBTKTSKEY	"cosignkrbtkts"
 #define COSIGNDBHASHLENKEY	"cosigndbhashlen"
 #define COSIGNSTRICTCHECKKEY	"cosignstrictcheck"
+#define COSIGNHTTPONLYCOOKIESKEY	"cosignhttponlycookies"
 
 #ifdef SQL_FRIEND
 #define MYSQLDBKEY	"mysqldb"

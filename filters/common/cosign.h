@@ -41,6 +41,7 @@ typedef struct {
     int                 noappendport;
     int			proxy;
     int			expiretime;
+    int			httponly_cookies;
 #ifdef KRB
 #ifdef GSS
     int			gss;
