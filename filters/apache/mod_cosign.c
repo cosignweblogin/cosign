@@ -95,7 +95,14 @@ cosign_create_dir_config( pool *p, char *path )
     static void *
 cosign_create_server_config( pool *p, server_rec *s )
 {
-    return( cosign_create_config( p ));
+    cosign_host_config	*cfg;
+
+    cfg = cosign_create_config( p );
+
+    /* assign a reasonable default CosignService */
+    cfg->service = ap_psprintf( p, "cosign-%s", s->server_hostname );
+
+    return( cfg );
 }
 
     static void
