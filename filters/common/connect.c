@@ -286,10 +286,10 @@ netretr_proxy( char *scookie, struct sinfo *si, SNET *sn, char *proxydb,
     }
 
     if (( tmpfile = fdopen( fd, "w" )) == NULL ) {
+        perror( tmppath );
         if ( unlink( tmppath ) != 0 ) {
             perror( tmppath );
         }
-        perror( tmppath );
         return( COSIGN_ERROR );
     }
 
@@ -346,18 +346,18 @@ netretr_proxy( char *scookie, struct sinfo *si, SNET *sn, char *proxydb,
     } while ( line[ 3 ] == '-' );
 
     if ( fclose ( tmpfile ) != 0 ) {
+        perror( tmppath );
         if ( unlink( tmppath ) != 0 ) {
             perror( tmppath );
         }
-        perror( tmppath );
         return( COSIGN_ERROR );
     }
 
     if ( link( tmppath, path ) != 0 ) {
+        perror( tmppath );
         if ( unlink( tmppath ) != 0 ) {
             perror( tmppath );
         }
-        perror( tmppath );
         return( COSIGN_ERROR );
     }
 
