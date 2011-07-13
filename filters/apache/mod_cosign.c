@@ -130,6 +130,18 @@ cosign_redirect( request_rec *r, cosign_host_config *cfg )
 	return( 0 );
     }
 
+    /*
+     * clear out Cache-Control and Expires headers, and preemptively set
+     * Cache-Control header to keep aggressive caching configurations from
+     * breaking cosign auth. if the browser caches the 302 redirect, the
+     * redirect from the validation handler to the protected site will
+     * result in the browser revisiting the weblogin server instead.
+     */
+    ap_table_unset( r->headers_out, "Cache-Control" );
+    ap_table_unset( r->headers_out, "Expires" );
+
+    ap_table_set( r->headers_out, "Cache-Control", "no-cache" );
+
     if ( cfg->siteentry != NULL && strcasecmp( cfg->siteentry, "none" ) != 0 ) {
 	ref = cfg->siteentry;
     } else {
