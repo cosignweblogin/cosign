@@ -55,6 +55,32 @@ validchars( char *s )
     return( 1 );
 }
 
+/*
+ * identical to validchars, but also allows characters in ex_chars string
+ * in usernames. allows krb5 principals with non-null instances and OpenID
+ * user URLs. validchars can't allow slash because it's a field separator
+ * in cookies (<cookie_value/timestamp>).
+ * 
+ * ':' and '~' are included because some OpenID URLs are canonical, and
+ * some use ~username in the URLs.
+ */
+    int
+validuser( char *u )
+{
+    int		rc = 0;
+    char	*p, *ex_chars = ":/~";
+
+    for ( p = ex_chars; *p != '\0'; p++ ) {
+	valid_tab[ (unsigned char)*p ] = 1;
+    }
+    rc = validchars( u );
+    for ( p = ex_chars; *p != '\0'; p++ ) {
+	valid_tab[ (unsigned char)*p ] = 0;
+    }
+
+    return( rc );
+}
+
     int
 mkcookie( int len, char *buf )
 {

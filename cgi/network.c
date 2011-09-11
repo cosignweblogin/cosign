@@ -168,7 +168,7 @@ cosign_login( struct connlist *conn, char *cookie, char *ip, char *user,
 {
     struct login_param lp;
 
-    if ( !validchars( cookie ) || !validchars( user )) {
+    if ( !validchars( cookie ) || !validuser( user )) {
 	return( -1 );
     }
 
