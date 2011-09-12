@@ -365,7 +365,7 @@ cosign_handler( request_rec *r )
 				    cookie, now.tv_sec );
     }
     if ( cfg->httponly_cookies == 1 ) {
-	full_cookie = ap_pstrcat( r->pool, full_cookie, "; httponly" );
+	full_cookie = ap_pstrcat( r->pool, full_cookie, "; httponly", NULL );
     }
 
     /* we get here, everything's OK. set cookie and redirect to dest. */
