@@ -1274,7 +1274,7 @@ static command_rec cosign_cmds[ ] =
 	"on or off, on allows you to accept faux factors, off denies access" },
 
 	{ "CosignAllowPublicAccess", set_cosign_public,
-	NULL, RSRC_CONF | ACCESS_CONF, FLAG,
+	NULL, RSRC_CONF | OR_AUTHCFG, FLAG,
 	"make authentication optional for protected sites" },
 
         { "CosignHttpOnly", set_cosign_http,

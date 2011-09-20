@@ -1275,7 +1275,7 @@ static command_rec cosign_cmds[ ] =
         "on or off, on allows you to accept faux factors, off denies access" ),
 
         AP_INIT_FLAG( "CosignAllowPublicAccess", set_cosign_public,
-        NULL, RSRC_CONF | ACCESS_CONF, 
+        NULL, RSRC_CONF | OR_AUTHCFG, 
         "make authentication optional for protected sites" ),
 
         AP_INIT_FLAG( "CosignHttpOnly", set_cosign_http,
