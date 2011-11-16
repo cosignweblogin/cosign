@@ -271,6 +271,11 @@ cosign_handler( request_rec *r )
 			"mod_cosign: invalid destination: %s", dest );
 	goto validation_failed;
     }
+    if ( matches[ 0 ].rm_so != 0 || matches[ 0 ].rm_eo != strlen( dest )) {
+	cosign_log( APLOG_NOTICE, r->server, "mod_cosign: "
+		    "invalid destination: %s (partial match)", dest );
+	goto validation_failed;
+    }
 
     if ( !validchars( cookie )) {
 	cosign_log( APLOG_NOTICE, r->server,

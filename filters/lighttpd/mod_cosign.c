@@ -929,7 +929,8 @@ cosign_handler( server *srv, connection *con, plugin_data *p_d )
     dest = buffer_init_string( pt );
 
     if (( rc = pcre_exec( p->conf.validpcre, NULL, dest->ptr, dest->used,
-				0, 0, ovec, sizeof( ovec ))) < 0 ) {
+				0, PCRE_ANCHORED,
+				ovec, sizeof( ovec ))) < 0 ) {
 	if ( rc != PCRE_ERROR_NOMATCH ) {
 	    log_error_write( srv, __FILE__, __LINE__, "sbsd",
 		    "mod_cosign: pcre_exec", p->conf.validref,
@@ -944,6 +945,23 @@ cosign_handler( server *srv, connection *con, plugin_data *p_d )
 
 	log_error_write( srv, __FILE__, __LINE__, "sb",
 		    "mod_cosign: invalid destination:", dest );
+	goto validation_failed;
+    }
+    if ( rc == 0 ) {
+	/*
+	 * ovector not big enough to hold captured substrings.
+	 * we're not using captured substrings, so consider it
+	 * an error.
+	 */
+	log_error_write( srv, __FILE__, __LINE__, "sbs",
+		    "mod_cosign: cosign.valid-reference pattern",
+		    p->conf.validref, "contains substring matches, "
+		    "but substring matches are unsupported." );
+	goto validation_failed;
+    }
+    if (( ovec[ 1 ] - ovec[ 0 ] ) != strlen( dest->ptr )) {
+	log_error_write( srv, __FILE__, __LINE__, "sb",
+		    "mod_cosign: invalid destination (partial match):", dest );
 	goto validation_failed;
     }
 		
