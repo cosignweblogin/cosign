@@ -150,15 +150,16 @@ authlist_find( char *hostname, regmatch_t matches[], int nmatch )
 	    return( NULL );
 	}
 
-	rc = regexec( &preg, hostname, nmatch, matches, 0 );
-	if ( rc != REG_NOMATCH ) {
-	    if ( rc != 0 ) {
-		regerror( rc, &preg, error, sizeof( error ));
-		fprintf( stderr, "regexec failed: %s\n", error );
-		cur = NULL;
+	if (( rc = regexec( &preg, hostname, nmatch, matches, 0 )) == 0 ) {
+	    if ( matches[ 0 ].rm_so == 0 &&
+			matches[ 0 ].rm_eo == strlen( hostname )) {
+		regfree( &preg );
+		break;
 	    }
-	    regfree( &preg );
-	    break;
+	} else if ( rc != REG_NOMATCH ) {
+	    regerror( rc, &preg, error, sizeof( error ));
+	    fprintf( stderr, "regexec failed: %s\n", error );
+	    cur = NULL;
 	}
 	regfree( &preg );
     }

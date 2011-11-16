@@ -938,6 +938,15 @@ service_valid( char *service )
 	goto service_valid_done;
     }
 
+    /* only match whole CNs */
+    if ( svm[ 0 ].rm_so != 0 || svm[ 0 ].rm_eo != strlen( remote_cn )) {
+	syslog( LOG_ERR, "service_valid: CN %s not allowed "
+			 "access to cookie %s (partial match)",
+			 remote_cn, service );
+	sl = NULL;
+	goto service_valid_done;
+    }
+
     /*
      * if there's a custom cookie substitution pattern, use it.
      * otherwise, the service_find call + the regexec above
