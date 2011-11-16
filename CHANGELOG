@@ -1,3 +1,7 @@
+3.1.3
+	common: patch for COSIGN-VULN-2011-001. See:
+		http://weblogin.org/cosign-vuln-2011-001.txt
+
 3.1.2
 	apache2 filter: detect apache 2.2, and instruct httpd to order
 		mod_cosign ahead of mod_authz_host. older versions of
