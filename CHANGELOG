@@ -1,3 +1,17 @@
+3.2.0rc1
+	cgi: Add support for httponly cookies.
+	cgi: Add validuser() to allow limited non-alphanumeric usernames.
+	filters: Add support for httponly cookies.
+	filters: Permit CosignAllowPublicAccess in .htaccess files.
+		Patch from pgp at psu dot edu.
+	filters: Use vhost servername as default value for CosignService.
+		[Feature Request #2748312]
+	filters: Prevent site configuration from caching cosign redirects.
+	filters: CosignAllowValidationRedirect works with CosignNoAppendRedirectPort
+	filters: Reorder calls to perror to avoid errno reset.
+		Patch from Martin Sucha <sucha14 at st dot fmph dot uniba.sk>
+	filters: NULL-terminate ap_pstrcat and apr_pstrcat.
+
 3.1.3
 	common: implicitly anchor regular expression matches.
 		patch for COSIGN-VULN-2011-001. See:
