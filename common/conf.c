@@ -134,10 +134,11 @@ service_find( char *cookie, regmatch_t matches[], int nmatch )
 }
 
     struct authlist *
-authlist_find( char *hostname, regmatch_t matches[], int nmatch )
+authlist_find( char *hostname )
 {
     struct authlist	*cur = NULL;
     regex_t		preg;
+    regmatch_t		matches[ 1 ];
     char		error[ 1024 ];
     int			rc;
 
@@ -150,7 +151,7 @@ authlist_find( char *hostname, regmatch_t matches[], int nmatch )
 	    return( NULL );
 	}
 
-	if (( rc = regexec( &preg, hostname, nmatch, matches, 0 )) == 0 ) {
+	if (( rc = regexec( &preg, hostname, 1, matches, 0 )) == 0 ) {
 	    if ( matches[ 0 ].rm_so == 0 &&
 			matches[ 0 ].rm_eo == strlen( hostname )) {
 		regfree( &preg );
