@@ -88,7 +88,7 @@ struct matchlist {
 #endif
 
 int		cosign_ssl( char *, char *, char *, SSL_CTX ** );
-struct authlist	*authlist_find( char *, regmatch_t [], int );
+struct authlist	*authlist_find( char * );
 struct servicelist	*service_find( char *, regmatch_t [], int );
 int		cosign_config( char * );
 char		*cosign_config_get( char * );
