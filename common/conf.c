@@ -134,7 +134,7 @@ service_find( char *cookie, regmatch_t matches[], int nmatch )
 }
 
     struct authlist *
-authlist_find( char *hostname, regmatch_t matches[], int nmatch )
+authlist_find( char *hostname )
 {
     struct authlist	*cur = NULL;
     regex_t		preg;
