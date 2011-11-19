@@ -307,6 +307,10 @@ main( int argc, char *argv[] )
 	exit( 1 );
     }
 
+    if (( cosign_conf = getenv( "COSIGN_CGI_CONF" )) == NULL ) {
+	cosign_conf = _COSIGN_CONF;
+    }
+    
     if ( cosign_config( cosign_conf ) < 0 ) {
 	fprintf( stderr, "Couldn't read %s\n", cosign_conf );
 	exit( 1 );
