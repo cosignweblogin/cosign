@@ -95,17 +95,17 @@ man : FRC
 	done
 
 install : all man
-	-mkdir -p ${exec_prefix}
-	-mkdir -p ${SBINDIR}
-	${INSTALL} -m 0755 -c cosignd ${SBINDIR}/
-	${INSTALL} -m 0755 -c monster ${SBINDIR}/
-	-mkdir -p ${prefix}
-	-mkdir -p ${MANDIR}
-	-mkdir ${MANDIR}/man5
-	${INSTALL} -m 0644 -c tmp/man/cosign.conf.5 ${MANDIR}/man5/
-	-mkdir ${MANDIR}/man8
-	${INSTALL} -m 0644 -c tmp/man/cosignd.8 ${MANDIR}/man8/
-	${INSTALL} -m 0644 -c tmp/man/monster.8 ${MANDIR}/man8/
+	-mkdir -p ${DESTDIR}${exec_prefix}
+	-mkdir -p ${DESTDIR}${SBINDIR}
+	${INSTALL} -m 0755 -c cosignd ${DESTDIR}${SBINDIR}/
+	${INSTALL} -m 0755 -c monster ${DESTDIR}${SBINDIR}/
+	-mkdir -p ${DESTDIR}${prefix}
+	-mkdir -p ${DESTDIR}${MANDIR}
+	-mkdir ${DESTDIR}${MANDIR}/man5
+	${INSTALL} -m 0644 -c tmp/man/cosign.conf.5 ${DESTDIR}${MANDIR}/man5/
+	-mkdir ${DESTDIR}${MANDIR}/man8
+	${INSTALL} -m 0644 -c tmp/man/cosignd.8 ${DESTDIR}${MANDIR}/man8/
+	${INSTALL} -m 0644 -c tmp/man/monster.8 ${DESTDIR}${MANDIR}/man8/
 
 clean :
 	rm -f a.out core* *.o *.bak *[Ee]rrs tags

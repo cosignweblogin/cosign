@@ -78,7 +78,7 @@ clean:
 	/bin/rm -rf *.o ${TARGETS}
 
 install : all
-	-mkdir -p ${exec_prefix}
-	-mkdir -p ${CGIDIR};
-	${INSTALL} -m 0755 -c cosign.cgi ${CGIDIR}/;
-	${INSTALL} -m 0755 -c logout ${CGIDIR}/;
+	-mkdir -p ${DESTDIR}${exec_prefix}
+	-mkdir -p ${DESTDIR}${CGIDIR};
+	${INSTALL} -m 0755 -c cosign.cgi ${DESTDIR}${CGIDIR}/;
+	${INSTALL} -m 0755 -c logout ${DESTDIR}${CGIDIR}/;

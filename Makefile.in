@@ -3,13 +3,15 @@ srcdir=		@srcdir@
 CC=	@CC@
 ALL=	common libsnet libcgi cgi html daemon 
 FILTERS= @FILTERS@ 
-TARGETS= cgi html daemon ${FILTERS}
+SERVER_TARGETS= cgi html daemon
+TARGETS= ${SERVER_TARGETS} ${FILTERS}
 OPTOPTS= @OPTOPTS@ @UNIVERSAL_OPTOPTS@
 CFLAGS=	${OPTOPTS} @CFLAGS@
 LDFLAGS= @LDFLAGS@
 
 filters:	${FILTERS}
 all:		filters
+server:		${ALL}
 everything:	${ALL} filters
 
 cgi daemon:	version.o common libsnet
@@ -50,6 +52,11 @@ distclean: clean
 
 install: @FILTERS@
 	for i in ${FILTERS}; \
+	    do (cd $$i; ${MAKE} ${MFLAGS} install); \
+	done
+
+install-server : server
+	for i in ${SERVER_TARGETS}; \
 	    do (cd $$i; ${MAKE} ${MFLAGS} install); \
 	done
 
