@@ -1,0 +1,25 @@
+description cgi - service cookie registration
+expected_output cosign_choose_conn: some servers returned UNKNOWN
+exit_status 0
+
+#BEGIN:TEST
+cgi_login basic cosigntest > "tmp/$$.out" 2>/dev/null
+header_match_regex tmp/$$.out "Location" \
+    "^https://localhost.localdomain/services/$"
+[ $? -eq 0 ] || return 1
+
+cgi_register_service cosign-test-client cosigntest 2> tmp/$$.err | \
+	tee "tmp/$$.out" | headers_trim
+
+header_match_regex tmp/$$.out "Set-Cookie" \
+    "^cosign\=.*/1[0-9]{9}\/?[0-9]?; path=/; secure$"
+[ $? -eq 0 ] || return 1
+
+header_match_regex tmp/$$.out "Location" \
+    "^https://localhost/cosign/valid\?cosign-test-client\=.*\&https://.*"
+[ $? -eq 0 ] || return 1
+#END:TEST
+
+#BEGIN:EXPECTED_OUTPUT
+
+#END:EXPECTED_OUTPUT
