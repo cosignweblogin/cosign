@@ -33,6 +33,9 @@ clean:
 VERSION=`date +%Y%m%d`
 DISTDIR=../cosign-${VERSION}
 
+test : everything
+        (cd tests && sh ./tests.sh)
+
 dist   : distclean
 	mkdir ${DISTDIR}
 	tar -c -f - -X EXCLUDE . | tar xpf - -C ${DISTDIR}
