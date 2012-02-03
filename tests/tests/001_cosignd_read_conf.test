@@ -1,0 +1,7 @@
+description cosignd - parse cosign.conf
+expected_output
+exit_status 0
+
+#BEGIN:TEST
+cosignd_start -n "$(pwd)/cosign/etc/cosign.conf"
+#END:TEST

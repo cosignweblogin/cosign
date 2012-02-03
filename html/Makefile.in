@@ -10,21 +10,21 @@ INSTALL	=	@INSTALL@
 all: ${TEMPLATES}
 
 install : all
-	-mkdir -p ${exec_prefix}
-	-mkdir -p ${TMPLDIR}
-	-mkdir -p ${HTMLDIR}
+	-mkdir -p ${DESTDIR}${exec_prefix}
+	-mkdir -p ${DESTDIR}${TMPLDIR}
+	-mkdir -p ${DESTDIR}${HTMLDIR}
 	for i in ${TEMPLATES}; do \
-	    ${INSTALL} -m 0644 -c $$i ${TMPLDIR}/; \
+	    ${INSTALL} -m 0644 -c $$i ${DESTDIR}${TMPLDIR}/; \
 	done
 	for i in ${HTML}; do \
-	    ${INSTALL} -m 0644 -c $$i ${HTMLDIR}/; \
+	    ${INSTALL} -m 0644 -c $$i ${DESTDIR}${HTMLDIR}/; \
 	done
-	-mkdir -p ${HTMLDIR}/images
-	cp images/*.gif ${HTMLDIR}/images/
-	cp images/*.png ${HTMLDIR}/images/
-	-mkdir -p ${HTMLDIR}/js
-	cp js/*.js ${HTMLDIR}/js/
-	-mkdir -p ${SERVICESDIR}
-	cp services/*.html ${SERVICESDIR}/
+	-mkdir -p ${DESTDIR}${HTMLDIR}/images
+	cp images/*.gif ${DESTDIR}${HTMLDIR}/images/
+	cp images/*.png ${DESTDIR}${HTMLDIR}/images/
+	-mkdir -p ${DESTDIR}${HTMLDIR}/js
+	cp js/*.js ${DESTDIR}${HTMLDIR}/js/
+	-mkdir -p ${DESTDIR}${SERVICESDIR}
+	cp services/*.html ${DESTDIR}${SERVICESDIR}/
 
 clean:

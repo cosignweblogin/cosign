@@ -1,0 +1,37 @@
+description cgi - fuzzing: random user login attempt
+expected_output
+exit_status 0
+
+#BEGIN:TEST
+cgi_fuzz_login random_user 2> tmp/ADMORTEN.$$.err | tee "tmp/$$.out" >/dev/null
+
+header_match_regex tmp/$$.out "Location" \
+	"^https://localhost.localdomain/services/$"
+if [ $? -eq 0 ]; then
+    echo "Random user fuzzing resulted in successful authentication!"
+    return 1
+fi
+
+header_match_regex tmp/$$.out "Set-Cookie" \
+	"^cosign\=.*/1[0-9]{9}\/?[0-9]?; path=/; secure$"
+[ $? -eq 0 ] || return 1
+
+header_match_regex tmp/$$.out "Expires" \
+	"^Mon, 16 Apr 1973 13\:10\:00 GMT$"
+[ $? -eq 0 ] || return 1
+
+header_match_regex tmp/$$.out "Last-Modified" \
+	"^Mon, 16 Apr 1973 13\:10\:00 GMT$"
+[ $? -eq 0 ] || return 1
+
+header_match_regex tmp/$$.out "Cache-Control" \
+	"^no-store, no-cache, must-revalidate$"
+[ $? -eq 0 ] || return 1
+
+header_match_regex tmp/$$.out "Pragma" \
+	"^no-cache$"
+[ $? -eq 0 ] || return 1
+#END:TEST
+
+#BEGIN:EXPECTED_OUTPUT
+#END:EXPECTED_OUTPUT
