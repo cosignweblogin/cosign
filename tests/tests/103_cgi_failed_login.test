@@ -130,7 +130,7 @@ header_match_regex tmp/$$.out "Pragma" \
 				value="" />
 				<input type="hidden" name="service"
 				value="" />
-				<div id="error">Please enter your login and password.</div>
+				<div id="error">Password or Account Name incorrect. Is [caps lock] on?</div>
 				<div class="factorHead"> <a href="#" tabindex="10">Help</a>
 					<h2 id="kerbTitle"><span>&nbsp;</span>ID &amp; Password</h2>
 					<div class="authComplete" style="display: none;">Authentication Complete</div>
