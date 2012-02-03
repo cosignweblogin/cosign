@@ -34,7 +34,7 @@ VERSION=`date +%Y%m%d`
 DISTDIR=../cosign-${VERSION}
 
 test : everything
-        (cd tests && sh ./tests.sh)
+	(cd tests && sh ./tests.sh)
 
 dist   : distclean
 	mkdir ${DISTDIR}
