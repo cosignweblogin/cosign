@@ -160,7 +160,6 @@ authlist_find( char *hostname )
 	} else if ( rc != REG_NOMATCH ) {
 	    regerror( rc, &preg, error, sizeof( error ));
 	    fprintf( stderr, "regexec failed: %s\n", error );
-	    cur = NULL;
 	}
 	regfree( &preg );
     }
