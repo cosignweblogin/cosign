@@ -129,7 +129,8 @@ cgi_init( void )
 
 DEBUG( fprintf( stderr, "DB: in cgi_init\n" ));
     if (( cgi = (CGIHANDLE *)malloc( sizeof( CGIHANDLE ))) == NULL ) {
-	goto error;
+	perror( "cgi_init: malloc CGIHANDLE" );
+	return( NULL );
     }
     memset( cgi, 0, sizeof( CGIHANDLE ));
 
