@@ -147,6 +147,10 @@ DEBUG( fprintf( stderr, "DB: in cgi_init\n" ));
 error:
     CGI_SYSERR( cgi, "malloc" );
     CGI_LOGERR( cgi );
+    if ( cgi ) {
+	free( cgi );
+    }
+
     return( NULL );
 }
 
