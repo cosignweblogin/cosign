@@ -52,6 +52,7 @@ distclean: clean
 	  filters/apache/Makefile filters/apache2/Makefile \
 	  common/Makefile version.c filters/common/cosignpaths.h
 	rm -rf autom4te.cache
+	( cd tests && rm -rf *.testlog CA certs cosign openssl.cnf tmp )
 
 install: @FILTERS@
 	for i in ${FILTERS}; \
