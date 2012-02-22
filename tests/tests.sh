@@ -214,6 +214,9 @@ tests_run() {
     done
 
     echo
+    echo "Test log: $(pwd)/${test_log_name}"
+
+    echo
     echo "Test results: "
     echo "        ${grn}Passed:${clr} ${tests_passed}"
     echo "        ${red}Failed:${clr} ${tests_failed}"
