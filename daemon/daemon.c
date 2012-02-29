@@ -52,6 +52,7 @@ char		*cosign_conf = _COSIGN_CONF;
 char		*cryptofile = _COSIGN_TLS_KEY;
 char		*certfile = _COSIGN_TLS_CERT;
 char		*cadir = _COSIGN_TLS_CADIR;
+char		*crlpath = NULL;
 char		*replhost = NULL;
 struct timeval	cosign_net_timeout = { 60 * 4, 0 };
 unsigned short	cosign_port = 0;
@@ -85,6 +86,10 @@ daemon_configure()
 
     if (( val = cosign_config_get( COSIGNKEYKEY )) != NULL ) {
 	cryptofile = val;
+    }
+
+    if (( val = cosign_config_get( COSIGNDCRLKEY )) != NULL ) {
+	crlpath = val;
     }
 
     if (( val = cosign_config_get( COSIGNTIMEOUTKEY )) != NULL ) {
@@ -266,6 +271,12 @@ main( int ac, char *av[] )
     if ( cosign_ssl( cryptofile, certfile, cadir, &ctx ) != 0 ) {
 	fprintf( stderr, "cosignd: ssl setup error.\n" );
 	exit( 1 );
+    }
+    if ( crlpath ) {
+	if ( cosign_crl( ctx, crlpath ) != 0 ) {
+	    fprintf( stderr, "cosignd: ssl CRL setup error.\n" );
+	    exit( 1 );
+	}
     }
 
     if ( dontrun ) {

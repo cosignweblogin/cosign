@@ -85,6 +85,8 @@ CHECK_SSL
 AC_CHECK_HEADER([openssl/ssl.h], [], [AC_MSG_ERROR([header file <openssl/ssl.h> is required for this software. 
 You may be running RedHat 9.
 If so, see the FAQ or the README for further instructions.])])
+AC_CHECK_LIB([crypto], [X509_VERIFY_PARAM_set_flags], [AC_DEFINE(HAVE_X509_VERIFY_PARAM)], [])
+
 # Checks for filters:
 
 if test "x_$FILTERS" = "x_" ; then

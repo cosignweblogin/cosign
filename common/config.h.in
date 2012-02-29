@@ -1,6 +1,7 @@
 
 /* openssl is required */
 #undef HAVE_LIBSSL
+#undef HAVE_X509_VERIFY_PARAM
 
 /* kerberos and gssapi support */
 #undef KRB

@@ -62,6 +62,7 @@ struct matchlist {
 #define COSIGNCADIRKEY		"cosigncadir"
 #define COSIGNCERTKEY		"cosigncert"
 #define	COSIGNKEYKEY		"cosignkey"
+#define COSIGNDCRLKEY		"cosigndcrl"
 #define COSIGNTICKKEY		"cosignticketcache"
 #define COSIGNDTICKKEY		"cosigndticketcache"
 #define COSIGNTMPLDIRKEY	"cosigntmpldir"

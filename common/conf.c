@@ -1054,3 +1054,46 @@ cosign_ssl( char *cryptofile, char *certfile, char *capath, SSL_CTX **ctx )
 
     return( 0 );
 }
+
+    int
+cosign_crl( SSL_CTX *ctx, char *crl_path )
+{
+    struct stat		st;
+    X509_STORE		*store = NULL;
+#ifdef HAVE_X509_VERIFY_PARAM
+    X509_VERIFY_PARAM	*param = NULL;
+#endif /* HAVE_X509_VERIFY_PARAM */
+    int			vflags = 0;
+    int			rc;
+
+    if ( stat( crl_path, &st ) != 0 ) {
+	fprintf( stderr, "cosign_crl: stat %s: %s\n",
+			crl_path, strerror( errno ));
+	return( 1 );
+    }
+    if ( S_ISDIR( st.st_mode )) {
+	rc = SSL_CTX_load_verify_locations( ctx, NULL, crl_path );
+    } else {
+	rc = SSL_CTX_load_verify_locations( ctx, crl_path, NULL );
+    }
+    if ( rc != 1 ) {
+	fprintf( stderr, "cosign_crl: SSL_CTX_load_verify_locations from %s: "
+		"%s\n", crl_path, ERR_error_string( ERR_get_error(), NULL ));
+	return( 1 );
+    }
+
+    /* full chain CRL check */
+    vflags = X509_V_FLAG_CRL_CHECK | X509_V_FLAG_CRL_CHECK_ALL;
+    store = SSL_CTX_get_cert_store( ctx );
+
+#ifdef HAVE_X509_VERIFY_PARAM
+    param = X509_VERIFY_PARAM_new();
+    X509_VERIFY_PARAM_set_flags( param, vflags );
+    X509_STORE_set1_param( store, param );
+    X509_VERIFY_PARAM_free( param );
+#else /* HAVE_X509_VERIFY_PARAM */
+    X509_STORE_set_flags( store, vflags );
+#endif /* HAVE_X509_VERIFY_PARAM */
+    
+    return( 0 );
+}
