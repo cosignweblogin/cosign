@@ -157,6 +157,11 @@ command line option and the defualt is _COSIGN_TLS_CERT
 The location of the SSL key file for use by this program. This is overridden by the
 .B \-z
 command line option and the default is _COSIGN_TLS_KEY
+.TP 19
+.BI cosigndcrl
+The location of the SSL certificate revocation list (CRL). This path may be a CRL file or a hashed directory of CRLs. CRLs are not enabled by default. Setting
+.B cosigndcrl 
+enables them.
 .SH "SET" CONFIG FILE OPTIONS - DAEMON
 .TP 19
 .B cosigndb
