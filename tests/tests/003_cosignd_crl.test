@@ -1,0 +1,85 @@
+description cosignd - certificate revocation list
+exit_status 0
+
+#BEGIN:TEST
+create_cosign_conf "localhost-revoked" "cosign-crl-test.conf"
+create_cert "localhost-revoked"
+cert_revoke "localhost-revoked"
+
+crl_create
+
+cosignd_stop
+cosignd_start "cosign/etc/cosign.conf"
+
+cgi_setup_env
+COSIGN_CGI_CONF="$(pwd)/cosign/etc/cosign-crl-test.conf"; export COSIGN_CGI_CONF
+
+cgi_set_cookie $(cosign_login_cookie)
+cgi_set_request_method "GET"
+cgi_set_remote_user cosigntest
+$(cgi_get_path) basic 2> tmp/$$.err | tee "tmp/$$.out"
+
+header_match_regex tmp/$$.out "Status" "^500$"
+[ $? -eq 0 ] || return 1
+
+stderr_match_regex tmp/$$.err \
+	"^snet_starttls:.*sslv3 alert certificate revoked$"
+[ $? -eq 0 ] || return 1
+#END:TEST
+
+#BEGIN:EXPECTED_OUTPUT
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1" />
+<meta http-equiv="Pragma" content="no-cache" />
+<meta http-equiv="Expires" content="Monday, 16-Apr-73 13:10:00 GMT" />
+<title>Error: Please try later</title>
+<style type="text/css" media="screen">
+/* <![CDATA[ */@import "/cosign/cosign_base.css"/**/;/* ]]> */
+
+#rightUIcol .factorHead h2 {
+	background: none;
+	color: #999;
+}
+</style>
+</head>
+<body>
+<div id="page">
+	<div id="head"> <a id="mast" href="#" title="Link to Homepage"><span>
+		<!--A small logo for when CSS is disabled goes here. <img src="#" alt="" width="16" height="16" />//-->
+		</span> <strong>Our Home Page</strong></a> </div>
+	<div id="main">
+		<div id="uiRow">
+			<div id="leftUIcol">
+				<h1 class="error">Web Login is Unavailable</h1>
+				<p>Web Login is unavailable due to an internal error. We apologize for any inconvenience
+					this may cause and are working to restore service as soon as possible. Please try
+					again later.</p>
+			<p class="techInfo"><strong>Technical
+			Info:</strong> We were unable to contact the authentication server. Please try again later.</p>
+			</div>
+			<form action="#" method="post" name="factors" id="rightUIcol">
+				<div class="factorHead">
+					<h2>ID &amp; Password</h2>
+				</div>
+				<div class="factorHead">
+					<h2>One Time Passcode</h2>
+				</div>
+				<div class="factorHead">
+					<h2>Certificate</h2>
+				</div>
+				<div id="loginButton">
+					<input type="submit" name="doLogin" value="Log In" disabled="disabled" />
+				</div>
+			</form>
+			<div class="clear">&nbsp;</div>
+		</div>
+		<div id="uiBottom">&nbsp;</div>
+	</div>
+</div>
+<div id="foot">&copy; 2006 <a href="http://www.umich.edu/~regents/" title="Regents of the University of Michigan"> Regents
+		of the University of Michigan</a> </div>
+</body>
+</html>
+#END:EXPECTED_OUTPUT
