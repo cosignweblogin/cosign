@@ -770,19 +770,6 @@ cgi_logout() {
     echo "verify=Log+Out" | "${logout_cgi_path}"
 }
 
-parse_header() {
-    echo "$*" | sed -e 's/://' | read header value
-
-    case "${header}" in
-    Set-Cookie)
-	;;
-    Cookie)
-	;;
-    
-    
-    esac
-}
-
 headers_trim() {
     awk '/^$/ { if ( p != 1 ) { getline; p = 1 }} p == 1'
 }
@@ -835,39 +822,6 @@ stderr_match_regex() {
     fi
 
     return 0
-}
-
-check_headers() {
-    matches=0
-    f=$1
-    shift
-
-    if [ ! -f "${f}" -o ! -s "${f}" ]; then
-	echo "Bad output file ${f}"
-	return 1
-    fi
-
-    sed -e '/^[A-Za-z][-A-Za-z]*:/!d' -e 's/://' < "${f}" > "${f}.$$"
-    mv -f "${f}.$$" "${f}"
-
-    while read header value; do
-	echo "$header: $value" >> /tmp/tttt
-	for h in $*; do
-	    if [ x"${h}" = x"${header}" ]; then
-		matches=$((matches + 1))
-	    fi
-	done
-
-	#validate_header
-    done < "${f}"
-
-    #[ -f "${f}" ] && rm -f "${f}"
-
-    if [ ${matches} -eq $# ]; then
-	return 0
-    fi
-
-    return 1
 }
 
 on_exit() {
