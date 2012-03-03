@@ -1,0 +1,74 @@
+<?xml version='1.0'?>
+ <!DOCTYPE service_bundle SYSTEM '/usr/share/lib/xml/dtd/service_bundle.dtd.1'>
+<!--
+	cosign startup manifest
+        Service manifest for cosign
+ -->
+
+<service_bundle type='manifest' name='cosignd:cosignd'>
+    <service name='network/cosign'
+	     type='service'
+	     version='1'>
+
+	<create_default_instance enabled='false' />
+	<single_instance />
+
+	<dependency name='fs'
+		    grouping='require_all'
+		    restart_on='none'
+		    type='service'>
+	    <service_fmri value='svc:/system/filesystem/local' />
+	</dependency>
+
+	<dependency name='net'
+		    grouping='require_all'
+		    restart_on='none'
+		    type='service'>
+	    <service_fmri value='svc:/network/loopback' />
+	</dependency>
+
+	<exec_method
+		    type='method'
+		    name='start'
+		    exec='/usr/local/lib/svc/method/cosign start'
+		    timeout_seconds='-1'>
+	    <method_context>
+		<method_credential user='cosign' group='cosign' />
+	    </method_context>
+	</exec_method>
+
+	<exec_method
+		    type='method'
+		    name='stop'
+		    exec=':kill'
+		    timeout_seconds='-1'>
+	</exec_method>
+
+	<exec_method
+		    type='method'
+		    name='restart'
+		    exec='/usr/local/lib/svc/method/cosign restart'
+		    timeout_seconds='-1'>
+	</exec_method>
+
+	<property_group name='startd'
+			type='framework'>
+	    <!-- sub-process core dumps shouldn't restart session -->
+	    <propval name='ignore_error'
+		    	type='astring' value='core,signal' />
+	</property_group>
+
+	<template>
+	    <common_name>
+		<loctext xml:lang='C'>
+		    cosign single sign-on weblogin server
+		</loctext>
+	    </common_name>
+	    <documentation>
+		<manpage title='cosignd' section='8' manpath='@mandir@' />
+		<manpage title='monster' section='8' manpath='@mandir@' />
+		<manpage title='cosign.conf' section='5' manpath='@mandir@' />
+	    </documentation>
+	</template>
+     </service>
+ </service_bundle>

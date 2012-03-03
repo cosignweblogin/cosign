@@ -1,0 +1,75 @@
+#! /bin/sh
+#
+# 
+
+. /lib/svc/share/smf_include.sh
+
+COSIGND=@prefix@/sbin/cosignd
+COSIGND_DEFAULTS="/etc/default/cosignd"
+
+MONSTER=@prefix@/sbin/monster
+MONSTER_DEFAULTS="/etc/default/monster"
+
+die() {
+    echo "ERROR: $*" | smf_console
+    exit 1
+}
+
+cosign_kill() {
+    proc_name="$1"
+    proc_pid=
+
+    [ -n "${proc_name}" ] || return
+
+    proc_pid=`pgrep -x -o "${proc_name}"`
+
+    [ -n "${proc_pid}" ] || return
+
+    echo "Stopping ${proc_name}..."
+    pkill -TERM -x -o "${proc_name}"
+
+    limit=10
+    ticks=0
+    while pgrep -x "${proc_name}" > /dev/null; do
+	sleep 1
+	ticks=`expr $ticks + 1`
+	if [ "${ticks}" -ge "${limit}" ]; then
+	    # kill the leftovers
+	    pkill -KILL -x "${proc_name}" 
+	fi
+    done
+}
+
+case "$1" in
+start)
+    if [ ! -x "${COSIGND}" ]; then
+	die "${COSIGND} is not executable"
+    fi
+
+    [ -f "${COSIGND_DEFAULTS}" ] && . "${COSIGND_DEFAULTS}"
+    [ -f "${MONSTER_DEFAULTS}" ] && . "${MONSTER_DEFAULTS}"
+
+    echo "Starting cosign daemons..."
+    "${MONSTER}" ${MONSTER_OPTS}
+    "${COSIGND}" ${COSIGND_OPTS}
+    ;;
+
+stop)
+    cosign_kill monster
+    cosign_kill cosignd
+    ;;
+
+restart)
+    stop
+    start
+    ;;
+
+*)
+    echo ""
+    echo "Usage: `basename $0` { start | stop | restart }"
+    echo ""
+    exit 64
+    ;;
+esac
+
+exit $?
