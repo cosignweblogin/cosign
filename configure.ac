@@ -26,6 +26,8 @@ AC_ARG_ENABLE(krb, AC_HELP_STRING([--enable-krb=path_to_krb], [enable kerberos f
 
 AC_ARG_ENABLE(mysql, AC_HELP_STRING([--enable-mysql=path_to_mysql], [enable mysql for guest login support in the cgi]), CHECK_LIBMYSQL, AC_MSG_RESULT( mysql not enabled))
 
+AC_ARG_ENABLE(pam, AC_HELP_STRING([--enable-pam=yes/no], [enable PAM login support in the cgi]), [CHECK_LIBPAM], AC_MSG_RESULT( pam not enabled))
+
 AC_ARG_WITH(gss, AC_HELP_STRING([--with-gss], [enable apache filter
 to set up GSSAPI ]), CHECK_GSS, AC_MSG_RESULT( GSSAPI not enabled))
 
@@ -80,6 +82,9 @@ AC_ARG_WITH(keytabpath, AC_HELP_STRING([--with-keytabpath=FILE], [path
 to keytab]), keytabpath="$withval", keytabpath="" )
 AC_SUBST(keytabpath)
 
+AC_ARG_WITH(pam-service, AC_HELP_STRING([--with-pam-service=NAME], [default pam.conf service name for PAM authentication]), cosignpamservice="$withval", cosignpamservice="cosign" )
+AC_SUBST(cosignpamservice)
+
 CHECK_SSL
 
 AC_CHECK_HEADER([openssl/ssl.h], [], [AC_MSG_ERROR([header file <openssl/ssl.h> is required for this software. 
@@ -118,6 +123,7 @@ done
 if test x_$GCC = x_yes; then
     OPTOPTS=${OPTOPTS:-"-Wall -Wmissing-prototypes"}
 fi
+MACOSX_MUTE_DEPRECATION_WARNINGS
 CHECK_UNIVERSAL_BINARIES
 AC_SUBST(FILTER_LINKER_OPTS)
 AC_SUBST(FILTER_COMPILER_OPTS)

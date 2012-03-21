@@ -15,6 +15,7 @@ COSIGNTICKETCACHE=@ticketcache@
 COSIGNLOGOUTURL = @cosignlogouturl@
 COSIGNLOOPURL = @cosignloopurl@
 COSIGNTMPLDIR = @prefix@/templates
+COSIGNPAMSERVICE = @cosignpamservice@
 FRIEND_MYSQL_DB = @frienddbhost@
 FRIEND_MYSQL_LOGIN = @frienddblogin@
 FRIEND_MYSQL_PASSWD = @frienddbpasswd@
@@ -88,6 +89,7 @@ man : FRC
 	    -e 's@_COSIGN_TMPL_DIR@${COSIGNTMPLDIR}@g' \
 	    -e 's@_COSIGN_LOGOUT_URL@${COSIGNLOGOUTURL}@g' \
 	    -e 's@_COSIGN_LOOP_URL@${COSIGNLOOPURL}@g' \
+	    -e 's@_COSIGN_PAM_SERVICE@${COSIGNPAMSERVICE}@g' \
 	    -e 's@_FRIEND_MYSQL_DB@${FRIEND_MYSQL_DB}@g' \
 	    -e 's@_FRIEND_MYSQL_LOGIN@${FRIEND_MYSQL_LOGIN}@g' \
 	    -e 's@_FRIEND_MYSQL_PASSWD@${FRIEND_MYSQL_PASSWD}@g' \

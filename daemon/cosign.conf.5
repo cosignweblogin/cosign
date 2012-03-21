@@ -1,4 +1,4 @@
-.TH cosign.conf "5" "March 2009" "cosign" "File Formats Manual"
+.TH cosign.conf "5" "March 2012" "cosign" "File Formats Manual"
 .SH NAME
 .B cosign.conf
 \- Cookie Sign-On Daemons and CGI configuration file
@@ -264,6 +264,12 @@ The default is
 Sets the lifetime in seconds of the kerberos ticket-granting ticket (TGT)
 created by a successful kerberos login. The default is 10 hours.
 .TP 19
+.B cosignpamservice
+Sets the pam.conf service name used by
+.B cosign.cgi
+when using PAM to authenticate users. The default service name is
+_COSIGN_PAM_SERVICE.
+.TP 19
 .B cosignlogouturl
 This is the URL the logout cgi will redirect a user to upon successful
 completion of logout. It can be overriden by passing a URL on the query
@@ -302,18 +308,18 @@ _FRIEND_MYSQL_PASSWD
 .sp
 .SH INCLUDE
 The keyword
-.I include
+.B include
 allows an administrator to build a cosign configuration file by
 aggregating the contents of several smaller files. The first argument is
 the keyword followed by the path to the file to include.
 .sp
 .SH REAUTH
 The keyword 
-.I reauth
+.B reauth
 denotes a cosign service that requires reauthentication before a
 .B REGISTER
 can succeed.
-.I reauth
+.B reauth
 requires at least one argument, a service cookie prefix like
 "cosign-web\\.mail".
 .sp
@@ -335,7 +341,7 @@ replaces the "cookie" keyword in older versions of Cosign.
 .sp
 .SH CERT
 The keyword
-.I cert
+.B cert
 is used to authenticate a user with an x509 certificate. It takes 5
 fields - keyword, issuer_dn, subject_dn, login, and factor (see
 Examples).  The issuer_dn must be an exact match  of the environment
@@ -346,7 +352,7 @@ parenthesized subexpressions of the regular expression subject_dn.
 .sp
 .SH FACTOR
 The keyword
-.I factor
+.B factor
 is used to invoke the external authenticator API. It takes the keyword,
 the pathname to the executable, and a list of form-fields, maximum of 5
 (see Examples).  If all listed form-fields contain posted data, then the
@@ -370,7 +376,7 @@ authentication failures. The other configuration option uses the keyword
 .sp
 .SH NEGOTIATE
 The keyword
-.I negotiate
+.B negotiate
 is used to authenticate a user using HTTP-Negotiate authentication. It 
 takes 4 fields - keyword, regexp, login, and factor.  The regular 
 expression regexp is matched against the REMOTE_USER variable 
@@ -380,21 +386,63 @@ subexpressions of the regular expression.
 .sp
 .SH PASSWD
 The keyword
-.I passwd
+.B passwd
 is used to control password based authentication of a user using the 
-Kerberos and MySQL internal authenticators. Where this keyword is not
+Kerberos, MySQL and PAM internal authenticators. Where this keyword is not
 specified, usernames containing an '@' are authenticated through mysql,
 all other usernames are authenticated with Kerberos. The keyword takes
-5 fields - keyword, type, regexp, login and factor. The regular
+5 fields -
+.IR keyword ,
+.IR type ,
+.IR regexp ,
+.I login
+and
+.IR factor .
+The regular
 expression regexp is matched against the username supplied by the user.
 The login and factor fields may contain $1, $2 and/or $3 which are replaced
 with the corresponding parethesized subexpressions of the regular expression.
-The CGI uses the first password line whose regular expression matches the username, and
-calls the internal authenticator specified by the 'type' field (which may
-be either 'kerberos' or 'mysql'), with the login name given by the login
-field. Should this login be successful, the user is marked as being
-authenticated by the factor contained in the factor field.
-
+The CGI uses the first password line whose regular expression matches the
+username, and calls the internal authenticator specified by the 'type'
+field (which may be 'kerberos', 'mysql' or 'pam'), with the login name
+given by the login field. Should this login be successful, the user is
+marked as being authenticated by the factor contained in the factor field.
+You may have all three configuration types enabled simultaneously.
+.sp
+The default authentication type rules match the following
+.B passwd
+configuration lines:
+.sp
+.nf
+    # Anything containing an @ is a friend request
+    passwd mysql    (.+@.+)  $1 friend
+    # Anything else gets handed to Kerberos
+    passwd kerberos ([^@]+) $1 MY.REALM
+.fi
+.sp
+The following allows user to specify accounts in the form user@realm, and 
+allows both A.EXAMPLE.COM and B.EXAMPLE.COM to be used as supported realms.
+.sp
+.nf
+    passwd kerberos (.*@A\\.EXAMPLE\\.COM) $1 A.EXAMPLE.COM
+    passwd kerberos (.*@B\\.EXAMPLE\\.COM) $1 B.EXAMPLE.COM
+.fi
+To enable PAM processing for user authentication, add the following line
+in _COSIGN_CONF:
+.sp
+.nf
+	passwd pam	(.+)	$1	PAM
+.fi
+.sp
+This tells the cgi to authenticate all users with PAM. Authenticated users
+with this configuration will have the authentication factor "PAM". This may
+be changed by replacing the last field with a different value.
+.sp
+By default, the cosign.cgi will use the PAM service "_COSIGN_PAM_SERVICE"
+to authenticate.  You may override this with the
+.B cosignpamservice
+keyword.
+.sp
 .SH SUFFIX
 The keyword
 .I suffix

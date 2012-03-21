@@ -728,7 +728,7 @@ main( int argc, char *argv[] )
 	sp.sp_ipchanged = 1;
     }
 
-#if defined( SQL_FRIEND ) || defined( KRB )
+#if defined( SQL_FRIEND ) || defined( KRB ) || defined( HAVE_LIBPAM )
     if ( cl[ CL_PASSWORD ].cl_data != NULL ) {
 	struct matchlist *pos = NULL;
 	char *type = NULL;
@@ -757,6 +757,15 @@ main( int argc, char *argv[] )
                 }
 	    } else
 #endif /* KRB5 */
+#ifdef HAVE_LIBPAM
+	    if ( strcmp( type, "pam" ) == 0 ) {
+		if (( rc = cosign_login_pam( head, login, username, realm,
+					cl[ CL_PASSWORD ].cl_data, ip_addr,
+					cookie, &sp, &msg )) == COSIGN_CGI_OK) {
+		    goto loggedin;
+		}
+	    } else
+#endif /* HAVE_LIBPAM */
 	    {
                 rc = COSIGN_CGI_ERROR;
 	        fprintf( stderr, "Unknown authentication type '%s'", type );
@@ -782,7 +791,7 @@ main( int argc, char *argv[] )
 loggedin:
 	(void)cosign_check( head, cookie, &ui );
     }
-#endif /* SQL_FRIEND || KRB */
+#endif /* SQL_FRIEND || KRB || HAVE_LIBPAM */
 
     /*
      * compare factor form fields with posted form fields, call

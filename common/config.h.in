@@ -11,6 +11,11 @@
 #undef HAVE_MYSQL
 #undef SQL_FRIEND
 
+/* pam authentication */
+#undef HAVE_LIBPAM
+#undef HAVE_PAM_PAM_APPL_H
+#undef HAVE_SECURITY_PAM_APPL_H
+
 /* Apache 1.3.x */
 #undef APACHE1
 

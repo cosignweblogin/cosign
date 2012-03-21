@@ -13,6 +13,7 @@ COSIGNLOOPURL = @cosignloopurl@
 COSIGNTMPLDIR = @prefix@/templates
 COSIGNTICKETCACHE = @ticketcache@
 COSIGNCONF= @cosignconf@
+COSIGNPAMSERVICE= @cosignpamservice@
 KEYTABPATH = @keytabpath@
 FRIEND_MYSQL_DB = @frienddbhost@
 FRIEND_MYSQL_LOGIN = @frienddblogin@
@@ -39,6 +40,7 @@ all: ${TARGETS}
 login.o:	login.c
 	${CC} ${CFLAGS} \
 	-D_COSIGN_TICKET_CACHE=\"${COSIGNTICKETCACHE}\" \
+	-D_COSIGN_PAM_SERVICE=\"${COSIGNPAMSERVICE}\" \
 	-D_KEYTAB_PATH=\"${KEYTABPATH}\" \
 	-D_FRIEND_MYSQL_DB=\"${FRIEND_MYSQL_DB}\" \
 	-D_FRIEND_MYSQL_LOGIN=\"${FRIEND_MYSQL_LOGIN}\" \

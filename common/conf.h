@@ -67,6 +67,7 @@ struct matchlist {
 #define COSIGNDTICKKEY		"cosigndticketcache"
 #define COSIGNTMPLDIRKEY	"cosigntmpldir"
 #define COSIGNHOSTKEY		"cosignhost"
+#define COSIGNPAMSERVICEKEY     "cosignpamservice"
 #define COSIGNKEYTABKEY		"cosignkeytab"
 #define COSIGNPRINCIPALKEY	"cosignprincipal"
 #define COSIGNSTORETICKETSKEY	"cosignstoretickets"

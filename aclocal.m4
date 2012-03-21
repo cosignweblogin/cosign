@@ -207,6 +207,28 @@ AC_DEFUN([CHECK_LIBMYSQL],
     AC_MSG_RESULT($ac_cv_path_mysql)
 ])
 
+AC_DEFUN([CHECK_LIBPAM],
+[
+    AS_IF([test x"$enableval" = x"no"], [AC_MSG_RESULT( pam not enabled)])
+
+    AS_IF([test x"$enableval" = x"yes"], [
+	AC_SEARCH_LIBS([pam_start], [pam],
+	    [
+		AC_DEFINE(HAVE_LIBPAM)
+		AC_CHECK_HEADERS([pam/pam_appl.h security/pam_appl.h],
+		    [
+			pam_headers_found="yes"; break;
+		    ])
+	    ],
+	    [
+		AC_MSG_ERROR(cannot find pam library)
+	    ])
+
+	AS_IF([test x"$pam_headers_found" != x"yes"],
+		[AC_MSG_ERROR(cannot find pam headers)])
+    ])
+])
+
 AC_DEFUN([SET_NO_SASL],
 [
     ac_configure_args="$ac_configure_args --with-sasl=no";
@@ -254,6 +276,24 @@ rted])
 	FILTER_COMPILER_OPTS="-Wc,\"-isysroot /Developer/SDKs/$macosx_sdk\" -Wc,\"-arch i386\" -Wc,\"-arch x86_64\" -Wc,\"-arch ppc\" -Wc,\"-arch ppc64\" -Wc,\"$dep_target\""
 	UNIVERSAL_OPTOPTS="-isysroot /Developer/SDKs/$macosx_sdk -arch i386 -arch x86_64 -arch ppc -arch ppc64 $dep_target"
     fi
+])
+
+AC_DEFUN([MACOSX_MUTE_DEPRECATION_WARNINGS],
+[
+    dnl Lion deprecates a system-provided OpenSSL. Build output
+    dnl is cluttered with useless deprecation warnings.
+
+    AS_IF([test x"$CC" = x"gcc"], [
+	case "${host_os}" in
+	darwin11*)
+	    AC_MSG_NOTICE([muting deprecation warnings from compiler])
+	    OPTOPTS="$OPTOPTS -Wno-deprecated-declarations"
+	    ;;
+
+	*)
+	    ;;
+	esac
+    ])
 ])
 
 AC_DEFUN([CHECK_LIGHTTPD],

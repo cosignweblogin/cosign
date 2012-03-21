@@ -24,6 +24,16 @@
 #endif /* ndef MAX */
 #endif /* KRB */
 
+#ifdef HAVE_LIBPAM
+    #ifdef HAVE_PAM_PAM_APPL_H
+	#include <pam/pam_appl.h>
+    #elif HAVE_SECURITY_PAM_APPL_H
+	#include <security/pam_appl.h>
+    #else /* !HAVE_PAM_APPL_H */
+	#error Cannot find pam_appl.h
+    #endif /* HAVE_PAM_APPL_H */
+#endif /* HAVE_LIBPAM */
+
 #include <string.h>
 #include <snet.h>
 
@@ -36,7 +46,7 @@
 
 extern int	errno;
 
-#if defined( KRB ) || defined( SQL_FRIEND )
+#if defined( KRB ) || defined( SQL_FRIEND ) || defined( HAVE_LIBPAM )
 
 #ifdef KRB
 static char	*keytab_path = _KEYTAB_PATH;
@@ -74,6 +84,10 @@ static char	*friend_db_name = _FRIEND_MYSQL_DB;
 static char	*friend_login = _FRIEND_MYSQL_LOGIN;
 static char	*friend_passwd = _FRIEND_MYSQL_PASSWD;
 # endif  /* SQL_FRIEND */
+
+#ifdef HAVE_LIBPAM
+static char	*cosign_pam_service = _COSIGN_PAM_SERVICE;
+#endif /* HAVE_LIBPAM */
 
     static void
 lcgi_configure()
@@ -119,6 +133,12 @@ lcgi_configure()
         friend_passwd = val;
     }
 # endif /* SQL_FRIEND */
+
+#ifdef HAVE_LIBPAM
+    if (( val = cosign_config_get( COSIGNPAMSERVICEKEY )) != NULL ) {
+	cosign_pam_service = val;
+    }
+#endif /* HAVE_LIBPAM */
 }
 
 # ifdef SQL_FRIEND
@@ -439,4 +459,158 @@ cosign_login_krb5( struct connlist *head, char *cosignname, char *id,
 }
 
 #endif /* KRB */
-#endif /* KRB || SQL_FRIEND */
+
+#ifdef HAVE_LIBPAM
+    static int
+cosign_pam_conv( int nmsg, struct pam_message **msg,
+		    struct pam_response **resp, void *appdata_ptr )
+{
+    struct pam_response		*presp = NULL;
+    char			*password;
+    char			*data;
+    int				i;
+
+    if ( nmsg <= 0 ) {
+	return( PAM_CONV_ERR );
+    }
+
+    if (( presp = (struct pam_response *)malloc( nmsg *
+			sizeof( struct pam_response ))) == NULL ) {
+	return( PAM_CONV_ERR );
+    }
+
+    password = (char *)appdata_ptr;
+
+    for ( i = 0; i < nmsg; i++ ) {
+	presp[ i ].resp_retcode = 0;
+	presp[ i ].resp = NULL;
+
+	switch ( msg[ i ]->msg_style ) {
+	case PAM_PROMPT_ECHO_ON:
+	case PAM_PROMPT_ECHO_OFF:
+	    if (( data = strdup( password )) == NULL ) {
+		goto error;
+	    }
+	    break;
+
+	case PAM_ERROR_MSG:
+	    fputs( msg[ i ]->msg, stderr );
+
+	case PAM_TEXT_INFO:
+	    data = NULL;
+	    break;
+	    
+	default:
+	    goto error;
+	}
+
+	presp[ i ].resp = data;
+    }
+
+    *resp = presp;
+
+    return( PAM_SUCCESS );
+
+error:
+    if ( presp != NULL ) {
+	for ( i = 0; i < nmsg; i++ ) {
+	    if ( presp[ i ].resp != NULL ) {
+		memset( presp[ i ].resp, 0, strlen( presp[ i ].resp ));
+		free( presp[ i ].resp );
+		presp[ i ].resp = NULL;
+	    }
+	    free( presp );
+	    presp = NULL;
+	}
+    }
+
+    return( PAM_CONV_ERR );
+}
+
+    int
+cosign_login_pam( struct connlist *head, char *cosignname, char *id, 
+	char *realm, char *passwd, char *ip_addr, char *cookie, 
+	struct subparams *sp, char **msg )
+{
+    pam_handle_t	*ph;
+    struct pam_conv	pconv;
+    int			status, rc = COSIGN_CGI_ERROR;
+    char		*tmpl = ERROR_HTML; 
+
+    pconv.conv = (int (*)())cosign_pam_conv;
+    pconv.appdata_ptr = passwd;
+
+    if (( status = pam_start( cosign_pam_service, id, &pconv, &ph ))
+		    != PAM_SUCCESS ) {
+	fprintf( stderr, "cosign_login_pam: pam_start for service %s failed: "
+		"%s\n", cosign_pam_service, pam_strerror( ph, status ));
+	sl[ SL_ERROR ].sl_data = (char *)pam_strerror( ph, status );
+	sl[ SL_TITLE ].sl_data = "PAM start error";
+	subfile( tmpl, sl, SUBF_OPT_ERROR, 500 );
+	exit( 0 );
+    }
+
+    if (( status = pam_authenticate( ph, PAM_SILENT )) != PAM_SUCCESS ) {
+	fprintf( stderr, "cosign_login_pam: pam_authenticate user %s (%s) "
+		"for service %s failed: %s\n", cosignname, id,
+		cosign_pam_service, pam_strerror( ph, status ));
+	if ( status == PAM_AUTH_ERR || status == PAM_CRED_INSUFFICIENT
+		|| status == PAM_USER_UNKNOWN ) {
+	    rc = COSIGN_CGI_ERROR;
+	    goto done;
+	}
+
+	sl[ SL_ERROR ].sl_data = (char *)pam_strerror( ph, status );
+	sl[ SL_TITLE ].sl_data = "PAM authentication error";
+	subfile( tmpl, sl, SUBF_OPT_ERROR, 500 );
+	exit( 0 );
+    }
+
+    if (( status = pam_acct_mgmt( ph, PAM_SILENT )) != PAM_SUCCESS ) {
+	if ( status == PAM_NEW_AUTHTOK_REQD ) {
+	    fprintf( stderr, "cosign_login_pam: pam_acct_mgmt for service %s: "
+		    "password expired for user %s (%s)\n",
+		    cosign_pam_service, cosignname, id );
+	    *msg = (char *)pam_strerror( ph, status );
+	    rc = COSIGN_CGI_PASSWORD_EXPIRED;
+	    goto done;
+	}
+
+	fprintf( stderr, "cosign_login_pam: pam_acct_mgmt for service %s "
+		"failed: %s\n", cosign_pam_service, pam_strerror( ph, status ));
+	sl[ SL_ERROR ].sl_data = (char *)pam_strerror( ph, status );
+	sl[ SL_TITLE ].sl_data = "PAM account management";
+	subfile( tmpl, sl, SUBF_OPT_ERROR, 500 );
+	exit( 0 );
+    }
+
+    /* pam authentication successful */
+    rc = COSIGN_CGI_OK;
+
+done:
+    if (( status = pam_end( ph, status )) != PAM_SUCCESS ) {
+	fprintf( stderr, "cosign_login_pam: pam_end for service %s "
+		"failed: %s\n", cosign_pam_service, pam_strerror( ph, status ));
+	sl[ SL_ERROR ].sl_data = (char *)pam_strerror( ph, status );
+	sl[ SL_TITLE ].sl_data = "PAM end";
+	subfile( tmpl, sl, SUBF_OPT_ERROR, 500 );
+	exit( 0 );
+    }
+
+    if ( rc == COSIGN_CGI_OK ) {
+	/* password has been accepted, tell cosignd */
+	if ( cosign_login( head, cookie, ip_addr, cosignname,
+		realm, NULL ) < 0 ) {
+	    fprintf( stderr, "cosign_login_pam: cosign_login failed\n") ;
+	    sl[ SL_ERROR ].sl_data = "We were unable to contact the "
+		    "authentication server. Please try again later.";
+	    sl[ SL_TITLE ].sl_data = "Error: Please try later";
+	    subfile( tmpl, sl, SUBF_OPT_ERROR, 500 );
+	    exit( 0 );
+	}
+    }
+
+    return( rc );
+}
+#endif /* HAVE_LIBPAM */
+#endif /* KRB || SQL_FRIEND || HAVE_LIBPAM */

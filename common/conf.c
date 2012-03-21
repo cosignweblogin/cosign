@@ -49,6 +49,10 @@ static struct matchlist		defkerberosauthenticator = {
     "kerberos", "([^@]+)", "$1", "", NULL,
 };
 
+static struct matchlist		defpamauthentication = {
+    "pam", "(.+)", "$1", "PAM", NULL,
+};
+
 char			*suffix = NULL;
 
     static void
