@@ -4,4 +4,5 @@ exit_status 0
 
 #BEGIN:TEST
 cosignd_start "$(pwd)/cosign/etc/cosign.conf"
+rc=$?
 #END:TEST

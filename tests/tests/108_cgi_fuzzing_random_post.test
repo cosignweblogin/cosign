@@ -3,15 +3,19 @@ expected_output
 exit_status 0
 
 #BEGIN:TEST
-cgi_fuzz_login random_post 2> tmp/$$.err | tee "tmp/$$.out" >/dev/null
+cgi_fuzz_login random_post 2> tmp/$$.err | tee "tmp/$$.out"
 
 header_match_regex tmp/$$.out "Location" \
 	"^https://localhost.localdomain/services/$" >/dev/null 2>&1
 if [ $? -eq 0 ]; then
     echo "Random byte POST resulted in successful authentication!"
-    return 1
+    rc=1
 fi
 #END:TEST
 
 #BEGIN:EXPECTED_OUTPUT
+Cosign Error Template
+
+Title: Error: Server POST Error
+Error: Please try again later
 #END:EXPECTED_OUTPUT

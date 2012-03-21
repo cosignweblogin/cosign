@@ -9,11 +9,11 @@ cgi_register_service cosign-test-reauth cosigntest 2> tmp/$$.err | \
 
 header_match_regex tmp/$$.out "Set-Cookie" \
     "^cosign\=.*/1[0-9]{9}\/?[0-9]?; path=/; secure$"
-[ $? -eq 0 ] || return 1
+[ $? -eq 0 ] || rc=1
 
 header_match_regex tmp/$$.out "Location" \
     "^https://localhost/cosign/valid\?cosign-test-reauth\=.*\&https://.*"
-[ $? -eq 0 ] || return 1
+[ $? -eq 0 ] || rc=1
 #END:TEST
 
 #BEGIN:EXPECTED_OUTPUT

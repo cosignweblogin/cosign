@@ -1,0 +1,37 @@
+description cgi - PAM authentication
+expected_output cosign_choose_conn: some servers returned UNKNOWN
+exit_status 0
+
+#BEGIN:TEST
+user=$(id cosigntest >/dev/null 2>&1)
+if [ $? -ne 0 ]; then
+    echo "No cosigntest user available, skipping" \
+		"pam authentication test..."
+    rc=2
+elif [ ! -f /etc/pam.d/cosign ]; then
+    if [ ! -f /etc/pam.conf ]; then
+	echo "No cosign pam configuration found, skipping" \
+		"pam authentication test..."
+	rc=2
+    else
+	grep "^cosign " /etc/pam.conf >/dev/null 2>&1
+	if [ $? -ne 0 ]; then
+	    echo "No cosign pam configuration found, skipping" \
+		    "pam authentication test..."
+	    rc=2
+	fi
+    fi
+fi
+
+if [ ${rc} -eq 0 ]; then
+    cgi_login login cosigntest cosigntest 2> "tmp/$$.err" | tee "tmp/$$.out"
+
+    header_match_regex tmp/$$.out "Location" \
+	    "^https://localhost.localdomain/services/$"
+    [ $? -eq 0 ] || rc=1
+fi
+#END:TEST
+
+#BEGIN:EXPECTED_OUTPUT
+
+#END:EXPECTED_OUTPUT
