@@ -1,0 +1,114 @@
+#! /bin/sh
+### BEGIN INIT INFO
+# Provides:             cosignd
+# Required-Start:       $local_fs $remote_fs $network $syslog
+# Required-Stop:        $local_fs $remote_fs $network $syslog
+# Default-Start:        2 3 4 5
+# Default-Stop:         0 1 6
+# Short-Description:    cosign web single sign-on daemon
+# Description:          Starts, stops, or restarts the cosign web single
+#			sign-on daemon. This daemon manages SSO login sessions
+#			and service cookies for clients.
+### END INIT INFO
+
+# Author: Andrew Mortensen <andrew@weblogin.org>
+
+PATH=/usr/sbin:/usr/bin:/sbin:/bin:@prefix@/sbin
+DESC="cosign daemon"
+NAME=cosignd
+DAEMON=@prefix@/sbin/$NAME
+DAEMON_ARGS=""
+SCRIPTNAME=/etc/init.d/cosignd
+
+# Exit if the package is not installed.
+[ -x "$DAEMON" ] || exit 0
+
+# Read configuration if it is present.
+[ -r /etc/default/cosignd ] && . /etc/default/cosignd
+
+# Get the setting of VERBOSE and other rcS variables.
+[ -f /etc/default/rcS ] && . /etc/default/rcS
+
+# Define LSB log functions (requires lsb-base >= 3.0-6).
+. /lib/lsb/init-functions
+
+
+# Return
+#   0 if daemon has been started
+#   1 if daemon was already running
+#   2 if daemon could not be started
+do_start_cosignd()
+{
+    start-stop-daemon --start --quiet --startas $DAEMON --name $NAME --test \
+        > /dev/null || return 1
+    start-stop-daemon --start --quiet --startas $DAEMON --name $NAME \
+        -- $DAEMON_ARGS || return 2
+}
+
+
+# Return
+#   0 if daemon has been stopped
+#   1 if daemon was already stopped
+#   2 if daemon could not be stopped
+#   other if a failure occurred
+do_stop_cosignd()
+{
+    start-stop-daemon --stop --quiet --retry=TERM/30/KILL/5 --name $NAME
+}
+
+
+case "$1" in 
+  start)
+    [ "$VERBOSE" != no ] && log_daemon_msg "Starting $DESC" "$NAME"
+    do_start_cosignd
+    case "$?" in
+      0|1)
+            [ "$VERBOSE" != no ] && log_end_msg 0
+        ;;
+      2)
+        [ "$VERBOSE" != no ] && log_end_msg 1
+        ;;
+    esac
+    ;;
+
+  stop)
+    [ "$VERBOSE" != no ] && log_daemon_msg "Stopping $DESC" "$NAME"
+    do_stop_cosignd
+    case "$?" in
+      0|1)
+        [ "$VERBOSE" != no ] && log_progress_msg "krb524d"
+        ;;
+      2)
+        [ "$VERBOSE" != no ] && log_end_msg 1
+        ;;
+    esac
+    ;;
+
+  restart|force-reload)
+    log_daemon_msg "Restarting $DESC" "$NAME"
+    do_stop_cosignd
+    case "$?" in
+      0|1)
+        do_start_cosignd
+        case "$?" in
+          0)
+	  log_end_msg 0
+	  ;;
+          1|2)
+            log_end_msg 1
+            ;;
+        esac
+        ;;
+      *)
+        log_end_msg 1
+        ;;
+    esac
+    ;;
+
+  *)
+    echo "Usage: $SCRIPTNAME {start|stop|restart|force-reload}" >&2
+    exit 3
+    ;;
+esac
+
+:
