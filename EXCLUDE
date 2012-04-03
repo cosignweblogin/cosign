@@ -1,3 +1,4 @@
+.git
 CVS
 friend
 scripts/hello
@@ -7,5 +8,4 @@ EXCLUDE
 NOTES
 /configure.ac
 /configure
-/.git
 autom4te.cache
