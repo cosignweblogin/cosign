@@ -42,7 +42,10 @@ dist   : distclean
 	echo ${VERSION} > ${DISTDIR}/VERSION
 	sed -e "s@INTERNAL@${VERSION}@" \
 		< configure.ac > ${DISTDIR}/configure.ac
-	cd "${DISTDIR}"; autoconf; rm -rf autom4te.cache
+	(cd "${DISTDIR}"; autoconf; rm -rf autom4te.cache)
+	sed -e "s@INTERNAL@${VERSION}@" < scripts/startup/configure.ac \
+		> ${DISTDIR}/scripts/startup/configure.ac
+	(cd "${DISTDIR}/scripts/startup"; autoconf; rm -rf autom4te.cache)
 
 distclean: clean
 	( cd libsnet ; make distclean )
@@ -50,7 +53,9 @@ distclean: clean
 	rm -f config.log config.status config.cache Makefile \
 	  libcgi/Makefile cgi/Makefile html/Makefile daemon/Makefile \
 	  filters/apache/Makefile filters/apache2/Makefile \
-	  common/Makefile version.c filters/common/cosignpaths.h
+	  common/Makefile version.c filters/common/cosignpaths.h \
+	  scripts/startup/{debian,redhat}/{cosignd,monster} \
+	  scripts/startup/solaris10/{cosign,cosign.xml}
 	rm -rf autom4te.cache
 	( cd tests && rm -rf *.testlog CA certs cosign openssl.cnf tmp )
 
