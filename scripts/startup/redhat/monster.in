@@ -1,0 +1,165 @@
+#!/bin/bash
+#
+# monster	Manage cosign weblogin cookie monster processes
+#
+# chkconfig: 2345 55 25
+# description: monster - cosign web single sign-on cookie monster.
+#              This service starts up monster.
+#
+# processname: monster
+# config: @cosignconf@
+
+### BEGIN INIT INFO
+# Provides: monster
+# Required-Start: $local_fs $network $syslog
+# Required-Stop: $local_fs $syslog
+# Should-Start: $syslog
+# Should-Stop: $network $syslog
+# Default-Start: 2 3 4 5
+# Default-Stop: 0 1 6
+# Short-Description: Start up the cosign monster daemon
+# Description:       monster is the cosign process responsible for
+#		     eating expired or logged out cookies. it also
+#		     replicates service cookies and cookie status
+#		     to other weblogin servers in the pool.
+#		     This service starts up monster.
+### END INIT INFO
+
+# source function library
+. /etc/rc.d/init.d/functions
+
+# pull in sysconfig settings
+[ -f /etc/sysconfig/monster ] && . /etc/sysconfig/monster
+
+RETVAL=0
+prog="monster"
+lockfile=/var/lock/subsys/$prog
+
+MONSTER="@prefix@/sbin/monster"
+
+runlevel=$(set -- $(runlevel); eval "echo \$$#" )
+
+die() {
+    echo "ERROR: $*" 1>&2
+    exit 127
+}
+
+monster_start() {
+    [ -x "${MONSTER}" ] || die "${MONSTER} is not executable"
+
+    if [ -n "${COSIGN_USER}" ]; then
+	su "${COSIGN_USER}" -c \
+	    "${MONSTER} ${MONSTER_OPTIONS}" && success || failure
+    else
+	"${MONSTER}" ${MONSTER_OPTIONS} && success || failure
+    fi
+}
+
+start()
+{
+    monster_start
+    RETVAL=$?
+    [ ${RETVAL} -eq 0 ] && touch ${lockfile}
+    echo
+    return ${RETVAL}
+}
+
+stop()
+{
+    echo -n $"Stopping $prog: "
+    killproc ${MONSTER}
+    RETVAL=$?
+
+    # if we are in halt or reboot runlevel kill all running sessions
+    # so the TCP connections are closed cleanly
+    if [ "x$runlevel" = x0 -o "x$runlevel" = x6 ] ; then
+	trap '' TERM
+	killall $prog 2>/dev/null
+	trap TERM
+    fi
+    [ $RETVAL -eq 0 ] && rm -f $lockfile
+    echo
+}
+
+reload()
+{
+    echo -n $"Reloading $prog: "
+    killproc ${MONSTER} -HUP
+    RETVAL=$?
+    echo
+}
+
+restart() {
+    stop
+    start
+}
+
+force_reload() {
+    restart
+}
+
+rh_status() {
+    status monster
+}
+
+rh_status_q() {
+    rh_status >/dev/null 2>&1
+}
+
+case "$1" in
+    start)
+	rh_status_q && exit 0
+	start
+	;;
+
+    stop)
+	if ! rh_status_q; then
+		rm -f $lockfile
+		exit 0
+	fi
+	stop
+	;;
+
+    restart)
+	restart
+	;;
+
+    reload)
+	rh_status_q || exit 7
+	reload
+	;;
+
+    force-reload)
+	force_reload
+	;;
+
+    condrestart|try-restart)
+	rh_status_q || exit 0
+	if [ -f $lockfile ] ; then
+		if [ $RETVAL -eq 0 ] ; then
+			stop
+			# avoid race
+			sleep 3
+			start
+		else
+			RETVAL=6
+		fi
+	fi
+	;;
+
+    status)
+	rh_status
+	RETVAL=$?
+	if [ $RETVAL -eq 3 -a -f $lockfile ] ; then
+		RETVAL=2
+	fi
+	;;
+
+    *)
+	echo $"Usage: $0 {start|stop|restart|reload|force-reload|condrestart|try-restart|status}"
+	RETVAL=2
+	;;
+
+esac
+
+exit $RETVAL
