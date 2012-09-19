@@ -827,7 +827,7 @@ loggedin:
             } else {
 	        sl[ SL_TITLE ].sl_data = "Authentication Required";
             }
-	    goto loginscreen;
+	    continue;
 	}
 
 	for ( i = 0; i < COSIGN_MAXFACTORS - 1; i++ ) {
