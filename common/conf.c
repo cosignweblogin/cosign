@@ -53,6 +53,7 @@ static struct matchlist		defpamauthentication = {
     "pam", "(.+)", "$1", "PAM", NULL,
 };
 
+char			*userfactorpath = NULL;
 char			*suffix = NULL;
 
     static void
@@ -621,7 +622,7 @@ read_config( char *path )
 
 	} else if ( strcmp( av[ 0 ], "passwd" ) == 0 ) {
 	    if ( ac != 5 ) {
-		fprintf( stderr, "line %d: keyword authenticator takes 5 args\n",
+		fprintf( stderr, "line %d: keyword passwd takes 5 args\n",
 			linenum );
 		return( -1 );
 	    }
@@ -708,6 +709,23 @@ read_config( char *path )
 
 	    fl_new->fl_next = *fl_cur;
 	    *fl_cur = fl_new;
+
+	} else if ( strcmp( av[ 0 ], "userfactor" ) == 0 ) {
+	    if ( ac != 2 ) {
+		fprintf( stderr, "line %d: keyword userfactor takes 1 arg\n",
+			linenum );
+		return( -1 );
+	    }
+	    if ( userfactorpath != NULL ) {
+		fprintf( stderr, "line %d:"
+			" keyword userfactor already set to %s\n",
+			linenum, userfactorpath );
+		return( -1 );
+	    }
+	    if (( userfactorpath = strdup( av[ 1 ] )) == NULL ) {
+		perror( "malloc" );
+		return( -1 );
+	    }
 
 	} else if ( strcmp( av[ 0 ], "suffix" ) == 0 ) {
 	    if ( ac != 2 ) {
