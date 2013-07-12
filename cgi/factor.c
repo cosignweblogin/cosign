@@ -35,6 +35,7 @@ execfactor( struct factorlist *fl, struct cgi_list cl[], char *login,
     static char		prev[ 1024 ];
 
     *msg = NULL;
+    memset( prev, 0, sizeof( prev ));
 
     if ( pipe( fd0 ) < 0 || pipe( fd1 ) < 0 ) {
 	perror( "pipe" );

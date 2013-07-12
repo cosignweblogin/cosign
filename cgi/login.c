@@ -58,7 +58,7 @@ krb5_deltat	tkt_life = ( 10 * 60 * 60 );
 
 extern char	*cosign_host, *cosign_conf;
 
-extern char	*new_factors[ COSIGN_MAXFACTORS ];
+extern char	*nfactorv[ COSIGN_MAXFACTORS ];
 
 static struct subfile_list sl[] = {
 #define SL_LOGIN	0
@@ -233,12 +233,12 @@ cosign_login_mysql( struct connlist *head, char *cosignname, char *id,
     mysql_close( &friend_db );
 
     for ( i = 0; i < COSIGN_MAXFACTORS - 1; i++ ) {
-	if ( new_factors[ i ] == NULL ) {
-	    new_factors[ i ] = "friend";
-	    new_factors[ i + 1 ] = NULL;
+	if ( nfactorv[ i ] == NULL ) {
+	    nfactorv[ i ] = "friend";
+	    nfactorv[ i + 1 ] = NULL;
 	    break;
 	}
-	if ( strcmp( new_factors[ i ], "friend" ) == 0 ) {
+	if ( strcmp( nfactorv[ i ], "friend" ) == 0 ) {
 	    break;
 	}
     }
@@ -409,12 +409,12 @@ cosign_login_krb5( struct connlist *head, char *cosignname, char *id,
     }
 
     for ( i = 0; i < COSIGN_MAXFACTORS - 1; i++ ) {
-	if ( new_factors[ i ] == NULL ) {
-	    new_factors[ i ] = strdup( realm );
-	    new_factors[ i + 1 ] = NULL;
+	if ( nfactorv[ i ] == NULL ) {
+	    nfactorv[ i ] = strdup( realm );
+	    nfactorv[ i + 1 ] = NULL;
 	    break;
 	}
-	if ( strcmp( new_factors[ i ], realm ) == 0 ) {
+	if ( strcmp( nfactorv[ i ], realm ) == 0 ) {
 	    break;
 	}
     }

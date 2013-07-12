@@ -51,6 +51,7 @@ int		krbtkts = 0;
 int		httponly_cookies = 0;
 SSL_CTX 	*ctx = NULL;
 
+char			*nfactorv[ COSIGN_MAXFACTORS ];
 char			*script;
 struct userinfo		ui;
 struct subparams	sp;
@@ -204,31 +205,41 @@ kcgi_configure()
     static char *
 smash( char *av[] )
 {
-    static char	smashtext[ 1024 ];
-    int		i;
-    
-    if ( av[ 0 ] == NULL ) {
-	return( NULL );
+    char        *smashtext = NULL;
+    int         flens[ COSIGN_MAXFACTORS ] = { 0 };
+    int         i, len = 0;
+
+    if ( av == NULL || av[ 0 ] == NULL ) {
+        return( NULL );
     }
-    if ( strlen( av[ 0 ] ) + 1 > sizeof( smashtext )) {
-	return( NULL );
+
+    for ( i = 0; i < COSIGN_MAXFACTORS && av[ i ] != NULL; i++ ) {
+        flens[ i ] = strlen( av[ i ] );
+
+        /* +1 for "," separator or nul terminator */
+        len += flens[ i ] + 1;
     }
+
+    if (( smashtext = (char *)malloc( len )) == NULL ) {
+        perror( "malloc smashtext" );
+        return( NULL );
+    }
+
     strcpy( smashtext, av[ 0 ] );
-    for ( i = 1; av[ i ] != NULL; i++ ) {
-	if ( strlen( av[ i ] ) + 1 + 1 >
-		sizeof( smashtext ) - strlen( smashtext )) {
-	    return( NULL );
-	}
-	strcat( smashtext, "," );
-	strcat( smashtext, av[ i ] );
+    for ( i = 1, len = flens[ 0 ]; av[ i ] != NULL; i++ ) {
+        strcpy( smashtext + len, "," );
+        strcpy( smashtext + len + 1, av[ i ] );
+
+        len += flens[ i ] + 1;
     }
+
     return( smashtext );
 }
 
     static char *
 doublesmash( char *v1[], char *v2[] )
 {
-    char	*mergev[ COSIGN_MAXFACTORS ];
+    char	*mergev[ COSIGN_MAXFACTORS ] = { NULL };
     int		i, j;
 
     for ( i = 0; i < COSIGN_MAXFACTORS - 1; i++ ) {
@@ -379,10 +390,9 @@ main( int argc, char *argv[] )
     char			*realm = NULL, *krbtkt_path = NULL;
     char			*auth_type = NULL;
     char			**ff, *msg = NULL;
-    char			*rfactors = NULL, *ufactors;
-    char			*rfactorv[ COSIGN_MAXFACTORS ];
-    char			*ufactorv[ COSIGN_MAXFACTORS ];
-    char			*nfactorv[ COSIGN_MAXFACTORS ];
+    char			*rfactors = NULL, *ufactors = NULL;
+    char			*rfactorv[ COSIGN_MAXFACTORS ] = { NULL };
+    char			*ufactorv[ COSIGN_MAXFACTORS ] = { NULL };
     struct servicelist		*scookie = NULL;
     struct factorlist		*fl;
     struct timeval		tv;
@@ -538,6 +548,10 @@ main( int argc, char *argv[] )
     }
 
     if (( data = getenv( "HTTP_COOKIE" )) != NULL ) {
+	/* try to use a copy, so external factors get unmodified env value */
+	if (( p = strdup( data )) != NULL ) {
+	    data = p;
+	}
 	for ( cookie = strtok( data, ";" ); cookie != NULL;
 		cookie = strtok( NULL, ";" )) {
 	    while ( *cookie == ' ' ) ++cookie;
@@ -820,6 +834,8 @@ main( int argc, char *argv[] )
 	sp.sp_ipchanged = 1;
     }
 
+    nfactorv[ 0 ] = NULL;
+
 #if defined( SQL_FRIEND ) || defined( KRB ) || defined( HAVE_LIBPAM )
     if ( cl[ CL_PASSWORD ].cl_data != NULL ) {
 	struct matchlist *pos = NULL;
@@ -889,7 +905,6 @@ loggedin:
      * compare factor form fields with posted form fields, call
      * authenticators accordingly.
      */
-    nfactorv[ 0 ] = NULL;
     for ( fl = factorlist; fl != NULL; fl = fl->fl_next ) {
 	for ( ff = fl->fl_formfield; *ff != NULL; ff++ ) {
 	    for ( i = 0; cl[ i ].cl_key != NULL; i++ ) {
@@ -920,6 +935,10 @@ loggedin:
             } else {
 	        sl[ SL_TITLE ].sl_data = "Authentication Required";
             }
+	    continue;
+	}
+
+	if ( msg == NULL || *msg == '\0' ) {
 	    continue;
 	}
 
@@ -967,8 +986,10 @@ loggedin:
 
     unsmash( ufactors, ufactorv );
     unsmash( rfactors, rfactorv );
-    if ( !satisfied( ui.ui_factors, ufactorv ) ||
-	    !satisfied( ui.ui_factors, rfactorv )) {
+    if ( !satisfied( ui.ui_factors, ufactorv )) {
+	sl[ SL_ERROR ].sl_data = "Additional authentication is required.";
+	goto loginscreen_moreauth;
+    } else if ( !satisfied( ui.ui_factors, rfactorv )) {
 	sl[ SL_ERROR ].sl_data = "Additional authentication is required.";
 	goto loginscreen;
     }
@@ -1159,12 +1180,15 @@ loginscreen:
 	    }
 	    tmpl = REAUTH_HTML;
 	} else {
+loginscreen_moreauth:
 	    /*
 	     * XXX
 	     * For the sake of the user interface, we'd like SL_RFACTORS to
 	     * contain ufactors and rfactors.
 	     */
 	    sl[ SL_DFACTOR ].sl_data = smash( ui.ui_factors );
+
+	    unsmash( rfactors, rfactorv );
 	    sl[ SL_RFACTOR ].sl_data = doublesmash( rfactorv, ufactorv );
 	    tmpl = LOGIN_ERROR_HTML;
 	}
