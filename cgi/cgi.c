@@ -678,24 +678,23 @@ main( int argc, char *argv[] )
 	    exit( 0 );
 	}
 
-	if ( !rebasic ) {
-	    if ( scookie->sl_flag & SL_REAUTH ) {
-		if ( cosign_check( head, cookie, &ui ) != 0 ) {
-		    goto loginscreen;
-		}
-		goto loginscreen;
-	    }
-	}
-
 	if ( cosign_check( head, cookie, &ui ) != 0 ) {
 	    goto loginscreen;
+	}
+
+	ufactors = getuserfactors( userfactorpath, ui.ui_login );
+
+	if ( !rebasic ) {
+	    if ( scookie->sl_flag & SL_REAUTH ) {
+		fprintf( stderr, "reauth required for %s\n", service );
+		/* ui struct populated by cosign_check above if good cookie */
+		goto loginscreen;
+	    }
 	}
 
 	if ( strcmp( ui.ui_ipaddr, ip_addr ) != 0 ) {
 	    goto loginscreen;
 	}
-
-	ufactors = getuserfactors( userfactorpath, ui.ui_login );
 
 	/*
 	 * We don't decide exactly what factors to put in SL_RFACTOR until
