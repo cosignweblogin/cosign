@@ -45,6 +45,12 @@ static int	cosign_redirect( request_rec *, cosign_host_config * );
 /* Our exported link to Apache. */
 module AP_MODULE_DECLARE_DATA cosign_module;
 
+#ifdef HAVE_APACHE_CONN_CLIENT_IP
+#define COSIGN_CLIENT_IP	client_ip
+#else /* HAVE_APACHE_CONN_CLIENT_IP */
+#define COSIGN_CLIENT_IP	remote_ip
+#endif /* HAVE_APACHE_CONN_CLIENT_IP */
+
     static void *
 cosign_create_config( apr_pool_t *p )
 {
@@ -340,7 +346,7 @@ cosign_handler( request_rec *r )
     }
 
     cv = cosign_cookie_valid( cfg, cookie, &rekey, &si,
-		r->connection->remote_ip, r->server );
+		r->connection->COSIGN_CLIENT_IP, r->server );
     if ( rekey != NULL ) {
 	/* we got a rekeyed cookie. let the request pool free it later. */
 	apr_pool_cleanup_register( r->pool, (void *)rekey, (void *)free,
@@ -528,7 +534,7 @@ cosign_auth( request_rec *r )
      * Otherwise, retrieve the auth info from the server.
      */
     cv = cosign_cookie_valid( cfg, my_cookie, NULL, &si,
-		r->connection->remote_ip, r->server );
+		r->connection->COSIGN_CLIENT_IP, r->server );
     if ( cv == COSIGN_ERROR ) {
 	return( HTTP_SERVICE_UNAVAILABLE );	/* it's all forbidden! */
     } 
