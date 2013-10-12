@@ -402,11 +402,19 @@ main( int argc, char *argv[] )
     int				nmatch = 2;
     CGIHANDLE			*cgi;
 
-    if (( argc == 2 ) && ( strcmp( argv[ 1 ], "-V" ) == 0 )) {
-	printf( "%s\n", cosign_version );
-	exit( 0 );
-    }
-    if ( argc != 1 ) {
+    if ( argc == 2 ) {
+	if ( strcmp( argv[ 1 ], "-V" ) == 0 ) {
+	    printf( "%s\n", cosign_version );
+	    exit( 0 );
+	}
+
+	/*
+	 * the second argument is otherwise the query string per RFC 3875:
+	 *	http://tools.ietf.org/html/rfc3875#section-4.4
+	 *
+	 * just ignore it and use the QUERY_STRING env variable.
+	 */
+    } else if ( argc != 1 ) {
 	fprintf( stderr, "usage: %s [-V]\n", argv[ 0 ] );
 	exit( 1 );
     }
