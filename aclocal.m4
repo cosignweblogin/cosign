@@ -118,6 +118,9 @@ AC_DEFUN([CHECK_APACHE2],
     if test -n "${APACHE2_MINOR_VERSION}"; then
 	if test "${APACHE2_MINOR_VERSION}" -gt 0; then
 	    AC_DEFINE(HAVE_MOD_AUTHZ_HOST)
+	    if test "${APACHE2_MINOR_VERSION}" -gt 2; then
+		AC_DEFINE(HAVE_APACHE_CONN_CLIENT_IP)
+	    fi
 	fi
     fi
     AC_SUBST(APXS2)
