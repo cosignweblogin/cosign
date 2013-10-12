@@ -682,6 +682,9 @@ main( int argc, char *argv[] )
 	    goto loginscreen;
 	}
 
+	/* try to provide service name to external factors */
+	setenv( "COSIGN_SERVICE", service, 1 );
+
 	ufactors = getuserfactors( userfactorpath, ui.ui_login );
 
 	if ( !rebasic ) {
@@ -839,6 +842,20 @@ main( int argc, char *argv[] )
     }
     if ( strcmp( ui.ui_ipaddr, ip_addr ) != 0 ) {
 	sp.sp_ipchanged = 1;
+    }
+
+    if ( service != NULL ) {
+	scookie = service_find( service, matches, nmatch );
+	if ( scookie == NULL ) {
+	    fprintf( stderr, "no matching service for %s\n", service );
+	    sl[ SL_TITLE ].sl_data = "Error: Unknown service";
+	    sl[ SL_ERROR ].sl_data = "We were unable to locate a "
+		    "service matching the one provided.";
+	    subfile( ERROR_HTML, sl, SUBF_OPT_SETSTATUS, 500 );
+	    exit( 0 );
+	}
+
+	setenv( "COSIGN_SERVICE", service, 1 );
     }
 
     nfactorv[ 0 ] = NULL;
@@ -1002,14 +1019,16 @@ loggedin:
     }
 
     if ( service != NULL && ref != NULL ) {
-	if (( p = strchr( service, '=' )) == NULL ) {
-	    scheme = 3;
-	    scookie = service_find( service, matches, nmatch );
-	} else {
-	    /* legacy cosign scheme */
-	    *p = '\0';
-	    scookie = service_find( service, matches, nmatch );
-	    *p = '=';
+	if ( scookie == NULL ) {
+	    if (( p = strchr( service, '=' )) == NULL ) {
+		scheme = 3;
+		scookie = service_find( service, matches, nmatch );
+	    } else {
+		/* legacy cosign scheme */
+		*p = '\0';
+		scookie = service_find( service, matches, nmatch );
+		*p = '=';
+	    }
 	}
 	if ( scookie == NULL ) {
 	    fprintf( stderr, "no matching service for %s\n", service );
