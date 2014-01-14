@@ -80,7 +80,8 @@ static struct subfile_list sl[] = {
 #include <mysql.h>
 
 static MYSQL	friend_db;
-static char	*friend_db_name = _FRIEND_MYSQL_DB;
+static char	*friend_db_host = _FRIEND_MYSQL_DB;
+static char	*friend_db_name = _FRIEND_MYSQL_DB_NAME;
 static char	*friend_login = _FRIEND_MYSQL_LOGIN;
 static char	*friend_passwd = _FRIEND_MYSQL_PASSWD;
 # endif  /* SQL_FRIEND */
@@ -124,6 +125,9 @@ lcgi_configure()
 
 # ifdef SQL_FRIEND
     if (( val = cosign_config_get( MYSQLDBKEY )) != NULL ) {
+	friend_db_host = val;
+    }
+    if (( val = cosign_config_get( MYSQLDBNAMEKEY )) != NULL ) {
         friend_db_name = val;
     }
     if (( val = cosign_config_get( MYSQLUSERKEY )) != NULL ) {
@@ -156,7 +160,7 @@ cosign_login_mysql( struct connlist *head, char *cosignname, char *id,
 
     lcgi_configure();
 
-    if ( !mysql_real_connect( &friend_db, friend_db_name, friend_login, friend_passwd, "friend", 3306, NULL, 0 )) {
+    if ( !mysql_real_connect( &friend_db, friend_db_host, friend_login, friend_passwd, friend_db_name, 3306, NULL, 0 )) {
 	fprintf( stderr, mysql_error( &friend_db ));
 	sl[ SL_ERROR ].sl_data = "Unable to connect to guest account database.";
 	sl[ SL_TITLE ].sl_data = "Database Problem";
