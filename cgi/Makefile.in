@@ -16,6 +16,7 @@ COSIGNCONF= @cosignconf@
 COSIGNPAMSERVICE= @cosignpamservice@
 KEYTABPATH = @keytabpath@
 FRIEND_MYSQL_DB = @frienddbhost@
+FRIEND_MYSQL_NAME_DB = @frienddbname@
 FRIEND_MYSQL_LOGIN = @frienddblogin@
 FRIEND_MYSQL_PASSWD = @frienddbpasswd@
 
@@ -43,6 +44,7 @@ login.o:	login.c
 	-D_COSIGN_PAM_SERVICE=\"${COSIGNPAMSERVICE}\" \
 	-D_KEYTAB_PATH=\"${KEYTABPATH}\" \
 	-D_FRIEND_MYSQL_DB=\"${FRIEND_MYSQL_DB}\" \
+	-D_FRIEND_MYSQL_DB_NAME=\"${FRIEND_MYSQL_DB_NAME}\" \
 	-D_FRIEND_MYSQL_LOGIN=\"${FRIEND_MYSQL_LOGIN}\" \
 	-D_FRIEND_MYSQL_PASSWD=\"${FRIEND_MYSQL_PASSWD}\" \
 	-c login.c
