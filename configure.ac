@@ -51,6 +51,9 @@ AC_SUBST(cosignkey)
 AC_ARG_WITH(frienddbhost, AC_HELP_STRING([--with-frienddbhost=NAME], [name of host running friend's mysql db]), frienddbhost="$withval", frienddbhost="localhost" )
 AC_SUBST(frienddbhost)
 
+AC_ARG_WITH(frienddbname, AC_HELP_STRING([--with-frienddbname=NAME], [name friend's mysql db]), frienddbname="$withval", frienddbname="friend" )
+AC_SUBST(frienddbname)
+
 AC_ARG_WITH(frienddblogin, AC_HELP_STRING([--with-frienddblogin=NAME], [username of friend mysql db account]), frienddblogin="$withval", frienddblogin="friend" )
 AC_SUBST(frienddblogin)
 
