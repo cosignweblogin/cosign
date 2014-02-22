@@ -17,7 +17,7 @@
 #undef APACHE2
 #undef HAVE_MOD_AUTHZ_HOST
 #undef HAVE_AP_REGEX_H
-#under HAVE_APACHE_CONN_CLIENT_IP
+#undef HAVE_APACHE_CONN_CLIENT_IP
 
 /* lighttpd */
 #undef LIGHTTPD
