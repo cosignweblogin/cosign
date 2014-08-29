@@ -43,6 +43,7 @@
 #include "network.h"
 #include "subfile.h"
 #include "mkcookie.h"
+#include "uservar.h"
 
 extern int	errno;
 
@@ -149,7 +150,7 @@ lcgi_configure()
     int
 cosign_login_mysql( struct connlist *head, char *cosignname, char *id, 
 	char *realm, char *passwd, char *ip_addr, char *cookie, 
-	struct subparams *sp, char **msg )
+	struct subparams *sp, char **msg, struct uservarlist *uv )
 {
     MYSQL_RES		*res;
     MYSQL_ROW		row;
@@ -161,10 +162,10 @@ cosign_login_mysql( struct connlist *head, char *cosignname, char *id,
     lcgi_configure();
 
     if ( !mysql_real_connect( &friend_db, friend_db_host, friend_login, friend_passwd, friend_db_name, 3306, NULL, 0 )) {
-	fprintf( stderr, mysql_error( &friend_db ));
+	fprintf( stderr, "%s\n", mysql_error( &friend_db ));
 	sl[ SL_ERROR ].sl_data = "Unable to connect to guest account database.";
 	sl[ SL_TITLE ].sl_data = "Database Problem";
-	subfile( tmpl, sl, 0 );
+	subfile( tmpl, sl, uv, 0 );
 	exit( 0 );
     }
 
@@ -185,7 +186,7 @@ cosign_login_mysql( struct connlist *head, char *cosignname, char *id,
 	    fprintf( stderr, "invalid username: %s %s\n", id, ip_addr );
 	    sl[ SL_ERROR ].sl_data = "Provided login appears to be invalid";
 	    sl[ SL_TITLE ].sl_data = "Invalid Input";
-	    subfile( tmpl, sl, 0 );
+	    subfile( tmpl, sl, uv, 0 );
 	    exit( 0 );
 	}
     }
@@ -195,25 +196,25 @@ cosign_login_mysql( struct connlist *head, char *cosignname, char *id,
 	fprintf( stderr, "invalid username: %s %s\n", id, ip_addr );
 	sl[ SL_ERROR ].sl_data = "Provided login appears to be invalid";
 	sl[ SL_TITLE ].sl_data = "Invalid Input";
-	subfile( tmpl, sl, 0 );
+	subfile( tmpl, sl, uv, 0 );
 	exit( 0 );
     }
 
     if( mysql_real_query( &friend_db, sql, strlen( sql ))) {
-	fprintf( stderr, mysql_error( &friend_db ));
+	fprintf( stderr, "%s\n", mysql_error( &friend_db ));
 	sl[ SL_ERROR ].sl_data = "Unable to query guest account database.";
 	sl[ SL_TITLE ].sl_data = "Server Problem";
-	subfile( tmpl, sl, 0 );
+	subfile( tmpl, sl, uv, 0 );
 	exit( 0 );
     }
 
     if (( res = mysql_store_result( &friend_db )) == NULL ) {
 	/* was there an error?  NULL can be okay. */
 	if ( mysql_errno( &friend_db )) {
-	    fprintf( stderr, mysql_error( &friend_db ));
+	    fprintf( stderr, "%s\n", mysql_error( &friend_db ));
 	    sl[ SL_ERROR ].sl_data = "Problems connecting to the database.";
 	    sl[ SL_TITLE ].sl_data = "Database Connection Problem";
-	    subfile( tmpl, sl, 0 );
+	    subfile( tmpl, sl, uv, 0 );
 	    exit( 0 );
 	}
     }
@@ -256,7 +257,7 @@ cosign_login_mysql( struct connlist *head, char *cosignname, char *id,
 	sl[ SL_ERROR ].sl_data = "We were unable to contact the "
 		"authentication server. Please try again later.";
 	sl[ SL_TITLE ].sl_data = "Error: Please try later";
-	subfile( tmpl, sl, 0 );
+	subfile( tmpl, sl, uv, 0 );
 	exit( 0 );
     }
     return( COSIGN_CGI_OK );
@@ -267,7 +268,7 @@ cosign_login_mysql( struct connlist *head, char *cosignname, char *id,
     int
 cosign_login_krb5( struct connlist *head, char *cosignname, char *id, 
 	char *realm, char *passwd, char *ip_addr, char *cookie, 
-	struct subparams *sp, char **msg )
+	struct subparams *sp, char **msg, struct uservarlist *uv )
 {
     krb5_error_code             kerror = 0;
     krb5_context                kcontext;
@@ -289,14 +290,14 @@ cosign_login_krb5( struct connlist *head, char *cosignname, char *id,
     if (( kerror = krb5_init_context( &kcontext ))) {
 	sl[ SL_ERROR ].sl_data = (char *)error_message( kerror );
 	sl[ SL_TITLE ].sl_data = "Authentication Required ( kerberos error )";
-	subfile( tmpl, sl, 0 );
+	subfile( tmpl, sl, uv, 0 );
 	exit( 0 );
     }
 
     if (( kerror = krb5_parse_name( kcontext, id, &kprinc ))) {
 	sl[ SL_ERROR ].sl_data = (char *)error_message( kerror );
 	sl[ SL_TITLE ].sl_data = "Authentication Required ( kerberos error )";
-	subfile( tmpl, sl, 0 );
+	subfile( tmpl, sl, uv, 0 );
 	exit( 0 );
     }
 
@@ -306,7 +307,7 @@ cosign_login_krb5( struct connlist *head, char *cosignname, char *id,
 	    sl[ SL_ERROR ].sl_data = (char *)error_message( kerror );
  	    sl[ SL_TITLE ].sl_data = "Authentication Required "
 		    "( krb realm error )";
-	    subfile( tmpl, sl, 0 );
+	    subfile( tmpl, sl, uv, 0 );
 	    exit( 0 );
     	}
     }
@@ -315,7 +316,7 @@ cosign_login_krb5( struct connlist *head, char *cosignname, char *id,
 	if ( mkcookie( sizeof( tmpkrb ), tmpkrb ) != 0 ) {
 	    sl[ SL_ERROR ].sl_data = "An unknown error occurred.";
 	    sl[ SL_TITLE ].sl_data = "Authentication Required (kerberos error)";
-	    subfile( tmpl, sl, 0 );
+	    subfile( tmpl, sl, uv, 0 );
 	    exit( 0 );
 	}
 
@@ -323,14 +324,14 @@ cosign_login_krb5( struct connlist *head, char *cosignname, char *id,
 		ticket_path, tmpkrb ) >= sizeof( krbpath )) {
 	    sl[ SL_ERROR ].sl_data = "An unknown error occurred.";
 	    sl[ SL_TITLE ].sl_data = "Authentication Required (krbpath error)";
-	    subfile( tmpl, sl, 0 );
+	    subfile( tmpl, sl, uv, 0 );
 	    exit( 0 );
 	}
 
 	if (( kerror = krb5_cc_resolve( kcontext, krbpath, &kccache )) != 0 ) {
 	    sl[ SL_ERROR ].sl_data = (char *)error_message( kerror );
 	    sl[ SL_TITLE ].sl_data = "Authentication Required (kerberos error)";
-	    subfile( tmpl, sl, 0 );
+	    subfile( tmpl, sl, uv, 0 );
 	    exit( 0 );
 	}
     }
@@ -354,7 +355,7 @@ cosign_login_krb5( struct connlist *head, char *cosignname, char *id,
 	} else {
 	    sl[ SL_ERROR ].sl_data = (char *)error_message( kerror );
 	    sl[ SL_TITLE ].sl_data = "Error";
-	    subfile( tmpl, sl, 0 );
+	    subfile( tmpl, sl, uv, 0 );
 	    exit( 0 );
 	}
     }
@@ -364,7 +365,7 @@ cosign_login_krb5( struct connlist *head, char *cosignname, char *id,
 	if ( strlen( keytab_path ) > MAX_KEYTAB_NAME_LEN ) {
 	    sl[ SL_ERROR ].sl_data = "server configuration error";
 	    sl[ SL_TITLE ].sl_data = "Ticket Verification Error";
-	    subfile( tmpl, sl, 0 );
+	    subfile( tmpl, sl, uv, 0 );
 	    exit( 0 );
 	}
 	strcpy( ktbuf, keytab_path );
@@ -376,7 +377,7 @@ cosign_login_krb5( struct connlist *head, char *cosignname, char *id,
 	if (( kerror = krb5_kt_resolve( kcontext, ktbuf, &keytab )) != 0 ) {
 	    sl[ SL_ERROR ].sl_data = (char *)error_message( kerror );
 	    sl[ SL_TITLE ].sl_data = "KT Resolve Error";
-	    subfile( tmpl, sl, 0 );
+	    subfile( tmpl, sl, uv, 0 );
 	    exit( 0 );
 	}
 
@@ -389,7 +390,7 @@ cosign_login_krb5( struct connlist *head, char *cosignname, char *id,
 	if ( kerror != 0 ) {
 	    sl[ SL_ERROR ].sl_data = (char *)error_message( kerror );
 	    sl[ SL_TITLE ].sl_data = "Server Principal Error";
-	    subfile( tmpl, sl, 0 );
+	    subfile( tmpl, sl, uv, 0 );
 	    exit( 0 );
 	}
 
@@ -404,7 +405,7 @@ cosign_login_krb5( struct connlist *head, char *cosignname, char *id,
 	    }
 	    sl[ SL_ERROR ].sl_data = (char *)error_message( kerror );
 	    sl[ SL_TITLE ].sl_data = "Ticket Verify Error";
-	    subfile( tmpl, sl, 0 );
+	    subfile( tmpl, sl, uv, 0 );
 	    krb5_free_principal( kcontext, sprinc );
 	    exit( 0 );
 	}
@@ -431,14 +432,14 @@ cosign_login_krb5( struct connlist *head, char *cosignname, char *id,
 	if (( kerror = krb5_cc_initialize( kcontext, kccache, kprinc )) != 0 ) {
 	    sl[ SL_ERROR ].sl_data = (char *)error_message( kerror );
 	    sl[ SL_TITLE ].sl_data = "CC Initialize Error";
-	    subfile( tmpl, sl, 0 );
+	    subfile( tmpl, sl, uv, 0 );
 	    exit( 0 );
 	}
 	if (( kerror = krb5_cc_store_cred( kcontext, kccache, &kcreds ))
 		!= 0 ) {
 	    sl[ SL_ERROR ].sl_data = (char *)error_message( kerror );
 	    sl[ SL_TITLE ].sl_data = "CC Storing Error";
-	    subfile( tmpl, sl, 0 );
+	    subfile( tmpl, sl, uv, 0 );
 	    exit( 0 );
 	}
 	krb5_cc_close( kcontext, kccache );
@@ -455,7 +456,7 @@ cosign_login_krb5( struct connlist *head, char *cosignname, char *id,
 	sl[ SL_ERROR ].sl_data = "We were unable to contact the "
 		"authentication server. Please try again later.";
 	sl[ SL_TITLE ].sl_data = "Error: Please try later";
-	subfile( tmpl, sl, 0 );
+	subfile( tmpl, sl, uv, 0 );
 	exit( 0 );
     }
 
@@ -534,7 +535,7 @@ error:
     int
 cosign_login_pam( struct connlist *head, char *cosignname, char *id, 
 	char *realm, char *passwd, char *ip_addr, char *cookie, 
-	struct subparams *sp, char **msg )
+	struct subparams *sp, char **msg, struct uservarlist *uv )
 {
     pam_handle_t	*ph;
     struct pam_conv	pconv;
@@ -550,7 +551,7 @@ cosign_login_pam( struct connlist *head, char *cosignname, char *id,
 		"%s\n", cosign_pam_service, pam_strerror( ph, status ));
 	sl[ SL_ERROR ].sl_data = (char *)pam_strerror( ph, status );
 	sl[ SL_TITLE ].sl_data = "PAM start error";
-	subfile( tmpl, sl, SUBF_OPT_ERROR, 500 );
+	subfile( tmpl, sl, uv, SUBF_OPT_ERROR, 500 );
 	exit( 0 );
     }
 
@@ -566,7 +567,7 @@ cosign_login_pam( struct connlist *head, char *cosignname, char *id,
 
 	sl[ SL_ERROR ].sl_data = (char *)pam_strerror( ph, status );
 	sl[ SL_TITLE ].sl_data = "PAM authentication error";
-	subfile( tmpl, sl, SUBF_OPT_ERROR, 500 );
+	subfile( tmpl, sl, uv, SUBF_OPT_ERROR, 500 );
 	exit( 0 );
     }
 
@@ -584,7 +585,7 @@ cosign_login_pam( struct connlist *head, char *cosignname, char *id,
 		"failed: %s\n", cosign_pam_service, pam_strerror( ph, status ));
 	sl[ SL_ERROR ].sl_data = (char *)pam_strerror( ph, status );
 	sl[ SL_TITLE ].sl_data = "PAM account management";
-	subfile( tmpl, sl, SUBF_OPT_ERROR, 500 );
+	subfile( tmpl, sl, uv, SUBF_OPT_ERROR, 500 );
 	exit( 0 );
     }
 
@@ -597,7 +598,7 @@ done:
 		"failed: %s\n", cosign_pam_service, pam_strerror( ph, status ));
 	sl[ SL_ERROR ].sl_data = (char *)pam_strerror( ph, status );
 	sl[ SL_TITLE ].sl_data = "PAM end";
-	subfile( tmpl, sl, SUBF_OPT_ERROR, 500 );
+	subfile( tmpl, sl, uv, SUBF_OPT_ERROR, 500 );
 	exit( 0 );
     }
 
@@ -609,7 +610,7 @@ done:
 	    sl[ SL_ERROR ].sl_data = "We were unable to contact the "
 		    "authentication server. Please try again later.";
 	    sl[ SL_TITLE ].sl_data = "Error: Please try later";
-	    subfile( tmpl, sl, SUBF_OPT_ERROR, 500 );
+	    subfile( tmpl, sl, uv, SUBF_OPT_ERROR, 500 );
 	    exit( 0 );
 	}
     }

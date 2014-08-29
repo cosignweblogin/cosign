@@ -1,3 +1,5 @@
+struct uservarlist;
+
 struct subfile_list {
     char	sl_letter;
     int		sl_type;
@@ -13,4 +15,4 @@ struct subfile_list {
 #define SUBF_OPT_LOG		(1<<2)
 #define SUBF_OPT_ERROR		(SUBF_OPT_SETSTATUS | SUBF_OPT_LOG)
 
-void subfile( char *, struct subfile_list *, int, ... );
+void subfile( char *, struct subfile_list *, struct uservarlist *, int, ... );

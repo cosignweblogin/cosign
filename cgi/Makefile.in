@@ -16,7 +16,7 @@ COSIGNCONF= @cosignconf@
 COSIGNPAMSERVICE= @cosignpamservice@
 KEYTABPATH = @keytabpath@
 FRIEND_MYSQL_DB = @frienddbhost@
-FRIEND_MYSQL_NAME_DB = @frienddbname@
+FRIEND_MYSQL_DB_NAME = @frienddbname@
 FRIEND_MYSQL_LOGIN = @frienddblogin@
 FRIEND_MYSQL_PASSWD = @frienddbpasswd@
 
@@ -60,8 +60,11 @@ cgi.o:	cgi.c
 	-D_COSIGN_TMPL_DIR=\"${COSIGNTMPLDIR}\" \
 	-c cgi.c
 
-cosign.cgi: cgi.o login.o factor.o $(OBJ)
-	${CC} ${CFLAGS} -o cosign.cgi cgi.o login.o factor.o $(OBJ) $(LDFLAGS)
+cosign.cgi: cgi.o login.o factor.o uservar.o $(OBJ)
+	${CC} ${CFLAGS} -o cosign.cgi cgi.o login.o factor.o uservar.o $(OBJ) $(LDFLAGS)
+
+uservar.o:  uservar.c
+	${CC} ${CFLAGS} -c uservar.c
 
 logout.o:	logout.c
 	${CC} ${CFLAGS} \
