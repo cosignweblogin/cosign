@@ -847,17 +847,25 @@ main( int argc, char *argv[] )
     }
 
     if ( service != NULL ) {
-	scookie = service_find( service, matches, nmatch );
-	if ( scookie == NULL ) {
-	    fprintf( stderr, "no matching service for %s\n", service );
-	    sl[ SL_TITLE ].sl_data = "Error: Unknown service";
-	    sl[ SL_ERROR ].sl_data = "We were unable to locate a "
-		    "service matching the one provided.";
-	    subfile( ERROR_HTML, sl, uv, SUBF_OPT_SETSTATUS, 500 );
-	    exit( 0 );
-	}
+        if (( p = strchr( service, '=' )) == NULL ) {
+            scheme = 3;
+            scookie = service_find( service, matches, nmatch );
+        } else {
+            *p = '\0';
+            scookie = service_find( service, matches, nmatch );
+            *p = '=';
+        }
 
-	setenv( "COSIGN_SERVICE", service, 1 );
+        if ( scookie == NULL ) {
+            fprintf( stderr, "no matching service for %s\n", service );
+            sl[ SL_TITLE ].sl_data = "Error: Unknown service";
+            sl[ SL_ERROR ].sl_data = "We were unable to locate a "
+                "service matching the one provided.";
+            subfile( ERROR_HTML, sl, uv, SUBF_OPT_SETSTATUS, 500 );
+            exit( 0 );
+          }
+
+        setenv( "COSIGN_SERVICE", service, 1 );
     }
 
     nfactorv[ 0 ] = NULL;
