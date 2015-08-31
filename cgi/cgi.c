@@ -359,6 +359,10 @@ getuserfactors( char *path, char *login, struct uservarlist **uv )
     char			*msg = NULL;
     int				rc;
 
+    if ( path == NULL ) {
+      return NULL;
+    }
+
     ufl.fl_path = path;
     ufl.fl_flag = 0;
     ufl.fl_formfield[ 0 ] = NULL;
@@ -466,9 +470,6 @@ main( int argc, char *argv[] )
 	exit(0);
     }
     server_port = atoi( sport);
-    if (( realm = getenv( "COSIGN_DEFAULT_FACTOR" )) == NULL ) {
-	realm = "basic";
-    }
 
     subject_dn = getenv( "SSL_CLIENT_S_DN" );
     issuer_dn = getenv( "SSL_CLIENT_I_DN" );
@@ -485,6 +486,12 @@ main( int argc, char *argv[] )
     } else {
 	auth_type = getenv("AUTH_TYPE");
 	remote_user = getenv("REMOTE_USER");
+
+	if ( remote_user ) {
+	    if (( realm = getenv( "COSIGN_DEFAULT_FACTOR" )) == NULL ) {
+		realm = "basic";
+	    }
+	}
 
 	if ( remote_user && auth_type &&
 		strcasecmp( auth_type, "Negotiate" ) == 0 ) {
@@ -1086,7 +1093,7 @@ loggedin:
 			" to re-authenticate.";
 		goto loginscreen;
 	    }
-	    if ( !satisfied( scookie->sl_factors, nfactorv )) {
+	    if ( !satisfied( nfactorv, scookie->sl_factors )) {
 		sl[ SL_ERROR ].sl_data = "Please complete all required"
 			" fields to re-authenticate.";
 		    goto loginscreen;
