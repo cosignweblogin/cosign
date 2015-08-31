@@ -1306,6 +1306,7 @@ retr_proxy( SNET *sn, char *login, SNET *pushersn )
 	}
 	snet_writef( sn, "%d-%s %s\r\n", 241, cbuf, proxy->pr_hostname );
     }
+    syslog( LOG_INFO, "RETR %s cookies", al->al_hostname ); //lrh
     snet_writef( sn, "%d Cookies registered and sent\r\n", 241 );
 
     return( 0 );
@@ -1350,6 +1351,7 @@ retr_ticket( SNET *sn, struct servicelist *sl, char *krbpath )
         return( 1 );
     }
 
+    syslog( LOG_INFO, "RETR %s tgt", sl->sl_auth->al_hostname ); //lrh
     snet_writef( sn, "%d Retrieving file\r\n", 240 );
     snet_writef( sn, "%d\r\n", (int)st.st_size );
 
