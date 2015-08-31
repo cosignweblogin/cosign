@@ -203,7 +203,7 @@ AC_DEFUN([CHECK_LIBMYSQL],
     AC_SUBST(MYSQLINC)
     MYSQLLIBS="-lmysqlclient";
     AC_SUBST(MYSQLLIBS)
-    MYSQLLDFLAGS="-L$ac_cv_path_mysql/lib/mysql -R$ac_cv_path_mysql/lib/mysql";
+    MYSQLLDFLAGS="";
     AC_SUBST(MYSQLLDFLAGS)
     AC_DEFINE(HAVE_MYSQL)
     AC_DEFINE(SQL_FRIEND)

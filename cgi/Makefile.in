@@ -24,7 +24,7 @@ INCPATH=     @CPPFLAGS@ @KINC@ @MYSQLINC@ -I../common -I../libsnet -I../libcgi
 OPTOPTS=     @OPTOPTS@ @UNIVERSAL_OPTOPTS@
 CC=          @CC@
 DEFS=
-LIBS=        -lsnet -lcgi @LIBS@ @KLIBS@ @MYSQLLIBS@
+LIBS=        -lcrypt -lsnet -lcgi @LIBS@ @KLIBS@ @MYSQLLIBS@
 LDFLAGS=     -L../libsnet/.libs -L../libcgi @LDFLAGS@ @KLDFLAGS@ @MYSQLLDFLAGS@ ${LIBS}
 INSTALL=     @INSTALL@
 
