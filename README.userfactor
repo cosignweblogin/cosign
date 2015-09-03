@@ -1,0 +1,43 @@
+A userfactor is configured in cosign.conf like this:
+
+  userfactor <script path>
+
+The script's return code determines the behavior of cosign.cgi. It's
+expected that it will return one of these three codes:
+
+	#define COSIGN_CGI_OK                 0
+	#define COSIGN_CGI_ERROR              1
+	#define COSIGN_CGI_PASSWORD_EXPIRED   2 
+
+If the userfactor script returns non-zero, then the last line of
+stdout output from the script is used as an error message to be
+displayed (via template substitution) to the user.
+
+There are three different things that a userfactor script might emit
+to stdout (on success).
+
+First: a space-separated list of factors that the user has now satisfied.
+
+Second: a cookie, to be set by the browser.
+
+	<cookie>=<value>[ ;expires=<when>]
+
+Third: a uservar, to be substituted in a template file.
+
+       $<var>=<contents>
+
+uservars are then used in a template like this:
+
+       $v:<var>
+
+This can be used to convey very sophisticated information in
+complicated workflows; the script can emit, for example, JSON to a uservar.
+
+    $config={"name":"Jorj","token":"fa2e684af436e1ae", "color":"blue"}
+
+The template can then embed that in Javascript like this:
+
+ 
+    var config = $v:config;
+
+with further processing of that data by the embedded template Javascript.
