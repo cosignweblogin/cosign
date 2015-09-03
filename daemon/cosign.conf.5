@@ -219,6 +219,13 @@ once the ticket has been successfully transfered to cosignd. This
 setting is also the default path for the directory where cosignd stores
 its tickets, and the default is _COSIGN_TICKET_CACHE
 .TP 19
+.B cosignhttponlycookies
+Enable or disable the "httponly" attribute of the cosign cookie set by the 
+.BR cosign.cgi .
+The "httponly" attribute restricts non-User Agent access to the cookie,
+mitigating some cross-site scripting (XSS) attacks. The value can be set
+to "on" or "off". The default is "on".
+.TP 19
 .B cosigntmpldir
 The path to the directory where cosign.cgi gets the templates for
 drawing the screen. This is therefore the working directory for
@@ -297,6 +304,9 @@ with friend support on.
 .TP 19
 .B mysqldb
 The hostname of friend's database server. The default is _FRIEND_MYSQL_DB
+.TP 19
+.B mysqldbname
+The name of friend database. The default is _FRIEND_MYSQL_DB_NAME
 .TP 19
 .B mysqluser
 The login name to access the friend database. The default is

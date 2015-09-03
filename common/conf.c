@@ -1035,6 +1035,7 @@ cosign_ssl( char *cryptofile, char *certfile, char *capath, SSL_CTX **ctx )
 		ERR_error_string( ERR_get_error(), NULL ));
 	return( 1 );
     }
+    SSL_CTX_set_options( tmp, SSL_OP_NO_SSLv2 );
 
     if ( SSL_CTX_use_PrivateKey_file( tmp, cryptofile, SSL_FILETYPE_PEM )
 	    != 1 ) {
