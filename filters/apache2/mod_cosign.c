@@ -47,8 +47,6 @@ module AP_MODULE_DECLARE_DATA cosign_module;
 
 #ifdef HAVE_APACHE_CONN_CLIENT_IP
 #define COSIGN_CLIENT_IP	client_ip
-#else /* HAVE_APACHE_CONN_CLIENT_IP */
-#define COSIGN_CLIENT_IP	remote_ip
 #endif /* HAVE_APACHE_CONN_CLIENT_IP */
 
     static void *
