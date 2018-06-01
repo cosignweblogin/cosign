@@ -115,7 +115,7 @@ AC_DEFUN([CHECK_SASL],
 	    fi
 	done
 	if test x_$found_sasl == x_yes; then
-	    AC_DEFINE(HAVE_LIBSASL)
+	    AC_DEFINE(HAVE_LIBSASL, [], [libsasl is required])
 	    LIBS="$LIBS -lsasl2";
 	    LDFLAGS="$LDFLAGS -L$sasldir/lib";
 	    AC_MSG_RESULT(yes)
