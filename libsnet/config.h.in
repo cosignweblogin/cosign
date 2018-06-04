@@ -1,21 +1,31 @@
-/* Version number of package */
-#undef VERSION
+/* config.h.in.  Generated from configure.ac by autoheader.  */
 
-/* Define to make fseeko etc. visible, on some hosts. */
-#undef _LARGEFILE_SOURCE
+/* Define to 1 if you have the <dlfcn.h> header file. */
+#undef HAVE_DLFCN_H
 
-/* Define for large files, on AIX-style hosts. */
-#undef _LARGE_FILES
+/* Define to 1 if you have the `crypto' library (-lcrypto). */
+#undef HAVE_LIBCRYPTO
 
-/* Number of bits in a file offset, on hosts where this is settable.
-       case  in
-        # HP-UX 10.20 and later
-        hpux10.2-90-9* | hpux11-9* | hpux2-90-9*)
-          ac_cv_sys_file_offset_bits=64 ;;
-        esac */     
-#undef _FILE_OFFSET_BITS
+/* libsasl is required */
+#undef HAVE_LIBSASL
 
+/* Define to 1 if you have the `ssl' library (-lssl). */
 #undef HAVE_LIBSSL
 
-/* Define to 1 if you have the `sasl' library (-lsasl2). */
-#undef HAVE_LIBSASL
+/* Define to the address where bug reports for this package should be sent. */
+#undef PACKAGE_BUGREPORT
+
+/* Define to the full name of this package. */
+#undef PACKAGE_NAME
+
+/* Define to the full name and version of this package. */
+#undef PACKAGE_STRING
+
+/* Define to the one symbol short name of this package. */
+#undef PACKAGE_TARNAME
+
+/* Define to the home page for this package. */
+#undef PACKAGE_URL
+
+/* Define to the version of this package. */
+#undef PACKAGE_VERSION

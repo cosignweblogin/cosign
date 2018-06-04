@@ -1,23 +1,88 @@
+/* common/config.h.in.  Generated from configure.ac by autoheader.  */
 
-/* openssl is required */
-#undef HAVE_LIBSSL
-
-/* kerberos and gssapi support */
-#undef KRB
-#undef GSS
-
-/* friend accounts */
-#undef HAVE_MYSQL
-#undef SQL_FRIEND
-
-/* Apache 1.3.x */
+/* Apache 1.x */
 #undef APACHE1
 
 /* Apache 2.x */
 #undef APACHE2
-#undef HAVE_MOD_AUTHZ_HOST
-#undef HAVE_AP_REGEX_H
+
+/* GSSAPI support in apache filter */
+#undef GSS
+
+/* flag conn_rec->client_ip support */
 #undef HAVE_APACHE_CONN_CLIENT_IP
 
-/* lighttpd */
-#undef LIGHTTPD
+/* flag ap_regex is supported */
+#undef HAVE_AP_REGEX_H
+
+/* Define to 1 if you have the <inttypes.h> header file. */
+#undef HAVE_INTTYPES_H
+
+/* Define to 1 if you have the `nsl' library (-lnsl). */
+#undef HAVE_LIBNSL
+
+/* Define to 1 if you have the `socket' library (-lsocket). */
+#undef HAVE_LIBSOCKET
+
+/* SSL is required */
+#undef HAVE_LIBSSL
+
+/* Lighthttpd filter support */
+#undef HAVE_LIGHTTPD
+
+/* Define to 1 if you have the <memory.h> header file. */
+#undef HAVE_MEMORY_H
+
+/* flag mod_authz_host support */
+#undef HAVE_MOD_AUTHZ_HOST
+
+/* MySQL is required for guest login support */
+#undef HAVE_MYSQL
+
+/* Define to 1 if you have the <stdint.h> header file. */
+#undef HAVE_STDINT_H
+
+/* Define to 1 if you have the <stdlib.h> header file. */
+#undef HAVE_STDLIB_H
+
+/* Define to 1 if you have the <strings.h> header file. */
+#undef HAVE_STRINGS_H
+
+/* Define to 1 if you have the <string.h> header file. */
+#undef HAVE_STRING_H
+
+/* Define to 1 if you have the <sys/stat.h> header file. */
+#undef HAVE_SYS_STAT_H
+
+/* Define to 1 if you have the <sys/types.h> header file. */
+#undef HAVE_SYS_TYPES_H
+
+/* Define to 1 if you have the <unistd.h> header file. */
+#undef HAVE_UNISTD_H
+
+/* Kerberos support for cgi and apache filter */
+#undef KRB
+
+/* Define to the address where bug reports for this package should be sent. */
+#undef PACKAGE_BUGREPORT
+
+/* Define to the full name of this package. */
+#undef PACKAGE_NAME
+
+/* Define to the full name and version of this package. */
+#undef PACKAGE_STRING
+
+/* Define to the one symbol short name of this package. */
+#undef PACKAGE_TARNAME
+
+/* Define to the home page for this package. */
+#undef PACKAGE_URL
+
+/* Define to the version of this package. */
+#undef PACKAGE_VERSION
+
+/* Guest login support */
+#undef SQL_FRIEND
+
+/* Define to 1 if you have the ANSI C header files. */
+#undef STDC_HEADERS
