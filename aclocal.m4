@@ -90,8 +90,8 @@ AC_DEFUN([CHECK_APACHE2],
     AC_MSG_CHECKING(for apache 2)
  
     if test -f "$enableval"; then
-	echo "using apxs2 as '$enableval'"
-	ac_cv_path_apxs2="$enableval"
+        echo "using apxs2 as '$enableval'"
+        ac_cv_path_apxs2="$enableval"
     fi
 
     APXS2="$ac_cv_path_apxs2"
@@ -104,24 +104,22 @@ AC_DEFUN([CHECK_APACHE2],
     APXS2_TARGET="`$APXS2 -q TARGET`"
     APXS2_SBINDIR="`$APXS2 -q SBINDIR`"
     if test x_$APXS2_TARGET = x_httpd ; then
-	APACHECTL2="${APXS2_SBINDIR}/apachectl"
+        APACHECTL2="${APXS2_SBINDIR}/apachectl"
     else
-	APACHECTL2="${APXS2_SBINDIR}/${APXS2_TARGET}ctl"
+        APACHECTL2="${APXS2_SBINDIR}/${APXS2_TARGET}ctl"
     fi
     APXS2_INCLUDEDIR="`${APXS2} -q INCLUDEDIR`"
     if test -f "$APXS2_INCLUDEDIR/ap_regex.h"; then
-	AC_DEFINE(HAVE_AP_REGEX_H, [], [Regex is required])
+        AC_DEFINE(HAVE_AP_REGEX_H, [], [flag ap_regex is supported])
     fi
-    APACHE2_MINOR_VERSION="`${APXS2_SBINDIR}/${APXS2_TARGET} -v | \
-	    sed -e '/^Server version:/!d' \
-	        -e 's/.*Apache\/2\.\(@<:@0-9@:>@\)\..*/\1/g'`"
+    APACHE2_MINOR_VERSION=`$APXS2 -q HTTPD_VERSION | $AWK -F '.' '{print [$]2}'`
     if test -n "${APACHE2_MINOR_VERSION}"; then
-	if test "${APACHE2_MINOR_VERSION}" -gt 0; then
-	    AC_DEFINE(HAVE_MOD_AUTHZ_HOST, [], [ ])
-	    if test "${APACHE2_MINOR_VERSION}" -gt 2; then
-		AC_DEFINE(HAVE_APACHE_CONN_CLIENT_IP, [], [ ])
-	    fi
-	fi
+        if test "${APACHE2_MINOR_VERSION}" -gt 0; then
+            AC_DEFINE(HAVE_MOD_AUTHZ_HOST, [], [flag mod_authz_host support])
+            if test "${APACHE2_MINOR_VERSION}" -gt 2; then
+                AC_DEFINE(HAVE_APACHE_CONN_CLIENT_IP, [], [flag conn_rec->client_ip support])
+            fi
+        fi
     fi
     AC_SUBST(APXS2)
     AC_SUBST(APACHECTL2)
