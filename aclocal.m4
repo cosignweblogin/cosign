@@ -32,7 +32,7 @@ AC_DEFUN([CHECK_SSL],
     esac
 
     CPPFLAGS="$CPPFLAGS -I$ac_cv_path_ssl/include";
-    AC_DEFINE(HAVE_LIBSSL)
+    AC_DEFINE(HAVE_LIBSSL, [], [SSL is required])
     LIBS="$LIBS -lssl -lcrypto";
     LDFLAGS="$LDFLAGS -L$ac_cv_path_ssl/lib";
     AC_MSG_RESULT($ac_cv_path_ssl)
@@ -81,7 +81,7 @@ AC_DEFUN([CHECK_LIBKRB],
     AC_SUBST(KLIBS)
     KLDFLAGS="-L$ac_cv_path_krb/lib";
     AC_SUBST(KLDFLAGS)
-    AC_DEFINE(KRB)
+    AC_DEFINE(KRB, [], [Kerberos support for cgi and apache filter])
     AC_MSG_RESULT(Kerberos found at $ac_cv_path_krb)
 ])
 
@@ -90,8 +90,8 @@ AC_DEFUN([CHECK_APACHE2],
     AC_MSG_CHECKING(for apache 2)
  
     if test -f "$enableval"; then
-	echo "using apxs2 as '$enableval'"
-	ac_cv_path_apxs2="$enableval"
+        echo "using apxs2 as '$enableval'"
+        ac_cv_path_apxs2="$enableval"
     fi
 
     APXS2="$ac_cv_path_apxs2"
@@ -104,25 +104,26 @@ AC_DEFUN([CHECK_APACHE2],
     APXS2_TARGET="`$APXS2 -q TARGET`"
     APXS2_SBINDIR="`$APXS2 -q SBINDIR`"
     if test x_$APXS2_TARGET = x_httpd ; then
-	APACHECTL2="${APXS2_SBINDIR}/apachectl"
+        APACHECTL2="${APXS2_SBINDIR}/apachectl"
     else
-	APACHECTL2="${APXS2_SBINDIR}/${APXS2_TARGET}ctl"
+        APACHECTL2="${APXS2_SBINDIR}/${APXS2_TARGET}ctl"
     fi
     APXS2_INCLUDEDIR="`${APXS2} -q INCLUDEDIR`"
     if test -f "$APXS2_INCLUDEDIR/ap_regex.h"; then
-	AC_DEFINE(HAVE_AP_REGEX_H)
+        AC_DEFINE(HAVE_AP_REGEX_H, [], [flag ap_regex is supported])
     fi
-    APACHE2_MINOR_VERSION="`${APXS2_SBINDIR}/${APXS2_TARGET} -v | \
-	    sed -e '/^Server version:/!d' \
-	        -e 's/.*Apache\/2\.\(@<:@0-9@:>@\)\..*/\1/g'`"
+    APACHE2_MINOR_VERSION=`$APXS2 -q HTTPD_VERSION | $AWK -F '.' '{print [$]2}'`
     if test -n "${APACHE2_MINOR_VERSION}"; then
-	if test "${APACHE2_MINOR_VERSION}" -gt 0; then
-	    AC_DEFINE(HAVE_MOD_AUTHZ_HOST)
-	fi
+        if test "${APACHE2_MINOR_VERSION}" -gt 0; then
+            AC_DEFINE(HAVE_MOD_AUTHZ_HOST, [], [flag mod_authz_host support])
+            if test "${APACHE2_MINOR_VERSION}" -gt 2; then
+                AC_DEFINE(HAVE_APACHE_CONN_CLIENT_IP, [], [flag conn_rec->client_ip support])
+            fi
+        fi
     fi
     AC_SUBST(APXS2)
     AC_SUBST(APACHECTL2)
-    AC_DEFINE(APACHE2)
+    AC_DEFINE(APACHE2, [], [Apache 2.x])
     AC_MSG_RESULT(apache 2 filter will be built)
 
 ])
@@ -139,7 +140,7 @@ AC_DEFUN([CHECK_GSS],
     AC_SUBST(GSSLIBS)
     GSSLDFLAGS="-L$ac_cv_path_krb/lib";
     AC_SUBST(GSSLDFLAGS)
-    AC_DEFINE(GSS)
+    AC_DEFINE(GSS, [], [GSSAPI support in apache filter])
     AC_MSG_RESULT($ac_cv_path_krb)
 ])
 
@@ -168,7 +169,7 @@ AC_DEFUN([CHECK_APACHE_1],
     fi
     AC_SUBST(APXS)
     AC_SUBST(APACHECTL)
-    AC_DEFINE(APACHE1)
+    AC_DEFINE(APACHE1, [], [Apache 1.x])
     AC_MSG_RESULT(apache 1.3 filter will be built)
 
 ])
@@ -202,8 +203,8 @@ AC_DEFUN([CHECK_LIBMYSQL],
     AC_SUBST(MYSQLLIBS)
     MYSQLLDFLAGS="-L$ac_cv_path_mysql/lib/mysql -R$ac_cv_path_mysql/lib/mysql";
     AC_SUBST(MYSQLLDFLAGS)
-    AC_DEFINE(HAVE_MYSQL)
-    AC_DEFINE(SQL_FRIEND)
+    AC_DEFINE(HAVE_MYSQL, [], [MySQL is required for guest login support])
+    AC_DEFINE(SQL_FRIEND, [], [Guest login support])
     AC_MSG_RESULT($ac_cv_path_mysql)
 ])
 
@@ -284,7 +285,7 @@ AC_DEFUN([CHECK_LIGHTTPD],
     LIGHTTPD_COSIGN_SRCDIR=`pwd`
 
     AC_SUBST(LIGHTTPD_COSIGN_SRCDIR)
-    AC_DEFINE(HAVE_LIGHTTPD)
+    AC_DEFINE(HAVE_LIGHTTPD, [], [Lighthttpd filter support])
     FILTERS="$FILTERS filters/lighttpd"
     AC_MSG_RESULT(lighttpd filter will be built)
 ])
