@@ -1,3 +1,7 @@
+IMPORTANT NOTE: Cosign is no longer being maintained. Cosign users
+are encouraged to migrate to modern alternatives supporting
+OAuth/OIDC/SAML. The project remains here for historical purposes.
+
 These instructions are for building the Apache authentication filter.
 If you need to set up an entire weblogin infrastructure please see
 README.weblogin (for sites using Kerberos) or README.basicauth for any
